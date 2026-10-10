@@ -1,0 +1,7 @@
+# Справочник {#sec-handbook}
+
+{{< xref handbook sec-shells "Оболочки, файлы и потоки" >}}
+
+{{< xref handbook sec-git "Git: сравнение, история, ветвление и архивы" >}}
+
+{{< xref handbook sec-editor "Редактор и терминал" >}}

@@ -1,0 +1,8 @@
+project:
+  output-dir: _output/student
+course:
+  view: student
+format:
+  html:
+    code-tools: false
+    keep-source: false

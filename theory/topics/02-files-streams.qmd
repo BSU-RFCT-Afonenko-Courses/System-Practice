@@ -1,0 +1,29 @@
+# Обзор курса + shell {#sec-02-files-streams}
+
+## Навигация по оболочке
+
+[MM2020RU](https://missing-semester-rus.github.io/2020/course-shell/)
+
+## Подключение программ
+
+[MM2020RU](https://missing-semester-rus.github.io/2020/course-shell/)
+
+## Работа с файлами и папками
+
+[MSLEARN](https://learn.microsoft.com/ru-ru/powershell/scripting/samples/working-with-files-and-folders?view=powershell-7.5)
+
+## Оболочка и скрипты
+
+[MM2020RU](https://missing-semester-rus.github.io/2020/shell-tools/)
+
+## Привязка параметров и конвейер PowerShell
+
+[PS2025, с. 45](https://www.manning.com/books/learn-powershell-scripting-in-a-month-of-lunches-second-edition)
+
+## Экспорт свойств процесса в CSV-файл
+
+[MSLEARN](https://learn.microsoft.com/ru-ru/powershell/module/microsoft.powershell.utility/export-csv?view=powershell-7.5)
+
+## Вычисление хэш-значения для файла
+
+[MSLEARN](https://learn.microsoft.com/ru-ru/powershell/module/microsoft.powershell.utility/get-filehash?view=powershell-7.5)

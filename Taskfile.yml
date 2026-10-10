@@ -1,0 +1,48 @@
+version: '3'
+tasks:
+  install:
+    cmds:
+    - quarto add Afonenko-Course-Tools/quarto-course@v5.0.1 --no-prompt
+    - quarto add Afonenko-Course-Tools/quarto-project-publish@v5.0.0 --no-prompt
+    - quarto add Afonenko-Course-Tools/quarto-reference-catalog@v3.0.0 --no-prompt
+    - task: install:theory
+    - task: install:tasks
+    - task: install:practice
+    - task: install:handbook
+  render:
+    cmds:
+    - quarto render --profile student
+  render:full:
+    cmds:
+    - quarto render --profile full
+  preview:
+    cmds:
+    - quarto preview --profile student --no-watch-inputs
+  publish:
+    cmds:
+    - quarto render --profile student
+    - quarto publish gh-pages --profile student --no-render
+  install:theory:
+    internal: true
+    dir: theory
+    cmds:
+    - quarto add Afonenko-Course-Tools/quarto-course@v5.0.1 --no-prompt
+    - quarto add Afonenko-Course-Tools/quarto-reference-catalog@v3.0.0 --no-prompt
+  install:tasks:
+    internal: true
+    dir: tasks
+    cmds:
+    - quarto add Afonenko-Course-Tools/quarto-course@v5.0.1 --no-prompt
+    - quarto add Afonenko-Course-Tools/quarto-reference-catalog@v3.0.0 --no-prompt
+  install:practice:
+    internal: true
+    dir: practice
+    cmds:
+    - quarto add Afonenko-Course-Tools/quarto-course@v5.0.1 --no-prompt
+    - quarto add Afonenko-Course-Tools/quarto-reference-catalog@v3.0.0 --no-prompt
+  install:handbook:
+    internal: true
+    dir: handbook
+    cmds:
+    - quarto add Afonenko-Course-Tools/quarto-course@v5.0.1 --no-prompt
+    - quarto add Afonenko-Course-Tools/quarto-reference-catalog@v3.0.0 --no-prompt

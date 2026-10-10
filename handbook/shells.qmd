@@ -1,0 +1,20 @@
+# Оболочки, файлы и потоки {#sec-shells}
+
+## fish
+
+- [Учебник fish](https://fishshell.com/docs/current/tutorial.html)
+
+## PowerShell 7: справка
+
+- [Система справки](https://learn.microsoft.com/ru-ru/powershell/scripting/learn/ps101/02-help-system?view=powershell-7.5)
+
+## PowerShell 7: расположение, файлы и папки
+
+- [Управление текущим расположением](https://learn.microsoft.com/ru-ru/powershell/scripting/samples/managing-current-location?view=powershell-7.5)
+- [Работа с файлами и папками](https://learn.microsoft.com/ru-ru/powershell/scripting/samples/working-with-files-and-folders?view=powershell-7.5)
+
+## PowerShell 7: сравнение, CSV и хэш файла
+
+- [Compare-Object](https://learn.microsoft.com/ru-ru/powershell/module/microsoft.powershell.utility/compare-object?view=powershell-7.5)
+- [Export-Csv](https://learn.microsoft.com/ru-ru/powershell/module/microsoft.powershell.utility/export-csv?view=powershell-7.5)
+- [Get-FileHash](https://learn.microsoft.com/ru-ru/powershell/module/microsoft.powershell.utility/get-filehash?view=powershell-7.5)

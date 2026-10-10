@@ -1,0 +1,9 @@
+# Настройка среды для скриптинга {#sec-01-command-line}
+
+## Редакторы сценариев
+
+[PS2025, с. 31](https://www.manning.com/books/learn-powershell-scripting-in-a-month-of-lunches-second-edition)
+
+## Система справки
+
+[MSLEARN](https://learn.microsoft.com/ru-ru/powershell/scripting/learn/ps101/02-help-system?view=powershell-7.5)

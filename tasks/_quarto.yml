@@ -1,0 +1,56 @@
+project:
+  type: book
+  output-dir: _output
+  resources:
+  - '!**/*.qmd'
+  - '!**/*.rmd'
+  - '!**/*.ipynb'
+  - '!_extensions/**'
+  - '!_generated/**'
+  - '!.quarto/**'
+  - '!_freeze/**'
+  - '!_output/**'
+  - '!**/_output/**'
+  - '!**/_generated/**'
+  pre-render:
+  - _extensions/Afonenko-Course-Tools/course-core/entrypoints/pre.ts
+  post-render:
+  - _extensions/Afonenko-Course-Tools/course-core/entrypoints/post.ts
+  - _extensions/Afonenko-Course-Tools/reference-catalog/entrypoints/post.ts
+  - ../_extensions/Afonenko-Course-Tools/course-site/entrypoints/collect.ts
+format:
+  html:
+    theme: cosmo
+    toc: true
+    code-copy: true
+    code-tools: false
+lang: ru
+fail-if-warnings: true
+filters:
+- course-core
+- course-presentation
+- reference-catalog
+reference-catalog:
+  namespace: tasks
+profile:
+  default: student
+  group:
+  - - student
+    - full
+book:
+  title: System Practice — банк задач
+  chapters:
+  - index.qmd
+  - topics/01-command-line.qmd
+  - topics/02-files-streams.qmd
+  - topics/03-diff-patch.qmd
+  - topics/04-git.qmd
+  - projects.qmd
+  - sources.qmd
+  search: true
+  page-navigation: true
+  sidebar:
+    tools:
+    - icon: house
+      href: ../index.html#sec-system-practice
+      text: Портал курса

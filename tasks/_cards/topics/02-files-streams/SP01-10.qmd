@@ -1,0 +1,35 @@
+::: {#exr-sp01-10 difficulty="intermediate" time="45"}
+
+## SP01-10. Конвейер: ByValue
+
+| Поле | Значение |
+|---|---|
+| Статус | дополнительная |
+| Сложность | средний |
+| Время | **45 мин**, из них 10 мин на беглое чтение; остальное — выполнение и самостоятельная проверка |
+| Предварительно | {{< xref theory sec-01-command-line "01-command-line" >}}; {{< xref theory sec-02-files-streams "02-files-streams" >}} |
+
+### Условие
+
+В PowerShell 7 получите сведения о запущенных процессах. С помощью Get-Member найдите тип объектов и доступные свойства. Оставьте имя и идентификатор процесса, упорядочите записи по имени и передайте их конвейером в ConvertTo-Html. Сохраните HTML-документ в processes.html и выполненные команды в commands.ps1. Работайте на своем ПК в Windows или в облачном терминале pwsh.
+
+### Источник и перенос
+
+{{< xref tasks sec-ps2025 "PS2025" >}}: Глава 4. Привязка параметров и конвейер PowerShell; §4.1–4.3: демонстрация Get-Process → ConvertTo-HTML; не отдельное упражнение. Печатные страницы: 45–47; страницы PDF (с 1): 45, 46, 47. [Ссылка на оригинал или карточку издания](https://www.manning.com/books/learn-powershell-scripting-in-a-month-of-lunches-second-edition).
+
+Учебное задание на основе примера или вопроса источника. На основе авторского примера добавлено самостоятельное составление конвейера, выбор двух свойств, сортировка и сохранение HTML. Углубленная диагностика привязки и удаленные компьютеры исключены.
+
+### Короткое чтение
+
+- [§4.3. Конвейер: ByValue](https://www.manning.com/books/learn-powershell-scripting-in-a-month-of-lunches-second-edition)
+- [ConvertTo-Html](https://learn.microsoft.com/ru-ru/powershell/module/microsoft.powershell.utility/convertto-html?view=powershell-7.5)
+
+### Будущие материалы и способ сдачи
+
+Только PowerShell 7; данные берутся из текущей среды.
+
+Облако: файлы в рабочей области VS Code PrairieLearn. Локально: те же файлы отдельными вложениями или одним ZIP-архивом.
+
+{{< xref theory sec-02-files-streams "К теме" >}} · {{< xref tasks sec-bank "Правила банка" >}}
+
+:::

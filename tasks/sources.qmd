@@ -1,0 +1,54 @@
+# Источники и правила ссылок {#sec-sources}
+
+
+Отбор выполнен 10 октября 2026 года по четырём предоставленным PDF и открытым учебным материалам. У каждого задания указаны источник, глава, номер/название упражнения и, для книги, две пагинации. **Печатная страница** — номер на листе книги; **страница PDF** — номер страницы файла с 1. Для Шилдта и PowerShell внешняя ссылка на издание не заменяет предоставленный русский PDF: точные цитаты и страницы сверены именно по нему.
+
+Полные PDF не продублированы в архиве задач. Чтобы сверить условие, откройте свой экземпляр по приведённому имени файла и странице; EPAM также доступен по прямой официальной ссылке. Не путать оригинальное упражнение, адаптацию и задание, составленное на основе учебного примера: это отмечено в каждой карточке.
+
+
+## PS2025 {#sec-ps2025}
+
+Джеймс Петти, Дон Джонс, Джеффри Хикс. **Изучаем скриптинг PowerShell за месяц, занимаясь один час в день**. 2-е издание. СПб.: Питер, 2025. 352 страницы. ISBN 978-5-4461-4184-5. Оригинал: *Learn PowerShell Scripting in a Month of Lunches*, Second Edition, Manning, 2024, ISBN 978-1633438989.
+
+- Файл: `dokumen.pub_powershell-o-6345139.pdf`.
+- [Русское издание у издателя](https://www.piter.com/collection/bestsellery-manning/product/izuchaem-skripting-powershell-za-mesyats-zanimayas-odin-chas-v-den-2-e-izd).
+- [Английский оригинал у Manning](https://www.manning.com/books/learn-powershell-scripting-in-a-month-of-lunches-second-edition).
+- У проверенных фрагментов печатные номера и номера PDF совпадают. §2.7, с.35 — упражнение; §4.3, с.47 — учебный пример.
+- В текущей карточке издателя может быть указан тираж 2026 года; выходные данные предоставленного PDF — 2025.
+- Это книга по скриптингу, а не начальное руководство по командной строке. Для первого занятия взят небольшой фрагмент главы 2, для дополнительной практики — конвейер; серверные лабораторные не включены.
+
+
+## PROGIT2026 {#sec-progit2026}
+
+Scott Chacon, Ben Straub. **Pro Git**. Русский перевод второго издания. Предоставленный PDF: версия `2.1.124-4-gbef0ce5`, 24.08.2026; 541 страница PDF. Год оригинального второго издания — 2014; дата этой сборки не является датой нового издания книги.
+
+- **Файл с неверным именем:** `Изучаем скриптинг PowerShell .pdf`. Его содержимое — Pro Git.
+- [Русская онлайн-книга](https://git-scm.com/book/ru/v2).
+- Титул: PDF 2; оглавление: PDF 3–7. У проверенных разделов номер PDF на 6 больше печатного.
+- Большинство выбранных фрагментов — демонстрационные сценарии, а не нумерованные упражнения. Соответствующие карточки обозначены как задания на основе примеров.
+- Онлайн-книга распространяется по [CC BY-NC-SA 3.0](https://creativecommons.org/licenses/by-nc-sa/3.0/); авторство и источник сохранены, изменения сценариев перечислены в карточках. Для адаптированных фрагментов Pro Git сохраняется эта лицензия; архив целиком не объявляется материалом под одной общей лицензией.
+
+
+## MM2020RU {#sec-mm2020ru}
+
+**Missing Semester**, русский перевод материалов курса 2020 года.
+
+- [Обзор курса + shell](https://missing-semester-rus.github.io/2020/course-shell/): русские упражнения №1–4 и №9.
+- [Оболочка и скрипты](https://missing-semester-rus.github.io/2020/shell-tools/): выбранные упражнения №1, 4, 5.
+- Номера относятся к русскому переводу: первая лекция имеет другую нумерацию, чем английский оригинал.
+- Bash/sh-синтаксис и сетевой запрос не переносятся незаметно в fish/PowerShell. Такие изменения отмечены; для облачной работы используется фиксированный локальный файл вместо зависимости от живого сайта.
+
+
+## MSLEARN {#sec-mslearn}
+
+Microsoft Learn, официальная документация PowerShell, русская локализация. В карточках ссылки зафиксированы с параметром `view=powershell-7.5`; среда курса — PowerShell 7.
+
+- [Система справки](https://learn.microsoft.com/ru-ru/powershell/scripting/learn/ps101/02-help-system?view=powershell-7.5).
+- [Работа с файлами и папками](https://learn.microsoft.com/ru-ru/powershell/scripting/samples/working-with-files-and-folders?view=powershell-7.5).
+- [Compare-Object](https://learn.microsoft.com/ru-ru/powershell/module/microsoft.powershell.utility/compare-object?view=powershell-7.5), [Export-Csv](https://learn.microsoft.com/ru-ru/powershell/module/microsoft.powershell.utility/export-csv?view=powershell-7.5), [Get-FileHash](https://learn.microsoft.com/ru-ru/powershell/module/microsoft.powershell.utility/get-filehash?view=powershell-7.5).
+- Карточки по примерам документации помечены как производные задания; вымышленных номеров авторских упражнений нет.
+
+
+## GIT-DOCS {#sec-git-docs}
+
+Официальные руководства Git: [git-diff](https://git-scm.com/docs/git-diff), [git-apply](https://git-scm.com/docs/git-apply), [git-archive](https://git-scm.com/docs/git-archive). Используются для уточнения действий сценариев System Practice. Это документация, а не самостоятельный задачник.

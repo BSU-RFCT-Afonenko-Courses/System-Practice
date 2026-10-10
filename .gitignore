@@ -1,0 +1,14 @@
+.quarto/
+**/.quarto/
+_generated/
+**/_generated/
+_site/
+_site-student/
+_site-full/
+**/_output/
+_freeze/
+**/_freeze/
+*.log
+
+/.quarto/
+**/*.quarto_ipynb

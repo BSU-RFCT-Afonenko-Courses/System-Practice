@@ -1,0 +1,70 @@
+project:
+  type: website
+  output-dir: _site
+  render:
+  - index.qmd
+  resources:
+  - '!theory/**'
+  - '!tasks/**'
+  - '!practice/**'
+  - '!handbook/**'
+  - '!provenance/**'
+  - '!README.md'
+  - '!UPSTREAM.md'
+  - '!Taskfile.yml'
+  - '!*.fish'
+  - '!*.log'
+  - '!_site*/**'
+  - '!**/*.qmd'
+  - '!**/*.rmd'
+  - '!**/*.ipynb'
+  - '!_extensions/**'
+  - '!_generated/**'
+  - '!.quarto/**'
+  - '!_freeze/**'
+  - '!_output/**'
+  - '!**/_output/**'
+  - '!**/_generated/**'
+  pre-render:
+  - _extensions/Afonenko-Course-Tools/course-site/entrypoints/pre.ts
+  post-render:
+  - _extensions/Afonenko-Course-Tools/course-site/entrypoints/post.ts
+format:
+  html:
+    theme: cosmo
+    toc: true
+lang: ru
+fail-if-warnings: true
+website:
+  title: System Practice
+  search: true
+  navbar:
+    left:
+    - text: Теория
+      href: theory/index.html
+    - text: Банк задач
+      href: tasks/index.html
+    - text: Занятия
+      href: practice/index.html
+    - text: Справочник
+      href: handbook/index.html
+filters:
+- course-core
+- course-presentation
+- reference-catalog
+reference-catalog:
+  namespace: portal
+  publication:
+    title: System Practice
+course:
+  id: system-practice
+profile:
+  default: student
+  group:
+  - - student
+    - full
+subprojects:
+- theory
+- tasks
+- practice
+- handbook

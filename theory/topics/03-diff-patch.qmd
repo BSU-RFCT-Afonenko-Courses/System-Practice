@@ -1,0 +1,13 @@
+# Осмотр и сравнение. Применение патчей {#sec-03-diff-patch}
+
+## git-diff
+
+[GIT-DOCS](https://git-scm.com/docs/git-diff)
+
+## Применение патча командой apply
+
+[PROGIT2026, с. 160](https://git-scm.com/book/ru/v2/Распределённый-Git-Сопровождение-проекта)
+
+## Сравнение содержимого двух текстовых файлов
+
+[MSLEARN](https://learn.microsoft.com/ru-ru/powershell/module/microsoft.powershell.utility/compare-object?view=powershell-7.5)

@@ -1,0 +1,37 @@
+# Основы Git. Ветвление в Git {#sec-04-git}
+
+## Создание Git-репозитория
+
+[PROGIT2026, с. 27](https://git-scm.com/book/ru/v2/Основы-Git-Создание-Git-репозитория)
+
+## Запись изменений в репозиторий
+
+[PROGIT2026, с. 29](https://git-scm.com/book/ru/v2/Основы-Git-Запись-изменений-в-репозиторий)
+
+## Просмотр истории коммитов
+
+[PROGIT2026, с. 42](https://git-scm.com/book/ru/v2/Основы-Git-Просмотр-истории-коммитов)
+
+## Операции отмены
+
+[PROGIT2026, с. 49](https://git-scm.com/book/ru/v2/Основы-Git-Операции-отмены)
+
+## Основы ветвления и слияния
+
+[PROGIT2026, с. 73](https://git-scm.com/book/ru/v2/Ветвление-в-Git-Основы-ветвления-и-слияния)
+
+## git-archive
+
+[GIT-DOCS](https://git-scm.com/docs/git-archive)
+
+## Работа с тегами
+
+[PROGIT2026, с. 58](https://git-scm.com/book/ru/v2/Основы-Git-Работа-с-тегами)
+
+## Инструменты Git
+
+[PROGIT2026, с. 232](https://git-scm.com/book/ru/v2/Инструменты-Git-Выбор-ревизии)
+
+## Работа с удалёнными репозиториями
+
+[PROGIT2026, с. 53](https://git-scm.com/book/ru/v2/Основы-Git-Работа-с-удалёнными-репозиториями)

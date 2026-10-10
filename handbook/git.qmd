@@ -1,0 +1,19 @@
+# Git: сравнение, история, ветвление и архивы {#sec-git}
+
+## Сравнение и патчи
+
+- [git-diff](https://git-scm.com/docs/git-diff)
+- [git-apply](https://git-scm.com/docs/git-apply)
+
+## Основы Git
+
+- [Pro Git: основы Git](https://git-scm.com/book/ru/v2/Основы-Git-Создание-Git-репозитория)
+- [Pro Git: операции отмены](https://git-scm.com/book/ru/v2/Основы-Git-Операции-отмены)
+- [Pro Git: работа с удалёнными репозиториями](https://git-scm.com/book/ru/v2/Основы-Git-Работа-с-удалёнными-репозиториями)
+- [Pro Git: локальный протокол](https://git-scm.com/book/ru/v2/Git-на-сервере-Протоколы)
+
+## Ветвление и выпуск
+
+- [Pro Git: основы ветвления и слияния](https://git-scm.com/book/ru/v2/Ветвление-в-Git-Основы-ветвления-и-слияния)
+- [Pro Git: сопровождение проекта](https://git-scm.com/book/ru/v2/Распределённый-Git-Сопровождение-проекта)
+- [git-archive](https://git-scm.com/docs/git-archive)

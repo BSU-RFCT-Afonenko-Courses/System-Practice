@@ -1,0 +1,125 @@
+{
+  "roles": {
+    "demonstration": {
+      "label": "Демонстрация",
+      "activity": true,
+      "purpose": true
+    },
+    "discussion": {
+      "label": "Обсуждение",
+      "activity": true,
+      "purpose": true
+    },
+    "objectives": {
+      "label": "Цели",
+      "activity": false
+    },
+    "prerequisites": {
+      "label": "Предварительные знания",
+      "activity": false
+    },
+    "reading": {
+      "label": "Материалы",
+      "activity": false
+    },
+    "takeaway": {
+      "label": "Главное",
+      "activity": false
+    },
+    "limitation": {
+      "label": "Ограничение",
+      "activity": false
+    },
+    "misconception": {
+      "label": "Типичная ошибка",
+      "activity": false
+    },
+    "criteria": {
+      "label": "Критерии",
+      "activity": false
+    },
+    "deliverables": {
+      "label": "Что сдавать",
+      "activity": false
+    },
+    "independent-study": {
+      "label": "Самостоятельная работа",
+      "activity": true,
+      "purpose": true
+    },
+    "control": {
+      "label": "Контроль",
+      "activity": true,
+      "purpose": true
+    }
+  },
+  "implicitKinds": [
+    "exercise",
+    "solution",
+    "hint"
+  ],
+  "difficulty": {
+    "introductory": "Начальный",
+    "intermediate": "Средний",
+    "advanced": "Продвинутый"
+  },
+  "workMode": {
+    "individual": "Индивидуально",
+    "pair": "В паре",
+    "group": "В группе"
+  },
+  "requirement": {
+    "required": "Обязательно",
+    "optional": "Дополнительно"
+  },
+  "pedagogyAttributes": [
+    "course-role",
+    "difficulty",
+    "time",
+    "work-mode",
+    "requirement",
+    "for"
+  ],
+  "activityAttributes": [
+    "difficulty",
+    "time",
+    "work-mode"
+  ],
+  "exerciseAttributes": [
+    "target",
+    "project",
+    "statement-visibility",
+    "project-check"
+  ],
+  "assessmentKinds": [
+    "lab",
+    "seminar",
+    "practical",
+    "test"
+  ],
+  "memberKinds": [
+    "BulletList",
+    "OrderedList"
+  ],
+  "views": [
+    "student",
+    "full"
+  ],
+  "presentationModes": [
+    "lecture",
+    "study"
+  ],
+  "presentationAnswers": [
+    "auto",
+    "expanded"
+  ],
+  "stages": [
+    "demonstration",
+    "classroom",
+    "homework"
+  ],
+  "statementVisibility": [
+    "open",
+    "restricted"
+  ]
+}

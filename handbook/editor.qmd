@@ -1,0 +1,9 @@
+# Редактор и терминал {#sec-editor}
+
+## VS Code
+
+- [Основы встроенного терминала](https://code.visualstudio.com/docs/terminal/basics)
+
+## PrairieLearn
+
+- [Рабочие области PrairieLearn](https://docs.prairielearn.com/workspaces/)
