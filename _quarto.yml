@@ -11,6 +11,8 @@ project:
   - '!provenance/**'
   - '!README.md'
   - '!UPSTREAM.md'
+  - '!AGENTS.md'
+  - '!.github/**'
   - '!Taskfile.yml'
   - '!*.fish'
   - '!*.log'
