@@ -1,7 +1,7 @@
 # Инструкции для автора и агента
 
 Перед изменением курса прочитайте [README](README.md), [происхождение](UPSTREAM.md)
-и [действующие контракты Core](https://github.com/Afonenko-Course-Tools/quarto-course/blob/v5.0.1/spec/index.md).
+и [действующие контракты Core](https://github.com/Afonenko-Course-Tools/quarto-course/blob/v5.0.2/spec/index.md).
 Версии установленных пакетов и команды закреплены в `Taskfile.yml`.
 
 ## Язык новых текстов

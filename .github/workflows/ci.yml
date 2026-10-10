@@ -1,0 +1,40 @@
+name: Проверка курса
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  render:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Получить исходники
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+      - name: Установить Quarto
+        uses: quarto-dev/quarto-actions/setup@8a96df13519ee81fd526f2dfca5962811136661b
+        with:
+          version: '1.11.5'
+      - name: Установить CUE
+        uses: cue-lang/setup-cue@b0e30e540a2dae47304ebf16586a5b2db023b61c
+        with:
+          version: v0.17.1
+      - name: Установить Task с проверкой SHA-256
+        run: |
+          cd "$RUNNER_TEMP"
+          curl --fail --location --output task.tar.gz https://github.com/go-task/task/releases/download/v3.54.0/task_linux_amd64.tar.gz
+          curl --fail --location --output task_checksums.txt https://github.com/go-task/task/releases/download/v3.54.0/task_checksums.txt
+          awk '$2 == "task_linux_amd64.tar.gz" {print $1 "  task.tar.gz"}' task_checksums.txt | sha256sum -c -
+          mkdir -p "$RUNNER_TEMP/task"
+          tar -xzf task.tar.gz -C "$RUNNER_TEMP/task" task
+          echo "$RUNNER_TEMP/task" >> "$GITHUB_PATH"
+      - name: Установить точные пакеты курса
+        run: task install
+      - name: Собрать student
+        run: task render
+      - name: Собрать full
+        run: task render:full

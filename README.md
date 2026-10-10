@@ -17,9 +17,9 @@
 
 ## Локальная сборка
 
-Требуются Quarto **1.11.5**, CUE **0.17.1** и Task. В `Taskfile.yml`
+Требуются Quarto **1.11.5**, CUE **0.17.1** и Task **3.54.0**. В `Taskfile.yml`
 закреплены совместимые опубликованные выпуски: Core/Presentation/Navigation
-**v5.0.1**, Publisher **v5.0.0**, QRC **v3.0.0**.
+**v5.0.2**, Publisher **v5.0.0**, QRC **v3.0.0**.
 Установленные `_extensions/` сохраняются вместе с исходниками курса.
 
 Команды в fish из корня репозитория:
@@ -48,6 +48,10 @@ quarto preview --profile student --no-watch-inputs
 и `_output/full/`. Публичный каталог ссылок —
 `_site-student/reference-catalog.json`. Частичный локальный просмотр
 подпроекта не подтверждает полную сборку курса.
+
+CI повторяет `task install`, `task render` и `task render:full` при push
+в `main` и в pull request с теми же версиями инструментов. Публикация сайта
+выполняется отдельно.
 
 ## Маршруты и замены
 
