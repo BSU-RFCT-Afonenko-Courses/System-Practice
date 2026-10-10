@@ -1,0 +1,400 @@
+{
+  "schema": "quarto-reference-catalog",
+  "generator": {
+    "quarto": "1.11.5"
+  },
+  "targets": {
+    "tasks:exr-sp01-01": {
+      "namespace": "tasks",
+      "id": "exr-sp01-01",
+      "page": "topics/01-command-line.html",
+      "fragment": "exr-sp01-01",
+      "labelHtml": "Упражнение&nbsp;<span>2.1</span>",
+      "numberHtml": "<span>2.1</span>",
+      "label": "Упражнение 2.1",
+      "number": "2.1"
+    },
+    "tasks:exr-sp01-02": {
+      "namespace": "tasks",
+      "id": "exr-sp01-02",
+      "page": "topics/02-files-streams.html",
+      "fragment": "exr-sp01-02",
+      "labelHtml": "Упражнение&nbsp;<span>3.1</span>",
+      "numberHtml": "<span>3.1</span>",
+      "label": "Упражнение 3.1",
+      "number": "3.1"
+    },
+    "tasks:exr-sp01-03": {
+      "namespace": "tasks",
+      "id": "exr-sp01-03",
+      "page": "topics/02-files-streams.html",
+      "fragment": "exr-sp01-03",
+      "labelHtml": "Упражнение&nbsp;<span>3.2</span>",
+      "numberHtml": "<span>3.2</span>",
+      "label": "Упражнение 3.2",
+      "number": "3.2"
+    },
+    "tasks:exr-sp01-04": {
+      "namespace": "tasks",
+      "id": "exr-sp01-04",
+      "page": "topics/03-diff-patch.html",
+      "fragment": "exr-sp01-04",
+      "labelHtml": "Упражнение&nbsp;<span>4.1</span>",
+      "numberHtml": "<span>4.1</span>",
+      "label": "Упражнение 4.1",
+      "number": "4.1"
+    },
+    "tasks:exr-sp01-05": {
+      "namespace": "tasks",
+      "id": "exr-sp01-05",
+      "page": "topics/04-git.html",
+      "fragment": "exr-sp01-05",
+      "labelHtml": "Упражнение&nbsp;<span>5.1</span>",
+      "numberHtml": "<span>5.1</span>",
+      "label": "Упражнение 5.1",
+      "number": "5.1"
+    },
+    "tasks:exr-sp01-06": {
+      "namespace": "tasks",
+      "id": "exr-sp01-06",
+      "page": "topics/02-files-streams.html",
+      "fragment": "exr-sp01-06",
+      "labelHtml": "Упражнение&nbsp;<span>3.3</span>",
+      "numberHtml": "<span>3.3</span>",
+      "label": "Упражнение 3.3",
+      "number": "3.3"
+    },
+    "tasks:exr-sp01-07": {
+      "namespace": "tasks",
+      "id": "exr-sp01-07",
+      "page": "topics/02-files-streams.html",
+      "fragment": "exr-sp01-07",
+      "labelHtml": "Упражнение&nbsp;<span>3.4</span>",
+      "numberHtml": "<span>3.4</span>",
+      "label": "Упражнение 3.4",
+      "number": "3.4"
+    },
+    "tasks:exr-sp01-08": {
+      "namespace": "tasks",
+      "id": "exr-sp01-08",
+      "page": "topics/02-files-streams.html",
+      "fragment": "exr-sp01-08",
+      "labelHtml": "Упражнение&nbsp;<span>3.5</span>",
+      "numberHtml": "<span>3.5</span>",
+      "label": "Упражнение 3.5",
+      "number": "3.5"
+    },
+    "tasks:exr-sp01-09": {
+      "namespace": "tasks",
+      "id": "exr-sp01-09",
+      "page": "topics/02-files-streams.html",
+      "fragment": "exr-sp01-09",
+      "labelHtml": "Упражнение&nbsp;<span>3.6</span>",
+      "numberHtml": "<span>3.6</span>",
+      "label": "Упражнение 3.6",
+      "number": "3.6"
+    },
+    "tasks:exr-sp01-10": {
+      "namespace": "tasks",
+      "id": "exr-sp01-10",
+      "page": "topics/02-files-streams.html",
+      "fragment": "exr-sp01-10",
+      "labelHtml": "Упражнение&nbsp;<span>3.7</span>",
+      "numberHtml": "<span>3.7</span>",
+      "label": "Упражнение 3.7",
+      "number": "3.7"
+    },
+    "tasks:exr-sp01-11": {
+      "namespace": "tasks",
+      "id": "exr-sp01-11",
+      "page": "topics/03-diff-patch.html",
+      "fragment": "exr-sp01-11",
+      "labelHtml": "Упражнение&nbsp;<span>4.2</span>",
+      "numberHtml": "<span>4.2</span>",
+      "label": "Упражнение 4.2",
+      "number": "4.2"
+    },
+    "tasks:exr-sp01-12": {
+      "namespace": "tasks",
+      "id": "exr-sp01-12",
+      "page": "topics/02-files-streams.html",
+      "fragment": "exr-sp01-12",
+      "labelHtml": "Упражнение&nbsp;<span>3.8</span>",
+      "numberHtml": "<span>3.8</span>",
+      "label": "Упражнение 3.8",
+      "number": "3.8"
+    },
+    "tasks:exr-sp01-13": {
+      "namespace": "tasks",
+      "id": "exr-sp01-13",
+      "page": "topics/02-files-streams.html",
+      "fragment": "exr-sp01-13",
+      "labelHtml": "Упражнение&nbsp;<span>3.9</span>",
+      "numberHtml": "<span>3.9</span>",
+      "label": "Упражнение 3.9",
+      "number": "3.9"
+    },
+    "tasks:exr-sp02-01": {
+      "namespace": "tasks",
+      "id": "exr-sp02-01",
+      "page": "topics/04-git.html",
+      "fragment": "exr-sp02-01",
+      "labelHtml": "Упражнение&nbsp;<span>5.2</span>",
+      "numberHtml": "<span>5.2</span>",
+      "label": "Упражнение 5.2",
+      "number": "5.2"
+    },
+    "tasks:exr-sp02-02": {
+      "namespace": "tasks",
+      "id": "exr-sp02-02",
+      "page": "topics/04-git.html",
+      "fragment": "exr-sp02-02",
+      "labelHtml": "Упражнение&nbsp;<span>5.3</span>",
+      "numberHtml": "<span>5.3</span>",
+      "label": "Упражнение 5.3",
+      "number": "5.3"
+    },
+    "tasks:exr-sp02-03": {
+      "namespace": "tasks",
+      "id": "exr-sp02-03",
+      "page": "topics/03-diff-patch.html",
+      "fragment": "exr-sp02-03",
+      "labelHtml": "Упражнение&nbsp;<span>4.3</span>",
+      "numberHtml": "<span>4.3</span>",
+      "label": "Упражнение 4.3",
+      "number": "4.3"
+    },
+    "tasks:exr-sp02-04": {
+      "namespace": "tasks",
+      "id": "exr-sp02-04",
+      "page": "topics/04-git.html",
+      "fragment": "exr-sp02-04",
+      "labelHtml": "Упражнение&nbsp;<span>5.4</span>",
+      "numberHtml": "<span>5.4</span>",
+      "label": "Упражнение 5.4",
+      "number": "5.4"
+    },
+    "tasks:exr-sp02-05": {
+      "namespace": "tasks",
+      "id": "exr-sp02-05",
+      "page": "topics/04-git.html",
+      "fragment": "exr-sp02-05",
+      "labelHtml": "Упражнение&nbsp;<span>5.5</span>",
+      "numberHtml": "<span>5.5</span>",
+      "label": "Упражнение 5.5",
+      "number": "5.5"
+    },
+    "tasks:exr-sp02-06": {
+      "namespace": "tasks",
+      "id": "exr-sp02-06",
+      "page": "topics/04-git.html",
+      "fragment": "exr-sp02-06",
+      "labelHtml": "Упражнение&nbsp;<span>5.6</span>",
+      "numberHtml": "<span>5.6</span>",
+      "label": "Упражнение 5.6",
+      "number": "5.6"
+    },
+    "tasks:exr-sp02-07": {
+      "namespace": "tasks",
+      "id": "exr-sp02-07",
+      "page": "topics/04-git.html",
+      "fragment": "exr-sp02-07",
+      "labelHtml": "Упражнение&nbsp;<span>5.7</span>",
+      "numberHtml": "<span>5.7</span>",
+      "label": "Упражнение 5.7",
+      "number": "5.7"
+    },
+    "tasks:exr-sp02-08": {
+      "namespace": "tasks",
+      "id": "exr-sp02-08",
+      "page": "topics/04-git.html",
+      "fragment": "exr-sp02-08",
+      "labelHtml": "Упражнение&nbsp;<span>5.8</span>",
+      "numberHtml": "<span>5.8</span>",
+      "label": "Упражнение 5.8",
+      "number": "5.8"
+    },
+    "tasks:exr-sp02-09": {
+      "namespace": "tasks",
+      "id": "exr-sp02-09",
+      "page": "topics/04-git.html",
+      "fragment": "exr-sp02-09",
+      "labelHtml": "Упражнение&nbsp;<span>5.9</span>",
+      "numberHtml": "<span>5.9</span>",
+      "label": "Упражнение 5.9",
+      "number": "5.9"
+    },
+    "tasks:exr-sp02-10": {
+      "namespace": "tasks",
+      "id": "exr-sp02-10",
+      "page": "topics/04-git.html",
+      "fragment": "exr-sp02-10",
+      "labelHtml": "Упражнение&nbsp;<span>5.10</span>",
+      "numberHtml": "<span>5.10</span>",
+      "label": "Упражнение 5.10",
+      "number": "5.10"
+    },
+    "tasks:exr-sp02-11": {
+      "namespace": "tasks",
+      "id": "exr-sp02-11",
+      "page": "topics/04-git.html",
+      "fragment": "exr-sp02-11",
+      "labelHtml": "Упражнение&nbsp;<span>5.11</span>",
+      "numberHtml": "<span>5.11</span>",
+      "label": "Упражнение 5.11",
+      "number": "5.11"
+    },
+    "tasks:exr-sp02-12": {
+      "namespace": "tasks",
+      "id": "exr-sp02-12",
+      "page": "topics/04-git.html",
+      "fragment": "exr-sp02-12",
+      "labelHtml": "Упражнение&nbsp;<span>5.12</span>",
+      "numberHtml": "<span>5.12</span>",
+      "label": "Упражнение 5.12",
+      "number": "5.12"
+    },
+    "tasks:exr-spp-01": {
+      "namespace": "tasks",
+      "id": "exr-spp-01",
+      "page": "projects.html",
+      "fragment": "exr-spp-01",
+      "labelHtml": "Упражнение&nbsp;<span>6.1</span>",
+      "numberHtml": "<span>6.1</span>",
+      "label": "Упражнение 6.1",
+      "number": "6.1"
+    },
+    "tasks:sec-bank": {
+      "namespace": "tasks",
+      "id": "sec-bank",
+      "page": "index.html",
+      "fragment": "sec-bank",
+      "labelHtml": "Банк задач",
+      "numberHtml": "",
+      "label": "Банк задач",
+      "number": "",
+      "title": "Банк задач"
+    },
+    "tasks:sec-bank-01-command-line": {
+      "namespace": "tasks",
+      "id": "sec-bank-01-command-line",
+      "page": "topics/01-command-line.html",
+      "fragment": "sec-bank-01-command-line",
+      "labelHtml": "<span>Глава 2</span>",
+      "numberHtml": "<span>2</span>",
+      "label": "Глава 2",
+      "number": "2",
+      "title": "Настройка среды для скриптинга"
+    },
+    "tasks:sec-bank-02-files-streams": {
+      "namespace": "tasks",
+      "id": "sec-bank-02-files-streams",
+      "page": "topics/02-files-streams.html",
+      "fragment": "sec-bank-02-files-streams",
+      "labelHtml": "<span>Глава 3</span>",
+      "numberHtml": "<span>3</span>",
+      "label": "Глава 3",
+      "number": "3",
+      "title": "Обзор курса + shell"
+    },
+    "tasks:sec-bank-03-diff-patch": {
+      "namespace": "tasks",
+      "id": "sec-bank-03-diff-patch",
+      "page": "topics/03-diff-patch.html",
+      "fragment": "sec-bank-03-diff-patch",
+      "labelHtml": "<span>Глава 4</span>",
+      "numberHtml": "<span>4</span>",
+      "label": "Глава 4",
+      "number": "4",
+      "title": "Осмотр и сравнение. Применение патчей"
+    },
+    "tasks:sec-bank-04-git": {
+      "namespace": "tasks",
+      "id": "sec-bank-04-git",
+      "page": "topics/04-git.html",
+      "fragment": "sec-bank-04-git",
+      "labelHtml": "<span>Глава 5</span>",
+      "numberHtml": "<span>5</span>",
+      "label": "Глава 5",
+      "number": "5",
+      "title": "Основы Git. Ветвление в Git"
+    },
+    "tasks:sec-git-docs": {
+      "namespace": "tasks",
+      "id": "sec-git-docs",
+      "page": "sources.html",
+      "fragment": "sec-git-docs",
+      "labelHtml": "GIT-DOCS",
+      "numberHtml": "",
+      "label": "GIT-DOCS",
+      "number": "",
+      "title": "GIT-DOCS"
+    },
+    "tasks:sec-mm2020ru": {
+      "namespace": "tasks",
+      "id": "sec-mm2020ru",
+      "page": "sources.html",
+      "fragment": "sec-mm2020ru",
+      "labelHtml": "MM2020RU",
+      "numberHtml": "",
+      "label": "MM2020RU",
+      "number": "",
+      "title": "MM2020RU"
+    },
+    "tasks:sec-mslearn": {
+      "namespace": "tasks",
+      "id": "sec-mslearn",
+      "page": "sources.html",
+      "fragment": "sec-mslearn",
+      "labelHtml": "MSLEARN",
+      "numberHtml": "",
+      "label": "MSLEARN",
+      "number": "",
+      "title": "MSLEARN"
+    },
+    "tasks:sec-progit2026": {
+      "namespace": "tasks",
+      "id": "sec-progit2026",
+      "page": "sources.html",
+      "fragment": "sec-progit2026",
+      "labelHtml": "PROGIT2026",
+      "numberHtml": "",
+      "label": "PROGIT2026",
+      "number": "",
+      "title": "PROGIT2026"
+    },
+    "tasks:sec-projects": {
+      "namespace": "tasks",
+      "id": "sec-projects",
+      "page": "projects.html",
+      "fragment": "sec-projects",
+      "labelHtml": "<span>Глава 6</span>",
+      "numberHtml": "<span>6</span>",
+      "label": "Глава 6",
+      "number": "6",
+      "title": "Проектная альтернатива"
+    },
+    "tasks:sec-ps2025": {
+      "namespace": "tasks",
+      "id": "sec-ps2025",
+      "page": "sources.html",
+      "fragment": "sec-ps2025",
+      "labelHtml": "PS2025",
+      "numberHtml": "",
+      "label": "PS2025",
+      "number": "",
+      "title": "PS2025"
+    },
+    "tasks:sec-sources": {
+      "namespace": "tasks",
+      "id": "sec-sources",
+      "page": "sources.html",
+      "fragment": "sec-sources",
+      "labelHtml": "<span>Глава 7</span>",
+      "numberHtml": "<span>7</span>",
+      "label": "Глава 7",
+      "number": "7",
+      "title": "Источники и правила ссылок"
+    }
+  }
+}

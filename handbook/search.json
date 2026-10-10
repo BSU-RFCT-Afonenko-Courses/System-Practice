@@ -1,0 +1,132 @@
+[
+  {
+    "objectID": "index.html",
+    "href": "index.html",
+    "title": "System Practice — справочник",
+    "section": "",
+    "text": "System Practice — справочник 1 Справочник Оболочки, файлы и потоки Git: сравнение, история, ветвление и архивы Редактор и терминал",
+    "crumbs": [
+      "<span class='chapter-number'>1</span>  <span class='chapter-title'>Справочник</span>"
+    ]
+  },
+  {
+    "objectID": "shells.html",
+    "href": "shells.html",
+    "title": "2  Оболочки, файлы и потоки",
+    "section": "",
+    "text": "2 Оболочки, файлы и потоки 2.1 fish Учебник fish 2.2 PowerShell 7: справка Система справки 2.3 PowerShell 7: расположение, файлы и папки Управление текущим расположением Работа с файлами и папками 2.4 PowerShell 7: сравнение, CSV и хэш файла Compare-Object Export-Csv Get-FileHash",
+    "crumbs": [
+      "<span class='chapter-number'>2</span>  <span class='chapter-title'>Оболочки, файлы и потоки</span>"
+    ]
+  },
+  {
+    "objectID": "shells.html#fish",
+    "href": "shells.html#fish",
+    "title": "2  Оболочки, файлы и потоки",
+    "section": "",
+    "text": "2.1 fish Учебник fish",
+    "crumbs": [
+      "<span class='chapter-number'>2</span>  <span class='chapter-title'>Оболочки, файлы и потоки</span>"
+    ]
+  },
+  {
+    "objectID": "shells.html#powershell-7-справка",
+    "href": "shells.html#powershell-7-справка",
+    "title": "2  Оболочки, файлы и потоки",
+    "section": "2.2 PowerShell 7: справка",
+    "text": "2.2 PowerShell 7: справка Система справки",
+    "crumbs": [
+      "<span class='chapter-number'>2</span>  <span class='chapter-title'>Оболочки, файлы и потоки</span>"
+    ]
+  },
+  {
+    "objectID": "shells.html#powershell-7-расположение-файлы-и-папки",
+    "href": "shells.html#powershell-7-расположение-файлы-и-папки",
+    "title": "2  Оболочки, файлы и потоки",
+    "section": "2.3 PowerShell 7: расположение, файлы и папки",
+    "text": "2.3 PowerShell 7: расположение, файлы и папки Управление текущим расположением Работа с файлами и папками",
+    "crumbs": [
+      "<span class='chapter-number'>2</span>  <span class='chapter-title'>Оболочки, файлы и потоки</span>"
+    ]
+  },
+  {
+    "objectID": "shells.html#powershell-7-сравнение-csv-и-хэш-файла",
+    "href": "shells.html#powershell-7-сравнение-csv-и-хэш-файла",
+    "title": "2  Оболочки, файлы и потоки",
+    "section": "2.4 PowerShell 7: сравнение, CSV и хэш файла",
+    "text": "2.4 PowerShell 7: сравнение, CSV и хэш файла Compare-Object Export-Csv Get-FileHash",
+    "crumbs": [
+      "<span class='chapter-number'>2</span>  <span class='chapter-title'>Оболочки, файлы и потоки</span>"
+    ]
+  },
+  {
+    "objectID": "git.html",
+    "href": "git.html",
+    "title": "3  Git: сравнение, история, ветвление и архивы",
+    "section": "",
+    "text": "3 Git: сравнение, история, ветвление и архивы 3.1 Сравнение и патчи git-diff git-apply 3.2 Основы Git Pro Git: основы Git Pro Git: операции отмены Pro Git: работа с удалёнными репозиториями Pro Git: локальный протокол 3.3 Ветвление и выпуск Pro Git: основы ветвления и слияния Pro Git: сопровождение проекта git-archive",
+    "crumbs": [
+      "<span class='chapter-number'>3</span>  <span class='chapter-title'>Git: сравнение, история, ветвление и архивы</span>"
+    ]
+  },
+  {
+    "objectID": "git.html#сравнение-и-патчи",
+    "href": "git.html#сравнение-и-патчи",
+    "title": "3  Git: сравнение, история, ветвление и архивы",
+    "section": "",
+    "text": "3.1 Сравнение и патчи git-diff git-apply",
+    "crumbs": [
+      "<span class='chapter-number'>3</span>  <span class='chapter-title'>Git: сравнение, история, ветвление и архивы</span>"
+    ]
+  },
+  {
+    "objectID": "git.html#основы-git",
+    "href": "git.html#основы-git",
+    "title": "3  Git: сравнение, история, ветвление и архивы",
+    "section": "3.2 Основы Git",
+    "text": "3.2 Основы Git Pro Git: основы Git Pro Git: операции отмены Pro Git: работа с удалёнными репозиториями Pro Git: локальный протокол",
+    "crumbs": [
+      "<span class='chapter-number'>3</span>  <span class='chapter-title'>Git: сравнение, история, ветвление и архивы</span>"
+    ]
+  },
+  {
+    "objectID": "git.html#ветвление-и-выпуск",
+    "href": "git.html#ветвление-и-выпуск",
+    "title": "3  Git: сравнение, история, ветвление и архивы",
+    "section": "3.3 Ветвление и выпуск",
+    "text": "3.3 Ветвление и выпуск Pro Git: основы ветвления и слияния Pro Git: сопровождение проекта git-archive",
+    "crumbs": [
+      "<span class='chapter-number'>3</span>  <span class='chapter-title'>Git: сравнение, история, ветвление и архивы</span>"
+    ]
+  },
+  {
+    "objectID": "editor.html",
+    "href": "editor.html",
+    "title": "4  Редактор и терминал",
+    "section": "",
+    "text": "4 Редактор и терминал 4.1 VS Code Основы встроенного терминала 4.2 PrairieLearn Рабочие области PrairieLearn",
+    "crumbs": [
+      "<span class='chapter-number'>4</span>  <span class='chapter-title'>Редактор и терминал</span>"
+    ]
+  },
+  {
+    "objectID": "editor.html#vs-code",
+    "href": "editor.html#vs-code",
+    "title": "4  Редактор и терминал",
+    "section": "",
+    "text": "4.1 VS Code Основы встроенного терминала",
+    "crumbs": [
+      "<span class='chapter-number'>4</span>  <span class='chapter-title'>Редактор и терминал</span>"
+    ]
+  },
+  {
+    "objectID": "editor.html#prairielearn",
+    "href": "editor.html#prairielearn",
+    "title": "4  Редактор и терминал",
+    "section": "4.2 PrairieLearn",
+    "text": "4.2 PrairieLearn Рабочие области PrairieLearn",
+    "crumbs": [
+      "<span class='chapter-number'>4</span>  <span class='chapter-title'>Редактор и терминал</span>"
+    ]
+  }
+]

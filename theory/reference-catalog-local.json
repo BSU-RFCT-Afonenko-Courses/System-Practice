@@ -1,0 +1,63 @@
+{
+  "schema": "quarto-reference-catalog",
+  "generator": {
+    "quarto": "1.11.5"
+  },
+  "targets": {
+    "theory:sec-01-command-line": {
+      "namespace": "theory",
+      "id": "sec-01-command-line",
+      "page": "topics/01-command-line.html",
+      "fragment": "sec-01-command-line",
+      "labelHtml": "<span>Глава 2</span>",
+      "numberHtml": "<span>2</span>",
+      "label": "Глава 2",
+      "number": "2",
+      "title": "Настройка среды для скриптинга"
+    },
+    "theory:sec-02-files-streams": {
+      "namespace": "theory",
+      "id": "sec-02-files-streams",
+      "page": "topics/02-files-streams.html",
+      "fragment": "sec-02-files-streams",
+      "labelHtml": "<span>Глава 3</span>",
+      "numberHtml": "<span>3</span>",
+      "label": "Глава 3",
+      "number": "3",
+      "title": "Обзор курса + shell"
+    },
+    "theory:sec-03-diff-patch": {
+      "namespace": "theory",
+      "id": "sec-03-diff-patch",
+      "page": "topics/03-diff-patch.html",
+      "fragment": "sec-03-diff-patch",
+      "labelHtml": "<span>Глава 4</span>",
+      "numberHtml": "<span>4</span>",
+      "label": "Глава 4",
+      "number": "4",
+      "title": "Осмотр и сравнение. Применение патчей"
+    },
+    "theory:sec-04-git": {
+      "namespace": "theory",
+      "id": "sec-04-git",
+      "page": "topics/04-git.html",
+      "fragment": "sec-04-git",
+      "labelHtml": "<span>Глава 5</span>",
+      "numberHtml": "<span>5</span>",
+      "label": "Глава 5",
+      "number": "5",
+      "title": "Основы Git. Ветвление в Git"
+    },
+    "theory:sec-theory": {
+      "namespace": "theory",
+      "id": "sec-theory",
+      "page": "index.html",
+      "fragment": "sec-theory",
+      "labelHtml": "Теория",
+      "numberHtml": "",
+      "label": "Теория",
+      "number": "",
+      "title": "Теория"
+    }
+  }
+}

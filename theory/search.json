@@ -1,0 +1,222 @@
+[
+  {
+    "objectID": "index.html",
+    "href": "index.html",
+    "title": "System Practice — теория",
+    "section": "",
+    "text": "System Practice — теория 1 Теория Настройка среды для скриптинга Обзор курса + shell Осмотр и сравнение. Применение патчей Основы Git. Ветвление в Git",
+    "crumbs": [
+      "<span class='chapter-number'>1</span>  <span class='chapter-title'>Теория</span>"
+    ]
+  },
+  {
+    "objectID": "topics/01-command-line.html",
+    "href": "topics/01-command-line.html",
+    "title": "2  Настройка среды для скриптинга",
+    "section": "",
+    "text": "2 Настройка среды для скриптинга 2.1 Редакторы сценариев PS2025, с. 31 2.2 Система справки MSLEARN",
+    "crumbs": [
+      "<span class='chapter-number'>2</span>  <span class='chapter-title'>Настройка среды для скриптинга</span>"
+    ]
+  },
+  {
+    "objectID": "topics/01-command-line.html#система-справки",
+    "href": "topics/01-command-line.html#система-справки",
+    "title": "2  Настройка среды для скриптинга",
+    "section": "2.2 Система справки",
+    "text": "2.2 Система справки MSLEARN",
+    "crumbs": [
+      "<span class='chapter-number'>2</span>  <span class='chapter-title'>Настройка среды для скриптинга</span>"
+    ]
+  },
+  {
+    "objectID": "topics/02-files-streams.html",
+    "href": "topics/02-files-streams.html",
+    "title": "3  Обзор курса + shell",
+    "section": "",
+    "text": "3 Обзор курса + shell 3.1 Навигация по оболочке MM2020RU 3.2 Подключение программ MM2020RU 3.3 Работа с файлами и папками MSLEARN 3.4 Оболочка и скрипты MM2020RU 3.5 Привязка параметров и конвейер PowerShell PS2025, с. 45 3.6 Экспорт свойств процесса в CSV-файл MSLEARN 3.7 Вычисление хэш-значения для файла MSLEARN",
+    "crumbs": [
+      "<span class='chapter-number'>3</span>  <span class='chapter-title'>Обзор курса + shell</span>"
+    ]
+  },
+  {
+    "objectID": "topics/02-files-streams.html#подключение-программ",
+    "href": "topics/02-files-streams.html#подключение-программ",
+    "title": "3  Обзор курса + shell",
+    "section": "3.2 Подключение программ",
+    "text": "3.2 Подключение программ MM2020RU",
+    "crumbs": [
+      "<span class='chapter-number'>3</span>  <span class='chapter-title'>Обзор курса + shell</span>"
+    ]
+  },
+  {
+    "objectID": "topics/02-files-streams.html#работа-с-файлами-и-папками",
+    "href": "topics/02-files-streams.html#работа-с-файлами-и-папками",
+    "title": "3  Обзор курса + shell",
+    "section": "3.3 Работа с файлами и папками",
+    "text": "3.3 Работа с файлами и папками MSLEARN",
+    "crumbs": [
+      "<span class='chapter-number'>3</span>  <span class='chapter-title'>Обзор курса + shell</span>"
+    ]
+  },
+  {
+    "objectID": "topics/02-files-streams.html#оболочка-и-скрипты",
+    "href": "topics/02-files-streams.html#оболочка-и-скрипты",
+    "title": "3  Обзор курса + shell",
+    "section": "3.4 Оболочка и скрипты",
+    "text": "3.4 Оболочка и скрипты MM2020RU",
+    "crumbs": [
+      "<span class='chapter-number'>3</span>  <span class='chapter-title'>Обзор курса + shell</span>"
+    ]
+  },
+  {
+    "objectID": "topics/02-files-streams.html#привязка-параметров-и-конвейер-powershell",
+    "href": "topics/02-files-streams.html#привязка-параметров-и-конвейер-powershell",
+    "title": "3  Обзор курса + shell",
+    "section": "3.5 Привязка параметров и конвейер PowerShell",
+    "text": "3.5 Привязка параметров и конвейер PowerShell PS2025, с. 45",
+    "crumbs": [
+      "<span class='chapter-number'>3</span>  <span class='chapter-title'>Обзор курса + shell</span>"
+    ]
+  },
+  {
+    "objectID": "topics/02-files-streams.html#экспорт-свойств-процесса-в-csv-файл",
+    "href": "topics/02-files-streams.html#экспорт-свойств-процесса-в-csv-файл",
+    "title": "3  Обзор курса + shell",
+    "section": "3.6 Экспорт свойств процесса в CSV-файл",
+    "text": "3.6 Экспорт свойств процесса в CSV-файл MSLEARN",
+    "crumbs": [
+      "<span class='chapter-number'>3</span>  <span class='chapter-title'>Обзор курса + shell</span>"
+    ]
+  },
+  {
+    "objectID": "topics/02-files-streams.html#вычисление-хэш-значения-для-файла",
+    "href": "topics/02-files-streams.html#вычисление-хэш-значения-для-файла",
+    "title": "3  Обзор курса + shell",
+    "section": "3.7 Вычисление хэш-значения для файла",
+    "text": "3.7 Вычисление хэш-значения для файла MSLEARN",
+    "crumbs": [
+      "<span class='chapter-number'>3</span>  <span class='chapter-title'>Обзор курса + shell</span>"
+    ]
+  },
+  {
+    "objectID": "topics/03-diff-patch.html",
+    "href": "topics/03-diff-patch.html",
+    "title": "4  Осмотр и сравнение. Применение патчей",
+    "section": "",
+    "text": "4 Осмотр и сравнение. Применение патчей 4.1 git-diff GIT-DOCS 4.2 Применение патча командой apply PROGIT2026, с. 160 4.3 Сравнение содержимого двух текстовых файлов MSLEARN",
+    "crumbs": [
+      "<span class='chapter-number'>4</span>  <span class='chapter-title'>Осмотр и сравнение. Применение патчей</span>"
+    ]
+  },
+  {
+    "objectID": "topics/03-diff-patch.html#применение-патча-командой-apply",
+    "href": "topics/03-diff-patch.html#применение-патча-командой-apply",
+    "title": "4  Осмотр и сравнение. Применение патчей",
+    "section": "4.2 Применение патча командой apply",
+    "text": "4.2 Применение патча командой apply PROGIT2026, с. 160",
+    "crumbs": [
+      "<span class='chapter-number'>4</span>  <span class='chapter-title'>Осмотр и сравнение. Применение патчей</span>"
+    ]
+  },
+  {
+    "objectID": "topics/03-diff-patch.html#сравнение-содержимого-двух-текстовых-файлов",
+    "href": "topics/03-diff-patch.html#сравнение-содержимого-двух-текстовых-файлов",
+    "title": "4  Осмотр и сравнение. Применение патчей",
+    "section": "4.3 Сравнение содержимого двух текстовых файлов",
+    "text": "4.3 Сравнение содержимого двух текстовых файлов MSLEARN",
+    "crumbs": [
+      "<span class='chapter-number'>4</span>  <span class='chapter-title'>Осмотр и сравнение. Применение патчей</span>"
+    ]
+  },
+  {
+    "objectID": "topics/04-git.html",
+    "href": "topics/04-git.html",
+    "title": "5  Основы Git. Ветвление в Git",
+    "section": "",
+    "text": "5 Основы Git. Ветвление в Git 5.1 Создание Git-репозитория PROGIT2026, с. 27 5.2 Запись изменений в репозиторий PROGIT2026, с. 29 5.3 Просмотр истории коммитов PROGIT2026, с. 42 5.4 Операции отмены PROGIT2026, с. 49 5.5 Основы ветвления и слияния PROGIT2026, с. 73 5.6 git-archive GIT-DOCS 5.7 Работа с тегами PROGIT2026, с. 58 5.8 Инструменты Git PROGIT2026, с. 232 5.9 Работа с удалёнными репозиториями PROGIT2026, с. 53",
+    "crumbs": [
+      "<span class='chapter-number'>5</span>  <span class='chapter-title'>Основы Git. Ветвление в Git</span>"
+    ]
+  },
+  {
+    "objectID": "topics/04-git.html#запись-изменений-в-репозиторий",
+    "href": "topics/04-git.html#запись-изменений-в-репозиторий",
+    "title": "5  Основы Git. Ветвление в Git",
+    "section": "5.2 Запись изменений в репозиторий",
+    "text": "5.2 Запись изменений в репозиторий PROGIT2026, с. 29",
+    "crumbs": [
+      "<span class='chapter-number'>5</span>  <span class='chapter-title'>Основы Git. Ветвление в Git</span>"
+    ]
+  },
+  {
+    "objectID": "topics/04-git.html#просмотр-истории-коммитов",
+    "href": "topics/04-git.html#просмотр-истории-коммитов",
+    "title": "5  Основы Git. Ветвление в Git",
+    "section": "5.3 Просмотр истории коммитов",
+    "text": "5.3 Просмотр истории коммитов PROGIT2026, с. 42",
+    "crumbs": [
+      "<span class='chapter-number'>5</span>  <span class='chapter-title'>Основы Git. Ветвление в Git</span>"
+    ]
+  },
+  {
+    "objectID": "topics/04-git.html#операции-отмены",
+    "href": "topics/04-git.html#операции-отмены",
+    "title": "5  Основы Git. Ветвление в Git",
+    "section": "5.4 Операции отмены",
+    "text": "5.4 Операции отмены PROGIT2026, с. 49",
+    "crumbs": [
+      "<span class='chapter-number'>5</span>  <span class='chapter-title'>Основы Git. Ветвление в Git</span>"
+    ]
+  },
+  {
+    "objectID": "topics/04-git.html#основы-ветвления-и-слияния",
+    "href": "topics/04-git.html#основы-ветвления-и-слияния",
+    "title": "5  Основы Git. Ветвление в Git",
+    "section": "5.5 Основы ветвления и слияния",
+    "text": "5.5 Основы ветвления и слияния PROGIT2026, с. 73",
+    "crumbs": [
+      "<span class='chapter-number'>5</span>  <span class='chapter-title'>Основы Git. Ветвление в Git</span>"
+    ]
+  },
+  {
+    "objectID": "topics/04-git.html#git-archive",
+    "href": "topics/04-git.html#git-archive",
+    "title": "5  Основы Git. Ветвление в Git",
+    "section": "5.6 git-archive",
+    "text": "5.6 git-archive GIT-DOCS",
+    "crumbs": [
+      "<span class='chapter-number'>5</span>  <span class='chapter-title'>Основы Git. Ветвление в Git</span>"
+    ]
+  },
+  {
+    "objectID": "topics/04-git.html#работа-с-тегами",
+    "href": "topics/04-git.html#работа-с-тегами",
+    "title": "5  Основы Git. Ветвление в Git",
+    "section": "5.7 Работа с тегами",
+    "text": "5.7 Работа с тегами PROGIT2026, с. 58",
+    "crumbs": [
+      "<span class='chapter-number'>5</span>  <span class='chapter-title'>Основы Git. Ветвление в Git</span>"
+    ]
+  },
+  {
+    "objectID": "topics/04-git.html#инструменты-git",
+    "href": "topics/04-git.html#инструменты-git",
+    "title": "5  Основы Git. Ветвление в Git",
+    "section": "5.8 Инструменты Git",
+    "text": "5.8 Инструменты Git PROGIT2026, с. 232",
+    "crumbs": [
+      "<span class='chapter-number'>5</span>  <span class='chapter-title'>Основы Git. Ветвление в Git</span>"
+    ]
+  },
+  {
+    "objectID": "topics/04-git.html#работа-с-удалёнными-репозиториями",
+    "href": "topics/04-git.html#работа-с-удалёнными-репозиториями",
+    "title": "5  Основы Git. Ветвление в Git",
+    "section": "5.9 Работа с удалёнными репозиториями",
+    "text": "5.9 Работа с удалёнными репозиториями PROGIT2026, с. 53",
+    "crumbs": [
+      "<span class='chapter-number'>5</span>  <span class='chapter-title'>Основы Git. Ветвление в Git</span>"
+    ]
+  }
+]
