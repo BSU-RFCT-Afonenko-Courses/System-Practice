@@ -1,6 +1,6 @@
 {
-  "status": "local-targets-only",
-  "publishedBaseUrl": null,
+  "status": "published-verified",
+  "publishedBaseUrl": "https://bsu-rfct-afonenko-courses.github.io/System-Practice/",
   "cards": [
     {
       "id": "SP01-01",
@@ -15,7 +15,7 @@
       "fragment": "tasks/_cards/topics/01-command-line/SP01-01.qmd",
       "page": "tasks/topics/01-command-line.html",
       "anchor": "exr-sp01-01",
-      "url": null
+      "url": "https://bsu-rfct-afonenko-courses.github.io/System-Practice/tasks/topics/01-command-line.html#exr-sp01-01"
     },
     {
       "id": "SP01-02",
@@ -30,7 +30,7 @@
       "fragment": "tasks/_cards/topics/02-files-streams/SP01-02.qmd",
       "page": "tasks/topics/02-files-streams.html",
       "anchor": "exr-sp01-02",
-      "url": null
+      "url": "https://bsu-rfct-afonenko-courses.github.io/System-Practice/tasks/topics/02-files-streams.html#exr-sp01-02"
     },
     {
       "id": "SP01-03",
@@ -45,7 +45,7 @@
       "fragment": "tasks/_cards/topics/02-files-streams/SP01-03.qmd",
       "page": "tasks/topics/02-files-streams.html",
       "anchor": "exr-sp01-03",
-      "url": null
+      "url": "https://bsu-rfct-afonenko-courses.github.io/System-Practice/tasks/topics/02-files-streams.html#exr-sp01-03"
     },
     {
       "id": "SP01-06",
@@ -60,7 +60,7 @@
       "fragment": "tasks/_cards/topics/02-files-streams/SP01-06.qmd",
       "page": "tasks/topics/02-files-streams.html",
       "anchor": "exr-sp01-06",
-      "url": null
+      "url": "https://bsu-rfct-afonenko-courses.github.io/System-Practice/tasks/topics/02-files-streams.html#exr-sp01-06"
     },
     {
       "id": "SP01-07",
@@ -75,7 +75,7 @@
       "fragment": "tasks/_cards/topics/02-files-streams/SP01-07.qmd",
       "page": "tasks/topics/02-files-streams.html",
       "anchor": "exr-sp01-07",
-      "url": null
+      "url": "https://bsu-rfct-afonenko-courses.github.io/System-Practice/tasks/topics/02-files-streams.html#exr-sp01-07"
     },
     {
       "id": "SP01-08",
@@ -90,7 +90,7 @@
       "fragment": "tasks/_cards/topics/02-files-streams/SP01-08.qmd",
       "page": "tasks/topics/02-files-streams.html",
       "anchor": "exr-sp01-08",
-      "url": null
+      "url": "https://bsu-rfct-afonenko-courses.github.io/System-Practice/tasks/topics/02-files-streams.html#exr-sp01-08"
     },
     {
       "id": "SP01-09",
@@ -105,7 +105,7 @@
       "fragment": "tasks/_cards/topics/02-files-streams/SP01-09.qmd",
       "page": "tasks/topics/02-files-streams.html",
       "anchor": "exr-sp01-09",
-      "url": null
+      "url": "https://bsu-rfct-afonenko-courses.github.io/System-Practice/tasks/topics/02-files-streams.html#exr-sp01-09"
     },
     {
       "id": "SP01-10",
@@ -120,7 +120,7 @@
       "fragment": "tasks/_cards/topics/02-files-streams/SP01-10.qmd",
       "page": "tasks/topics/02-files-streams.html",
       "anchor": "exr-sp01-10",
-      "url": null
+      "url": "https://bsu-rfct-afonenko-courses.github.io/System-Practice/tasks/topics/02-files-streams.html#exr-sp01-10"
     },
     {
       "id": "SP01-12",
@@ -135,7 +135,7 @@
       "fragment": "tasks/_cards/topics/02-files-streams/SP01-12.qmd",
       "page": "tasks/topics/02-files-streams.html",
       "anchor": "exr-sp01-12",
-      "url": null
+      "url": "https://bsu-rfct-afonenko-courses.github.io/System-Practice/tasks/topics/02-files-streams.html#exr-sp01-12"
     },
     {
       "id": "SP01-13",
@@ -150,7 +150,7 @@
       "fragment": "tasks/_cards/topics/02-files-streams/SP01-13.qmd",
       "page": "tasks/topics/02-files-streams.html",
       "anchor": "exr-sp01-13",
-      "url": null
+      "url": "https://bsu-rfct-afonenko-courses.github.io/System-Practice/tasks/topics/02-files-streams.html#exr-sp01-13"
     },
     {
       "id": "SP01-04",
@@ -165,7 +165,7 @@
       "fragment": "tasks/_cards/topics/03-diff-patch/SP01-04.qmd",
       "page": "tasks/topics/03-diff-patch.html",
       "anchor": "exr-sp01-04",
-      "url": null
+      "url": "https://bsu-rfct-afonenko-courses.github.io/System-Practice/tasks/topics/03-diff-patch.html#exr-sp01-04"
     },
     {
       "id": "SP01-11",
@@ -180,7 +180,7 @@
       "fragment": "tasks/_cards/topics/03-diff-patch/SP01-11.qmd",
       "page": "tasks/topics/03-diff-patch.html",
       "anchor": "exr-sp01-11",
-      "url": null
+      "url": "https://bsu-rfct-afonenko-courses.github.io/System-Practice/tasks/topics/03-diff-patch.html#exr-sp01-11"
     },
     {
       "id": "SP02-03",
@@ -195,7 +195,7 @@
       "fragment": "tasks/_cards/topics/03-diff-patch/SP02-03.qmd",
       "page": "tasks/topics/03-diff-patch.html",
       "anchor": "exr-sp02-03",
-      "url": null
+      "url": "https://bsu-rfct-afonenko-courses.github.io/System-Practice/tasks/topics/03-diff-patch.html#exr-sp02-03"
     },
     {
       "id": "SP01-05",
@@ -210,7 +210,7 @@
       "fragment": "tasks/_cards/topics/04-git/SP01-05.qmd",
       "page": "tasks/topics/04-git.html",
       "anchor": "exr-sp01-05",
-      "url": null
+      "url": "https://bsu-rfct-afonenko-courses.github.io/System-Practice/tasks/topics/04-git.html#exr-sp01-05"
     },
     {
       "id": "SP02-01",
@@ -225,7 +225,7 @@
       "fragment": "tasks/_cards/topics/04-git/SP02-01.qmd",
       "page": "tasks/topics/04-git.html",
       "anchor": "exr-sp02-01",
-      "url": null
+      "url": "https://bsu-rfct-afonenko-courses.github.io/System-Practice/tasks/topics/04-git.html#exr-sp02-01"
     },
     {
       "id": "SP02-02",
@@ -240,7 +240,7 @@
       "fragment": "tasks/_cards/topics/04-git/SP02-02.qmd",
       "page": "tasks/topics/04-git.html",
       "anchor": "exr-sp02-02",
-      "url": null
+      "url": "https://bsu-rfct-afonenko-courses.github.io/System-Practice/tasks/topics/04-git.html#exr-sp02-02"
     },
     {
       "id": "SP02-04",
@@ -255,7 +255,7 @@
       "fragment": "tasks/_cards/topics/04-git/SP02-04.qmd",
       "page": "tasks/topics/04-git.html",
       "anchor": "exr-sp02-04",
-      "url": null
+      "url": "https://bsu-rfct-afonenko-courses.github.io/System-Practice/tasks/topics/04-git.html#exr-sp02-04"
     },
     {
       "id": "SP02-05",
@@ -270,7 +270,7 @@
       "fragment": "tasks/_cards/topics/04-git/SP02-05.qmd",
       "page": "tasks/topics/04-git.html",
       "anchor": "exr-sp02-05",
-      "url": null
+      "url": "https://bsu-rfct-afonenko-courses.github.io/System-Practice/tasks/topics/04-git.html#exr-sp02-05"
     },
     {
       "id": "SP02-06",
@@ -285,7 +285,7 @@
       "fragment": "tasks/_cards/topics/04-git/SP02-06.qmd",
       "page": "tasks/topics/04-git.html",
       "anchor": "exr-sp02-06",
-      "url": null
+      "url": "https://bsu-rfct-afonenko-courses.github.io/System-Practice/tasks/topics/04-git.html#exr-sp02-06"
     },
     {
       "id": "SP02-07",
@@ -300,7 +300,7 @@
       "fragment": "tasks/_cards/topics/04-git/SP02-07.qmd",
       "page": "tasks/topics/04-git.html",
       "anchor": "exr-sp02-07",
-      "url": null
+      "url": "https://bsu-rfct-afonenko-courses.github.io/System-Practice/tasks/topics/04-git.html#exr-sp02-07"
     },
     {
       "id": "SP02-08",
@@ -315,7 +315,7 @@
       "fragment": "tasks/_cards/topics/04-git/SP02-08.qmd",
       "page": "tasks/topics/04-git.html",
       "anchor": "exr-sp02-08",
-      "url": null
+      "url": "https://bsu-rfct-afonenko-courses.github.io/System-Practice/tasks/topics/04-git.html#exr-sp02-08"
     },
     {
       "id": "SP02-09",
@@ -330,7 +330,7 @@
       "fragment": "tasks/_cards/topics/04-git/SP02-09.qmd",
       "page": "tasks/topics/04-git.html",
       "anchor": "exr-sp02-09",
-      "url": null
+      "url": "https://bsu-rfct-afonenko-courses.github.io/System-Practice/tasks/topics/04-git.html#exr-sp02-09"
     },
     {
       "id": "SP02-10",
@@ -345,7 +345,7 @@
       "fragment": "tasks/_cards/topics/04-git/SP02-10.qmd",
       "page": "tasks/topics/04-git.html",
       "anchor": "exr-sp02-10",
-      "url": null
+      "url": "https://bsu-rfct-afonenko-courses.github.io/System-Practice/tasks/topics/04-git.html#exr-sp02-10"
     },
     {
       "id": "SP02-11",
@@ -360,7 +360,7 @@
       "fragment": "tasks/_cards/topics/04-git/SP02-11.qmd",
       "page": "tasks/topics/04-git.html",
       "anchor": "exr-sp02-11",
-      "url": null
+      "url": "https://bsu-rfct-afonenko-courses.github.io/System-Practice/tasks/topics/04-git.html#exr-sp02-11"
     },
     {
       "id": "SP02-12",
@@ -375,7 +375,7 @@
       "fragment": "tasks/_cards/topics/04-git/SP02-12.qmd",
       "page": "tasks/topics/04-git.html",
       "anchor": "exr-sp02-12",
-      "url": null
+      "url": "https://bsu-rfct-afonenko-courses.github.io/System-Practice/tasks/topics/04-git.html#exr-sp02-12"
     },
     {
       "id": "SPP-01",
@@ -390,7 +390,7 @@
       "fragment": "tasks/_cards/projects/SPP-01.qmd",
       "page": "tasks/projects.html",
       "anchor": "exr-spp-01",
-      "url": null
+      "url": "https://bsu-rfct-afonenko-courses.github.io/System-Practice/tasks/projects.html#exr-spp-01"
     }
   ]
 }
