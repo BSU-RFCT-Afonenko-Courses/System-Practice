@@ -116,3 +116,57 @@ task publish
 `quarto publish gh-pages --profile student --no-render`. Успешная локальная
 сборка, загрузка исходников, PR, слияние и доступность опубликованного сайта
 фиксируются отдельно. Передача исходников не подразумевает слияния PR.
+
+## Пилот текстовой сдачи PrairieLearn
+
+Выбранная работа `tasks/prairielearn-pilot.qmd` включает только SP01-03:
+конвейер, запись, дописывание и отдельное перенаправление ошибки. Студент
+вводит `commands.fish` в обычный редактор PL; контейнер запускает ответ
+на двух наборах HTTP-заголовков. VS Code и PowerShell для этого пилота
+не требуются. Остальные 25 карточек и полный маршрут сохраняются.
+
+В репозитории замкнута поставка выбранной работы: каноническое условие,
+стартовый ответ, эталон, `checks.py`, входные данные и отрицательные fixtures
+находятся в `tasks/projects/streams/`. Проверки и эталон опубликованы вместе
+с исходниками. Полный архив нужен автору для разработки или локального
+выполнения; в интерфейсе PL отправляется только текст одного файла.
+
+Core/Presentation v5.0.2 используются через штатные adapters/task-items.
+Exporter устанавливается **целым пакетом** из проверенного commit
+`a28fe17570ff5a9f0e2fb6a04ab73d404d95c09a` репозитория
+[Afonenko-Course-Tools/quarto-course-prairielearn](https://github.com/Afonenko-Course-Tools/quarto-course-prairielearn).
+Он включает явное разрешение `.fish` для runtime, non-Java descriptor и
+атомарное staging при разных filesystem. Это commit с отдельным PR;
+не следует объявлять его новым опубликованным выпуском.
+
+В `tasks/_quarto.yml` явно объявлены editor mode, source profile,
+`fish-git-v1`, trusted tests, limits и единственная lab работа instance `pilot`.
+Внешний runtime собирается из платформенного
+`images/fish-git-grader/Dockerfile`: он использует официальный Landlock/sbuser,
+ограничивает выполнение и output; правила задания остаются в этом курсе.
+Новый fish image пока diagnostic candidate, его published digest не назначен.
+Java runtime по-прежнему требует JDK 25; это не требование к ответу fish.
+
+Пример локального экспорта из корня курса (абсолютные пути заменяет оператор):
+
+```sh
+quarto run tasks/_extensions/course-prairielearn/entrypoints/export-course.ts -- \
+  /absolute/System-Practice /absolute/private/system-native \
+  --instance pilot --book tasks \
+  --checks-output /absolute/private/system-checks.json \
+  --runtime-registry /absolute/prairielearn-platform/runtime-profiles.json \
+  --candidate-image sha256:ACTUAL_LOCAL_CONFIG_IMAGE_ID
+```
+
+Candidate ID должен быть настоящим результатом `docker image inspect`.
+Генерируемые delivery и private receipts не редактируются вручную.
+Полная контейнерная проверка охватывает starter, reference, wrong,
+syntax failure и timeout. На VM дополнительно проверяются текстовые student
+HTTP submissions и невалидный UTF-8; результаты читаются в Moodle через AGS.
+
+Сборки этой ветки student/full содержат по 22 страницы, 26 канонических задач
+и 53 цели QRC; прежняя опубликованная версия в таблице выше остаётся отдельным
+историческим состоянием. URL выбранных QRC references в native условии
+разрешены через проверенный опубликованный каталог: текущий Core Body exporter
+не умеет переносить QRC shortcode без resolver. Другие карточки используют
+штатный QRC. Новая публикация сайта и слияние этого PR не подразумеваются.
