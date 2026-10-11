@@ -1,4 +1,4 @@
-::: {#exr-sp01-03 difficulty="intermediate" time="35"}
+::: {#exr-sp01-03 difficulty="intermediate" time="35" target="prairielearn" project="/projects/streams" project-check="streams"}
 
 ## SP01-03. Подключение программ: конвейер и перенаправление
 
@@ -7,15 +7,15 @@
 | Статус | обязательная |
 | Сложность | средний |
 | Время | **35 мин**, из них 5 мин на беглое чтение; остальное — выполнение и самостоятельная проверка |
-| Предварительно | {{< xref theory sec-01-command-line "01-command-line" >}}; {{< xref tasks exr-sp01-02 "SP01-02" >}} или {{< xref tasks exr-sp01-06 "SP01-06" >}} |
+| Предварительно | [01-command-line](https://bsu-rfct-afonenko-courses.github.io/System-Practice/theory/topics/01-command-line.html#sec-01-command-line); [SP01-02](https://bsu-rfct-afonenko-courses.github.io/System-Practice/tasks/topics/02-files-streams.html#exr-sp01-02) или [SP01-06](https://bsu-rfct-afonenko-courses.github.io/System-Practice/tasks/topics/02-files-streams.html#exr-sp01-06) |
 
 ### Условие
 
-Выполните в терминале fish облачной рабочей области VS Code PrairieLearn. В выданном headers.txt находятся HTTP-заголовки. Прочитайте файл через стандартный ввод команды, передайте результат по конвейеру и сохраните строку Last-Modified в last-modified.txt. Вторым запуском допишите эту строку в тот же файл. Затем выполните чтение несуществующего файла и направьте сообщение об ошибке в errors.txt. Сохраните команды в commands.txt. Для повторения на своем ПК в Windows выполните ту же обработку в PowerShell 7 средствами его конвейера и перенаправления.
+В пилоте введите команды fish в текстовый редактор PrairieLearn; контейнер выполнит их в каталоге с выданным `headers.txt`. В полном варианте используйте терминал fish рабочей области VS Code. В headers.txt находятся HTTP-заголовки. Прочитайте файл через стандартный ввод команды, передайте результат по конвейеру и сохраните строку Last-Modified в last-modified.txt. Вторым запуском допишите эту строку в тот же файл. Затем выполните чтение несуществующего файла и направьте сообщение об ошибке в errors.txt. В пилоте сдаётся `commands.fish`; при самостоятельном повторении сохраните команды в commands.txt. Для повторения на своем ПК в Windows выполните ту же обработку в PowerShell 7 средствами его конвейера и перенаправления.
 
 ### Источник и перенос
 
-{{< xref tasks sec-mm2020ru "MM2020RU" >}}: Обзор курса + shell; Упражнение №9. [Ссылка на оригинал или карточку издания](https://missing-semester-rus.github.io/2020/course-shell/).
+[MM2020RU](https://bsu-rfct-afonenko-courses.github.io/System-Practice/tasks/sources.html#sec-mm2020ru): Обзор курса + shell; Упражнение №9. [Ссылка на оригинал или карточку издания](https://missing-semester-rus.github.io/2020/course-shell/).
 
 Адаптированное авторское условие. Вместо sh-сценария и сетевого запроса выдается сохраненный текст HTTP-заголовков. Добавлены дописывание и отдельное перенаправление ошибки; Linux выполняет интерактивные команды fish, а не Bash-сценарий. Локальный повтор необязателен.
 
@@ -26,10 +26,14 @@
 
 ### Будущие материалы и способ сдачи
 
-Позднее потребуется небольшой headers.txt с единственной строкой Last-Modified и несколькими другими HTTP-заголовками.
+Для пилота подготовлены `projects/streams/tests/headers.txt`, стартовый
+`commands.fish`, эталон и исполняемые проверки. В редактор PrairieLearn
+передаются только команды fish. Для самостоятельного повторения используйте
+тот же headers.txt в локальном каталоге; сохраните команды как commands.txt
+после выполнения. Полная рабочая область VS Code остаётся отдельной поставкой.
 
-Облако: файлы в рабочей области VS Code PrairieLearn. Локально: те же файлы отдельными вложениями или одним ZIP-архивом.
+Полный вариант: файлы в рабочей области VS Code PrairieLearn. Локально: те же файлы отдельными вложениями или одним ZIP-архивом.
 
-{{< xref theory sec-02-files-streams "К теме" >}} · {{< xref tasks sec-bank "Правила банка" >}}
+[К теме](https://bsu-rfct-afonenko-courses.github.io/System-Practice/theory/topics/02-files-streams.html#sec-02-files-streams) · [Правила банка](https://bsu-rfct-afonenko-courses.github.io/System-Practice/tasks/index.html#sec-bank)
 
 :::

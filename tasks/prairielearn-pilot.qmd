@@ -1,0 +1,22 @@
+---
+assessment:
+  kind: lab
+  prairielearn:
+    attempts: 3
+    question-points: 1
+    pass: {at-least: 1}
+    assignment: {mode: assessment-id}
+---
+
+# Пилот: конвейер и перенаправление {#sec-pl-streams-pilot}
+
+Выполните SP01-03. В этом пилоте команды fish вводятся в обычный редактор
+PrairieLearn; проверяющий контейнер запускает их в подготовленном каталоге.
+Файл `headers.txt` содержит несколько HTTP-заголовков и ровно одну строку
+`Last-Modified:`. Проверка повторяется с другим значением этой строки.
+Облачная среда VS Code и необязательный повтор в PowerShell относятся к
+полному варианту упражнения.
+
+::: {.task-items}
+1. [@exr-sp01-03]{requirement="required" work-mode="individual"}
+:::

@@ -1,0 +1,5 @@
+{"schemaVersion":1,"cases":[
+  {"id":"wrong","sources":[{"fixture":"tests/fixtures/wrong.fish","submission":"commands.fish"}],"expected":{"job":"complete","classification":"behavior-failure","score":{"less-than":1}}},
+  {"id":"invalid","sources":[{"fixture":"tests/fixtures/invalid.fish","submission":"commands.fish"}],"expected":{"job":"complete","student-compilation":"failure"}},
+  {"id":"timeout","sources":[{"fixture":"tests/fixtures/timeout.fish","submission":"commands.fish"}],"expected":{"job":"complete","classification":"student-timeout"}}
+]}

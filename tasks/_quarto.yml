@@ -29,6 +29,7 @@ fail-if-warnings: true
 filters:
 - course-core
 - course-presentation
+- course-prairielearn
 - reference-catalog
 reference-catalog:
   namespace: tasks
@@ -46,6 +47,7 @@ book:
   - topics/03-diff-patch.qmd
   - topics/04-git.qmd
   - projects.qmd
+  - prairielearn-pilot.qmd
   - sources.qmd
   search: true
   page-navigation: true
@@ -54,3 +56,57 @@ book:
     - icon: house
       href: ../index.html#sec-system-practice
       text: Портал курса
+course:
+  adapters:
+  - prairielearn
+prairielearn:
+  question-defaults:
+    topic: Shell
+    submission:
+      mode: editor
+      ace-mode: ace/mode/sh
+  delivery:
+    book: tasks
+    course:
+      name: SYSTEM-PRACTICE
+      title: System Practice
+      timezone: Europe/Minsk
+      topics:
+      - name: Shell
+        color: blue2
+        description: Файлы и потоки
+    instances:
+      pilot:
+        title: Пилот System Practice
+        self-enrollment: false
+        publishing:
+          start-date: '1970-01-01T00:00:00Z'
+          end-date: '9999-12-31T00:00:00Z'
+        works:
+        - sec-pl-streams-pilot
+project-checks:
+  source-profiles:
+    fish-answer:
+      mode: implementation
+      root: student
+      include:
+      - commands.fish
+  profiles:
+    streams:
+      source-profile: fish-answer
+      runtime: fish-git-v1
+      tests:
+      - checks.py
+      - headers.txt
+      limits:
+        outer-seconds: 30
+        run-seconds: 3
+        networking: false
+        max-output-bytes: 65536
+      scoring:
+        mode: weighted
+      references:
+      - name: default
+        root: reference
+        optional: false
+      contract-cases: tests/contract-cases.json

@@ -34,6 +34,7 @@ tasks:
     cmds:
     - quarto add Afonenko-Course-Tools/quarto-course@v5.0.2 --no-prompt
     - quarto add Afonenko-Course-Tools/quarto-reference-catalog@v3.0.0 --no-prompt
+    - quarto add https://github.com/Afonenko-Course-Tools/quarto-course-prairielearn/archive/a28fe17570ff5a9f0e2fb6a04ab73d404d95c09a.zip --no-prompt
   install:practice:
     internal: true
     dir: practice
