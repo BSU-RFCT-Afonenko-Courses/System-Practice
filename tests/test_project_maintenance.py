@@ -1,5 +1,5 @@
 """Факты проекта: допустимые истории и содержательные неверные результаты."""
-import io,shutil,sys,tempfile,unittest,zipfile
+import io,shutil,sys,tempfile,unittest,zipfile,zlib
 from pathlib import Path
 sys.path.insert(0,str(Path(__file__).resolve().parents[1]/'tools'))
 from check_project_maintenance import check_archive
@@ -43,6 +43,21 @@ class ProjectMaintenance(unittest.TestCase):
         path=self.root/'invalid.zip';path.write_bytes(b'not a ZIP')
         r=check_archive(path,initial_path=self.root/'absent.json')
         self.assertEqual('fail',r['automated']);self.assertTrue(r['errors']);self.assertTrue(r['manualRequired'])
+    def test_shared_tag_object_must_exist(self):
+        base=solution(self.root);shared=base/'shared.git';oid=run(shared,'rev-parse','v2.0').stdout.decode().strip()
+        (shared/'objects'/oid[:2]/oid[2:]).unlink()
+        self.expect_failure(base,'Git object')
+    def test_shared_tag_actual_bytes_must_match_its_oid(self):
+        base=solution(self.root);shared=base/'shared.git';oid=run(shared,'rev-parse','v2.0').stdout.decode().strip();path=shared/'objects'/oid[:2]/oid[2:]
+        raw=zlib.decompress(path.read_bytes());header,body=raw.split(b'\0',1);body+=b'Different annotation.\n';path.chmod(0o600);path.write_bytes(zlib.compress(b'tag '+str(len(body)).encode()+b'\0'+body))
+        self.expect_failure(base,'Git object')
+    def test_shared_original_incoming_commit_must_remain_readable(self):
+        base=solution(self.root);shared=base/'shared.git';oid=run(shared,'rev-parse','incoming').stdout.decode().strip()
+        (shared/'objects'/oid[:2]/oid[2:]).unlink()
+        self.expect_failure(base,'Git object')
+    def test_zero_context_git_patch_reproducing_release_is_valid(self):
+        base=solution(self.root);run(base/'work','diff','--binary','--unified=0','--output=../release.patch','start','v2.0')
+        self.assertEqual('pass',self.check(base)['automated'])
     def test_untrusted_config_is_never_executed(self):
         base=solution(self.root);w=base/'work';(w/'.git/config').write_text('[core]\n bare=false\n fsmonitor=/do-not-execute\n hooksPath=/do-not-execute\n[include]\n path=/do-not-read\n')
         self.assertEqual('pass',self.check(base)['automated'])

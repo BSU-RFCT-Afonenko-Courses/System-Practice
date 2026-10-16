@@ -63,6 +63,15 @@ def check_archive(path,initial_path=INITIAL):
             tag=work.ref('refs/tags/v2.0');tag_body=work.git('cat-file','tag',tag)
             if not tag_body.partition(b'\n\n')[2].strip():raise GitDataError('Нужна непустая аннотация v2.0')
             if shared.ref('refs/heads/main')!=r or shared.ref('refs/tags/v2.0')!=tag:raise GitDataError('shared.git должен получить итоговый main и тот же объект v2.0')
+            # Ref strings alone do not establish object identity or complete history.
+            # --full also detects corrupt unreachable garbage: that is a manual/tool
+            # boundary, not evidence that the learner's chosen history is wrong.
+            for repo in [work,shared]:
+                repo.git('fsck','--full','--no-reflogs','--no-dangling','--no-progress',r,tag,a,m,f,p)
+            if (shared.git('cat-file','-t',tag).strip()!=b'tag'
+                    or shared.ref('refs/tags/v2.0^{commit}')!=r
+                    or shared.git('cat-file','tag',tag)!=tag_body):
+                raise GitDataError('shared.git должен содержать тот же аннотированный объект v2.0 и его коммит')
             if shared.tree(r)!=tree:raise GitDataError('shared.git содержит иное дерево выпуска')
             release=files.get(PREFIX+'report-2.0.zip')
             if release is None:raise GitDataError('Отсутствует report-2.0.zip')
@@ -76,8 +85,8 @@ def check_archive(path,initial_path=INITIAL):
             patch_path=temp/'release.patch';patch_path.write_bytes(patch)
             work.git('read-tree',m)
             try:
-                work.git('apply','--cached','--check','--binary',str(patch_path))
-                work.git('apply','--cached','--binary',str(patch_path))
+                work.git('apply','--cached','--check','--binary','--unidiff-zero',str(patch_path))
+                work.git('apply','--cached','--binary','--unidiff-zero',str(patch_path))
             except GitDataError as problem:raise GitDataError('release.patch не применяется к start: '+str(problem)) from problem
             if work.index()!=tree:raise GitDataError('release.patch на start не воспроизводит дерево main')
             facts.update(main=r,patchCommit=p,annotatedTag=tag,sharedMain=r,releaseFiles=sorted(tree),patchReproducesMain=True)
