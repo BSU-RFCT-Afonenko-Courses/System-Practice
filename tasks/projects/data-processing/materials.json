@@ -1,0 +1,26 @@
+{
+  "practice/materials/data-processing-demo.zip": {
+    "flowlab/inputs/readings.txt": "S11|12|keep\nS03|4|skip\nS07|2|keep\nS02|12|keep\n",
+    "flowlab/inputs/readings.csv": "Code,Units,State\nS11,12,keep\nS03,4,skip\nS07,2,keep\nS02,12,keep\n",
+    "flowlab/inputs/no-match.txt": "S21|3|skip\nS22|8|skip\n",
+    "flowlab/inputs/no-match.csv": "Code,Units,State\nS21,3,skip\nS22,8,skip\n",
+    "flowlab/expected/selected.txt": "S07|2\nS02|12\nS11|12\n",
+    "flowlab/expected/selected.csv": "Code,Units\nS07,2\nS02,12\nS11,12\n",
+    "flowlab/expected/empty.txt": "",
+    "flowlab/expected/empty.csv": ""
+  },
+  "tasks/materials/data-processing-start.zip": {
+    "processing/inputs/readings.txt": "B03|10|keep\nB01|2|keep\nB06|9|skip\nB02|10|keep\nB05|0|keep\nB04|20|skip\n",
+    "processing/inputs/readings.csv": "Code,Units,State\nB03,10,keep\nB01,2,keep\nB06,9,skip\nB02,10,keep\nB05,0,keep\nB04,20,skip\n",
+    "processing/inputs/no-match.txt": "B07|1|skip\nB08|11|skip\n",
+    "processing/inputs/no-match.csv": "Code,Units,State\nB07,1,skip\nB08,11,skip\n",
+    "processing/expected/selected.txt": "B05|0\nB01|2\nB02|10\nB03|10\n",
+    "processing/expected/selected.csv": "Code,Units\nB05,0\nB01,2\nB02,10\nB03,10\n",
+    "processing/expected/empty.txt": "",
+    "processing/expected/empty.csv": "",
+    "processing/expected/excluded.txt": "B04|20\nB06|9\n",
+    "processing/expected/excluded.csv": "Code,Units\nB04,20\nB06,9\n",
+    "processing/expected/no-match-excluded.txt": "B07|1\nB08|11\n",
+    "processing/expected/no-match-excluded.csv": "Code,Units\nB07,1\nB08,11\n"
+  }
+}

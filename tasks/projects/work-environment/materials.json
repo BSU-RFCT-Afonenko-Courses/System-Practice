@@ -1,0 +1,12 @@
+{
+  "practice/materials/work-environment-demo.zip": {
+    "lab/input/room A.txt": "north\n",
+    "lab/reports/input/room A.txt": "south\n"
+  },
+  "tasks/materials/work-environment-start.zip": {
+    "survey/source/morning log.txt": "A=12\nB=7\n",
+    "survey/source/evening.txt": "A=10\nB=9\n",
+    "survey/work/draft.txt": "station=west\n",
+    "survey/work/scratch.txt": "temporary\n"
+  }
+}
