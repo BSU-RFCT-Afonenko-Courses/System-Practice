@@ -6,13 +6,13 @@
     ru: { start: 'Начало', material: 'Материал', slide: 'Слайд', topics: 'Разделы', controls: 'Управление презентацией',
       prev: 'Предыдущий слайд', next: 'Следующий слайд', prevSection: 'Предыдущий раздел', nextSection: 'Следующий раздел',
       back: 'Назад по посещённым слайдам', forward: 'Вперёд по посещённым слайдам', overview: 'Обзор всех слайдов',
-      search: 'Поиск по слайдам', fullscreen: 'Полный экран', print: 'Печать / PDF (новая вкладка)', close: 'Закрыть', searchPlaceholder: 'Заголовок, термин или фрагмент кода…',
+      search: 'Поиск по слайдам', fullscreen: 'Полный экран', speaker: 'Окно преподавателя', print: 'Печать / PDF (новая вкладка)', close: 'Закрыть', searchPlaceholder: 'Заголовок, термин или фрагмент кода…',
       noResults: 'Ничего не найдено', searchHint: 'Поиск выполняется только в этой презентации.', sectionProgress: 'В разделе',
       allProgress: 'Прогресс презентации', section: 'Раздел', resultCount: 'Найдено слайдов', presentation: 'Презентация' },
     en: { start: 'Start', material: 'Content', slide: 'Slide', topics: 'Sections', controls: 'Presentation controls',
       prev: 'Previous slide', next: 'Next slide', prevSection: 'Previous section', nextSection: 'Next section',
       back: 'Back in visited slides', forward: 'Forward in visited slides', overview: 'Slide overview',
-      search: 'Search slides', fullscreen: 'Full screen', print: 'Print / PDF (new tab)', close: 'Close', searchPlaceholder: 'Heading, term, or code…',
+      search: 'Search slides', fullscreen: 'Full screen', speaker: 'Speaker view', print: 'Print / PDF (new tab)', close: 'Close', searchPlaceholder: 'Heading, term, or code…',
       noResults: 'No slides found', searchHint: 'Search only this presentation.', sectionProgress: 'In section',
       allProgress: 'Presentation progress', section: 'Section', resultCount: 'Slides found', presentation: 'Presentation' }
   };
@@ -24,6 +24,7 @@
     overview: 'M3 3h7v7H3zm11 0h7v7h-7zM3 14h7v7H3zm11 0h7v7h-7z',
     search: 'M20 20l-5-5M17 10a7 7 0 1 1-14 0 7 7 0 0 1 14 0',
     fullscreen: 'M8 3H3v5m13-5h5v5M3 16v5h5m13-5v5h-5',
+    speaker: 'M3 3h18v13H3zM8 21l4-5 4 5M7 7h10M7 11h6',
     print: 'M7 8V3h10v5M7 17H4V9h16v8h-3M7 14h10v7H7zM17 11h.01',
     topics: 'M4 6h16M4 12h16M4 18h16', close: 'm6 6 12 12M18 6 6 18'
   };
@@ -111,6 +112,8 @@
     // После перехода меню закрывается, в том числе на узком экране.
     ['prevSection', 'nextSection', 'back', 'forward'].forEach(key =>
       addControl(menuActions, key, '', true, () => { closeDialogs(); actions[key](); }));
+    if (typeof actions.speaker === 'function')
+      addControl(menuActions, 'speaker', '', true, () => { closeDialogs(); actions.speaker(); });
     menu.append(menuActions);
     if (options.links?.length) menu.append(permanentLinks());
     menu.append(sectionList());
@@ -118,6 +121,7 @@
     addControl(controls, 'topics', 'course-nav-menu-toggle');
     ['back', 'forward', 'prevSection', 'nextSection'].forEach(key => addControl(controls, key, 'course-nav-auxiliary'));
     ['prev', 'next', 'overview', 'search', 'fullscreen', 'print'].forEach(key => addControl(controls, key));
+    if (typeof actions.speaker === 'function') addControl(controls, 'speaker', 'course-nav-auxiliary');
     footer.append(status, sectionStatus, controls);
     // Обзор в порядке документа, независимый от пространственных групп Reveal.
     const overview = dialog(labels.overview); overview.classList.add('course-nav-overview');

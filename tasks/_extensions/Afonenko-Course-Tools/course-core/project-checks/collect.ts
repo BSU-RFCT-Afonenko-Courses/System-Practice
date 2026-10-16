@@ -75,13 +75,18 @@ export async function collectProjectChecks(root:string,options:{book:string;prof
   const apiPrecheck=await apiSubset(check['api-precheck'],"tests",trustedTests,true);
   const verificationApiPrecheck=await apiSubset(check['verification-api-precheck'],"student",verificationTests);
   if(apiPrecheck&&verificationTests.length&&!verificationApiPrecheck)throw diagnostic("CHECKS.API_PUBLIC_MISSING","Публичная проверка fixed API требует собственной явной API precheck");
+  const extras=check['additional-java-sources'];
+  if(extras){
+   const reserved=[...sources,...trustedTests,...verificationTests].map(x=>x.submissionRelativePath).concat(['grading-job.json','tests/grading-job.json']);
+   if(reserved.some(name=>name===extras.archive||name.startsWith(extras.archive+'/')||extras.archive.startsWith(name+'/')))throw diagnostic('CHECKS.ADDITIONAL_JAVA_COLLISION','Имя ZIP конфликтует с основным/доверенным путём');
+  }
   const references=[];
   for(const ref of check.references??[]){
    let available=true,files:SourceSelection[]=[];
    files=await select(ref.root,check.sourceProfile.include);available=files.length>0;
    if(!available&&!ref.optional)missing.push("reference:"+ref.name);
    const allowed=new Set(sources.map(s=>s.submissionRelativePath));
-   if(sources.length&&files.some(file=>!allowed.has(file.submissionRelativePath)))throw diagnostic("CHECKS.REFERENCE_MAPPING_INVALID","Reference не соответствует именам выбранных sources",{source:fact.source,id:fact.exerciseId});
+   if(sources.length&&!check['additional-java-sources']&&files.some(file=>!allowed.has(file.submissionRelativePath)))throw diagnostic("CHECKS.REFERENCE_MAPPING_INVALID","Reference не соответствует именам выбранных sources",{source:fact.source,id:fact.exerciseId});
    references.push({...ref,sources:files,available});
   }
   let contractCasesHash:CheckProject['contractCasesHash'];const contractFixtures:SourceSelection[]=[];

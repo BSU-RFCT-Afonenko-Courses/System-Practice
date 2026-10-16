@@ -63,6 +63,8 @@
             catch (_) { /* Внешний фрейм может запрещать полноэкранный режим. */ }
           }
         };
+        const notes = deck.getPlugin?.('notes');
+        if (typeof notes?.open === 'function') actions.speaker = () => notes.open();
         document.body.classList.add('course-navigation-active');
         if (options.sidebar === false) document.body.classList.add('course-navigation-no-sidebar');
         ui = UI.build(model, options, actions);

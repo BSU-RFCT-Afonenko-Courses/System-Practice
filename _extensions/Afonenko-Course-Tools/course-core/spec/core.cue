@@ -129,11 +129,14 @@ import "list"
  "verification-expectations"?:{reference?:#VerificationExpectation,starter?:#VerificationExpectation}
  discovery?:{"min-executed"?:int & >0,"allow-skipped"?:bool}
  variants?:{correct:[...string] & list.MinItems(1),mutants:[...string] & list.MinItems(1)}
+ "additional-java-sources"?:#AdditionalJavaSources
+ if CHECK["additional-java-sources"] != _|_ {runtime:"java25-junit-v1",sourceProfile:mode:"implementation"}
  "api-precheck"?:#ApiPrecheck
  "verification-api-precheck"?:#ApiPrecheck
  if CHECK["api-precheck"] != _|_ {runtime:"java25-junit-v1",sourceProfile:mode:"implementation"}
  if CHECK["verification-api-precheck"] != _|_ {runtime:"java25-junit-v1",sourceProfile:mode:"implementation"}
 }
+#AdditionalJavaSources: {archive:string & =~"^[A-Za-z0-9][A-Za-z0-9_-]{0,100}\\.zip$","max-files":int & >=1 & <=128,"max-file-bytes":int & >=1 & <=1048576,"max-total-bytes":int & >=1 & <=4194304,"max-archive-bytes":int & >=1 & <=2097152}
 #ApiPrecheck: {files:[...string & !=""] & list.MinItems(1),entry:string & =~"^[A-Za-z_$][A-Za-z0-9_$]*(\\.[A-Za-z_$][A-Za-z0-9_$]*)*$"}
 #ProjectFact: {exerciseId:string, source:string, projectRoot:string & !="", bankMember:bool, purpose?:#ExercisePurpose, statementVisibility:#StatementVisibility, artifactPolicy:{student?:"starter"|"full",full:"full",conditions:bool},check?:#ResolvedProjectCheck}
 #TopicFact: {source:string,semester?:string,categories:[...string]}
