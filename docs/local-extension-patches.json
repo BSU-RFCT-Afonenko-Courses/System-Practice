@@ -1,0 +1,367 @@
+{
+  "status": "Локальная неопубликованная candidate-связка поверх точных release pins; версия опубликованного выпуска не повышалась",
+  "patches": [
+    {
+      "path": "_extensions/Afonenko-Course-Tools/course-core/domain/model.ts",
+      "base_sha256": "8ce50da8089b75b4470d56b598bf4d262009b3f0179aea5aeaadd25b4fe9eceb",
+      "local_sha256": "a86b0a9aa1a39b169e7783865107e15de17b1c10333f000eb5576215b37e6c7d",
+      "owner": "quarto-course",
+      "local_commit": "1597ccd7639e9646c5da06874cad6a7fadcb1955",
+      "change": "Проверенный local candidate: контракт API-precheck и перенесённая адресная диагностика/навигация",
+      "patch": "tools/provider-patches/local-api-20261016/core.patch",
+      "patch_sha256": "ebee8d0bb6269d080820177c3ba9ffbb16b5465bd50901c52536c70c5648cac6"
+    },
+    {
+      "path": "_extensions/Afonenko-Course-Tools/course-core/project-checks/collect.ts",
+      "base_sha256": "cdcd3eaf0d622b46430b80a866230959e3e459a1d9b71f28f39960072ac9f23b",
+      "local_sha256": "eb1e36812104cc7aae4bdd03e3ab8740d6f2e695ad4e445081a094818147c4b3",
+      "owner": "quarto-course",
+      "local_commit": "1597ccd7639e9646c5da06874cad6a7fadcb1955",
+      "change": "Проверенный local candidate: контракт API-precheck и перенесённая адресная диагностика/навигация",
+      "patch": "tools/provider-patches/local-api-20261016/core.patch",
+      "patch_sha256": "ebee8d0bb6269d080820177c3ba9ffbb16b5465bd50901c52536c70c5648cac6"
+    },
+    {
+      "path": "_extensions/Afonenko-Course-Tools/course-core/project-checks/manifest.cue",
+      "base_sha256": "81c26d52cd2639ec9581985f374cc67c00bd25c6207904b8547534f4e53454e0",
+      "local_sha256": "75e1626c73c8abe33cbab5b6255ce497c377eba07a9ddf79800caec86da91145",
+      "owner": "quarto-course",
+      "local_commit": "1597ccd7639e9646c5da06874cad6a7fadcb1955",
+      "change": "Проверенный local candidate: контракт API-precheck и перенесённая адресная диагностика/навигация",
+      "patch": "tools/provider-patches/local-api-20261016/core.patch",
+      "patch_sha256": "ebee8d0bb6269d080820177c3ba9ffbb16b5465bd50901c52536c70c5648cac6"
+    },
+    {
+      "path": "_extensions/Afonenko-Course-Tools/course-core/projects.lua",
+      "base_sha256": "7a4049c6b5312910945462dbfaa8555f35c738a668c4c56ddbe21f79afa9bc3e",
+      "local_sha256": "c53c9da46f8310b042f39b00dc4bc5f9700fea0e927f44dd3306a1fe836a3a60",
+      "owner": "quarto-course",
+      "local_commit": "1597ccd7639e9646c5da06874cad6a7fadcb1955",
+      "change": "Проверенный local candidate: контракт API-precheck и перенесённая адресная диагностика/навигация",
+      "patch": "tools/provider-patches/local-api-20261016/core.patch",
+      "patch_sha256": "ebee8d0bb6269d080820177c3ba9ffbb16b5465bd50901c52536c70c5648cac6"
+    },
+    {
+      "path": "_extensions/Afonenko-Course-Tools/course-core/spec/core.cue",
+      "base_sha256": "c6eaa3d25776ddfd8075a2e11507c7c0eea73d973dc2f86d558aca79a396b18b",
+      "local_sha256": "392290607e3a784941d17058e1223038a60bfd28f314724e53bd9a08f2d9e435",
+      "owner": "quarto-course",
+      "local_commit": "1597ccd7639e9646c5da06874cad6a7fadcb1955",
+      "change": "Проверенный local candidate: контракт API-precheck и перенесённая адресная диагностика/навигация",
+      "patch": "tools/provider-patches/local-api-20261016/core.patch",
+      "patch_sha256": "ebee8d0bb6269d080820177c3ba9ffbb16b5465bd50901c52536c70c5648cac6"
+    },
+    {
+      "path": "theory/_extensions/Afonenko-Course-Tools/course-core/domain/model.ts",
+      "base_sha256": "8ce50da8089b75b4470d56b598bf4d262009b3f0179aea5aeaadd25b4fe9eceb",
+      "local_sha256": "a86b0a9aa1a39b169e7783865107e15de17b1c10333f000eb5576215b37e6c7d",
+      "owner": "quarto-course",
+      "local_commit": "1597ccd7639e9646c5da06874cad6a7fadcb1955",
+      "change": "Проверенный local candidate: контракт API-precheck и перенесённая адресная диагностика/навигация",
+      "patch": "tools/provider-patches/local-api-20261016/core.patch",
+      "patch_sha256": "ebee8d0bb6269d080820177c3ba9ffbb16b5465bd50901c52536c70c5648cac6"
+    },
+    {
+      "path": "theory/_extensions/Afonenko-Course-Tools/course-core/project-checks/collect.ts",
+      "base_sha256": "cdcd3eaf0d622b46430b80a866230959e3e459a1d9b71f28f39960072ac9f23b",
+      "local_sha256": "eb1e36812104cc7aae4bdd03e3ab8740d6f2e695ad4e445081a094818147c4b3",
+      "owner": "quarto-course",
+      "local_commit": "1597ccd7639e9646c5da06874cad6a7fadcb1955",
+      "change": "Проверенный local candidate: контракт API-precheck и перенесённая адресная диагностика/навигация",
+      "patch": "tools/provider-patches/local-api-20261016/core.patch",
+      "patch_sha256": "ebee8d0bb6269d080820177c3ba9ffbb16b5465bd50901c52536c70c5648cac6"
+    },
+    {
+      "path": "theory/_extensions/Afonenko-Course-Tools/course-core/project-checks/manifest.cue",
+      "base_sha256": "81c26d52cd2639ec9581985f374cc67c00bd25c6207904b8547534f4e53454e0",
+      "local_sha256": "75e1626c73c8abe33cbab5b6255ce497c377eba07a9ddf79800caec86da91145",
+      "owner": "quarto-course",
+      "local_commit": "1597ccd7639e9646c5da06874cad6a7fadcb1955",
+      "change": "Проверенный local candidate: контракт API-precheck и перенесённая адресная диагностика/навигация",
+      "patch": "tools/provider-patches/local-api-20261016/core.patch",
+      "patch_sha256": "ebee8d0bb6269d080820177c3ba9ffbb16b5465bd50901c52536c70c5648cac6"
+    },
+    {
+      "path": "theory/_extensions/Afonenko-Course-Tools/course-core/projects.lua",
+      "base_sha256": "7a4049c6b5312910945462dbfaa8555f35c738a668c4c56ddbe21f79afa9bc3e",
+      "local_sha256": "c53c9da46f8310b042f39b00dc4bc5f9700fea0e927f44dd3306a1fe836a3a60",
+      "owner": "quarto-course",
+      "local_commit": "1597ccd7639e9646c5da06874cad6a7fadcb1955",
+      "change": "Проверенный local candidate: контракт API-precheck и перенесённая адресная диагностика/навигация",
+      "patch": "tools/provider-patches/local-api-20261016/core.patch",
+      "patch_sha256": "ebee8d0bb6269d080820177c3ba9ffbb16b5465bd50901c52536c70c5648cac6"
+    },
+    {
+      "path": "theory/_extensions/Afonenko-Course-Tools/course-core/spec/core.cue",
+      "base_sha256": "c6eaa3d25776ddfd8075a2e11507c7c0eea73d973dc2f86d558aca79a396b18b",
+      "local_sha256": "392290607e3a784941d17058e1223038a60bfd28f314724e53bd9a08f2d9e435",
+      "owner": "quarto-course",
+      "local_commit": "1597ccd7639e9646c5da06874cad6a7fadcb1955",
+      "change": "Проверенный local candidate: контракт API-precheck и перенесённая адресная диагностика/навигация",
+      "patch": "tools/provider-patches/local-api-20261016/core.patch",
+      "patch_sha256": "ebee8d0bb6269d080820177c3ba9ffbb16b5465bd50901c52536c70c5648cac6"
+    },
+    {
+      "path": "lectures/_extensions/Afonenko-Course-Tools/course-core/domain/model.ts",
+      "base_sha256": "8ce50da8089b75b4470d56b598bf4d262009b3f0179aea5aeaadd25b4fe9eceb",
+      "local_sha256": "a86b0a9aa1a39b169e7783865107e15de17b1c10333f000eb5576215b37e6c7d",
+      "owner": "quarto-course",
+      "local_commit": "1597ccd7639e9646c5da06874cad6a7fadcb1955",
+      "change": "Проверенный local candidate: контракт API-precheck и перенесённая адресная диагностика/навигация",
+      "patch": "tools/provider-patches/local-api-20261016/core.patch",
+      "patch_sha256": "ebee8d0bb6269d080820177c3ba9ffbb16b5465bd50901c52536c70c5648cac6"
+    },
+    {
+      "path": "lectures/_extensions/Afonenko-Course-Tools/course-core/project-checks/collect.ts",
+      "base_sha256": "cdcd3eaf0d622b46430b80a866230959e3e459a1d9b71f28f39960072ac9f23b",
+      "local_sha256": "eb1e36812104cc7aae4bdd03e3ab8740d6f2e695ad4e445081a094818147c4b3",
+      "owner": "quarto-course",
+      "local_commit": "1597ccd7639e9646c5da06874cad6a7fadcb1955",
+      "change": "Проверенный local candidate: контракт API-precheck и перенесённая адресная диагностика/навигация",
+      "patch": "tools/provider-patches/local-api-20261016/core.patch",
+      "patch_sha256": "ebee8d0bb6269d080820177c3ba9ffbb16b5465bd50901c52536c70c5648cac6"
+    },
+    {
+      "path": "lectures/_extensions/Afonenko-Course-Tools/course-core/project-checks/manifest.cue",
+      "base_sha256": "81c26d52cd2639ec9581985f374cc67c00bd25c6207904b8547534f4e53454e0",
+      "local_sha256": "75e1626c73c8abe33cbab5b6255ce497c377eba07a9ddf79800caec86da91145",
+      "owner": "quarto-course",
+      "local_commit": "1597ccd7639e9646c5da06874cad6a7fadcb1955",
+      "change": "Проверенный local candidate: контракт API-precheck и перенесённая адресная диагностика/навигация",
+      "patch": "tools/provider-patches/local-api-20261016/core.patch",
+      "patch_sha256": "ebee8d0bb6269d080820177c3ba9ffbb16b5465bd50901c52536c70c5648cac6"
+    },
+    {
+      "path": "lectures/_extensions/Afonenko-Course-Tools/course-core/projects.lua",
+      "base_sha256": "7a4049c6b5312910945462dbfaa8555f35c738a668c4c56ddbe21f79afa9bc3e",
+      "local_sha256": "c53c9da46f8310b042f39b00dc4bc5f9700fea0e927f44dd3306a1fe836a3a60",
+      "owner": "quarto-course",
+      "local_commit": "1597ccd7639e9646c5da06874cad6a7fadcb1955",
+      "change": "Проверенный local candidate: контракт API-precheck и перенесённая адресная диагностика/навигация",
+      "patch": "tools/provider-patches/local-api-20261016/core.patch",
+      "patch_sha256": "ebee8d0bb6269d080820177c3ba9ffbb16b5465bd50901c52536c70c5648cac6"
+    },
+    {
+      "path": "lectures/_extensions/Afonenko-Course-Tools/course-core/spec/core.cue",
+      "base_sha256": "c6eaa3d25776ddfd8075a2e11507c7c0eea73d973dc2f86d558aca79a396b18b",
+      "local_sha256": "392290607e3a784941d17058e1223038a60bfd28f314724e53bd9a08f2d9e435",
+      "owner": "quarto-course",
+      "local_commit": "1597ccd7639e9646c5da06874cad6a7fadcb1955",
+      "change": "Проверенный local candidate: контракт API-precheck и перенесённая адресная диагностика/навигация",
+      "patch": "tools/provider-patches/local-api-20261016/core.patch",
+      "patch_sha256": "ebee8d0bb6269d080820177c3ba9ffbb16b5465bd50901c52536c70c5648cac6"
+    },
+    {
+      "path": "practice/_extensions/Afonenko-Course-Tools/course-core/domain/model.ts",
+      "base_sha256": "8ce50da8089b75b4470d56b598bf4d262009b3f0179aea5aeaadd25b4fe9eceb",
+      "local_sha256": "a86b0a9aa1a39b169e7783865107e15de17b1c10333f000eb5576215b37e6c7d",
+      "owner": "quarto-course",
+      "local_commit": "1597ccd7639e9646c5da06874cad6a7fadcb1955",
+      "change": "Проверенный local candidate: контракт API-precheck и перенесённая адресная диагностика/навигация",
+      "patch": "tools/provider-patches/local-api-20261016/core.patch",
+      "patch_sha256": "ebee8d0bb6269d080820177c3ba9ffbb16b5465bd50901c52536c70c5648cac6"
+    },
+    {
+      "path": "practice/_extensions/Afonenko-Course-Tools/course-core/project-checks/collect.ts",
+      "base_sha256": "cdcd3eaf0d622b46430b80a866230959e3e459a1d9b71f28f39960072ac9f23b",
+      "local_sha256": "eb1e36812104cc7aae4bdd03e3ab8740d6f2e695ad4e445081a094818147c4b3",
+      "owner": "quarto-course",
+      "local_commit": "1597ccd7639e9646c5da06874cad6a7fadcb1955",
+      "change": "Проверенный local candidate: контракт API-precheck и перенесённая адресная диагностика/навигация",
+      "patch": "tools/provider-patches/local-api-20261016/core.patch",
+      "patch_sha256": "ebee8d0bb6269d080820177c3ba9ffbb16b5465bd50901c52536c70c5648cac6"
+    },
+    {
+      "path": "practice/_extensions/Afonenko-Course-Tools/course-core/project-checks/manifest.cue",
+      "base_sha256": "81c26d52cd2639ec9581985f374cc67c00bd25c6207904b8547534f4e53454e0",
+      "local_sha256": "75e1626c73c8abe33cbab5b6255ce497c377eba07a9ddf79800caec86da91145",
+      "owner": "quarto-course",
+      "local_commit": "1597ccd7639e9646c5da06874cad6a7fadcb1955",
+      "change": "Проверенный local candidate: контракт API-precheck и перенесённая адресная диагностика/навигация",
+      "patch": "tools/provider-patches/local-api-20261016/core.patch",
+      "patch_sha256": "ebee8d0bb6269d080820177c3ba9ffbb16b5465bd50901c52536c70c5648cac6"
+    },
+    {
+      "path": "practice/_extensions/Afonenko-Course-Tools/course-core/projects.lua",
+      "base_sha256": "7a4049c6b5312910945462dbfaa8555f35c738a668c4c56ddbe21f79afa9bc3e",
+      "local_sha256": "c53c9da46f8310b042f39b00dc4bc5f9700fea0e927f44dd3306a1fe836a3a60",
+      "owner": "quarto-course",
+      "local_commit": "1597ccd7639e9646c5da06874cad6a7fadcb1955",
+      "change": "Проверенный local candidate: контракт API-precheck и перенесённая адресная диагностика/навигация",
+      "patch": "tools/provider-patches/local-api-20261016/core.patch",
+      "patch_sha256": "ebee8d0bb6269d080820177c3ba9ffbb16b5465bd50901c52536c70c5648cac6"
+    },
+    {
+      "path": "practice/_extensions/Afonenko-Course-Tools/course-core/spec/core.cue",
+      "base_sha256": "c6eaa3d25776ddfd8075a2e11507c7c0eea73d973dc2f86d558aca79a396b18b",
+      "local_sha256": "392290607e3a784941d17058e1223038a60bfd28f314724e53bd9a08f2d9e435",
+      "owner": "quarto-course",
+      "local_commit": "1597ccd7639e9646c5da06874cad6a7fadcb1955",
+      "change": "Проверенный local candidate: контракт API-precheck и перенесённая адресная диагностика/навигация",
+      "patch": "tools/provider-patches/local-api-20261016/core.patch",
+      "patch_sha256": "ebee8d0bb6269d080820177c3ba9ffbb16b5465bd50901c52536c70c5648cac6"
+    },
+    {
+      "path": "tasks/_extensions/Afonenko-Course-Tools/course-core/domain/model.ts",
+      "base_sha256": "8ce50da8089b75b4470d56b598bf4d262009b3f0179aea5aeaadd25b4fe9eceb",
+      "local_sha256": "a86b0a9aa1a39b169e7783865107e15de17b1c10333f000eb5576215b37e6c7d",
+      "owner": "quarto-course",
+      "local_commit": "1597ccd7639e9646c5da06874cad6a7fadcb1955",
+      "change": "Проверенный local candidate: контракт API-precheck и перенесённая адресная диагностика/навигация",
+      "patch": "tools/provider-patches/local-api-20261016/core.patch",
+      "patch_sha256": "ebee8d0bb6269d080820177c3ba9ffbb16b5465bd50901c52536c70c5648cac6"
+    },
+    {
+      "path": "tasks/_extensions/Afonenko-Course-Tools/course-core/project-checks/collect.ts",
+      "base_sha256": "cdcd3eaf0d622b46430b80a866230959e3e459a1d9b71f28f39960072ac9f23b",
+      "local_sha256": "eb1e36812104cc7aae4bdd03e3ab8740d6f2e695ad4e445081a094818147c4b3",
+      "owner": "quarto-course",
+      "local_commit": "1597ccd7639e9646c5da06874cad6a7fadcb1955",
+      "change": "Проверенный local candidate: контракт API-precheck и перенесённая адресная диагностика/навигация",
+      "patch": "tools/provider-patches/local-api-20261016/core.patch",
+      "patch_sha256": "ebee8d0bb6269d080820177c3ba9ffbb16b5465bd50901c52536c70c5648cac6"
+    },
+    {
+      "path": "tasks/_extensions/Afonenko-Course-Tools/course-core/project-checks/manifest.cue",
+      "base_sha256": "81c26d52cd2639ec9581985f374cc67c00bd25c6207904b8547534f4e53454e0",
+      "local_sha256": "75e1626c73c8abe33cbab5b6255ce497c377eba07a9ddf79800caec86da91145",
+      "owner": "quarto-course",
+      "local_commit": "1597ccd7639e9646c5da06874cad6a7fadcb1955",
+      "change": "Проверенный local candidate: контракт API-precheck и перенесённая адресная диагностика/навигация",
+      "patch": "tools/provider-patches/local-api-20261016/core.patch",
+      "patch_sha256": "ebee8d0bb6269d080820177c3ba9ffbb16b5465bd50901c52536c70c5648cac6"
+    },
+    {
+      "path": "tasks/_extensions/Afonenko-Course-Tools/course-core/projects.lua",
+      "base_sha256": "7a4049c6b5312910945462dbfaa8555f35c738a668c4c56ddbe21f79afa9bc3e",
+      "local_sha256": "c53c9da46f8310b042f39b00dc4bc5f9700fea0e927f44dd3306a1fe836a3a60",
+      "owner": "quarto-course",
+      "local_commit": "1597ccd7639e9646c5da06874cad6a7fadcb1955",
+      "change": "Проверенный local candidate: контракт API-precheck и перенесённая адресная диагностика/навигация",
+      "patch": "tools/provider-patches/local-api-20261016/core.patch",
+      "patch_sha256": "ebee8d0bb6269d080820177c3ba9ffbb16b5465bd50901c52536c70c5648cac6"
+    },
+    {
+      "path": "tasks/_extensions/Afonenko-Course-Tools/course-core/spec/core.cue",
+      "base_sha256": "c6eaa3d25776ddfd8075a2e11507c7c0eea73d973dc2f86d558aca79a396b18b",
+      "local_sha256": "392290607e3a784941d17058e1223038a60bfd28f314724e53bd9a08f2d9e435",
+      "owner": "quarto-course",
+      "local_commit": "1597ccd7639e9646c5da06874cad6a7fadcb1955",
+      "change": "Проверенный local candidate: контракт API-precheck и перенесённая адресная диагностика/навигация",
+      "patch": "tools/provider-patches/local-api-20261016/core.patch",
+      "patch_sha256": "ebee8d0bb6269d080820177c3ba9ffbb16b5465bd50901c52536c70c5648cac6"
+    },
+    {
+      "path": "handbook/_extensions/Afonenko-Course-Tools/course-core/domain/model.ts",
+      "base_sha256": "8ce50da8089b75b4470d56b598bf4d262009b3f0179aea5aeaadd25b4fe9eceb",
+      "local_sha256": "a86b0a9aa1a39b169e7783865107e15de17b1c10333f000eb5576215b37e6c7d",
+      "owner": "quarto-course",
+      "local_commit": "1597ccd7639e9646c5da06874cad6a7fadcb1955",
+      "change": "Проверенный local candidate: контракт API-precheck и перенесённая адресная диагностика/навигация",
+      "patch": "tools/provider-patches/local-api-20261016/core.patch",
+      "patch_sha256": "ebee8d0bb6269d080820177c3ba9ffbb16b5465bd50901c52536c70c5648cac6"
+    },
+    {
+      "path": "handbook/_extensions/Afonenko-Course-Tools/course-core/project-checks/collect.ts",
+      "base_sha256": "cdcd3eaf0d622b46430b80a866230959e3e459a1d9b71f28f39960072ac9f23b",
+      "local_sha256": "eb1e36812104cc7aae4bdd03e3ab8740d6f2e695ad4e445081a094818147c4b3",
+      "owner": "quarto-course",
+      "local_commit": "1597ccd7639e9646c5da06874cad6a7fadcb1955",
+      "change": "Проверенный local candidate: контракт API-precheck и перенесённая адресная диагностика/навигация",
+      "patch": "tools/provider-patches/local-api-20261016/core.patch",
+      "patch_sha256": "ebee8d0bb6269d080820177c3ba9ffbb16b5465bd50901c52536c70c5648cac6"
+    },
+    {
+      "path": "handbook/_extensions/Afonenko-Course-Tools/course-core/project-checks/manifest.cue",
+      "base_sha256": "81c26d52cd2639ec9581985f374cc67c00bd25c6207904b8547534f4e53454e0",
+      "local_sha256": "75e1626c73c8abe33cbab5b6255ce497c377eba07a9ddf79800caec86da91145",
+      "owner": "quarto-course",
+      "local_commit": "1597ccd7639e9646c5da06874cad6a7fadcb1955",
+      "change": "Проверенный local candidate: контракт API-precheck и перенесённая адресная диагностика/навигация",
+      "patch": "tools/provider-patches/local-api-20261016/core.patch",
+      "patch_sha256": "ebee8d0bb6269d080820177c3ba9ffbb16b5465bd50901c52536c70c5648cac6"
+    },
+    {
+      "path": "handbook/_extensions/Afonenko-Course-Tools/course-core/projects.lua",
+      "base_sha256": "7a4049c6b5312910945462dbfaa8555f35c738a668c4c56ddbe21f79afa9bc3e",
+      "local_sha256": "c53c9da46f8310b042f39b00dc4bc5f9700fea0e927f44dd3306a1fe836a3a60",
+      "owner": "quarto-course",
+      "local_commit": "1597ccd7639e9646c5da06874cad6a7fadcb1955",
+      "change": "Проверенный local candidate: контракт API-precheck и перенесённая адресная диагностика/навигация",
+      "patch": "tools/provider-patches/local-api-20261016/core.patch",
+      "patch_sha256": "ebee8d0bb6269d080820177c3ba9ffbb16b5465bd50901c52536c70c5648cac6"
+    },
+    {
+      "path": "handbook/_extensions/Afonenko-Course-Tools/course-core/spec/core.cue",
+      "base_sha256": "c6eaa3d25776ddfd8075a2e11507c7c0eea73d973dc2f86d558aca79a396b18b",
+      "local_sha256": "392290607e3a784941d17058e1223038a60bfd28f314724e53bd9a08f2d9e435",
+      "owner": "quarto-course",
+      "local_commit": "1597ccd7639e9646c5da06874cad6a7fadcb1955",
+      "change": "Проверенный local candidate: контракт API-precheck и перенесённая адресная диагностика/навигация",
+      "patch": "tools/provider-patches/local-api-20261016/core.patch",
+      "patch_sha256": "ebee8d0bb6269d080820177c3ba9ffbb16b5465bd50901c52536c70c5648cac6"
+    },
+    {
+      "path": "_extensions/Afonenko-Course-Tools/course-presentation/disclosure.js",
+      "base_sha256": "83fcce0f4a30a864b836bc4917c488420b5865314eeee21a6d6dea744665765c",
+      "local_sha256": "2e8c47fe31a7d8b3804cda9ff91212ed5781c0df2953cd5e4cc5921ec0498584",
+      "owner": "quarto-course",
+      "local_commit": "1597ccd7639e9646c5da06874cad6a7fadcb1955",
+      "change": "Проверенный local candidate: контракт API-precheck и перенесённая адресная диагностика/навигация",
+      "patch": "tools/provider-patches/local-api-20261016/core.patch",
+      "patch_sha256": "ebee8d0bb6269d080820177c3ba9ffbb16b5465bd50901c52536c70c5648cac6"
+    },
+    {
+      "path": "theory/_extensions/Afonenko-Course-Tools/course-presentation/disclosure.js",
+      "base_sha256": "83fcce0f4a30a864b836bc4917c488420b5865314eeee21a6d6dea744665765c",
+      "local_sha256": "2e8c47fe31a7d8b3804cda9ff91212ed5781c0df2953cd5e4cc5921ec0498584",
+      "owner": "quarto-course",
+      "local_commit": "1597ccd7639e9646c5da06874cad6a7fadcb1955",
+      "change": "Проверенный local candidate: контракт API-precheck и перенесённая адресная диагностика/навигация",
+      "patch": "tools/provider-patches/local-api-20261016/core.patch",
+      "patch_sha256": "ebee8d0bb6269d080820177c3ba9ffbb16b5465bd50901c52536c70c5648cac6"
+    },
+    {
+      "path": "lectures/_extensions/Afonenko-Course-Tools/course-presentation/disclosure.js",
+      "base_sha256": "83fcce0f4a30a864b836bc4917c488420b5865314eeee21a6d6dea744665765c",
+      "local_sha256": "2e8c47fe31a7d8b3804cda9ff91212ed5781c0df2953cd5e4cc5921ec0498584",
+      "owner": "quarto-course",
+      "local_commit": "1597ccd7639e9646c5da06874cad6a7fadcb1955",
+      "change": "Проверенный local candidate: контракт API-precheck и перенесённая адресная диагностика/навигация",
+      "patch": "tools/provider-patches/local-api-20261016/core.patch",
+      "patch_sha256": "ebee8d0bb6269d080820177c3ba9ffbb16b5465bd50901c52536c70c5648cac6"
+    },
+    {
+      "path": "practice/_extensions/Afonenko-Course-Tools/course-presentation/disclosure.js",
+      "base_sha256": "83fcce0f4a30a864b836bc4917c488420b5865314eeee21a6d6dea744665765c",
+      "local_sha256": "2e8c47fe31a7d8b3804cda9ff91212ed5781c0df2953cd5e4cc5921ec0498584",
+      "owner": "quarto-course",
+      "local_commit": "1597ccd7639e9646c5da06874cad6a7fadcb1955",
+      "change": "Проверенный local candidate: контракт API-precheck и перенесённая адресная диагностика/навигация",
+      "patch": "tools/provider-patches/local-api-20261016/core.patch",
+      "patch_sha256": "ebee8d0bb6269d080820177c3ba9ffbb16b5465bd50901c52536c70c5648cac6"
+    },
+    {
+      "path": "tasks/_extensions/Afonenko-Course-Tools/course-presentation/disclosure.js",
+      "base_sha256": "83fcce0f4a30a864b836bc4917c488420b5865314eeee21a6d6dea744665765c",
+      "local_sha256": "2e8c47fe31a7d8b3804cda9ff91212ed5781c0df2953cd5e4cc5921ec0498584",
+      "owner": "quarto-course",
+      "local_commit": "1597ccd7639e9646c5da06874cad6a7fadcb1955",
+      "change": "Проверенный local candidate: контракт API-precheck и перенесённая адресная диагностика/навигация",
+      "patch": "tools/provider-patches/local-api-20261016/core.patch",
+      "patch_sha256": "ebee8d0bb6269d080820177c3ba9ffbb16b5465bd50901c52536c70c5648cac6"
+    },
+    {
+      "path": "handbook/_extensions/Afonenko-Course-Tools/course-presentation/disclosure.js",
+      "base_sha256": "83fcce0f4a30a864b836bc4917c488420b5865314eeee21a6d6dea744665765c",
+      "local_sha256": "2e8c47fe31a7d8b3804cda9ff91212ed5781c0df2953cd5e4cc5921ec0498584",
+      "owner": "quarto-course",
+      "local_commit": "1597ccd7639e9646c5da06874cad6a7fadcb1955",
+      "change": "Проверенный local candidate: контракт API-precheck и перенесённая адресная диагностика/навигация",
+      "patch": "tools/provider-patches/local-api-20261016/core.patch",
+      "patch_sha256": "ebee8d0bb6269d080820177c3ba9ffbb16b5465bd50901c52536c70c5648cac6"
+    }
+  ],
+  "reproduction": "python3 tools/materialize-providers.py --providers-root /absolute/release-checkouts --write; затем --check",
+  "historicalLocal16": null
+}

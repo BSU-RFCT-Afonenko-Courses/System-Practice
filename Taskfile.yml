@@ -1,48 +1,34 @@
 version: '3'
 tasks:
   install:
+    desc: Проверить зафиксированную vendor-поставку без переустановки
     cmds:
-    - quarto add Afonenko-Course-Tools/quarto-course@v5.0.2 --no-prompt
-    - quarto add Afonenko-Course-Tools/quarto-project-publish@v5.0.0 --no-prompt
-    - quarto add Afonenko-Course-Tools/quarto-reference-catalog@v3.0.0 --no-prompt
-    - task: install:theory
-    - task: install:tasks
-    - task: install:practice
-    - task: install:handbook
+    - python3 tools/materialize-providers.py --check
+  install:from-sources:
+    desc: Воспроизвести exact release + local patch из заранее полученных checkouts
+    requires:
+      vars: [PROVIDERS_ROOT]
+    cmds:
+    - python3 tools/materialize-providers.py --providers-root '{{.PROVIDERS_ROOT}}' --write
+    - python3 tools/materialize-providers.py --check
+  test:providers:
+    cmds:
+    - python3 tools/test-materialize-providers.py
+    - python3 tools/materialize-providers.py --check
   render:
+    deps: [install]
     cmds:
     - quarto render --profile student
   render:full:
+    deps: [install]
     cmds:
     - quarto render --profile full
   preview:
+    deps: [install]
     cmds:
     - quarto preview --profile student --no-watch-inputs
   publish:
+    deps: [install]
     cmds:
     - quarto render --profile student
     - quarto publish gh-pages --profile student --no-render
-  install:theory:
-    internal: true
-    dir: theory
-    cmds:
-    - quarto add Afonenko-Course-Tools/quarto-course@v5.0.2 --no-prompt
-    - quarto add Afonenko-Course-Tools/quarto-reference-catalog@v3.0.0 --no-prompt
-  install:tasks:
-    internal: true
-    dir: tasks
-    cmds:
-    - quarto add Afonenko-Course-Tools/quarto-course@v5.0.2 --no-prompt
-    - quarto add Afonenko-Course-Tools/quarto-reference-catalog@v3.0.0 --no-prompt
-  install:practice:
-    internal: true
-    dir: practice
-    cmds:
-    - quarto add Afonenko-Course-Tools/quarto-course@v5.0.2 --no-prompt
-    - quarto add Afonenko-Course-Tools/quarto-reference-catalog@v3.0.0 --no-prompt
-  install:handbook:
-    internal: true
-    dir: handbook
-    cmds:
-    - quarto add Afonenko-Course-Tools/quarto-course@v5.0.2 --no-prompt
-    - quarto add Afonenko-Course-Tools/quarto-reference-catalog@v3.0.0 --no-prompt

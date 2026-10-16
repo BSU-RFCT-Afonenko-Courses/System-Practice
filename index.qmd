@@ -13,7 +13,7 @@
 
 | Предмет | Теория | Лекция | Справочник | Введение | Лабораторная |
 |---|---|---|---|---|---|
-| Команды, пути и файловое состояние | {{< xref theory sec-work-environment "Объяснение" >}} | {{< xref lectures sec-lecture-work-environment "Рабочая среда" >}} | {{< xref handbook sec-work-environment-reference "Операции" >}} | {{< xref practice sec-work-environment-intro "Разбор примера" >}} | {{< xref tasks sec-lab-work-environment "Набор наблюдений" >}} |
+| Команды, пути и файловое состояние | {{< xref system-practice-theory sec-work-environment "Объяснение" >}} | {{< xref system-practice-lectures sec-lecture-work-environment "Рабочая среда" >}} | {{< xref system-practice-handbook sec-work-environment-reference "Операции" >}} | {{< xref system-practice-practice sec-work-environment-intro "Разбор примера" >}} | {{< xref system-practice-tasks sec-lab-work-environment "Набор наблюдений" >}} |
 
 Теория объясняет механизм, лекция связывает наблюдения в рассказ,
 справочник помогает найти запись операции. Введение восстанавливает

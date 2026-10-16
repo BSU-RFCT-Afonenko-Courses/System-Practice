@@ -15,7 +15,7 @@
 
 ### Источник и перенос
 
-{{< xref tasks sec-ps2025 "PS2025" >}}: Глава 2. Настройка среды для скриптинга; §2.7. Упражнения. Печатные страницы: 35; страницы PDF (с 1): 35. [Ссылка на оригинал или карточку издания](https://www.manning.com/books/learn-powershell-scripting-in-a-month-of-lunches-second-edition).
+{{< xref system-practice-tasks sec-ps2025 "PS2025" >}}: Глава 2. Настройка среды для скриптинга; §2.7. Упражнения. Печатные страницы: 35; страницы PDF (с 1): 35. [Ссылка на оригинал или карточку издания](https://www.manning.com/books/learn-powershell-scripting-in-a-month-of-lunches-second-edition).
 
 Адаптированное авторское условие. Из §2.7 оставлены редактор, файл команд и автодополнение; скачивание всего кода книги исключено. Добавлены Linux/fish, облачный терминал и короткая фиксация среды. Предварительная установка инструментов организуется до занятия.
 
@@ -31,6 +31,6 @@
 
 Облако: файлы в рабочей области VS Code PrairieLearn. Локально: те же файлы отдельными вложениями или одним ZIP-архивом.
 
-{{< xref theory sec-01-command-line "К теме" >}} · {{< xref tasks sec-bank "Правила банка" >}}
+{{< xref system-practice-theory sec-01-command-line "К теме" >}} · {{< xref system-practice-tasks sec-bank "Правила банка" >}}
 
 :::

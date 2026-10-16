@@ -1,12 +1,12 @@
 # Справочник {#sec-handbook}
 
-{{< xref handbook sec-work-environment-reference "Рабочая среда" >}}
+{{< xref system-practice-handbook sec-work-environment-reference "Рабочая среда" >}}
 содержит записи команд для просмотра, чтения, копирования, перемещения,
 удаления и получения справки. Примеры называют текущий каталог и состояние
 файлов, необходимые для выполнения операции.
 
 При поиске команды выберите маршрут оболочки и требуемое действие.
 Для объяснения разрешения пути используйте
-{{< xref theory sec-working-directory "теорию рабочего каталога" >}}.
+{{< xref system-practice-theory sec-working-directory "теорию рабочего каталога" >}}.
 
-{{< xref handbook sec-handbook-sources "Источники" >}}
+{{< xref system-practice-handbook sec-handbook-sources "Источники" >}}

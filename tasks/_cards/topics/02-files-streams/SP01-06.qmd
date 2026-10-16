@@ -4,10 +4,10 @@
 
 | Поле | Значение |
 |---|---|
-| Статус | альтернативная замена вместо {{< xref tasks exr-sp01-02 "SP01-02" >}} |
+| Статус | альтернативная замена вместо {{< xref system-practice-tasks exr-sp01-02 "SP01-02" >}} |
 | Сложность | начальный |
 | Время | **35 мин**, из них 5 мин на беглое чтение; остальное — выполнение и самостоятельная проверка |
-| Предварительно | {{< xref theory sec-01-command-line "01-command-line" >}} |
+| Предварительно | {{< xref system-practice-theory sec-01-command-line "01-command-line" >}} |
 
 ### Условие
 
@@ -15,7 +15,7 @@
 
 ### Источник и перенос
 
-{{< xref tasks sec-mslearn "MSLEARN" >}}: Работа с файлами и папками; Управление текущим расположением; Примеры копирования, создания и перемещения; самостоятельного упражнения нет. [Ссылка на оригинал или карточку издания](https://learn.microsoft.com/ru-ru/powershell/scripting/samples/working-with-files-and-folders?view=powershell-7.5).
+{{< xref system-practice-tasks sec-mslearn "MSLEARN" >}}: Работа с файлами и папками; Управление текущим расположением; Примеры копирования, создания и перемещения; самостоятельного упражнения нет. [Ссылка на оригинал или карточку издания](https://learn.microsoft.com/ru-ru/powershell/scripting/samples/working-with-files-and-folders?view=powershell-7.5).
 
 Учебное задание на основе примера или вопроса источника. Из демонстраций Microsoft составлена небольшая практическая цепочка в учебном каталоге; пути Windows заменены переносимыми именами. Linux-вариант выполняет те же операции стандартными утилитами.
 
@@ -30,6 +30,6 @@
 
 Облако: файлы в рабочей области VS Code PrairieLearn. Локально: те же файлы отдельными вложениями или одним ZIP-архивом.
 
-{{< xref theory sec-02-files-streams "К теме" >}} · {{< xref tasks sec-bank "Правила банка" >}}
+{{< xref system-practice-theory sec-02-files-streams "К теме" >}} · {{< xref system-practice-tasks sec-bank "Правила банка" >}}
 
 :::

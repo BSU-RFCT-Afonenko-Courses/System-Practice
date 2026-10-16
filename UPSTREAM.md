@@ -1,34 +1,76 @@
-# Происхождение первой версии
+# Происхождение технической поставки System Practice
 
-Состав курса принят 10 октября 2026 года в пакете
-`java-course-handoff-2026-10-10`: `course-plan-review.md`, `COURSE-STRUCTURE.md`,
-`materials/course-bank-v1/system-practice/PROGRAM.md`, 26 карточек и два занятия.
-Технический перенос не изменяет педагогический состав и формулировки условий.
+Текущая локальная интеграция 16 октября 2026 года использует проверенную
+candidate-связку. Полная содержательная, визуальная и внешняя приёмка курса
+выполняются отдельными этапами. Предыдущее описание сохранено в
+[истории](docs/provider-history/UPSTREAM-before-20261016.md); его статусы
+относятся к прежней редакции.
 
-Использованы только текущие головы открытых PR:
+`providers.json` сохраняет published repository/tag/version/commit/sourceZip
+как исходную базу. Отдельный `candidate` задаёт точный локальный commit,
+baseCommit, tracked patch и SHA256. `installed-packages.json` содержит
+фактически установленные bytes и scopes; `extensionTree` относится к базовому
+пакету, а `candidate` описывает применённый локальный diff. Descriptor version
+остается номером исходного release, а не объявлением нового выпуска.
 
-| Образец | Точный SHA | Что заимствовано |
-|---|---|---|
-| Java OPEN PR #7 | `960af5aa94ab5bf381395366987ffb1c676f983a` | Портал и самостоятельные theory/tasks/practice/handbook, native subprojects и профили |
-| Cybersecurity OPEN PR #4 | `8404bc79105708caa509d2fdcee7cbaaee9ee451` | Короткий практикум, явный канонический банк, Core/QRC/Publisher и навигация к условиям |
+| Владелец | Опубликованная база | Локальный candidate |
+| --- | --- | --- |
+| Afonenko-Course-Tools/quarto-course | v7.1.0 / `04a6295569f5dcc0fc1b991dc076bafc050dbd49` | `1597ccd7639e9646c5da06874cad6a7fadcb1955` |
+| Afonenko-Course-Tools/quarto-project-publish | v5.1.0 / `62f8c4a01a5fd9af11f5f66abba2bb48c2ef2631` | Без локальных изменений |
+| Afonenko-Course-Tools/quarto-reference-catalog | v3.1.0 / `3df2110e9f525f03f3ecb4926b5d55718e955c4c` | Без локальных изменений |
 
-Default branches этих курсов не использованы как образцы. Не перенесены
-решения, критерии, graders, учебные среды и посторонние незавершённые изменения.
+Полные patches и hashes установленных отличий находятся в
+[манифесте](docs/local-extension-patches.json). Core candidate сохраняет
+опубликованную optional time semantics: отсутствие оценки допустимо;
+заданное значение остаётся положительным целым; неполная оценка скрывает
+общую сводку. Навигация к hash-цели сохраняет начало структурного SECTION;
+диагностика называет владельца проектом. API-precheck — необязательное узкое
+расширение, которое само не создаёт обязательных API задания.
 
-Подтверждённый набор опубликованных выпусков: Core v5.0.2,
-Publisher v5.0.0, QRC v3.0.0; Quarto 1.11.5, CUE 0.17.1 и Task 3.54.0.
-В каждом нативном проекте явно указаны `lang: ru`, `fail-if-warnings: true`,
-QRC namespace и собственные непересекающиеся outputs профилей.
+## Проверка и воспроизведение
 
-Нативная область банка использует `exercise-bank: true` и
-`default-exercise-statement-visibility: open`. Каждая карточка получает
-индивидуальные `difficulty` и `time`, перенесённые из принятого источника.
-`SP01-01` преобразуется в `exr-sp01-01`; видимое исходное обозначение сохраняется.
-Единственные изменения исходной карточки — контейнер Quarto и техническая
-замена относительных ссылок ссылками на соответствующие нативные цели.
-Источники, адаптации, условия и будущие материалы не переписаны.
+Обычный checkout уже содержит vendored packages. Offline проверка ничего
+не переустанавливает и не обращается к GitHub:
 
-Тематические главы включают канонические `_cards` штатным `include`.
-Занятия ссылаются на те же цели через QRC: межпроектная ссылка переносит адрес,
-а не тело задачи и не платформенное назначение. Отдельная автоматическая
-система контроля авторского покрытия не создаётся.
+```sh
+python3 tools/materialize-providers.py --check
+python3 tools/test-materialize-providers.py
+```
+
+Для воспроизведения подготовьте repositories с именами `checkout` из
+`providers.json` в одном каталоге. Достаточно published tag objects и blobs;
+непушенный candidate SHA получать из GitHub не требуется. Материализатор
+проверяет tag → exact SHA, descriptor version, tracked patch SHA256 и все
+candidate package bytes. Пример:
+
+```sh
+python3 tools/materialize-providers.py --providers-root /absolute/release-checkouts --write
+python3 tools/materialize-providers.py --check
+```
+
+Данные берутся из Git archive точного published commit и tracked patch,
+без использования working-tree правок владельца. Перед первой записью
+проверяется весь target inventory всех scopes. Неизвестная локальная правка,
+extra file или symlink останавливает поставку. Повторный запуск не меняет
+bytes/inventory. Посторонние темы сохраняются. Материализация предполагает
+единоличное владение vendor scopes на время проверки и записи.
+
+## Пять учебных форм и пространства имён
+
+Core/Presentation/Navigation/QRC доступны в корне и во всех пяти native
+частях; Course Site — в корне. Лекции получили те же штатные hooks,
+Presentation notes и Navigation plugin, что введения. Все необходимые JS/CSS
+assets поставляются этими пакетами. `bibliography/numeric.csl` скопирован
+побайтно из проверенного Java; библиографические источники не менялись.
+
+QRC namespaces теперь `system-practice-portal`, `system-practice-theory`,
+`system-practice-lectures`, `system-practice-practice`, `system-practice-tasks`,
+`system-practice-handbook`. Ссылки xref получили только новый namespace-аргумент;
+ID, labels, авторская проза, render/chapter lists и заголовки сохранены.
+Aliases/redirects не добавлены, рабочие пути и внешние корни не переименованы.
+
+Текущий S2 использует manual ZIP и очную приёмку. PL/Download, grader metadata
+и автоматические runtime checks к System не добавлены. Task install проверяет
+vendored closure; install:from-sources явно воспроизводит её. CI не заменяет
+пакеты blind quarto add и не получает непушенные SHA. Полный render/визуальная
+приёмка новой редакции остаются отдельным этапом. Реальный Moodle не менялся.

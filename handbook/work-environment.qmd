@@ -3,7 +3,7 @@
 Команды приведены для fish / Linux и PowerShell 7 / Windows.
 Выберите свой маршрут. В примерах текущий каталог — `lab`; пути
 `input/room A.txt` и `reports/input/room A.txt` содержат разные файлы.
-Модель пути разобрана в {{< xref theory sec-working-directory "теории" >}}.
+Модель пути разобрана в {{< xref system-practice-theory sec-working-directory "теории" >}}.
 
 ## Оболочка и текущий каталог {#sec-reference-location}
 

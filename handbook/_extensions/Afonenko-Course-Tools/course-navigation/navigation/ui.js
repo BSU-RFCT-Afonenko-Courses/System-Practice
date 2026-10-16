@@ -59,6 +59,20 @@
     const sidebar = el('aside', 'course-nav-sidebar');
     sidebar.setAttribute('aria-label', labels.topics);
     sidebar.append(el('div', 'course-nav-course-title', options.title || labels.presentation));
+    function permanentLinks() {
+      const nav = el('nav', 'course-nav-permanent'); nav.setAttribute('aria-label', 'Переходы по курсу и репозиторий');
+      for (const item of options.links || []) {
+        const link = el('a', 'course-nav-permanent-link', item.text);
+        // Настоящие ссылки сохраняют клавиатурное управление и меню браузера.
+        const url = new URL(item.href, document.baseURI);
+        if (url.protocol !== 'https:' && url.protocol !== 'http:') continue;
+        link.setAttribute('href', item.href);
+        if (item.scope === 'repository') { link.target = '_blank'; link.rel = 'noopener noreferrer'; }
+        nav.append(link);
+      }
+      return nav;
+    }
+    if (options.links?.length) sidebar.append(permanentLinks());
     sidebar.append(el('div', 'course-nav-eyebrow', labels.topics));
     const lists = [];
     function sectionList() {
@@ -97,7 +111,9 @@
     // После перехода меню закрывается, в том числе на узком экране.
     ['prevSection', 'nextSection', 'back', 'forward'].forEach(key =>
       addControl(menuActions, key, '', true, () => { closeDialogs(); actions[key](); }));
-    menu.append(menuActions, sectionList());
+    menu.append(menuActions);
+    if (options.links?.length) menu.append(permanentLinks());
+    menu.append(sectionList());
     actions.topics = () => menu.showModal();
     addControl(controls, 'topics', 'course-nav-menu-toggle');
     ['back', 'forward', 'prevSection', 'nextSection'].forEach(key => addControl(controls, key, 'course-nav-auxiliary'));

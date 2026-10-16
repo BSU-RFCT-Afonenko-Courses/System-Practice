@@ -1,3 +1,5 @@
+local __metrics=require("../observability/bridge").create_metrics("course-presentation",1)
+
 -- Профили и course.view определяют публикуемое содержимое; этот модуль
 -- задаёт способ его отображения после отбора.
 local M = {}
@@ -34,4 +36,5 @@ function M.read(meta)
       ["work-mode"] = string(meta["work-mode"])
     } or {}}
 end
+M.read=__metrics.wrap_sync({id="course-presentation.modules.config.read",kind='phase'},M.read)
 return M

@@ -7,7 +7,7 @@
 | Статус | обязательная при выборе двух занятий System Practice |
 | Сложность | начальный |
 | Время | **30 мин**, из них 5 мин на беглое чтение; остальное — выполнение и самостоятельная проверка |
-| Предварительно | {{< xref tasks exr-sp01-05 "SP01-05" >}} |
+| Предварительно | {{< xref system-practice-tasks exr-sp01-05 "SP01-05" >}} |
 
 ### Условие
 
@@ -15,7 +15,7 @@
 
 ### Источник и перенос
 
-{{< xref tasks sec-git-docs "GIT-DOCS" >}}: git-archive; DESCRIPTION и EXAMPLES: ZIP и префикс путей. [Ссылка на оригинал или карточку издания](https://git-scm.com/docs/git-archive).
+{{< xref system-practice-tasks sec-git-docs "GIT-DOCS" >}}: git-archive; DESCRIPTION и EXAMPLES: ZIP и префикс путей. [Ссылка на оригинал или карточку издания](https://git-scm.com/docs/git-archive).
 
 Учебное задание на основе примера или вопроса источника. Из двух форм команды составлено самостоятельное задание на упаковку двух ревизий.
 
@@ -29,6 +29,6 @@
 
 Облако: файлы в рабочей области VS Code PrairieLearn. Локально: те же файлы отдельными вложениями или одним ZIP-архивом.
 
-{{< xref theory sec-04-git "К теме" >}} · {{< xref tasks sec-bank "Правила банка" >}}
+{{< xref system-practice-theory sec-04-git "К теме" >}} · {{< xref system-practice-tasks sec-bank "Правила банка" >}}
 
 :::

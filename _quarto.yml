@@ -5,6 +5,8 @@ project:
   - index.qmd
   resources:
   - '!tools/**'
+  - '!providers.json'
+  - '!installed-packages.json'
   - '!tests/**'
   - '!**/projects/**'
   - '!**/__pycache__/**'
@@ -64,7 +66,7 @@ filters:
 - course-presentation
 - reference-catalog
 reference-catalog:
-  namespace: portal
+  namespace: system-practice-portal
   publication:
     title: System Practice
 course:

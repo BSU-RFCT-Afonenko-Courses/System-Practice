@@ -38,11 +38,12 @@ format:
 lang: ru
 fail-if-warnings: true
 filters:
+- course-navigation
 - course-core
 - course-presentation
 - reference-catalog
 reference-catalog:
-  namespace: practice
+  namespace: system-practice-practice
 profile:
   default: student
   group:
@@ -58,6 +59,7 @@ website:
     - text: Рабочая среда
       href: work-environment.qmd
 course-navigation:
+  course-url: https://bsu-rfct-afonenko-courses.github.io/System-Practice/
   links:
   - text: Курс
     href: /index.html

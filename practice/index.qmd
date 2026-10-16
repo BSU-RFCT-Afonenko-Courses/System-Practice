@@ -4,13 +4,13 @@ format: html
 
 # Введения к лабораторным {#sec-practice}
 
-{{< xref practice sec-work-environment-intro "Рабочая среда" >}}
+{{< xref system-practice-practice sec-work-environment-intro "Рабочая среда" >}}
 восстанавливает подготовку копии наблюдения: выбор источника по пути,
 создание рабочего каталога, размещение результата и проверку сохранности.
 Для разбора используется отдельный набор `lab`.
 
 После введения выполняется
-{{< xref tasks sec-lab-work-environment "самостоятельная лабораторная" >}}
+{{< xref system-practice-tasks sec-lab-work-environment "самостоятельная лабораторная" >}}
 с данными `survey`.
 
 Дальнейшая программа предусматривает собственные введения для

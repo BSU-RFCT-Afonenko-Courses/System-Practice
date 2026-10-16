@@ -10,10 +10,10 @@
 Последовательность команд выбирайте самостоятельно. Текстовый редактор
 используется для `README.txt` и пояснения; способ упаковки результата свободный.
 
-Подготовка: {{< xref theory sec-work-environment "команды, пути и файлы" >}}
-и {{< xref practice sec-work-environment-intro "вводный разбор" >}}.
+Подготовка: {{< xref system-practice-theory sec-work-environment "команды, пути и файлы" >}}
+и {{< xref system-practice-practice sec-work-environment-intro "вводный разбор" >}}.
 Записи отдельных операций доступны в
-{{< xref handbook sec-work-environment-reference "справочнике" >}}.
+{{< xref system-practice-handbook sec-work-environment-reference "справочнике" >}}.
 
 ## Исходные данные
 

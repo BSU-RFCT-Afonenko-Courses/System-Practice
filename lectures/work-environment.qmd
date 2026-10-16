@@ -24,7 +24,7 @@ format:
 Встроенный терминал редактора также запускает оболочку.
 Маршруты выполнения: **fish / Linux** или **PowerShell 7 / Windows**.
 
-{{< xref theory sec-terminal-shell "Терминал и оболочка" >}}
+{{< xref system-practice-theory sec-terminal-shell "Терминал и оболочка" >}}
 
 ::: {.notes}
 Показать отдельно область редактирования файла и терминал. Предложить
@@ -341,7 +341,7 @@ input/room A.txt  → reports/input/room A.txt → south
 Проверка текущего каталога и списка имён выявляет разные причины ошибки:
 опечатку компонента пути или неверную точку отсчёта.
 
-{{< xref theory sec-working-directory "Рабочий каталог и разрешение пути" >}}
+{{< xref system-practice-theory sec-working-directory "Рабочий каталог и разрешение пути" >}}
 
 ::: {.notes}
 Дать выбрать путь к северному наблюдению и обосновать все переходы.

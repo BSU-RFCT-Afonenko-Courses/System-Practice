@@ -1,6 +1,12 @@
 project:
   type: website
   output-dir: _output
+  pre-render:
+  - _extensions/Afonenko-Course-Tools/course-core/entrypoints/pre.ts
+  post-render:
+  - _extensions/Afonenko-Course-Tools/course-core/entrypoints/post.ts
+  - _extensions/Afonenko-Course-Tools/reference-catalog/entrypoints/post.ts
+  - ../_extensions/Afonenko-Course-Tools/course-site/entrypoints/collect.ts
   render:
   - index.qmd
   - work-environment.qmd
@@ -25,6 +31,11 @@ profile:
   group:
   - - student
     - full
+filters:
+- course-navigation
+- course-core
+- course-presentation
+- reference-catalog
 format:
   revealjs:
     slide-level: 2
@@ -36,7 +47,7 @@ format:
     - course-navigation
 lang: ru
 reference-catalog:
-  namespace: lectures
+  namespace: system-practice-lectures
 fail-if-warnings: true
 bibliography: ../bibliography/course.bib
 csl: ../bibliography/numeric.csl
@@ -50,6 +61,7 @@ website:
     - text: Теория
       href: ../theory/index.html
 course-navigation:
+  course-url: https://bsu-rfct-afonenko-courses.github.io/System-Practice/
   links:
   - text: Курс
     href: /index.html

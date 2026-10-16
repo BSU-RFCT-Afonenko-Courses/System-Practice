@@ -35,7 +35,7 @@ filters:
 - course-presentation
 - reference-catalog
 reference-catalog:
-  namespace: theory
+  namespace: system-practice-theory
 profile:
   default: student
   group:

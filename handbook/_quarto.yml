@@ -35,7 +35,7 @@ filters:
 - course-presentation
 - reference-catalog
 reference-catalog:
-  namespace: handbook
+  namespace: system-practice-handbook
 profile:
   default: student
   group:
