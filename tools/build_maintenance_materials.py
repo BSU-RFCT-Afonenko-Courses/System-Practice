@@ -11,6 +11,8 @@ ARCHIVES={'practice/materials/project-maintenance-demo.zip','tasks/materials/pro
 
 def generate(seed):
     if set(seed)!=ARCHIVES:raise ValueError('Нужны ровно демонстрационный и самостоятельный наборы')
+    roots={'practice/materials/project-maintenance-demo.zip':'maintenancelab','tasks/materials/project-maintenance-start.zip':'maintenance'}
+    if any(spec.get('root')!=roots[name] for name,spec in seed.items()):raise ValueError('Корень исходного набора не соответствует объявленной поставке')
     outputs={};states={}
     with tempfile.TemporaryDirectory(prefix='maintenance-seed-') as temporary:
         parent=Path(temporary);template=parent/'template';template.mkdir()

@@ -45,6 +45,11 @@ class MaintenanceMaterials(unittest.TestCase):
             for item in [b'user.',b'remote.',b'include.',str(self.root).encode()]:self.assertNotIn(item,config)
             gd=r/'.git' if (r/'.git').exists() else r
             self.assertFalse((gd/'hooks').exists());self.assertFalse((gd/'objects/info/alternates').exists())
+    def test_seed_root_cannot_escape_the_private_build_directory(self):
+        seed=self.root/'tasks/projects/project-maintenance/seed.json';data=json.loads(seed.read_text());outside=self.root/'outside'
+        data['practice/materials/project-maintenance-demo.zip']['root']=str(outside);seed.write_text(json.dumps(data))
+        with self.assertRaises(ValueError):build(self.root,write=True)
+        self.assertFalse(outside.exists())
     def test_all_outputs_preflight_preserves_a_local_edit(self):
         with self.assertRaises(ValueError):build(self.root,write=False)
         self.assertFalse((self.root/'practice').exists())
