@@ -1,0 +1,62 @@
+project:
+  type: website
+  output-dir: _output
+  render:
+  - index.qmd
+  - work-environment.qmd
+  resources:
+  - '!tools/**'
+  - '!tests/**'
+  - '!**/projects/**'
+  - '!**/__pycache__/**'
+  - '!**/*.qmd'
+  - '!**/*.rmd'
+  - '!**/*.ipynb'
+  - '!_extensions/**'
+  - '!_generated/**'
+  - '!.quarto/**'
+  - '!_freeze/**'
+  - '!_output/**'
+  - '!**/_output/**'
+  - '!**/_generated/**'
+  - '!**/_site*/**'
+profile:
+  default: student
+  group:
+  - - student
+    - full
+format:
+  revealjs:
+    slide-level: 2
+    navigation-mode: linear
+    theme: default
+    slide-number: true
+    pdf-separate-fragments: false
+    revealjs-plugins:
+    - course-navigation
+lang: ru
+reference-catalog:
+  namespace: lectures
+fail-if-warnings: true
+bibliography: ../bibliography/course.bib
+csl: ../bibliography/numeric.csl
+link-citations: true
+website:
+  title: Лекции System Practice
+  navbar:
+    left:
+    - text: Курс
+      href: ../index.html
+    - text: Теория
+      href: ../theory/index.html
+course-navigation:
+  links:
+  - text: Курс
+    href: /index.html
+    scope: course
+  - text: Лекции
+    href: /index.html
+    scope: project
+  - text: Теория
+    href: /theory/index.html
+    scope: course

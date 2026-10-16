@@ -1,0 +1,16 @@
+---
+nocite: |
+  @bib-shotts-tlcl, @bib-jones-powershell-intro, @bib-fish-tutorial, @bib-fish-language, @bib-powershell-help, @bib-powershell-quoting, @bib-powershell-location, @bib-powershell-copy, @bib-powershell-files
+---
+
+# Источники {#sec-theory-sources}
+
+Для рабочей среды использованы выбранные разделы глав 1–5 и 7
+Shotts о командах, дереве каталогов и файловых операциях; главы 2–3 Jones
+о запуске команд и справке. Печатные страницы приводятся рядом с объяснением.
+Книга Jones описывает Windows PowerShell 2011 года; команды современной
+темы сверены с документацией PowerShell 7.5. Запись команд fish опирается
+на документацию fish 4.9.3.
+
+::: {#refs}
+:::

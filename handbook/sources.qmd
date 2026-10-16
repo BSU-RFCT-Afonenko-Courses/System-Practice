@@ -1,0 +1,12 @@
+---
+nocite: |
+  @bib-shotts-tlcl, @bib-jones-powershell-intro, @bib-fish-tutorial, @bib-fish-language, @bib-powershell-help, @bib-powershell-quoting, @bib-powershell-location, @bib-powershell-copy, @bib-powershell-files
+---
+
+# Источники {#sec-handbook-sources}
+
+Формы команд и условия параметров уточняются по документации соответствующего
+инструмента. Книжные главы дают объяснение командной среды и файлового дерева.
+
+::: {#refs}
+:::

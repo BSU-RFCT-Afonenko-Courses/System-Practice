@@ -2,6 +2,11 @@ project:
   type: book
   output-dir: _output
   resources:
+  - materials/**
+  - '!tools/**'
+  - '!tests/**'
+  - '!**/projects/**'
+  - '!**/__pycache__/**'
   - '!**/*.qmd'
   - '!**/*.rmd'
   - '!**/*.ipynb'
@@ -38,15 +43,10 @@ profile:
   - - student
     - full
 book:
-  title: System Practice — банк задач
+  title: System Practice — лабораторные
   chapters:
   - index.qmd
-  - topics/01-command-line.qmd
-  - topics/02-files-streams.qmd
-  - topics/03-diff-patch.qmd
-  - topics/04-git.qmd
-  - projects.qmd
-  - sources.qmd
+  - labs/work-environment.qmd
   search: true
   page-navigation: true
   sidebar:

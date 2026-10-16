@@ -4,6 +4,13 @@ project:
   render:
   - index.qmd
   resources:
+  - '!tools/**'
+  - '!tests/**'
+  - '!**/projects/**'
+  - '!**/__pycache__/**'
+  - '!lectures/**'
+  - '!docs/**'
+  - '!bibliography/**'
   - '!theory/**'
   - '!tasks/**'
   - '!practice/**'
@@ -44,9 +51,11 @@ website:
     left:
     - text: Теория
       href: theory/index.html
-    - text: Банк задач
+    - text: Лекции
+      href: lectures/index.html
+    - text: Лабораторные
       href: tasks/index.html
-    - text: Занятия
+    - text: Введения
       href: practice/index.html
     - text: Справочник
       href: handbook/index.html
@@ -67,6 +76,7 @@ profile:
     - full
 subprojects:
 - theory
+- lectures
 - tasks
 - practice
 - handbook

@@ -39,6 +39,21 @@ Pro Git к имени `Изучаем скриптинг PowerShell .pdf` не �
 - [Git diff](https://git-scm.com/docs/git-diff): сравнение рабочего дерева,
   индекса и выбранного коммита; прочитаны synopsis и соответствующие
   формы description 16.10.2026.
+- [fish Language, 4.9.3](https://fishshell.com/docs/current/language.html):
+  раскрытие шаблонов и границы переноса примеров Bash в S2.
+- [PowerShell Get-Help, 7.5](https://learn.microsoft.com/en-us/powershell/module/microsoft.powershell.core/get-help?view=powershell-7.5):
+  доступность справочных файлов, описание параметра и примеры.
+- [about_Quoting_Rules, 7.5](https://learn.microsoft.com/en-us/powershell/module/microsoft.powershell.core/about/about_quoting_rules?view=powershell-7.5):
+  аргумент с пробелом и строковое значение.
+- [Set-Location, 7.5](https://learn.microsoft.com/en-us/powershell/module/microsoft.powershell.management/set-location?view=powershell-7.5):
+  текущее расположение, буквальный путь, различие `C:` и `C:\`.
+- [Copy-Item, 7.5](https://learn.microsoft.com/en-us/powershell/module/microsoft.powershell.management/copy-item?view=powershell-7.5):
+  сохранение исходника, новое имя и параметры `LiteralPath`/`Destination`.
+- [Working with files and folders, 7.5](https://learn.microsoft.com/en-us/powershell/scripting/samples/working-with-files-and-folders?view=powershell-7.5):
+  просмотр, создание и удаление элементов; спорная фраза о перезаписи
+  назначения не перенесена в курс, см. журнал.
+- [Get-ChildItem, 7.5](https://learn.microsoft.com/en-us/powershell/module/microsoft.powershell.management/get-childitem?view=powershell-7.5):
+  начальное описание и примеры 1–3, рекурсивный просмотр и скрытые элементы.
 
 Версия прочитанной документации фиксирует основание утверждения. Выбранную
 исполняемую среду и поведение конкретных команд отдельно подтверждает Sol.
