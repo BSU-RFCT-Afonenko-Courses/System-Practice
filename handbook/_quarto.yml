@@ -48,6 +48,7 @@ book:
   - work-environment.qmd
   - data-processing.qmd
   - version-control.qmd
+  - project-maintenance.qmd
   - sources.qmd
   search: true
   page-navigation: true

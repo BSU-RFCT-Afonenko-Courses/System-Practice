@@ -43,12 +43,13 @@ profile:
   - - student
     - full
 book:
-  title: System Practice — лабораторные
+  title: System Practice — лабораторные и проект
   chapters:
   - index.qmd
   - labs/work-environment.qmd
   - labs/data-processing.qmd
   - labs/version-control.qmd
+  - optional/project-maintenance.qmd
   search: true
   page-navigation: true
   sidebar:

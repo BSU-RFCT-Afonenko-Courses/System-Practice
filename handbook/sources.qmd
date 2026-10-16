@@ -1,6 +1,6 @@
 ---
 nocite: |
-  @bib-shotts-tlcl, @bib-jones-powershell-intro, @bib-fish-tutorial, @bib-fish-language, @bib-powershell-help, @bib-powershell-quoting, @bib-powershell-location, @bib-powershell-copy, @bib-powershell-files, @bib-petty-powershell-scripting, @bib-gnu-sort, @bib-gnu-grep-status, @bib-powershell-import-csv, @bib-powershell-export-csv, @bib-powershell-sort-object, @bib-powershell-streams, @bib-powershell-pipelines, @bib-powershell-common-parameters, @bib-chacon-straub-progit, @bib-git-diff, @bib-git-restore, @bib-git-merge, @bib-git-switch, @bib-git-status, @bib-git-add, @bib-git-commit, @bib-git-revisions, @bib-git-config, @bib-git-attributes, @bib-git-show, @bib-git-archive
+  @bib-shotts-tlcl, @bib-jones-powershell-intro, @bib-fish-tutorial, @bib-fish-language, @bib-powershell-help, @bib-powershell-quoting, @bib-powershell-location, @bib-powershell-copy, @bib-powershell-files, @bib-petty-powershell-scripting, @bib-gnu-sort, @bib-gnu-grep-status, @bib-powershell-import-csv, @bib-powershell-export-csv, @bib-powershell-sort-object, @bib-powershell-streams, @bib-powershell-pipelines, @bib-powershell-common-parameters, @bib-chacon-straub-progit, @bib-git-diff, @bib-git-restore, @bib-git-merge, @bib-git-switch, @bib-git-status, @bib-git-add, @bib-git-commit, @bib-git-revisions, @bib-git-config, @bib-git-attributes, @bib-git-show, @bib-git-archive, @bib-git-remote, @bib-git-fetch, @bib-git-push, @bib-git-apply, @bib-git-tag, @bib-git-ls-remote, @bib-git-diff-format
 ---
 
 # Источники {#sec-handbook-sources}
@@ -19,6 +19,11 @@ Git опирается на выбранные разделы глав 1–3 Pro
 издания имеет версию 2.1.124-4-gbef0ce5 от 24.08.2026. Современные формы
 restore, switch, config set и варианты merge уточнены по официальным
 руководствам Git. Номера страниц относятся к этому экземпляру книги.
+
+Сопровождение опирается на главы 2–5 Pro Git: обмен с другим
+репозиторием, конфликт, тематическая ветка патча, тег и выпуск.
+Семантика fetch/apply/push, аннотированных тегов и архива выбранной
+версии уточнена по первичным руководствам Git.
 
 ::: {#refs}
 :::

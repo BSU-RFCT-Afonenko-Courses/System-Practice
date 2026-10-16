@@ -28,6 +28,7 @@ project:
   - work-environment.qmd
   - data-processing.qmd
   - version-control.qmd
+  - project-maintenance.qmd
 format:
   revealjs:
     css: assets/lesson.css

@@ -14,6 +14,7 @@ project:
   - object-pipeline.qmd
   - git-state.qmd
   - git-branches.qmd
+  - project-maintenance.qmd
   resources:
   - '!tools/**'
   - '!tests/**'

@@ -1,0 +1,139 @@
+# Сопровождение проекта {#sec-maintenance-reference}
+
+Формы ниже относятся к maintenancelab/work из
+[демонстрационного архива](materials/project-maintenance-demo.zip).
+Полный опыт и исходные состояния — в
+{{< xref system-practice-theory sec-project-maintenance "теории сопровождения" >}}.
+Команды Git одинаковы в fish и PowerShell 7; редактор изменяет текстовые файлы.
+
+## Адрес и получение {#sec-reference-maintenance-remote}
+
+При отсутствии origin, из work:
+
+```console
+git remote add origin ../shared.git
+git remote -v
+git fetch origin
+```
+
+remote add сохраняет имя и адрес. fetch получает объекты и обновляет
+origin/main согласно настройке; текущая main, индекс и рабочие файлы
+не объединяются автоматически. origin/main — локальная запись полученной
+вершины, которую читают обычными log/show. [@bib-git-remote; @bib-git-fetch]
+
+```console
+git --no-pager log --graph --oneline --decorate --all
+git show 'origin/main:report.ini'
+```
+
+Если адрес неверен, сначала проверьте remote -v и расположение соседнего
+каталога. Относительный ../shared.git здесь задан от корня work.
+
+## Содержательный конфликт {#sec-reference-maintenance-conflict}
+
+До начала слияния индекс и рабочее дерево чисты, текущая main на M,
+origin/main на F. При конфликте команда merge завершится ненулевым кодом:
+
+```console
+git merge --no-ff --no-edit origin/main
+git status
+```
+
+HEAD остаётся на M; файл с неразрешённым конфликтом требует согласования.
+Обычные маркеры `<<<<<<<`, `=======`, `>>>>>>>` отделяют версии сторон.
+Первоначальные тексты можно прочитать через show с base, HEAD и origin/main.
+
+После ручного согласования report.ini по политике выпуска:
+
+```console
+git add -- report.ini
+git --no-pager diff --staged
+git status
+git commit -m 'Combine site and units in the report'
+```
+
+add сохраняет разрешённый текст; commit завершает слияние с двумя
+родителями. Проверяйте и статус, и предметный смысл файла.
+Для отказа от ещё незавершённой операции существует `git merge --abort`;
+восстановление может осложняться правками, имевшимися до её начала.
+[@bib-chacon-straub-progit, с. 79–82; @bib-git-merge]
+
+## Применимость и запись патча {#sec-reference-maintenance-apply}
+
+В демонстрации после слияния guide.txt содержит `Run the report.`:
+
+```console
+git apply --stat ../incoming/guide.patch
+git apply --check ../incoming/guide.patch
+git apply ../incoming/guide.patch
+```
+
+| Форма | Изменение состояния |
+|---|---|
+| apply --stat | Показывает сводку; файлы прежние |
+| apply --check | Проверяет применимость; файлы прежние |
+| apply | Меняет рабочие файлы; индекс и коммит прежние |
+| apply --index | Меняет рабочие файлы и индекс; коммита ещё нет |
+
+Для --index исходные рабочие файлы и записи индекса затронутых путей
+должны совпадать. Неприменимый патч требует проверки базы и содержимого.
+После успешного apply отдельно просмотрите diff, подготовьте изменение
+и создайте коммит. [@bib-git-apply]
+
+Патч от прежней версии можно проверить в тематической ветке от неё,
+зафиксировать там и затем включить историю в текущую работу.
+Форма выбора начала ветки разобрана в
+{{< xref system-practice-handbook sec-reference-git-branches "справке о ветках" >}}.
+
+## Тег и передача {#sec-reference-maintenance-release-tag}
+
+После фиксации всех файлов выпуска текущая main указывает на готовый R:
+
+```console
+git tag -a demo-v1.1 -m 'Report with site and units'
+git --no-pager show --no-patch demo-v1.1
+git push origin main
+git push origin demo-v1.1
+git ls-remote origin
+```
+
+Аннотированный тег содержит объект назначения, автора, дату и сообщение.
+Обычный commit оставляет тег на прежней версии. push передаёт объекты
+и обновляет указанную ссылку у получателя. В этом опыте исходная F
+является предком R; обновление main сохраняет её историю.
+Отказ non-fast-forward требует проверить полученную историю и её включение.
+[@bib-git-tag; @bib-git-push]
+
+ls-remote показывает реальные ссылки origin. Для аннотированного тега
+строка без `^{}` содержит хеш объекта тега, строка с этим суффиксом —
+объект назначения, здесь коммит R. [@bib-git-ls-remote]
+
+## Патч двух снимков {#sec-reference-maintenance-diff}
+
+```console
+git diff --output=../release.patch start demo-v1.1
+```
+
+start — исходная сторона, demo-v1.1 — итоговая. --output записывает
+патч напрямую. Полученный diff описывает изменение файлов; проверить
+его нужно на чистой копии исходной версии. Совпадение конечных файлов
+не переносит связи коммитов — для этого передаётся история репозитория.
+[@bib-git-diff]
+
+## Архив версии {#sec-reference-maintenance-archive}
+
+```console
+git archive --format=zip --prefix=report-demo-1.1/ --output=../report-demo-1.1.zip demo-v1.1
+```
+
+| Параметр | Назначение |
+|---|---|
+| --format=zip | Формат архива |
+| --prefix=report-demo-1.1/ | Общий каталог перед именами файлов |
+| --output=... или -o ... | Выходной файл |
+| demo-v1.1 | Снимок, из которого читаются файлы |
+
+Рабочие изменения после тега в этот архив не попадают. Откройте ZIP,
+сверьте пути и содержимое с помеченной версией. Архив снимка не содержит
+полную историю и индекс; для передачи этих данных нужен полный репозиторий.
+[@bib-chacon-straub-progit, с. 174–175; @bib-git-archive]

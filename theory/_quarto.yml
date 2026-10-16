@@ -50,6 +50,7 @@ book:
   - object-pipeline.qmd
   - git-state.qmd
   - git-branches.qmd
+  - project-maintenance.qmd
   - sources.qmd
   search: true
   page-navigation: true

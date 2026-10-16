@@ -2,7 +2,7 @@
 format: html
 ---
 
-# Введения к лабораторным {#sec-practice}
+# Введения к лабораторным и проекту {#sec-practice}
 
 {{< xref system-practice-practice sec-work-environment-intro "Рабочая среда" >}}
 восстанавливает подготовку копии наблюдения: выбор источника по пути,
@@ -26,5 +26,8 @@ historylab. Затем
 {{< xref system-practice-tasks sec-lab-version-control "самостоятельная лабораторная" >}}
 задаёт новые состояния и отношения истории в versioning.
 
-Дальнейшая программа предусматривает собственное введение для
-добровольного проекта «Сопровождение проекта».
+{{< xref system-practice-practice sec-maintenance-intro "Сопровождение проекта" >}}
+восстанавливает согласование отчёта и выпуск в maintenancelab.
+После него
+{{< xref system-practice-tasks sec-project-maintenance-task "добровольный проект" >}}
+задаёт отдельную линию патча и новый согласованный выпуск в maintenance.
