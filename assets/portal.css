@@ -11,3 +11,8 @@
   word-break: normal;
   hyphens: none;
 }
+.course-map a {
+  overflow-wrap: normal;
+  word-break: normal !important;
+  hyphens: none;
+}
