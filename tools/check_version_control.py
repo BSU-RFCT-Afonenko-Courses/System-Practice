@@ -111,7 +111,11 @@ def check_archive(path):
                     m=refs['refs/tags/start'];f=refs['refs/heads/csv-output'];a=refs['refs/tags/base']
                     ancestors=repo.commits(head)
                     if not {a,m,f}<=ancestors:raise GitDataError('integration: исходные линии не включены как предки main')
-                    new=ancestors-{a,m,f};ordinary=[oid for oid in new if len(repo.parents(oid))==1]
+                    new=ancestors-{a,m,f}
+                    for oid in new:
+                        if repo.tree(oid).get('.gitattributes')!=ATTR:
+                            raise GitDataError('integration: .gitattributes изменён в коммите '+oid)
+                    ordinary=[oid for oid in new if len(repo.parents(oid))==1]
                     if len(ordinary)!=1:raise GitDataError('integration: нужен один обычный содержательный коммит C')
                     c=ordinary[0]
                     if repo.parents(c)!=[f]:raise GitDataError('integration: C должен продолжать csv-output')

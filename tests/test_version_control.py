@@ -73,6 +73,18 @@ class VersionControlTests(unittest.TestCase):
   self.git('integration','add','.');self.git('integration','commit','-m','Copy final files')
   self.git('integration','branch','-f','main','HEAD');self.git('integration','switch','main')
   self.assertEqual('fail',check_archive(self.archive())['automated'])
+ def test_rejects_changed_attributes_in_intermediate_merge(self):
+  self.solve();p=self.work/'integration'
+  original=self.git('integration','rev-parse','HEAD').decode().strip()
+  c=self.git('integration','rev-parse','validation').decode().strip()
+  (p/'.gitattributes').write_text('* text=auto eol=crlf\n')
+  self.git('integration','add','.gitattributes');bad_tree=self.git('integration','write-tree').decode().strip()
+  e=self.git('integration','commit-tree',bad_tree,'-p',original,'-p',c,'-m','Temporary attribute change').decode().strip()
+  good_tree=self.git('integration','rev-parse',original+'^{tree}').decode().strip()
+  h=self.git('integration','commit-tree',good_tree,'-p',e,'-p',c,'-m','Restore attributes').decode().strip()
+  self.git('integration','update-ref','refs/heads/main',h);self.git('integration','reset','--hard','main')
+  result=check_archive(self.archive());self.assertEqual('fail',result['automated'],result)
+  self.assertTrue(any('.gitattributes' in error for error in result['errors']),result)
  def test_ignores_untrusted_config_and_hooks_without_execution(self):
   self.solve();marker=self.parent/'EXECUTED'
   for repo in ['selection','integration']:
