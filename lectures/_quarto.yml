@@ -12,6 +12,8 @@ project:
   - work-environment.qmd
   - text-streams.qmd
   - object-pipeline.qmd
+  - git-state.qmd
+  - git-branches.qmd
   resources:
   - '!tools/**'
   - '!tests/**'

@@ -47,6 +47,7 @@ book:
   - index.qmd
   - work-environment.qmd
   - data-processing.qmd
+  - version-control.qmd
   - sources.qmd
   search: true
   page-navigation: true

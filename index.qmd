@@ -8,7 +8,7 @@
 Практический маршрут выбирается один: fish / Linux либо PowerShell 7 / Windows.
 Для лабораторных используются локальная рабочая папка, текстовый
 редактор и установленная оболочка выбранного маршрута. Обработка данных
-выполняется собственным сценарием.
+выполняется собственным сценарием; история проекта ведётся через Git CLI.
 
 ## Предметная карта
 
@@ -17,6 +17,8 @@
 | Команды, пути и файловое состояние | {{< xref system-practice-theory sec-work-environment "Объяснение" >}} | {{< xref system-practice-lectures sec-lecture-work-environment "Рабочая среда" >}} | {{< xref system-practice-handbook sec-work-environment-reference "Операции" >}} | {{< xref system-practice-practice sec-work-environment-intro "Разбор примера" >}} | {{< xref system-practice-tasks sec-lab-work-environment "Набор наблюдений" >}} |
 | Текстовые потоки | {{< xref system-practice-theory sec-text-streams "Объяснение" >}} | {{< xref system-practice-lectures sec-lecture-text-streams "Текстовые потоки" >}} | {{< xref system-practice-handbook sec-reference-text-selection "Отбор и порядок" >}} | {{< xref system-practice-practice sec-data-processing-intro "Разбор обработки" >}} | {{< xref system-practice-tasks sec-lab-data-processing "Обработка данных" >}} |
 | Объектный конвейер | {{< xref system-practice-theory sec-object-pipeline "Объяснение" >}} | {{< xref system-practice-lectures sec-lecture-object-pipeline "Объектный конвейер" >}} | {{< xref system-practice-handbook sec-reference-object-selection "Объектные операции" >}} | {{< xref system-practice-practice sec-data-processing-intro "Разбор обработки" >}} | {{< xref system-practice-tasks sec-lab-data-processing "Обработка данных" >}} |
+| Снимок, индекс и история | {{< xref system-practice-theory sec-git-state "Объяснение" >}} | {{< xref system-practice-lectures sec-lecture-git-state "Состояние репозитория" >}} | {{< xref system-practice-handbook sec-reference-git-state "Состояние и сравнения" >}} | {{< xref system-practice-practice sec-version-control-intro "Разбор Git" >}} | {{< xref system-practice-tasks sec-lab-version-control "Управление версиями" >}} |
+| Ветвление и слияние | {{< xref system-practice-theory sec-git-branches "Объяснение" >}} | {{< xref system-practice-lectures sec-lecture-git-branches "Ветвление и слияние" >}} | {{< xref system-practice-handbook sec-reference-git-merge "Объединение линий" >}} | {{< xref system-practice-practice sec-version-control-intro "Разбор Git" >}} | {{< xref system-practice-tasks sec-lab-version-control "Управление версиями" >}} |
 
 Теория объясняет механизм, лекция связывает наблюдения в рассказ,
 справочник помогает найти запись операции. Введение восстанавливает
@@ -24,9 +26,6 @@
 нового набора файлов.
 
 ## Дальнейшая программа
-
-Следующие темы — подготовка коммита, история и ветвление Git.
-Они ведут к лабораторной «Управление версиями».
 
 Добровольный проект «Сопровождение проекта» добавляет смысловой конфликт,
 патч, локальный обмен историей и обозначение выпуска. Его подготовка

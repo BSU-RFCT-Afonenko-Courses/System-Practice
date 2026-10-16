@@ -48,6 +48,8 @@ book:
   - work-environment.qmd
   - text-streams.qmd
   - object-pipeline.qmd
+  - git-state.qmd
+  - git-branches.qmd
   - sources.qmd
   search: true
   page-navigation: true

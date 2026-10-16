@@ -48,6 +48,7 @@ book:
   - index.qmd
   - labs/work-environment.qmd
   - labs/data-processing.qmd
+  - labs/version-control.qmd
   search: true
   page-navigation: true
   sidebar:
