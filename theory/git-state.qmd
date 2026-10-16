@@ -39,7 +39,7 @@ Git сохраняет версии проекта и связи между ни
 
 ## Исходное состояние {#sec-git-state-data}
 
-Распакуйте [демонстрационный архив](../practice/materials/version-control-demo.zip)
+Распакуйте [демонстрационный архив](materials/version-control-demo.zip)
 в новую папку. Каталог `historylab` содержит два независимых репозитория:
 `selection` для подготовки снимка и `integration` для ветвления.
 Перейдите в `historylab/selection`. Все команды этой главы выполняются

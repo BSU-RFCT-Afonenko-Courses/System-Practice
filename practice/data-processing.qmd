@@ -2,6 +2,7 @@
 title: Обработка данных
 subtitle: Отбор, порядок, сохранение и диагностика
 course-navigation:
+  course-url: https://bsu-rfct-afonenko-courses.github.io/System-Practice/
   links:
   - text: Курс
     href: /index.html

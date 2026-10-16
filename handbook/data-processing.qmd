@@ -1,7 +1,7 @@
 # Обработка данных {#sec-data-processing-reference}
 
 Примеры используют каталог `flowlab` из
-[набора данных](../practice/materials/data-processing-demo.zip).
+[набора данных](materials/data-processing-demo.zip).
 Текущий каталог — `flowlab`, каталог `results` уже создан и доступен
 для записи. Формат входа: Code, Units, State; число — целое 0–999,
 состояние — keep/skip. В `.txt` поля разделены `|`, заголовка нет;

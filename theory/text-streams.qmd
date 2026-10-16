@@ -33,7 +33,7 @@ stderr. Оператор `>>` дописывает вывод в конец фа
 
 ## Набор записей {#sec-text-records}
 
-Распакуйте [демонстрационный набор](../practice/materials/data-processing-demo.zip)
+Распакуйте [демонстрационный набор](materials/data-processing-demo.zip)
 и перейдите в его каталог `flowlab`. Он содержит `inputs` с данными
 и `expected` с результатами для сравнения. Создайте каталог `results`;
 в исходном наборе его нет:

@@ -42,6 +42,7 @@ filters:
 - reference-catalog
 format:
   revealjs:
+    css: assets/lesson.css
     slide-level: 2
     navigation-mode: linear
     theme: default

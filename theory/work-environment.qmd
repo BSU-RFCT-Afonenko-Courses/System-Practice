@@ -102,7 +102,7 @@ cat 'input/room A.txt'
 и конечное имя. **Рабочий каталог** — исходная точка для относительного
 пути в данной оболочке. [@bib-shotts-tlcl, с. 7–12]
 
-[Исходные файлы опыта](../practice/materials/work-environment-demo.zip)
+[Исходные файлы опыта](materials/work-environment-demo.zip)
 образуют дерево:
 
 ```text

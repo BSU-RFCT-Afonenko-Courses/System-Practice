@@ -30,6 +30,7 @@ project:
   - version-control.qmd
 format:
   revealjs:
+    css: assets/lesson.css
     theme: default
     slide-level: 2
     navigation-mode: linear

@@ -2,6 +2,7 @@
 title: Управление версиями
 subtitle: Подготовка снимка и объединение линий
 course-navigation:
+  course-url: https://bsu-rfct-afonenko-courses.github.io/System-Practice/
   links:
   - text: Курс
     href: /index.html

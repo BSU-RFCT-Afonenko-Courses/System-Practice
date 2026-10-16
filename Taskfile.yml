@@ -16,19 +16,37 @@ tasks:
     - python3 tools/test-materialize-providers.py
     - python3 tools/materialize-providers.py --check
   render:
-    deps: [install]
+    deps: [install, materials:check]
     cmds:
     - quarto render --profile student
   render:full:
-    deps: [install]
+    deps: [install, materials:check]
     cmds:
     - quarto render --profile full
   preview:
-    deps: [install]
+    deps: [install, materials:check]
     cmds:
     - quarto preview --profile student --no-watch-inputs
   publish:
-    deps: [install]
+    deps: [install, materials:check]
     cmds:
     - quarto render --profile student
     - quarto publish gh-pages --profile student --no-render
+  materials:check:
+    desc: Проверить исходные ZIP и идентичные публичные копии
+    cmds:
+    - python3 tools/build_materials.py --check
+    - python3 tools/build_materials.py --project data-processing --check
+    - python3 tools/build_git_materials.py --check
+    - python3 tools/materialize_public_materials.py --check
+  materials:write:
+    desc: Воспроизвести наборы с защитой локальных изменений
+    cmds:
+    - python3 tools/build_materials.py --write
+    - python3 tools/build_materials.py --project data-processing --write
+    - python3 tools/build_git_materials.py --write
+    - python3 tools/materialize_public_materials.py --write
+  test:materials:
+    desc: Проверить файловые договоры, репозитории и защиту локальных изменений
+    cmds:
+    - python3 -m unittest discover -s tests -p 'test_*.py' -v

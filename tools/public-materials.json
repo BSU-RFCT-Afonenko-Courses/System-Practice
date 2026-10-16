@@ -1,0 +1,5 @@
+{
+  "practice/materials/work-environment-demo.zip": ["theory/materials/work-environment-demo.zip"],
+  "practice/materials/data-processing-demo.zip": ["theory/materials/data-processing-demo.zip", "handbook/materials/data-processing-demo.zip"],
+  "practice/materials/version-control-demo.zip": ["theory/materials/version-control-demo.zip"]
+}

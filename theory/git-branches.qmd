@@ -9,7 +9,7 @@
 ## Линии истории {#sec-git-branch-data}
 
 Используется второй репозиторий демонстрационного
-[архива](../practice/materials/version-control-demo.zip).
+[архива](materials/version-control-demo.zip).
 Перейдите в `historylab/integration`. Он независим от `selection`:
 его история и настройки находятся в собственном `.git`.
 Рабочее дерево и индекс изначально совпадают с HEAD.
