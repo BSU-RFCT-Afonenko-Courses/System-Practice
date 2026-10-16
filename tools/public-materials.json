@@ -1,5 +1,16 @@
 {
-  "practice/materials/work-environment-demo.zip": ["theory/materials/work-environment-demo.zip"],
-  "practice/materials/data-processing-demo.zip": ["theory/materials/data-processing-demo.zip", "handbook/materials/data-processing-demo.zip"],
-  "practice/materials/version-control-demo.zip": ["theory/materials/version-control-demo.zip"]
+  "practice/materials/work-environment-demo.zip": [
+    "theory/materials/work-environment-demo.zip"
+  ],
+  "practice/materials/data-processing-demo.zip": [
+    "theory/materials/data-processing-demo.zip",
+    "handbook/materials/data-processing-demo.zip"
+  ],
+  "practice/materials/version-control-demo.zip": [
+    "theory/materials/version-control-demo.zip"
+  ],
+  "practice/materials/project-maintenance-demo.zip": [
+    "theory/materials/project-maintenance-demo.zip",
+    "handbook/materials/project-maintenance-demo.zip"
+  ]
 }

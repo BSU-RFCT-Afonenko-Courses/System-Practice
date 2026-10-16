@@ -38,6 +38,7 @@ tasks:
     - python3 tools/build_materials.py --check
     - python3 tools/build_materials.py --project data-processing --check
     - python3 tools/build_git_materials.py --check
+    - python3 tools/build_maintenance_materials.py --check
     - python3 tools/materialize_public_materials.py --check
   materials:write:
     desc: Воспроизвести наборы с защитой локальных изменений
@@ -45,6 +46,7 @@ tasks:
     - python3 tools/build_materials.py --write
     - python3 tools/build_materials.py --project data-processing --write
     - python3 tools/build_git_materials.py --write
+    - python3 tools/build_maintenance_materials.py --write
     - python3 tools/materialize_public_materials.py --write
   test:materials:
     desc: Проверить файловые договоры, репозитории и защиту локальных изменений
