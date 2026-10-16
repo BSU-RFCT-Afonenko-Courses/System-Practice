@@ -1,6 +1,6 @@
 ---
 nocite: |
-  @bib-shotts-tlcl, @bib-jones-powershell-intro, @bib-fish-tutorial, @bib-fish-language, @bib-powershell-help, @bib-powershell-quoting, @bib-powershell-location, @bib-powershell-copy, @bib-powershell-files
+  @bib-shotts-tlcl, @bib-jones-powershell-intro, @bib-fish-tutorial, @bib-fish-language, @bib-powershell-help, @bib-powershell-quoting, @bib-powershell-location, @bib-powershell-copy, @bib-powershell-files, @bib-petty-powershell-scripting, @bib-gnu-sort, @bib-gnu-grep-status, @bib-powershell-import-csv, @bib-powershell-export-csv, @bib-powershell-sort-object, @bib-powershell-streams, @bib-powershell-pipelines, @bib-powershell-common-parameters
 ---
 
 # Источники {#sec-theory-sources}
@@ -11,6 +11,14 @@ Shotts о командах, дереве каталогов и файловых 
 Книга Jones описывает Windows PowerShell 2011 года; команды современной
 темы сверены с документацией PowerShell 7.5. Запись команд fish опирается
 на документацию fish 4.9.3.
+
+Обработка данных опирается на главу 6 и выбранные разделы главы 20 Shotts
+о каналах процесса, отборе, сортировке, выделении полей и сравнении;
+главы 4, 6, 9 и 17 Jones об объектах, конвейере, сортировке и параметрах;
+главы 9, 12, 13 и 15 Петти, Джонса и Хикса о сценариях, форматировании,
+потоках и ошибках. Современные формы импорта, экспорта и упорядочения
+уточнены по документации PowerShell 7.5; текстовые ключи и коды завершения —
+по документации GNU и fish.
 
 ::: {#refs}
 :::

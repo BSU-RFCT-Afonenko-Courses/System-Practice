@@ -40,7 +40,9 @@ Pro Git к имени `Изучаем скриптинг PowerShell .pdf` не �
   индекса и выбранного коммита; прочитаны synopsis и соответствующие
   формы description 16.10.2026.
 - [fish Language, 4.9.3](https://fishshell.com/docs/current/language.html):
-  раскрытие шаблонов и границы переноса примеров Bash в S2.
+  раскрытие шаблонов и границы переноса примеров Bash в S2; в S3а —
+  перенаправления, конвейер, `$status`, `$pipestatus`, переменные,
+  условия и аргументы сценария.
 - [PowerShell Get-Help, 7.5](https://learn.microsoft.com/en-us/powershell/module/microsoft.powershell.core/get-help?view=powershell-7.5):
   доступность справочных файлов, описание параметра и примеры.
 - [about_Quoting_Rules, 7.5](https://learn.microsoft.com/en-us/powershell/module/microsoft.powershell.core/about/about_quoting_rules?view=powershell-7.5):
@@ -54,6 +56,31 @@ Pro Git к имени `Изучаем скриптинг PowerShell .pdf` не �
   назначения не перенесена в курс, см. журнал.
 - [Get-ChildItem, 7.5](https://learn.microsoft.com/en-us/powershell/module/microsoft.powershell.management/get-childitem?view=powershell-7.5):
   начальное описание и примеры 1–3, рекурсивный просмотр и скрытые элементы.
+- [GNU Coreutils: sort invocation, 9.11](https://www.gnu.org/software/coreutils/manual/html_node/sort-invocation.html):
+  прочитанные официальные фрагменты о границах и порядке ключей,
+  числовом сравнении, разделителе полей и locale.
+- [GNU Grep: Exit Status, 3.12](https://www.gnu.org/s/grep/manual/html_node/Exit-Status.html):
+  коды 0, 1 и 2; отсутствие выбранных строк относится к штатному результату
+  фильтра. Область чтения — официальный фрагмент раздела.
+- [Import-Csv, 7.5](https://learn.microsoft.com/en-us/powershell/module/microsoft.powershell.utility/import-csv?view=powershell-7.5):
+  синтаксис, описание и примеры 1–4; строки значений становятся свойствами
+  объектов, числовое преобразование требуется отдельно.
+- [Sort-Object, 7.5](https://learn.microsoft.com/en-us/powershell/module/microsoft.powershell.utility/sort-object?view=powershell-7.5):
+  описание и примеры 1–5, параметры Culture, Property, InputObject,
+  Descending и Stable. В S3а используются два явных ключа и культура сравнения.
+- [about_Output_Streams, 7.5](https://learn.microsoft.com/en-us/powershell/module/microsoft.powershell.core/about/about_output_streams?view=powershell-7.5):
+  основной текст о потоках, перенаправлении и Progress. Этот раздел уточняет
+  обобщения книги о нумерации и перенаправлении потоков.
+- [about_CommonParameters, 7.5](https://learn.microsoft.com/en-us/powershell/module/microsoft.powershell.core/about/about_commonparameters?view=powershell-7.5):
+  раздел ErrorAction: Continue для непрерывающей ошибки и граница
+  действия параметра. В опыте с отсутствующим файлом используется Get-Content.
+
+В S3а повторно прочитаны нужные части Export-Csv: синтаксис, описание,
+примеры 1–3 и 7, параметры Encoding, NoTypeInformation, LiteralPath
+и UseQuotes. В коде для PowerShell 7 отсутствие строки `#TYPE`
+опирается на поведение по умолчанию; `-NoTypeInformation` не требуется.
+Общая [библиография](../bibliography/course.bib) содержит источники,
+цитируемые в учебных формах; точные печатные и PDF-страницы книг — в журнале.
 
 Версия прочитанной документации фиксирует основание утверждения. Выбранную
 исполняемую среду и поведение конкретных команд отдельно подтверждает Sol.

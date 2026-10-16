@@ -46,6 +46,8 @@ book:
   chapters:
   - index.qmd
   - work-environment.qmd
+  - text-streams.qmd
+  - object-pipeline.qmd
   - sources.qmd
   search: true
   page-navigation: true

@@ -46,6 +46,7 @@ book:
   chapters:
   - index.qmd
   - work-environment.qmd
+  - data-processing.qmd
   - sources.qmd
   search: true
   page-navigation: true

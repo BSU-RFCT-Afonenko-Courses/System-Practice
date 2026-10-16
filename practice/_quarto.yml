@@ -26,6 +26,7 @@ project:
   render:
   - index.qmd
   - work-environment.qmd
+  - data-processing.qmd
 format:
   revealjs:
     theme: default
