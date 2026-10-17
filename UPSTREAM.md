@@ -15,7 +15,7 @@ baseCommit, tracked patch и SHA256. `installed-packages.json` содержит
 
 | Владелец | Опубликованная база | Локальный candidate |
 | --- | --- | --- |
-| Afonenko-Course-Tools/quarto-course | v7.1.0 / `04a6295569f5dcc0fc1b991dc076bafc050dbd49` | `80cdff6d443ea6036f6138a0a3bb95b35779eb34` |
+| Afonenko-Course-Tools/quarto-course | v7.1.0 / `04a6295569f5dcc0fc1b991dc076bafc050dbd49` | `c8b2fe868cf805301fb6ebeba6587f8c96197369` |
 | Afonenko-Course-Tools/quarto-project-publish | v5.1.0 / `62f8c4a01a5fd9af11f5f66abba2bb48c2ef2631` | Без локальных изменений |
 | Afonenko-Course-Tools/quarto-reference-catalog | v3.1.0 / `3df2110e9f525f03f3ecb4926b5d55718e955c4c` | Без локальных изменений |
 
@@ -76,3 +76,5 @@ vendored closure; install:from-sources явно воспроизводит её.
 приёмка новой редакции остаются отдельным этапом. Реальный Moodle не менялся.
 
 Текущий candidate дополнен bounded optional Java source ZIP и compiled type discovery. Публичные version/digests не изменены. Навигация предоставляет вызов штатного Reveal Notes.open на широком экране и в меню узкого экрана; самостоятельная inline-панель не служит доказательством работы отдельного окна. Actual speaker-window verification ведётся в отдельном visual receipt. Прежние результаты render/native остаются историческими до новых проверок точных текущих SHA.
+
+Локальная поправка Presentation разрешает перенос длинных URL библиографии Reveal и внутреннюю прокрутку таблиц на экранах до 600px; правило таблиц исключает desktop, print media и Reveal print-pdf. Проверка клавиатурного доступа к прокрутке не заявлена. Исходные таблицы и учебный текст сохранены.

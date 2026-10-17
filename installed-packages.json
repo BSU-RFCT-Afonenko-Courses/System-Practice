@@ -296,13 +296,13 @@
       "extensionTree": "dbb5fd8db4cee97e1fac2547d0d9663626d99951",
       "candidate": {
         "status": "local-unpublished",
-        "commit": "80cdff6d443ea6036f6138a0a3bb95b35779eb34",
+        "commit": "c8b2fe868cf805301fb6ebeba6587f8c96197369",
         "baseCommit": "04a6295569f5dcc0fc1b991dc076bafc050dbd49",
         "patch": "tools/provider-patches/local-java-sources-20261016/core.patch",
-        "patchSha256": "9df10845ffcd2f4a3889de41badfb7dfb6f084db8b1e1fe7b347b10ca5437a1d",
+        "patchSha256": "2ff1bd07abf585f5276a2cebae246341caa13cf78ba4ddda77bcd1ca9776e321",
         "packageHashes": {
           "course-core": "863e6824b336fe7abc4ee21e990cc9580288a5d439830c33913c5527e422b72c",
-          "course-presentation": "5497b8356d2cf8ff3ba3647d376653a080c65b2a57cc40cb6455eaafb4272b96",
+          "course-presentation": "d93806da3c7e268fa1e9b8e61cccd389dfc6bd983a8b4f92e73ced7922902bc1",
           "course-navigation": "a197f03ed3048e5c193c386c66e0fdb5de7d4e6f89bcb8fb98c898c1f564b0df"
         }
       }
@@ -379,8 +379,8 @@
           "mode": 420
         },
         "presentation.css": {
-          "sha256": "a51eab093ac2bed4144a3f3d56fac77eba52805ead7c1ef6c95436724bc9af9e",
-          "size": 6711,
+          "sha256": "3161b045ae1222f8672d365881c66453401f4900cf183d238e2b4789a5131eb9",
+          "size": 7152,
           "mode": 420
         },
         "presentation.js": {
@@ -392,13 +392,13 @@
       "extensionTree": "133ab35ee6ed4a897792897be1fc4c23f6cc9eaa",
       "candidate": {
         "status": "local-unpublished",
-        "commit": "80cdff6d443ea6036f6138a0a3bb95b35779eb34",
+        "commit": "c8b2fe868cf805301fb6ebeba6587f8c96197369",
         "baseCommit": "04a6295569f5dcc0fc1b991dc076bafc050dbd49",
         "patch": "tools/provider-patches/local-java-sources-20261016/core.patch",
-        "patchSha256": "9df10845ffcd2f4a3889de41badfb7dfb6f084db8b1e1fe7b347b10ca5437a1d",
+        "patchSha256": "2ff1bd07abf585f5276a2cebae246341caa13cf78ba4ddda77bcd1ca9776e321",
         "packageHashes": {
           "course-core": "863e6824b336fe7abc4ee21e990cc9580288a5d439830c33913c5527e422b72c",
-          "course-presentation": "5497b8356d2cf8ff3ba3647d376653a080c65b2a57cc40cb6455eaafb4272b96",
+          "course-presentation": "d93806da3c7e268fa1e9b8e61cccd389dfc6bd983a8b4f92e73ced7922902bc1",
           "course-navigation": "a197f03ed3048e5c193c386c66e0fdb5de7d4e6f89bcb8fb98c898c1f564b0df"
         }
       }
@@ -483,13 +483,13 @@
       "extensionTree": "763389e8de3ec359205a1c09a9a1b36a9498d74d",
       "candidate": {
         "status": "local-unpublished",
-        "commit": "80cdff6d443ea6036f6138a0a3bb95b35779eb34",
+        "commit": "c8b2fe868cf805301fb6ebeba6587f8c96197369",
         "baseCommit": "04a6295569f5dcc0fc1b991dc076bafc050dbd49",
         "patch": "tools/provider-patches/local-java-sources-20261016/core.patch",
-        "patchSha256": "9df10845ffcd2f4a3889de41badfb7dfb6f084db8b1e1fe7b347b10ca5437a1d",
+        "patchSha256": "2ff1bd07abf585f5276a2cebae246341caa13cf78ba4ddda77bcd1ca9776e321",
         "packageHashes": {
           "course-core": "863e6824b336fe7abc4ee21e990cc9580288a5d439830c33913c5527e422b72c",
-          "course-presentation": "5497b8356d2cf8ff3ba3647d376653a080c65b2a57cc40cb6455eaafb4272b96",
+          "course-presentation": "d93806da3c7e268fa1e9b8e61cccd389dfc6bd983a8b4f92e73ced7922902bc1",
           "course-navigation": "a197f03ed3048e5c193c386c66e0fdb5de7d4e6f89bcb8fb98c898c1f564b0df"
         }
       }

@@ -6,480 +6,540 @@
       "base_sha256": "8ce50da8089b75b4470d56b598bf4d262009b3f0179aea5aeaadd25b4fe9eceb",
       "local_sha256": "fcb2826f0fe546234797f30bd0261bcabf0d4abcf78fdcd874414067081c966c",
       "owner": "quarto-course",
-      "local_commit": "80cdff6d443ea6036f6138a0a3bb95b35779eb34",
+      "local_commit": "c8b2fe868cf805301fb6ebeba6587f8c96197369",
       "change": "Local candidate: API precheck, bounded additional Java sources, carried diagnostics/navigation and discoverable Reveal speaker control",
       "patch": "tools/provider-patches/local-java-sources-20261016/core.patch",
-      "patch_sha256": "9df10845ffcd2f4a3889de41badfb7dfb6f084db8b1e1fe7b347b10ca5437a1d"
+      "patch_sha256": "2ff1bd07abf585f5276a2cebae246341caa13cf78ba4ddda77bcd1ca9776e321"
     },
     {
       "path": "_extensions/Afonenko-Course-Tools/course-core/project-checks/collect.ts",
       "base_sha256": "cdcd3eaf0d622b46430b80a866230959e3e459a1d9b71f28f39960072ac9f23b",
       "local_sha256": "7bbc5285d38eff909f46cc1037fcf3d2fc85cf58f2a773e1786786db48a5892b",
       "owner": "quarto-course",
-      "local_commit": "80cdff6d443ea6036f6138a0a3bb95b35779eb34",
+      "local_commit": "c8b2fe868cf805301fb6ebeba6587f8c96197369",
       "change": "Local candidate: API precheck, bounded additional Java sources, carried diagnostics/navigation and discoverable Reveal speaker control",
       "patch": "tools/provider-patches/local-java-sources-20261016/core.patch",
-      "patch_sha256": "9df10845ffcd2f4a3889de41badfb7dfb6f084db8b1e1fe7b347b10ca5437a1d"
+      "patch_sha256": "2ff1bd07abf585f5276a2cebae246341caa13cf78ba4ddda77bcd1ca9776e321"
     },
     {
       "path": "_extensions/Afonenko-Course-Tools/course-core/project-checks/manifest.cue",
       "base_sha256": "81c26d52cd2639ec9581985f374cc67c00bd25c6207904b8547534f4e53454e0",
       "local_sha256": "75e1626c73c8abe33cbab5b6255ce497c377eba07a9ddf79800caec86da91145",
       "owner": "quarto-course",
-      "local_commit": "80cdff6d443ea6036f6138a0a3bb95b35779eb34",
+      "local_commit": "c8b2fe868cf805301fb6ebeba6587f8c96197369",
       "change": "Local candidate: API precheck, bounded additional Java sources, carried diagnostics/navigation and discoverable Reveal speaker control",
       "patch": "tools/provider-patches/local-java-sources-20261016/core.patch",
-      "patch_sha256": "9df10845ffcd2f4a3889de41badfb7dfb6f084db8b1e1fe7b347b10ca5437a1d"
+      "patch_sha256": "2ff1bd07abf585f5276a2cebae246341caa13cf78ba4ddda77bcd1ca9776e321"
     },
     {
       "path": "_extensions/Afonenko-Course-Tools/course-core/projects.lua",
       "base_sha256": "7a4049c6b5312910945462dbfaa8555f35c738a668c4c56ddbe21f79afa9bc3e",
       "local_sha256": "aa8cd408437378664a1c74bebac465ddff4953116098353806aac6df74cda217",
       "owner": "quarto-course",
-      "local_commit": "80cdff6d443ea6036f6138a0a3bb95b35779eb34",
+      "local_commit": "c8b2fe868cf805301fb6ebeba6587f8c96197369",
       "change": "Local candidate: API precheck, bounded additional Java sources, carried diagnostics/navigation and discoverable Reveal speaker control",
       "patch": "tools/provider-patches/local-java-sources-20261016/core.patch",
-      "patch_sha256": "9df10845ffcd2f4a3889de41badfb7dfb6f084db8b1e1fe7b347b10ca5437a1d"
+      "patch_sha256": "2ff1bd07abf585f5276a2cebae246341caa13cf78ba4ddda77bcd1ca9776e321"
     },
     {
       "path": "_extensions/Afonenko-Course-Tools/course-core/spec/core.cue",
       "base_sha256": "c6eaa3d25776ddfd8075a2e11507c7c0eea73d973dc2f86d558aca79a396b18b",
       "local_sha256": "792c46dc8dc011fc0a9a7b2d6dafa8cdafcae730969712a21dad0c57e09940d6",
       "owner": "quarto-course",
-      "local_commit": "80cdff6d443ea6036f6138a0a3bb95b35779eb34",
+      "local_commit": "c8b2fe868cf805301fb6ebeba6587f8c96197369",
       "change": "Local candidate: API precheck, bounded additional Java sources, carried diagnostics/navigation and discoverable Reveal speaker control",
       "patch": "tools/provider-patches/local-java-sources-20261016/core.patch",
-      "patch_sha256": "9df10845ffcd2f4a3889de41badfb7dfb6f084db8b1e1fe7b347b10ca5437a1d"
+      "patch_sha256": "2ff1bd07abf585f5276a2cebae246341caa13cf78ba4ddda77bcd1ca9776e321"
     },
     {
       "path": "theory/_extensions/Afonenko-Course-Tools/course-core/domain/model.ts",
       "base_sha256": "8ce50da8089b75b4470d56b598bf4d262009b3f0179aea5aeaadd25b4fe9eceb",
       "local_sha256": "fcb2826f0fe546234797f30bd0261bcabf0d4abcf78fdcd874414067081c966c",
       "owner": "quarto-course",
-      "local_commit": "80cdff6d443ea6036f6138a0a3bb95b35779eb34",
+      "local_commit": "c8b2fe868cf805301fb6ebeba6587f8c96197369",
       "change": "Local candidate: API precheck, bounded additional Java sources, carried diagnostics/navigation and discoverable Reveal speaker control",
       "patch": "tools/provider-patches/local-java-sources-20261016/core.patch",
-      "patch_sha256": "9df10845ffcd2f4a3889de41badfb7dfb6f084db8b1e1fe7b347b10ca5437a1d"
+      "patch_sha256": "2ff1bd07abf585f5276a2cebae246341caa13cf78ba4ddda77bcd1ca9776e321"
     },
     {
       "path": "theory/_extensions/Afonenko-Course-Tools/course-core/project-checks/collect.ts",
       "base_sha256": "cdcd3eaf0d622b46430b80a866230959e3e459a1d9b71f28f39960072ac9f23b",
       "local_sha256": "7bbc5285d38eff909f46cc1037fcf3d2fc85cf58f2a773e1786786db48a5892b",
       "owner": "quarto-course",
-      "local_commit": "80cdff6d443ea6036f6138a0a3bb95b35779eb34",
+      "local_commit": "c8b2fe868cf805301fb6ebeba6587f8c96197369",
       "change": "Local candidate: API precheck, bounded additional Java sources, carried diagnostics/navigation and discoverable Reveal speaker control",
       "patch": "tools/provider-patches/local-java-sources-20261016/core.patch",
-      "patch_sha256": "9df10845ffcd2f4a3889de41badfb7dfb6f084db8b1e1fe7b347b10ca5437a1d"
+      "patch_sha256": "2ff1bd07abf585f5276a2cebae246341caa13cf78ba4ddda77bcd1ca9776e321"
     },
     {
       "path": "theory/_extensions/Afonenko-Course-Tools/course-core/project-checks/manifest.cue",
       "base_sha256": "81c26d52cd2639ec9581985f374cc67c00bd25c6207904b8547534f4e53454e0",
       "local_sha256": "75e1626c73c8abe33cbab5b6255ce497c377eba07a9ddf79800caec86da91145",
       "owner": "quarto-course",
-      "local_commit": "80cdff6d443ea6036f6138a0a3bb95b35779eb34",
+      "local_commit": "c8b2fe868cf805301fb6ebeba6587f8c96197369",
       "change": "Local candidate: API precheck, bounded additional Java sources, carried diagnostics/navigation and discoverable Reveal speaker control",
       "patch": "tools/provider-patches/local-java-sources-20261016/core.patch",
-      "patch_sha256": "9df10845ffcd2f4a3889de41badfb7dfb6f084db8b1e1fe7b347b10ca5437a1d"
+      "patch_sha256": "2ff1bd07abf585f5276a2cebae246341caa13cf78ba4ddda77bcd1ca9776e321"
     },
     {
       "path": "theory/_extensions/Afonenko-Course-Tools/course-core/projects.lua",
       "base_sha256": "7a4049c6b5312910945462dbfaa8555f35c738a668c4c56ddbe21f79afa9bc3e",
       "local_sha256": "aa8cd408437378664a1c74bebac465ddff4953116098353806aac6df74cda217",
       "owner": "quarto-course",
-      "local_commit": "80cdff6d443ea6036f6138a0a3bb95b35779eb34",
+      "local_commit": "c8b2fe868cf805301fb6ebeba6587f8c96197369",
       "change": "Local candidate: API precheck, bounded additional Java sources, carried diagnostics/navigation and discoverable Reveal speaker control",
       "patch": "tools/provider-patches/local-java-sources-20261016/core.patch",
-      "patch_sha256": "9df10845ffcd2f4a3889de41badfb7dfb6f084db8b1e1fe7b347b10ca5437a1d"
+      "patch_sha256": "2ff1bd07abf585f5276a2cebae246341caa13cf78ba4ddda77bcd1ca9776e321"
     },
     {
       "path": "theory/_extensions/Afonenko-Course-Tools/course-core/spec/core.cue",
       "base_sha256": "c6eaa3d25776ddfd8075a2e11507c7c0eea73d973dc2f86d558aca79a396b18b",
       "local_sha256": "792c46dc8dc011fc0a9a7b2d6dafa8cdafcae730969712a21dad0c57e09940d6",
       "owner": "quarto-course",
-      "local_commit": "80cdff6d443ea6036f6138a0a3bb95b35779eb34",
+      "local_commit": "c8b2fe868cf805301fb6ebeba6587f8c96197369",
       "change": "Local candidate: API precheck, bounded additional Java sources, carried diagnostics/navigation and discoverable Reveal speaker control",
       "patch": "tools/provider-patches/local-java-sources-20261016/core.patch",
-      "patch_sha256": "9df10845ffcd2f4a3889de41badfb7dfb6f084db8b1e1fe7b347b10ca5437a1d"
+      "patch_sha256": "2ff1bd07abf585f5276a2cebae246341caa13cf78ba4ddda77bcd1ca9776e321"
     },
     {
       "path": "lectures/_extensions/Afonenko-Course-Tools/course-core/domain/model.ts",
       "base_sha256": "8ce50da8089b75b4470d56b598bf4d262009b3f0179aea5aeaadd25b4fe9eceb",
       "local_sha256": "fcb2826f0fe546234797f30bd0261bcabf0d4abcf78fdcd874414067081c966c",
       "owner": "quarto-course",
-      "local_commit": "80cdff6d443ea6036f6138a0a3bb95b35779eb34",
+      "local_commit": "c8b2fe868cf805301fb6ebeba6587f8c96197369",
       "change": "Local candidate: API precheck, bounded additional Java sources, carried diagnostics/navigation and discoverable Reveal speaker control",
       "patch": "tools/provider-patches/local-java-sources-20261016/core.patch",
-      "patch_sha256": "9df10845ffcd2f4a3889de41badfb7dfb6f084db8b1e1fe7b347b10ca5437a1d"
+      "patch_sha256": "2ff1bd07abf585f5276a2cebae246341caa13cf78ba4ddda77bcd1ca9776e321"
     },
     {
       "path": "lectures/_extensions/Afonenko-Course-Tools/course-core/project-checks/collect.ts",
       "base_sha256": "cdcd3eaf0d622b46430b80a866230959e3e459a1d9b71f28f39960072ac9f23b",
       "local_sha256": "7bbc5285d38eff909f46cc1037fcf3d2fc85cf58f2a773e1786786db48a5892b",
       "owner": "quarto-course",
-      "local_commit": "80cdff6d443ea6036f6138a0a3bb95b35779eb34",
+      "local_commit": "c8b2fe868cf805301fb6ebeba6587f8c96197369",
       "change": "Local candidate: API precheck, bounded additional Java sources, carried diagnostics/navigation and discoverable Reveal speaker control",
       "patch": "tools/provider-patches/local-java-sources-20261016/core.patch",
-      "patch_sha256": "9df10845ffcd2f4a3889de41badfb7dfb6f084db8b1e1fe7b347b10ca5437a1d"
+      "patch_sha256": "2ff1bd07abf585f5276a2cebae246341caa13cf78ba4ddda77bcd1ca9776e321"
     },
     {
       "path": "lectures/_extensions/Afonenko-Course-Tools/course-core/project-checks/manifest.cue",
       "base_sha256": "81c26d52cd2639ec9581985f374cc67c00bd25c6207904b8547534f4e53454e0",
       "local_sha256": "75e1626c73c8abe33cbab5b6255ce497c377eba07a9ddf79800caec86da91145",
       "owner": "quarto-course",
-      "local_commit": "80cdff6d443ea6036f6138a0a3bb95b35779eb34",
+      "local_commit": "c8b2fe868cf805301fb6ebeba6587f8c96197369",
       "change": "Local candidate: API precheck, bounded additional Java sources, carried diagnostics/navigation and discoverable Reveal speaker control",
       "patch": "tools/provider-patches/local-java-sources-20261016/core.patch",
-      "patch_sha256": "9df10845ffcd2f4a3889de41badfb7dfb6f084db8b1e1fe7b347b10ca5437a1d"
+      "patch_sha256": "2ff1bd07abf585f5276a2cebae246341caa13cf78ba4ddda77bcd1ca9776e321"
     },
     {
       "path": "lectures/_extensions/Afonenko-Course-Tools/course-core/projects.lua",
       "base_sha256": "7a4049c6b5312910945462dbfaa8555f35c738a668c4c56ddbe21f79afa9bc3e",
       "local_sha256": "aa8cd408437378664a1c74bebac465ddff4953116098353806aac6df74cda217",
       "owner": "quarto-course",
-      "local_commit": "80cdff6d443ea6036f6138a0a3bb95b35779eb34",
+      "local_commit": "c8b2fe868cf805301fb6ebeba6587f8c96197369",
       "change": "Local candidate: API precheck, bounded additional Java sources, carried diagnostics/navigation and discoverable Reveal speaker control",
       "patch": "tools/provider-patches/local-java-sources-20261016/core.patch",
-      "patch_sha256": "9df10845ffcd2f4a3889de41badfb7dfb6f084db8b1e1fe7b347b10ca5437a1d"
+      "patch_sha256": "2ff1bd07abf585f5276a2cebae246341caa13cf78ba4ddda77bcd1ca9776e321"
     },
     {
       "path": "lectures/_extensions/Afonenko-Course-Tools/course-core/spec/core.cue",
       "base_sha256": "c6eaa3d25776ddfd8075a2e11507c7c0eea73d973dc2f86d558aca79a396b18b",
       "local_sha256": "792c46dc8dc011fc0a9a7b2d6dafa8cdafcae730969712a21dad0c57e09940d6",
       "owner": "quarto-course",
-      "local_commit": "80cdff6d443ea6036f6138a0a3bb95b35779eb34",
+      "local_commit": "c8b2fe868cf805301fb6ebeba6587f8c96197369",
       "change": "Local candidate: API precheck, bounded additional Java sources, carried diagnostics/navigation and discoverable Reveal speaker control",
       "patch": "tools/provider-patches/local-java-sources-20261016/core.patch",
-      "patch_sha256": "9df10845ffcd2f4a3889de41badfb7dfb6f084db8b1e1fe7b347b10ca5437a1d"
+      "patch_sha256": "2ff1bd07abf585f5276a2cebae246341caa13cf78ba4ddda77bcd1ca9776e321"
     },
     {
       "path": "practice/_extensions/Afonenko-Course-Tools/course-core/domain/model.ts",
       "base_sha256": "8ce50da8089b75b4470d56b598bf4d262009b3f0179aea5aeaadd25b4fe9eceb",
       "local_sha256": "fcb2826f0fe546234797f30bd0261bcabf0d4abcf78fdcd874414067081c966c",
       "owner": "quarto-course",
-      "local_commit": "80cdff6d443ea6036f6138a0a3bb95b35779eb34",
+      "local_commit": "c8b2fe868cf805301fb6ebeba6587f8c96197369",
       "change": "Local candidate: API precheck, bounded additional Java sources, carried diagnostics/navigation and discoverable Reveal speaker control",
       "patch": "tools/provider-patches/local-java-sources-20261016/core.patch",
-      "patch_sha256": "9df10845ffcd2f4a3889de41badfb7dfb6f084db8b1e1fe7b347b10ca5437a1d"
+      "patch_sha256": "2ff1bd07abf585f5276a2cebae246341caa13cf78ba4ddda77bcd1ca9776e321"
     },
     {
       "path": "practice/_extensions/Afonenko-Course-Tools/course-core/project-checks/collect.ts",
       "base_sha256": "cdcd3eaf0d622b46430b80a866230959e3e459a1d9b71f28f39960072ac9f23b",
       "local_sha256": "7bbc5285d38eff909f46cc1037fcf3d2fc85cf58f2a773e1786786db48a5892b",
       "owner": "quarto-course",
-      "local_commit": "80cdff6d443ea6036f6138a0a3bb95b35779eb34",
+      "local_commit": "c8b2fe868cf805301fb6ebeba6587f8c96197369",
       "change": "Local candidate: API precheck, bounded additional Java sources, carried diagnostics/navigation and discoverable Reveal speaker control",
       "patch": "tools/provider-patches/local-java-sources-20261016/core.patch",
-      "patch_sha256": "9df10845ffcd2f4a3889de41badfb7dfb6f084db8b1e1fe7b347b10ca5437a1d"
+      "patch_sha256": "2ff1bd07abf585f5276a2cebae246341caa13cf78ba4ddda77bcd1ca9776e321"
     },
     {
       "path": "practice/_extensions/Afonenko-Course-Tools/course-core/project-checks/manifest.cue",
       "base_sha256": "81c26d52cd2639ec9581985f374cc67c00bd25c6207904b8547534f4e53454e0",
       "local_sha256": "75e1626c73c8abe33cbab5b6255ce497c377eba07a9ddf79800caec86da91145",
       "owner": "quarto-course",
-      "local_commit": "80cdff6d443ea6036f6138a0a3bb95b35779eb34",
+      "local_commit": "c8b2fe868cf805301fb6ebeba6587f8c96197369",
       "change": "Local candidate: API precheck, bounded additional Java sources, carried diagnostics/navigation and discoverable Reveal speaker control",
       "patch": "tools/provider-patches/local-java-sources-20261016/core.patch",
-      "patch_sha256": "9df10845ffcd2f4a3889de41badfb7dfb6f084db8b1e1fe7b347b10ca5437a1d"
+      "patch_sha256": "2ff1bd07abf585f5276a2cebae246341caa13cf78ba4ddda77bcd1ca9776e321"
     },
     {
       "path": "practice/_extensions/Afonenko-Course-Tools/course-core/projects.lua",
       "base_sha256": "7a4049c6b5312910945462dbfaa8555f35c738a668c4c56ddbe21f79afa9bc3e",
       "local_sha256": "aa8cd408437378664a1c74bebac465ddff4953116098353806aac6df74cda217",
       "owner": "quarto-course",
-      "local_commit": "80cdff6d443ea6036f6138a0a3bb95b35779eb34",
+      "local_commit": "c8b2fe868cf805301fb6ebeba6587f8c96197369",
       "change": "Local candidate: API precheck, bounded additional Java sources, carried diagnostics/navigation and discoverable Reveal speaker control",
       "patch": "tools/provider-patches/local-java-sources-20261016/core.patch",
-      "patch_sha256": "9df10845ffcd2f4a3889de41badfb7dfb6f084db8b1e1fe7b347b10ca5437a1d"
+      "patch_sha256": "2ff1bd07abf585f5276a2cebae246341caa13cf78ba4ddda77bcd1ca9776e321"
     },
     {
       "path": "practice/_extensions/Afonenko-Course-Tools/course-core/spec/core.cue",
       "base_sha256": "c6eaa3d25776ddfd8075a2e11507c7c0eea73d973dc2f86d558aca79a396b18b",
       "local_sha256": "792c46dc8dc011fc0a9a7b2d6dafa8cdafcae730969712a21dad0c57e09940d6",
       "owner": "quarto-course",
-      "local_commit": "80cdff6d443ea6036f6138a0a3bb95b35779eb34",
+      "local_commit": "c8b2fe868cf805301fb6ebeba6587f8c96197369",
       "change": "Local candidate: API precheck, bounded additional Java sources, carried diagnostics/navigation and discoverable Reveal speaker control",
       "patch": "tools/provider-patches/local-java-sources-20261016/core.patch",
-      "patch_sha256": "9df10845ffcd2f4a3889de41badfb7dfb6f084db8b1e1fe7b347b10ca5437a1d"
+      "patch_sha256": "2ff1bd07abf585f5276a2cebae246341caa13cf78ba4ddda77bcd1ca9776e321"
     },
     {
       "path": "tasks/_extensions/Afonenko-Course-Tools/course-core/domain/model.ts",
       "base_sha256": "8ce50da8089b75b4470d56b598bf4d262009b3f0179aea5aeaadd25b4fe9eceb",
       "local_sha256": "fcb2826f0fe546234797f30bd0261bcabf0d4abcf78fdcd874414067081c966c",
       "owner": "quarto-course",
-      "local_commit": "80cdff6d443ea6036f6138a0a3bb95b35779eb34",
+      "local_commit": "c8b2fe868cf805301fb6ebeba6587f8c96197369",
       "change": "Local candidate: API precheck, bounded additional Java sources, carried diagnostics/navigation and discoverable Reveal speaker control",
       "patch": "tools/provider-patches/local-java-sources-20261016/core.patch",
-      "patch_sha256": "9df10845ffcd2f4a3889de41badfb7dfb6f084db8b1e1fe7b347b10ca5437a1d"
+      "patch_sha256": "2ff1bd07abf585f5276a2cebae246341caa13cf78ba4ddda77bcd1ca9776e321"
     },
     {
       "path": "tasks/_extensions/Afonenko-Course-Tools/course-core/project-checks/collect.ts",
       "base_sha256": "cdcd3eaf0d622b46430b80a866230959e3e459a1d9b71f28f39960072ac9f23b",
       "local_sha256": "7bbc5285d38eff909f46cc1037fcf3d2fc85cf58f2a773e1786786db48a5892b",
       "owner": "quarto-course",
-      "local_commit": "80cdff6d443ea6036f6138a0a3bb95b35779eb34",
+      "local_commit": "c8b2fe868cf805301fb6ebeba6587f8c96197369",
       "change": "Local candidate: API precheck, bounded additional Java sources, carried diagnostics/navigation and discoverable Reveal speaker control",
       "patch": "tools/provider-patches/local-java-sources-20261016/core.patch",
-      "patch_sha256": "9df10845ffcd2f4a3889de41badfb7dfb6f084db8b1e1fe7b347b10ca5437a1d"
+      "patch_sha256": "2ff1bd07abf585f5276a2cebae246341caa13cf78ba4ddda77bcd1ca9776e321"
     },
     {
       "path": "tasks/_extensions/Afonenko-Course-Tools/course-core/project-checks/manifest.cue",
       "base_sha256": "81c26d52cd2639ec9581985f374cc67c00bd25c6207904b8547534f4e53454e0",
       "local_sha256": "75e1626c73c8abe33cbab5b6255ce497c377eba07a9ddf79800caec86da91145",
       "owner": "quarto-course",
-      "local_commit": "80cdff6d443ea6036f6138a0a3bb95b35779eb34",
+      "local_commit": "c8b2fe868cf805301fb6ebeba6587f8c96197369",
       "change": "Local candidate: API precheck, bounded additional Java sources, carried diagnostics/navigation and discoverable Reveal speaker control",
       "patch": "tools/provider-patches/local-java-sources-20261016/core.patch",
-      "patch_sha256": "9df10845ffcd2f4a3889de41badfb7dfb6f084db8b1e1fe7b347b10ca5437a1d"
+      "patch_sha256": "2ff1bd07abf585f5276a2cebae246341caa13cf78ba4ddda77bcd1ca9776e321"
     },
     {
       "path": "tasks/_extensions/Afonenko-Course-Tools/course-core/projects.lua",
       "base_sha256": "7a4049c6b5312910945462dbfaa8555f35c738a668c4c56ddbe21f79afa9bc3e",
       "local_sha256": "aa8cd408437378664a1c74bebac465ddff4953116098353806aac6df74cda217",
       "owner": "quarto-course",
-      "local_commit": "80cdff6d443ea6036f6138a0a3bb95b35779eb34",
+      "local_commit": "c8b2fe868cf805301fb6ebeba6587f8c96197369",
       "change": "Local candidate: API precheck, bounded additional Java sources, carried diagnostics/navigation and discoverable Reveal speaker control",
       "patch": "tools/provider-patches/local-java-sources-20261016/core.patch",
-      "patch_sha256": "9df10845ffcd2f4a3889de41badfb7dfb6f084db8b1e1fe7b347b10ca5437a1d"
+      "patch_sha256": "2ff1bd07abf585f5276a2cebae246341caa13cf78ba4ddda77bcd1ca9776e321"
     },
     {
       "path": "tasks/_extensions/Afonenko-Course-Tools/course-core/spec/core.cue",
       "base_sha256": "c6eaa3d25776ddfd8075a2e11507c7c0eea73d973dc2f86d558aca79a396b18b",
       "local_sha256": "792c46dc8dc011fc0a9a7b2d6dafa8cdafcae730969712a21dad0c57e09940d6",
       "owner": "quarto-course",
-      "local_commit": "80cdff6d443ea6036f6138a0a3bb95b35779eb34",
+      "local_commit": "c8b2fe868cf805301fb6ebeba6587f8c96197369",
       "change": "Local candidate: API precheck, bounded additional Java sources, carried diagnostics/navigation and discoverable Reveal speaker control",
       "patch": "tools/provider-patches/local-java-sources-20261016/core.patch",
-      "patch_sha256": "9df10845ffcd2f4a3889de41badfb7dfb6f084db8b1e1fe7b347b10ca5437a1d"
+      "patch_sha256": "2ff1bd07abf585f5276a2cebae246341caa13cf78ba4ddda77bcd1ca9776e321"
     },
     {
       "path": "handbook/_extensions/Afonenko-Course-Tools/course-core/domain/model.ts",
       "base_sha256": "8ce50da8089b75b4470d56b598bf4d262009b3f0179aea5aeaadd25b4fe9eceb",
       "local_sha256": "fcb2826f0fe546234797f30bd0261bcabf0d4abcf78fdcd874414067081c966c",
       "owner": "quarto-course",
-      "local_commit": "80cdff6d443ea6036f6138a0a3bb95b35779eb34",
+      "local_commit": "c8b2fe868cf805301fb6ebeba6587f8c96197369",
       "change": "Local candidate: API precheck, bounded additional Java sources, carried diagnostics/navigation and discoverable Reveal speaker control",
       "patch": "tools/provider-patches/local-java-sources-20261016/core.patch",
-      "patch_sha256": "9df10845ffcd2f4a3889de41badfb7dfb6f084db8b1e1fe7b347b10ca5437a1d"
+      "patch_sha256": "2ff1bd07abf585f5276a2cebae246341caa13cf78ba4ddda77bcd1ca9776e321"
     },
     {
       "path": "handbook/_extensions/Afonenko-Course-Tools/course-core/project-checks/collect.ts",
       "base_sha256": "cdcd3eaf0d622b46430b80a866230959e3e459a1d9b71f28f39960072ac9f23b",
       "local_sha256": "7bbc5285d38eff909f46cc1037fcf3d2fc85cf58f2a773e1786786db48a5892b",
       "owner": "quarto-course",
-      "local_commit": "80cdff6d443ea6036f6138a0a3bb95b35779eb34",
+      "local_commit": "c8b2fe868cf805301fb6ebeba6587f8c96197369",
       "change": "Local candidate: API precheck, bounded additional Java sources, carried diagnostics/navigation and discoverable Reveal speaker control",
       "patch": "tools/provider-patches/local-java-sources-20261016/core.patch",
-      "patch_sha256": "9df10845ffcd2f4a3889de41badfb7dfb6f084db8b1e1fe7b347b10ca5437a1d"
+      "patch_sha256": "2ff1bd07abf585f5276a2cebae246341caa13cf78ba4ddda77bcd1ca9776e321"
     },
     {
       "path": "handbook/_extensions/Afonenko-Course-Tools/course-core/project-checks/manifest.cue",
       "base_sha256": "81c26d52cd2639ec9581985f374cc67c00bd25c6207904b8547534f4e53454e0",
       "local_sha256": "75e1626c73c8abe33cbab5b6255ce497c377eba07a9ddf79800caec86da91145",
       "owner": "quarto-course",
-      "local_commit": "80cdff6d443ea6036f6138a0a3bb95b35779eb34",
+      "local_commit": "c8b2fe868cf805301fb6ebeba6587f8c96197369",
       "change": "Local candidate: API precheck, bounded additional Java sources, carried diagnostics/navigation and discoverable Reveal speaker control",
       "patch": "tools/provider-patches/local-java-sources-20261016/core.patch",
-      "patch_sha256": "9df10845ffcd2f4a3889de41badfb7dfb6f084db8b1e1fe7b347b10ca5437a1d"
+      "patch_sha256": "2ff1bd07abf585f5276a2cebae246341caa13cf78ba4ddda77bcd1ca9776e321"
     },
     {
       "path": "handbook/_extensions/Afonenko-Course-Tools/course-core/projects.lua",
       "base_sha256": "7a4049c6b5312910945462dbfaa8555f35c738a668c4c56ddbe21f79afa9bc3e",
       "local_sha256": "aa8cd408437378664a1c74bebac465ddff4953116098353806aac6df74cda217",
       "owner": "quarto-course",
-      "local_commit": "80cdff6d443ea6036f6138a0a3bb95b35779eb34",
+      "local_commit": "c8b2fe868cf805301fb6ebeba6587f8c96197369",
       "change": "Local candidate: API precheck, bounded additional Java sources, carried diagnostics/navigation and discoverable Reveal speaker control",
       "patch": "tools/provider-patches/local-java-sources-20261016/core.patch",
-      "patch_sha256": "9df10845ffcd2f4a3889de41badfb7dfb6f084db8b1e1fe7b347b10ca5437a1d"
+      "patch_sha256": "2ff1bd07abf585f5276a2cebae246341caa13cf78ba4ddda77bcd1ca9776e321"
     },
     {
       "path": "handbook/_extensions/Afonenko-Course-Tools/course-core/spec/core.cue",
       "base_sha256": "c6eaa3d25776ddfd8075a2e11507c7c0eea73d973dc2f86d558aca79a396b18b",
       "local_sha256": "792c46dc8dc011fc0a9a7b2d6dafa8cdafcae730969712a21dad0c57e09940d6",
       "owner": "quarto-course",
-      "local_commit": "80cdff6d443ea6036f6138a0a3bb95b35779eb34",
+      "local_commit": "c8b2fe868cf805301fb6ebeba6587f8c96197369",
       "change": "Local candidate: API precheck, bounded additional Java sources, carried diagnostics/navigation and discoverable Reveal speaker control",
       "patch": "tools/provider-patches/local-java-sources-20261016/core.patch",
-      "patch_sha256": "9df10845ffcd2f4a3889de41badfb7dfb6f084db8b1e1fe7b347b10ca5437a1d"
+      "patch_sha256": "2ff1bd07abf585f5276a2cebae246341caa13cf78ba4ddda77bcd1ca9776e321"
     },
     {
       "path": "_extensions/Afonenko-Course-Tools/course-presentation/disclosure.js",
       "base_sha256": "83fcce0f4a30a864b836bc4917c488420b5865314eeee21a6d6dea744665765c",
       "local_sha256": "2e8c47fe31a7d8b3804cda9ff91212ed5781c0df2953cd5e4cc5921ec0498584",
       "owner": "quarto-course",
-      "local_commit": "80cdff6d443ea6036f6138a0a3bb95b35779eb34",
+      "local_commit": "c8b2fe868cf805301fb6ebeba6587f8c96197369",
       "change": "Local candidate: API precheck, bounded additional Java sources, carried diagnostics/navigation and discoverable Reveal speaker control",
       "patch": "tools/provider-patches/local-java-sources-20261016/core.patch",
-      "patch_sha256": "9df10845ffcd2f4a3889de41badfb7dfb6f084db8b1e1fe7b347b10ca5437a1d"
+      "patch_sha256": "2ff1bd07abf585f5276a2cebae246341caa13cf78ba4ddda77bcd1ca9776e321"
     },
     {
       "path": "theory/_extensions/Afonenko-Course-Tools/course-presentation/disclosure.js",
       "base_sha256": "83fcce0f4a30a864b836bc4917c488420b5865314eeee21a6d6dea744665765c",
       "local_sha256": "2e8c47fe31a7d8b3804cda9ff91212ed5781c0df2953cd5e4cc5921ec0498584",
       "owner": "quarto-course",
-      "local_commit": "80cdff6d443ea6036f6138a0a3bb95b35779eb34",
+      "local_commit": "c8b2fe868cf805301fb6ebeba6587f8c96197369",
       "change": "Local candidate: API precheck, bounded additional Java sources, carried diagnostics/navigation and discoverable Reveal speaker control",
       "patch": "tools/provider-patches/local-java-sources-20261016/core.patch",
-      "patch_sha256": "9df10845ffcd2f4a3889de41badfb7dfb6f084db8b1e1fe7b347b10ca5437a1d"
+      "patch_sha256": "2ff1bd07abf585f5276a2cebae246341caa13cf78ba4ddda77bcd1ca9776e321"
     },
     {
       "path": "lectures/_extensions/Afonenko-Course-Tools/course-presentation/disclosure.js",
       "base_sha256": "83fcce0f4a30a864b836bc4917c488420b5865314eeee21a6d6dea744665765c",
       "local_sha256": "2e8c47fe31a7d8b3804cda9ff91212ed5781c0df2953cd5e4cc5921ec0498584",
       "owner": "quarto-course",
-      "local_commit": "80cdff6d443ea6036f6138a0a3bb95b35779eb34",
+      "local_commit": "c8b2fe868cf805301fb6ebeba6587f8c96197369",
       "change": "Local candidate: API precheck, bounded additional Java sources, carried diagnostics/navigation and discoverable Reveal speaker control",
       "patch": "tools/provider-patches/local-java-sources-20261016/core.patch",
-      "patch_sha256": "9df10845ffcd2f4a3889de41badfb7dfb6f084db8b1e1fe7b347b10ca5437a1d"
+      "patch_sha256": "2ff1bd07abf585f5276a2cebae246341caa13cf78ba4ddda77bcd1ca9776e321"
     },
     {
       "path": "practice/_extensions/Afonenko-Course-Tools/course-presentation/disclosure.js",
       "base_sha256": "83fcce0f4a30a864b836bc4917c488420b5865314eeee21a6d6dea744665765c",
       "local_sha256": "2e8c47fe31a7d8b3804cda9ff91212ed5781c0df2953cd5e4cc5921ec0498584",
       "owner": "quarto-course",
-      "local_commit": "80cdff6d443ea6036f6138a0a3bb95b35779eb34",
+      "local_commit": "c8b2fe868cf805301fb6ebeba6587f8c96197369",
       "change": "Local candidate: API precheck, bounded additional Java sources, carried diagnostics/navigation and discoverable Reveal speaker control",
       "patch": "tools/provider-patches/local-java-sources-20261016/core.patch",
-      "patch_sha256": "9df10845ffcd2f4a3889de41badfb7dfb6f084db8b1e1fe7b347b10ca5437a1d"
+      "patch_sha256": "2ff1bd07abf585f5276a2cebae246341caa13cf78ba4ddda77bcd1ca9776e321"
     },
     {
       "path": "tasks/_extensions/Afonenko-Course-Tools/course-presentation/disclosure.js",
       "base_sha256": "83fcce0f4a30a864b836bc4917c488420b5865314eeee21a6d6dea744665765c",
       "local_sha256": "2e8c47fe31a7d8b3804cda9ff91212ed5781c0df2953cd5e4cc5921ec0498584",
       "owner": "quarto-course",
-      "local_commit": "80cdff6d443ea6036f6138a0a3bb95b35779eb34",
+      "local_commit": "c8b2fe868cf805301fb6ebeba6587f8c96197369",
       "change": "Local candidate: API precheck, bounded additional Java sources, carried diagnostics/navigation and discoverable Reveal speaker control",
       "patch": "tools/provider-patches/local-java-sources-20261016/core.patch",
-      "patch_sha256": "9df10845ffcd2f4a3889de41badfb7dfb6f084db8b1e1fe7b347b10ca5437a1d"
+      "patch_sha256": "2ff1bd07abf585f5276a2cebae246341caa13cf78ba4ddda77bcd1ca9776e321"
     },
     {
       "path": "handbook/_extensions/Afonenko-Course-Tools/course-presentation/disclosure.js",
       "base_sha256": "83fcce0f4a30a864b836bc4917c488420b5865314eeee21a6d6dea744665765c",
       "local_sha256": "2e8c47fe31a7d8b3804cda9ff91212ed5781c0df2953cd5e4cc5921ec0498584",
       "owner": "quarto-course",
-      "local_commit": "80cdff6d443ea6036f6138a0a3bb95b35779eb34",
+      "local_commit": "c8b2fe868cf805301fb6ebeba6587f8c96197369",
       "change": "Local candidate: API precheck, bounded additional Java sources, carried diagnostics/navigation and discoverable Reveal speaker control",
       "patch": "tools/provider-patches/local-java-sources-20261016/core.patch",
-      "patch_sha256": "9df10845ffcd2f4a3889de41badfb7dfb6f084db8b1e1fe7b347b10ca5437a1d"
+      "patch_sha256": "2ff1bd07abf585f5276a2cebae246341caa13cf78ba4ddda77bcd1ca9776e321"
     },
     {
       "path": "_extensions/Afonenko-Course-Tools/course-navigation/navigation/plugin.js",
       "base_sha256": "c8c0c83697b5df8bb455b919a5a825266990160898202b75b6a9d02b6defa7bb",
       "local_sha256": "8af34a7784c645ef578b7d8c2e45ccca088465bb367c9bd34ebda5730f44b379",
       "owner": "quarto-course",
-      "local_commit": "80cdff6d443ea6036f6138a0a3bb95b35779eb34",
+      "local_commit": "c8b2fe868cf805301fb6ebeba6587f8c96197369",
       "change": "Local candidate: API precheck, bounded additional Java sources, carried diagnostics/navigation and discoverable Reveal speaker control",
       "patch": "tools/provider-patches/local-java-sources-20261016/core.patch",
-      "patch_sha256": "9df10845ffcd2f4a3889de41badfb7dfb6f084db8b1e1fe7b347b10ca5437a1d"
+      "patch_sha256": "2ff1bd07abf585f5276a2cebae246341caa13cf78ba4ddda77bcd1ca9776e321"
     },
     {
       "path": "_extensions/Afonenko-Course-Tools/course-navigation/navigation/ui.js",
       "base_sha256": "cdc48039137e83f2266e851d371afe130b12b2ba54ff65ba8b239ed506ae7116",
       "local_sha256": "a9ec7802204c55c390f701ebe7f234221aef847ac483ee79648fbfb3e8dad77d",
       "owner": "quarto-course",
-      "local_commit": "80cdff6d443ea6036f6138a0a3bb95b35779eb34",
+      "local_commit": "c8b2fe868cf805301fb6ebeba6587f8c96197369",
       "change": "Local candidate: API precheck, bounded additional Java sources, carried diagnostics/navigation and discoverable Reveal speaker control",
       "patch": "tools/provider-patches/local-java-sources-20261016/core.patch",
-      "patch_sha256": "9df10845ffcd2f4a3889de41badfb7dfb6f084db8b1e1fe7b347b10ca5437a1d"
+      "patch_sha256": "2ff1bd07abf585f5276a2cebae246341caa13cf78ba4ddda77bcd1ca9776e321"
     },
     {
       "path": "theory/_extensions/Afonenko-Course-Tools/course-navigation/navigation/plugin.js",
       "base_sha256": "c8c0c83697b5df8bb455b919a5a825266990160898202b75b6a9d02b6defa7bb",
       "local_sha256": "8af34a7784c645ef578b7d8c2e45ccca088465bb367c9bd34ebda5730f44b379",
       "owner": "quarto-course",
-      "local_commit": "80cdff6d443ea6036f6138a0a3bb95b35779eb34",
+      "local_commit": "c8b2fe868cf805301fb6ebeba6587f8c96197369",
       "change": "Local candidate: API precheck, bounded additional Java sources, carried diagnostics/navigation and discoverable Reveal speaker control",
       "patch": "tools/provider-patches/local-java-sources-20261016/core.patch",
-      "patch_sha256": "9df10845ffcd2f4a3889de41badfb7dfb6f084db8b1e1fe7b347b10ca5437a1d"
+      "patch_sha256": "2ff1bd07abf585f5276a2cebae246341caa13cf78ba4ddda77bcd1ca9776e321"
     },
     {
       "path": "theory/_extensions/Afonenko-Course-Tools/course-navigation/navigation/ui.js",
       "base_sha256": "cdc48039137e83f2266e851d371afe130b12b2ba54ff65ba8b239ed506ae7116",
       "local_sha256": "a9ec7802204c55c390f701ebe7f234221aef847ac483ee79648fbfb3e8dad77d",
       "owner": "quarto-course",
-      "local_commit": "80cdff6d443ea6036f6138a0a3bb95b35779eb34",
+      "local_commit": "c8b2fe868cf805301fb6ebeba6587f8c96197369",
       "change": "Local candidate: API precheck, bounded additional Java sources, carried diagnostics/navigation and discoverable Reveal speaker control",
       "patch": "tools/provider-patches/local-java-sources-20261016/core.patch",
-      "patch_sha256": "9df10845ffcd2f4a3889de41badfb7dfb6f084db8b1e1fe7b347b10ca5437a1d"
+      "patch_sha256": "2ff1bd07abf585f5276a2cebae246341caa13cf78ba4ddda77bcd1ca9776e321"
     },
     {
       "path": "lectures/_extensions/Afonenko-Course-Tools/course-navigation/navigation/plugin.js",
       "base_sha256": "c8c0c83697b5df8bb455b919a5a825266990160898202b75b6a9d02b6defa7bb",
       "local_sha256": "8af34a7784c645ef578b7d8c2e45ccca088465bb367c9bd34ebda5730f44b379",
       "owner": "quarto-course",
-      "local_commit": "80cdff6d443ea6036f6138a0a3bb95b35779eb34",
+      "local_commit": "c8b2fe868cf805301fb6ebeba6587f8c96197369",
       "change": "Local candidate: API precheck, bounded additional Java sources, carried diagnostics/navigation and discoverable Reveal speaker control",
       "patch": "tools/provider-patches/local-java-sources-20261016/core.patch",
-      "patch_sha256": "9df10845ffcd2f4a3889de41badfb7dfb6f084db8b1e1fe7b347b10ca5437a1d"
+      "patch_sha256": "2ff1bd07abf585f5276a2cebae246341caa13cf78ba4ddda77bcd1ca9776e321"
     },
     {
       "path": "lectures/_extensions/Afonenko-Course-Tools/course-navigation/navigation/ui.js",
       "base_sha256": "cdc48039137e83f2266e851d371afe130b12b2ba54ff65ba8b239ed506ae7116",
       "local_sha256": "a9ec7802204c55c390f701ebe7f234221aef847ac483ee79648fbfb3e8dad77d",
       "owner": "quarto-course",
-      "local_commit": "80cdff6d443ea6036f6138a0a3bb95b35779eb34",
+      "local_commit": "c8b2fe868cf805301fb6ebeba6587f8c96197369",
       "change": "Local candidate: API precheck, bounded additional Java sources, carried diagnostics/navigation and discoverable Reveal speaker control",
       "patch": "tools/provider-patches/local-java-sources-20261016/core.patch",
-      "patch_sha256": "9df10845ffcd2f4a3889de41badfb7dfb6f084db8b1e1fe7b347b10ca5437a1d"
+      "patch_sha256": "2ff1bd07abf585f5276a2cebae246341caa13cf78ba4ddda77bcd1ca9776e321"
     },
     {
       "path": "practice/_extensions/Afonenko-Course-Tools/course-navigation/navigation/plugin.js",
       "base_sha256": "c8c0c83697b5df8bb455b919a5a825266990160898202b75b6a9d02b6defa7bb",
       "local_sha256": "8af34a7784c645ef578b7d8c2e45ccca088465bb367c9bd34ebda5730f44b379",
       "owner": "quarto-course",
-      "local_commit": "80cdff6d443ea6036f6138a0a3bb95b35779eb34",
+      "local_commit": "c8b2fe868cf805301fb6ebeba6587f8c96197369",
       "change": "Local candidate: API precheck, bounded additional Java sources, carried diagnostics/navigation and discoverable Reveal speaker control",
       "patch": "tools/provider-patches/local-java-sources-20261016/core.patch",
-      "patch_sha256": "9df10845ffcd2f4a3889de41badfb7dfb6f084db8b1e1fe7b347b10ca5437a1d"
+      "patch_sha256": "2ff1bd07abf585f5276a2cebae246341caa13cf78ba4ddda77bcd1ca9776e321"
     },
     {
       "path": "practice/_extensions/Afonenko-Course-Tools/course-navigation/navigation/ui.js",
       "base_sha256": "cdc48039137e83f2266e851d371afe130b12b2ba54ff65ba8b239ed506ae7116",
       "local_sha256": "a9ec7802204c55c390f701ebe7f234221aef847ac483ee79648fbfb3e8dad77d",
       "owner": "quarto-course",
-      "local_commit": "80cdff6d443ea6036f6138a0a3bb95b35779eb34",
+      "local_commit": "c8b2fe868cf805301fb6ebeba6587f8c96197369",
       "change": "Local candidate: API precheck, bounded additional Java sources, carried diagnostics/navigation and discoverable Reveal speaker control",
       "patch": "tools/provider-patches/local-java-sources-20261016/core.patch",
-      "patch_sha256": "9df10845ffcd2f4a3889de41badfb7dfb6f084db8b1e1fe7b347b10ca5437a1d"
+      "patch_sha256": "2ff1bd07abf585f5276a2cebae246341caa13cf78ba4ddda77bcd1ca9776e321"
     },
     {
       "path": "tasks/_extensions/Afonenko-Course-Tools/course-navigation/navigation/plugin.js",
       "base_sha256": "c8c0c83697b5df8bb455b919a5a825266990160898202b75b6a9d02b6defa7bb",
       "local_sha256": "8af34a7784c645ef578b7d8c2e45ccca088465bb367c9bd34ebda5730f44b379",
       "owner": "quarto-course",
-      "local_commit": "80cdff6d443ea6036f6138a0a3bb95b35779eb34",
+      "local_commit": "c8b2fe868cf805301fb6ebeba6587f8c96197369",
       "change": "Local candidate: API precheck, bounded additional Java sources, carried diagnostics/navigation and discoverable Reveal speaker control",
       "patch": "tools/provider-patches/local-java-sources-20261016/core.patch",
-      "patch_sha256": "9df10845ffcd2f4a3889de41badfb7dfb6f084db8b1e1fe7b347b10ca5437a1d"
+      "patch_sha256": "2ff1bd07abf585f5276a2cebae246341caa13cf78ba4ddda77bcd1ca9776e321"
     },
     {
       "path": "tasks/_extensions/Afonenko-Course-Tools/course-navigation/navigation/ui.js",
       "base_sha256": "cdc48039137e83f2266e851d371afe130b12b2ba54ff65ba8b239ed506ae7116",
       "local_sha256": "a9ec7802204c55c390f701ebe7f234221aef847ac483ee79648fbfb3e8dad77d",
       "owner": "quarto-course",
-      "local_commit": "80cdff6d443ea6036f6138a0a3bb95b35779eb34",
+      "local_commit": "c8b2fe868cf805301fb6ebeba6587f8c96197369",
       "change": "Local candidate: API precheck, bounded additional Java sources, carried diagnostics/navigation and discoverable Reveal speaker control",
       "patch": "tools/provider-patches/local-java-sources-20261016/core.patch",
-      "patch_sha256": "9df10845ffcd2f4a3889de41badfb7dfb6f084db8b1e1fe7b347b10ca5437a1d"
+      "patch_sha256": "2ff1bd07abf585f5276a2cebae246341caa13cf78ba4ddda77bcd1ca9776e321"
     },
     {
       "path": "handbook/_extensions/Afonenko-Course-Tools/course-navigation/navigation/plugin.js",
       "base_sha256": "c8c0c83697b5df8bb455b919a5a825266990160898202b75b6a9d02b6defa7bb",
       "local_sha256": "8af34a7784c645ef578b7d8c2e45ccca088465bb367c9bd34ebda5730f44b379",
       "owner": "quarto-course",
-      "local_commit": "80cdff6d443ea6036f6138a0a3bb95b35779eb34",
+      "local_commit": "c8b2fe868cf805301fb6ebeba6587f8c96197369",
       "change": "Local candidate: API precheck, bounded additional Java sources, carried diagnostics/navigation and discoverable Reveal speaker control",
       "patch": "tools/provider-patches/local-java-sources-20261016/core.patch",
-      "patch_sha256": "9df10845ffcd2f4a3889de41badfb7dfb6f084db8b1e1fe7b347b10ca5437a1d"
+      "patch_sha256": "2ff1bd07abf585f5276a2cebae246341caa13cf78ba4ddda77bcd1ca9776e321"
     },
     {
       "path": "handbook/_extensions/Afonenko-Course-Tools/course-navigation/navigation/ui.js",
       "base_sha256": "cdc48039137e83f2266e851d371afe130b12b2ba54ff65ba8b239ed506ae7116",
       "local_sha256": "a9ec7802204c55c390f701ebe7f234221aef847ac483ee79648fbfb3e8dad77d",
       "owner": "quarto-course",
-      "local_commit": "80cdff6d443ea6036f6138a0a3bb95b35779eb34",
+      "local_commit": "c8b2fe868cf805301fb6ebeba6587f8c96197369",
       "change": "Local candidate: API precheck, bounded additional Java sources, carried diagnostics/navigation and discoverable Reveal speaker control",
       "patch": "tools/provider-patches/local-java-sources-20261016/core.patch",
-      "patch_sha256": "9df10845ffcd2f4a3889de41badfb7dfb6f084db8b1e1fe7b347b10ca5437a1d"
+      "patch_sha256": "2ff1bd07abf585f5276a2cebae246341caa13cf78ba4ddda77bcd1ca9776e321"
+    },
+    {
+      "path": "_extensions/Afonenko-Course-Tools/course-presentation/presentation.css",
+      "base_sha256": "a51eab093ac2bed4144a3f3d56fac77eba52805ead7c1ef6c95436724bc9af9e",
+      "local_sha256": "3161b045ae1222f8672d365881c66453401f4900cf183d238e2b4789a5131eb9",
+      "owner": "quarto-course",
+      "local_commit": "c8b2fe868cf805301fb6ebeba6587f8c96197369",
+      "change": "Локальный candidate: перенос URL библиографии Reveal и внутренняя прокрутка таблиц на узком экране",
+      "patch": "tools/provider-patches/local-java-sources-20261016/core.patch",
+      "patch_sha256": "2ff1bd07abf585f5276a2cebae246341caa13cf78ba4ddda77bcd1ca9776e321"
+    },
+    {
+      "path": "theory/_extensions/Afonenko-Course-Tools/course-presentation/presentation.css",
+      "base_sha256": "a51eab093ac2bed4144a3f3d56fac77eba52805ead7c1ef6c95436724bc9af9e",
+      "local_sha256": "3161b045ae1222f8672d365881c66453401f4900cf183d238e2b4789a5131eb9",
+      "owner": "quarto-course",
+      "local_commit": "c8b2fe868cf805301fb6ebeba6587f8c96197369",
+      "change": "Локальный candidate: перенос URL библиографии Reveal и внутренняя прокрутка таблиц на узком экране",
+      "patch": "tools/provider-patches/local-java-sources-20261016/core.patch",
+      "patch_sha256": "2ff1bd07abf585f5276a2cebae246341caa13cf78ba4ddda77bcd1ca9776e321"
+    },
+    {
+      "path": "lectures/_extensions/Afonenko-Course-Tools/course-presentation/presentation.css",
+      "base_sha256": "a51eab093ac2bed4144a3f3d56fac77eba52805ead7c1ef6c95436724bc9af9e",
+      "local_sha256": "3161b045ae1222f8672d365881c66453401f4900cf183d238e2b4789a5131eb9",
+      "owner": "quarto-course",
+      "local_commit": "c8b2fe868cf805301fb6ebeba6587f8c96197369",
+      "change": "Локальный candidate: перенос URL библиографии Reveal и внутренняя прокрутка таблиц на узком экране",
+      "patch": "tools/provider-patches/local-java-sources-20261016/core.patch",
+      "patch_sha256": "2ff1bd07abf585f5276a2cebae246341caa13cf78ba4ddda77bcd1ca9776e321"
+    },
+    {
+      "path": "practice/_extensions/Afonenko-Course-Tools/course-presentation/presentation.css",
+      "base_sha256": "a51eab093ac2bed4144a3f3d56fac77eba52805ead7c1ef6c95436724bc9af9e",
+      "local_sha256": "3161b045ae1222f8672d365881c66453401f4900cf183d238e2b4789a5131eb9",
+      "owner": "quarto-course",
+      "local_commit": "c8b2fe868cf805301fb6ebeba6587f8c96197369",
+      "change": "Локальный candidate: перенос URL библиографии Reveal и внутренняя прокрутка таблиц на узком экране",
+      "patch": "tools/provider-patches/local-java-sources-20261016/core.patch",
+      "patch_sha256": "2ff1bd07abf585f5276a2cebae246341caa13cf78ba4ddda77bcd1ca9776e321"
+    },
+    {
+      "path": "tasks/_extensions/Afonenko-Course-Tools/course-presentation/presentation.css",
+      "base_sha256": "a51eab093ac2bed4144a3f3d56fac77eba52805ead7c1ef6c95436724bc9af9e",
+      "local_sha256": "3161b045ae1222f8672d365881c66453401f4900cf183d238e2b4789a5131eb9",
+      "owner": "quarto-course",
+      "local_commit": "c8b2fe868cf805301fb6ebeba6587f8c96197369",
+      "change": "Локальный candidate: перенос URL библиографии Reveal и внутренняя прокрутка таблиц на узком экране",
+      "patch": "tools/provider-patches/local-java-sources-20261016/core.patch",
+      "patch_sha256": "2ff1bd07abf585f5276a2cebae246341caa13cf78ba4ddda77bcd1ca9776e321"
+    },
+    {
+      "path": "handbook/_extensions/Afonenko-Course-Tools/course-presentation/presentation.css",
+      "base_sha256": "a51eab093ac2bed4144a3f3d56fac77eba52805ead7c1ef6c95436724bc9af9e",
+      "local_sha256": "3161b045ae1222f8672d365881c66453401f4900cf183d238e2b4789a5131eb9",
+      "owner": "quarto-course",
+      "local_commit": "c8b2fe868cf805301fb6ebeba6587f8c96197369",
+      "change": "Локальный candidate: перенос URL библиографии Reveal и внутренняя прокрутка таблиц на узком экране",
+      "patch": "tools/provider-patches/local-java-sources-20261016/core.patch",
+      "patch_sha256": "2ff1bd07abf585f5276a2cebae246341caa13cf78ba4ddda77bcd1ca9776e321"
     }
   ],
   "reproduction": "python3 tools/materialize-providers.py --providers-root /absolute/release-checkouts --write; затем --check",
