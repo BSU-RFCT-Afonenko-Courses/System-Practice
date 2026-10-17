@@ -1,0 +1,143 @@
+# Рабочая среда {#sec-work-environment-reference}
+
+Команды приведены для fish / Linux и PowerShell 7 / Windows.
+Выберите свой маршрут. В примерах текущий каталог — `lab`; пути
+`input/room A.txt` и `reports/input/room A.txt` содержат разные файлы.
+Модель пути разобрана в {{< xref system-practice-theory sec-working-directory "теории" >}}.
+
+## Оболочка и текущий каталог {#sec-reference-location}
+
+| Действие | fish / Linux | PowerShell 7 / Windows |
+|---|---|---|
+| Версия оболочки | `fish --version` | `$PSVersionTable.PSVersion` |
+| Текущий каталог | `pwd` | `Get-Location` |
+| Переход во вложенный каталог | `cd reports` | `Set-Location -LiteralPath reports` |
+| Переход к родителю | `cd ..` | `Set-Location -LiteralPath ..` |
+| Список непосредственно вложенных элементов | `ls reports` | `Get-ChildItem -LiteralPath reports` |
+| Рекурсивный список | `ls -R reports` | `Get-ChildItem -LiteralPath reports -Recurse` |
+
+`.` обозначает текущий каталог, `..` — родительский. Абсолютный путь
+включает корень, например `/home/student/lab` или `C:\Users\Student\lab`.
+Запись `C:lab` зависит от текущего расположения на диске C:.
+[@bib-shotts-tlcl, с. 7–15; @bib-powershell-location]
+
+## Чтение и создание каталога {#sec-reference-read-create}
+
+::: {.panel-tabset}
+### fish / Linux
+
+```fish
+cat 'input/room A.txt'
+mkdir work
+```
+
+`cat` выводит текст файла. `mkdir` создаёт каталог; в этом примере
+`work` ещё не существует.
+
+### PowerShell 7 / Windows
+
+```powershell
+Get-Content -LiteralPath 'input/room A.txt'
+New-Item -ItemType Directory -Path work
+```
+
+`Get-Content` читает текст. `New-Item` создаёт элемент; `Directory`
+задаёт его тип — каталог. Здесь `work` ещё не существует.
+:::
+
+Список имён не устанавливает содержимое файла. После копирования
+или редактирования нужный текст проверяют отдельным чтением.
+[@bib-powershell-files]
+
+## Копирование и перемещение {#sec-reference-copy-move}
+
+Исходный файл существует; каталог `work` подготовлен; оба файла
+назначения ниже отсутствуют. Команды выполняются из `lab` по порядку.
+
+::: {.panel-tabset}
+### fish / Linux
+
+```fish
+cp 'input/room A.txt' work/selected.txt
+mv work/selected.txt reports/selected.txt
+```
+
+`cp` создаёт копию с новым именем. `mv` переносит её в `reports`.
+Старый путь `work/selected.txt` после перемещения отсутствует.
+
+### PowerShell 7 / Windows
+
+```powershell
+Copy-Item -LiteralPath 'input/room A.txt' -Destination work/selected.txt
+Move-Item -LiteralPath work/selected.txt -Destination reports/selected.txt
+```
+
+`-LiteralPath` задаёт источник, `-Destination` — назначение.
+Исходный `input/room A.txt` сохраняется после обеих операций.
+:::
+
+Если назначение — уже существующий каталог, файловая операция может
+поместить исходник внутрь него под исходным именем. Если назначение —
+существующий файл, нужно учитывать правило замены данной команды.
+Проверка пути назначения предшествует изменению.
+[@bib-shotts-tlcl, с. 30–32; @bib-powershell-copy]
+
+## Удаление {#sec-reference-remove}
+
+| Объект | fish / Linux | PowerShell 7 / Windows |
+|---|---|---|
+| Обычный файл `work/scratch.txt` | `rm work/scratch.txt` | `Remove-Item -LiteralPath work/scratch.txt` |
+| Пустой каталог `work` | `rmdir work` | `Remove-Item -LiteralPath work` |
+
+Удалённый через эти команды файл не помещается в обычную корзину
+файлового менеджера. `rmdir` отказывается удалять непустой каталог.
+`Remove-Item` без `-Recurse` при наличии вложенных элементов запрашивает
+подтверждение. Для удаления пустого каталога сначала проверяют его состав.
+[@bib-shotts-tlcl, с. 33–34; @bib-powershell-files]
+
+## Пробелы и шаблоны {#sec-reference-quoting}
+
+| Требование | fish / Linux | PowerShell 7 / Windows |
+|---|---|---|
+| Одно имя с пробелом | `'input/room A.txt'` | `-LiteralPath 'input/room A.txt'` |
+| Список имён по шаблону | `ls input/*.txt` | `Get-ChildItem -Path 'input/*.txt'` |
+
+fish раскрывает незаключённый в кавычки шаблон перед запуском команды.
+В PowerShell поддержку шаблона определяет параметр: `-Path` его
+интерпретирует, `-LiteralPath` использует буквальное имя.
+Кавычки сохраняют пробел внутри значения в обоих маршрутах.
+[@bib-fish-language; @bib-powershell-quoting; @bib-powershell-copy]
+
+## Справка {#sec-reference-help}
+
+| Цель | fish / Linux | PowerShell 7 / Windows |
+|---|---|---|
+| Установить команду по имени | `type ls` | `Get-Command Get-ChildItem` |
+| Найти описание | `man ls`, `ls --help` | `Get-Help Get-ChildItem -Full` |
+| Уточнить рекурсивный режим | раздел `-R` в справке `ls` | `Get-Help Get-ChildItem -Parameter Recurse` |
+| Посмотреть примеры | примеры в документации утилиты | `Get-Help Get-ChildItem -Examples` |
+
+`help` открывает документацию самой fish. У внешней утилиты своя справка.
+В просмотрщике `man` выход выполняется клавишей `q`.
+Полное содержимое PowerShell Help зависит от установленных справочных
+файлов; описание также доступно в Microsoft Learn.
+[@bib-fish-tutorial; @bib-powershell-help]
+
+## Сохранение текста и диагностика {#sec-reference-editor}
+
+Откройте нужную рабочую папку в текстовом редакторе. При создании файла
+укажите его полный путь в этой папке, сохраните текст в UTF-8 без BOM и прочитайте
+файл командой своего маршрута. Смена вкладки редактора не меняет текущий
+каталог работающей оболочки.
+
+| Наблюдение | Проверяемая причина |
+|---|---|
+| Путь не найден | Текущий каталог, точное имя и регистр, наличие родителей |
+| Прочитан другой файл с тем же именем | Точка отсчёта относительного пути |
+| Видно старое содержимое | Несохранённая вкладка или другой путь файла |
+| Отказано в доступе | Права пользователя на чтение или изменение этого пути |
+| Команда сообщает о непустом каталоге | Оставшиеся элементы; в Linux также имена с начальной точкой |
+
+Состав каталога со скрытыми элементами показывают `ls -a work`
+и `Get-ChildItem -LiteralPath work -Force`. Область учебных изменений
+ограничена выданным каталогом задачи.

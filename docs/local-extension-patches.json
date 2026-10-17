@@ -1,0 +1,12 @@
+{
+  "status": "Core 7.2.0 установлен из опубликованного v7.2.0; активных локальных patches нет",
+  "patches": [],
+  "reproduction": "python3 tools/materialize-providers.py --providers-root /absolute/release-checkouts --write; затем --check",
+  "historicalLocal16": null,
+  "release": {
+    "repository": "Afonenko-Course-Tools/quarto-course",
+    "tag": "v7.2.0",
+    "commit": "aebf6f4580c0bd5e9468498e840221619fc69e5f",
+    "url": "https://github.com/Afonenko-Course-Tools/quarto-course/releases/tag/v7.2.0"
+  }
+}

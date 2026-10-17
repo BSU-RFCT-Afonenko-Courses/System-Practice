@@ -1,0 +1,51 @@
+.reveal h1 { font-size: 2.05em; }
+.reveal h2 { font-size: 1.35em; margin-bottom: .55em; }
+.reveal p { line-height: 1.25; margin: .55em 0; }
+.reveal .slides section p { text-align: justify; text-align-last: left; hyphens: auto; }
+.reveal pre, .reveal pre code { text-align: left; hyphens: none; }
+.reveal pre { font-size: .78em; width: 100%; }
+.reveal pre code { max-height: none; }
+.reveal table { font-size: .85em; width: 100%; }
+.reveal table th, .reveal table td { padding: .25em .4em; }
+.reveal section.continuation > h1,
+.reveal section.continuation > h2 { display: none; }
+.reveal section .notes { display: none; }
+
+/* На узком экране текущий слайд читается в собственной области прокрутки. */
+@media screen and (max-width: 600px) {
+  html:not(.print-pdf) body.course-navigation-active > .reveal > .slides {
+    position: absolute;
+    top: 3.25rem !important;
+    left: 0 !important;
+    width: 100% !important;
+    height: calc(100% - 3.25rem) !important;
+    transform: none !important;
+    perspective: none;
+    overflow: auto;
+    box-sizing: border-box;
+    font-size: 18px;
+  }
+  html:not(.print-pdf) body.course-navigation-active > .reveal > .slides section.present {
+    position: relative;
+    top: 0 !important;
+    left: 0;
+    width: 100%;
+    height: auto;
+    min-height: 0;
+    padding: 0 .8rem 1rem;
+    box-sizing: border-box;
+    transform: none !important;
+  }
+  html:not(.print-pdf) body.course-navigation-active > .reveal > .slides section.stack.present {
+    padding: 0;
+  }
+  html:not(.print-pdf) body.course-navigation-active > .reveal > .slides section:not(.present) {
+    display: none !important;
+  }
+  html:not(.print-pdf) body.course-navigation-active > .reveal > .slides section p {
+    text-align: left;
+  }
+  html:not(.print-pdf) body.course-navigation-active > .reveal > .slides h1 { font-size: 1.45em; }
+  html:not(.print-pdf) body.course-navigation-active > .reveal > .slides h2 { font-size: 1.25em; }
+  html:not(.print-pdf) body.course-navigation-active > .reveal > .slides pre { max-width: 100%; }
+}

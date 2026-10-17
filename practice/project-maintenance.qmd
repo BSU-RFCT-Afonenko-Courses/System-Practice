@@ -1,0 +1,284 @@
+---
+title: Сопровождение проекта
+subtitle: Подготовка к добровольному проекту
+course-navigation:
+  course-url: https://bsu-rfct-afonenko-courses.github.io/System-Practice/
+  links:
+  - text: Курс
+    href: /index.html
+    scope: course
+  - text: Введения
+    href: /index.html
+    scope: project
+  - text: Условие
+    href: /tasks/optional/project-maintenance.html
+    scope: course
+format:
+  revealjs:
+    width: 1280
+    height: 800
+    fontsize: 30px
+    incremental: false
+    show-notes: false
+---
+
+## Материалы знакомого опыта {#sec-maintenance-intro}
+
+Распакуйте [демонстрационный архив](materials/project-maintenance-demo.zip)
+в новую папку. maintenancelab содержит work с .git, соседний bare
+shared.git и incoming/guide.patch. Откройте терминал в work.
+
+Команды Git общие для fish/Linux и PowerShell 7; текст меняется редактором.
+Полный опыт —
+{{< xref system-practice-theory sec-project-maintenance "в теории сопровождения" >}}.
+
+::: {.notes}
+Проверить исходную main/M и чистоту свежей копии демонстрации.
+Попросить показать рабочие файлы и место хранения второй истории.
+До запуска команд установить текущий каталог.
+:::
+
+## Состояние перед обменом
+
+У M и F общий родитель A. В work main/HEAD и start на M, base на A;
+в shared.git main и incoming на F. Рабочее дерево и индекс чисты.
+
+| Строка report.ini | A | M | F |
+|---|---|---|---|
+| format | text | text | text |
+| columns | code | code,units | code,site |
+
+guide.txt везде содержит `Run the report.`. Политика выпуска требует
+колонки code,site,units в этом порядке.
+
+::: {.notes}
+Предложить сформулировать итоговый файл до выбора Git-команд.
+Спросить, что потеряется при принятии любой из двух версий целиком.
+Вспомнить назначение `.gitattributes` из предыдущей работы.
+:::
+
+## Локальная настройка
+
+Выберите свои значения данных автора для work:
+
+```console
+git config set --local user.name 'Учебный автор'
+git config set --local user.email 'author@example.test'
+git status --short
+git remote add origin ../shared.git
+git remote -v
+```
+
+Пустой статус подтверждает чистое начало. Настройка origin задаёт
+соседний каталог для обмена; чужие коммиты ещё не получены.
+
+::: {.notes}
+Попросить объяснить каждый компонент ../shared.git. Проверить адрес
+в remote -v. Уточнить область --local и повторяемость настройки
+автора при переходе к новому репозиторию.
+:::
+
+## Получение и наблюдение
+
+```console
+git fetch origin
+git --no-pager log --graph --oneline --decorate --all
+git show 'HEAD:report.ini'
+git show 'origin/main:report.ini'
+```
+
+main/HEAD по-прежнему на M; origin/main указывает на полученную F.
+Отчёт в work ещё содержит code,units. Получение истории позволяет
+прочитать обе версии перед объединением.
+
+::: {.notes}
+До fetch попросить предсказать рабочий columns. После него сравнить
+прогноз с show. Разместить имена main и origin/main на двух ветвях графа.
+:::
+
+## Предусмотренный конфликт
+
+```console
+git merge --no-ff --no-edit origin/main
+git status
+```
+
+Команда merge останавливается с ненулевым кодом: обе стороны изменили
+columns в report.ini. HEAD остаётся на M. В рабочем файле маркеры
+разделяют code,units и code,site; итоговый коммит ещё не создан.
+
+{{< xref system-practice-theory sec-maintenance-conflict "Исходные версии и разрешение конфликта" >}}.
+
+::: {.notes}
+Предложить прочитать конфликтующий участок и найти обе стороны в таблице.
+Проверить, что остальные исходные файлы доступны. Уточнить, что ожидаемый
+конфликт является состоянием незавершённой операции.
+:::
+
+## Согласованный снимок
+
+В редакторе report.ini получает две строки без маркеров:
+
+```text
+format=text
+columns=code,site,units
+```
+
+```console
+git add -- report.ini
+git --no-pager diff --staged
+git status
+git commit -m 'Combine site and units in the report'
+```
+
+Новый D включает родителей M и F. Полезные изменения обеих линий сохранены.
+
+::: {.notes}
+Перед commit попросить обосновать порядок колонок. После него прочитать
+родителей через известную форму show --format=raw и сопоставить с графом.
+Разделить проверку содержимого и завершённости операции.
+:::
+
+## Входной патч
+
+Откройте incoming/guide.patch редактором. Он добавляет после
+`Run the report.` строку `Review the units.`.
+
+```console
+git apply --stat ../incoming/guide.patch
+git apply --check ../incoming/guide.patch
+```
+
+Обе команды оставляют файлы прежними. Проверка применимости успешна,
+поскольку слияние не меняло исходный guide.txt.
+
+::: {.notes}
+Попросить восстановить итоговый guide.txt по строкам контекста и добавления.
+Спросить, какое изменение исходного файла могло бы помешать применению.
+Прочитать вывод check, затем отдельно обсудить смысл новой инструкции.
+:::
+
+## Принятие инструкции
+
+```console
+git apply ../incoming/guide.patch
+git --no-pager diff -- guide.txt
+git add -- guide.txt
+git commit -m 'Add a review of units'
+```
+
+guide.txt теперь содержит:
+
+```text
+Run the report.
+Review the units.
+```
+
+apply изменил рабочий файл; фиксация выполнена после просмотра разницы.
+
+::: {.notes}
+До add спросить, где находится изменение. После commit предложить
+сопоставить индекс, рабочий файл и HEAD. Обсудить, почему сохранённый
+входной патч полезен для последующего разбора принятой работы.
+:::
+
+## Описание выпуска
+
+Создайте VERSION со строкой `1.1` и CHANGELOG.md:
+
+```markdown
+# 1.1
+
+- Include site and units in the report.
+- Require a review of units.
+```
+
+```console
+git add -- VERSION CHANGELOG.md
+git --no-pager diff --staged
+git commit -m 'Prepare report version 1.1'
+```
+
+::: {.notes}
+Предложить проверить подготовленные имена: в снимок входят файлы выпуска,
+входной патч остаётся за пределами work. Найти в описании оба предметных
+изменения, которые должен понимать получатель.
+:::
+
+## Имя и передача версии
+
+```console
+git tag -a demo-v1.1 -m 'Report with site and units'
+git --no-pager show --no-patch demo-v1.1
+git push origin main
+git push origin demo-v1.1
+git ls-remote origin
+```
+
+Тег обозначает итоговый R. shared.git получает main/R и объект тега.
+В строке demo-v1.1 с `^{}` виден помеченный коммит; он совпадает с R.
+
+::: {.notes}
+Попросить объяснить, почему main можно отправить обычным push: F входит
+в новую историю. Раздельно проверить хеш объекта тега и хеш коммита.
+Обсудить результат, если отправлена только ветка.
+:::
+
+## Два материала выпуска {.smaller}
+
+Из основного work:
+
+```console
+git diff --output=../release.patch start demo-v1.1
+git archive --format=zip --prefix=report-demo-1.1/ --output=../report-demo-1.1.zip demo-v1.1
+```
+
+release.patch описывает переход от start/M к R.
+ZIP содержит пять файлов R под общим каталогом report-demo-1.1/.
+Оба файла создаются рядом с work.
+
+{{< xref system-practice-theory sec-maintenance-release "Выбор исходной и итоговой версии" >}}.
+
+::: {.notes}
+Попросить назвать источник каждого материала до выполнения команды.
+Открыть ZIP и проверить его корневой каталог. Найти VERSION и сверить
+его содержимое с тегом, не ограничиваясь именем архива.
+:::
+
+## Проверяемые связи
+
+| Объект | Требуемая связь |
+|---|---|
+| main/R | Включает исходные M и F |
+| demo-v1.1 | Аннотированный тег на R |
+| shared.git/main и тег | Получены те же объекты |
+| release.patch | Применяется к start и воспроизводит файлы R |
+| report-demo-1.1.zip | Содержит файлы R без истории .git |
+
+Пустой status подтверждает отсутствие незавершённой работы в основном work.
+
+::: {.notes}
+Предложить для каждой строки свой способ наблюдения. Для патча выбрать
+отдельную свежую копию start, сохранив основной результат. Спросить,
+какие из наблюдений ещё требуют объяснить применённый приём.
+:::
+
+## Самостоятельное сопровождение
+
+{{< xref system-practice-tasks sec-project-maintenance-task "Добровольный проект «Сопровождение проекта»" >}}
+использует отдельный набор maintenance. В нём нужно согласовать другой
+отчёт и проверить входной патч на указанной базе в отдельной линии.
+
+Условие задаёт результат, сохраняемую историю, материалы выпуска
+и пояснение. Порядок допустимых объединений выбирается самостоятельно.
+
+Подготовка:
+{{< xref system-practice-theory sec-maintenance-patch "база патча" >}},
+{{< xref system-practice-handbook sec-maintenance-reference "адресная справка" >}}.
+
+::: {.notes}
+Предложить прочитать исходные refs и результаты нового условия,
+затем составить собственный план работы. Проверить понимание различия
+ZIP выпуска и полного ZIP сдачи. Дать объяснить выбранную точку начала
+патча до изменения файлов.
+:::

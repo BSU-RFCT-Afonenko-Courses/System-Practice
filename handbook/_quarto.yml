@@ -2,6 +2,10 @@ project:
   type: book
   output-dir: _output
   resources:
+  - '!tools/**'
+  - '!tests/**'
+  - '!**/projects/**'
+  - '!**/__pycache__/**'
   - '!**/*.qmd'
   - '!**/*.rmd'
   - '!**/*.ipynb'
@@ -31,7 +35,7 @@ filters:
 - course-presentation
 - reference-catalog
 reference-catalog:
-  namespace: handbook
+  namespace: system-practice-handbook
 profile:
   default: student
   group:
@@ -41,9 +45,11 @@ book:
   title: System Practice — справочник
   chapters:
   - index.qmd
-  - shells.qmd
-  - git.qmd
-  - editor.qmd
+  - work-environment.qmd
+  - data-processing.qmd
+  - version-control.qmd
+  - project-maintenance.qmd
+  - sources.qmd
   search: true
   page-navigation: true
   sidebar:
@@ -51,3 +57,7 @@ book:
     - icon: house
       href: ../index.html#sec-system-practice
       text: Портал курса
+
+bibliography: ../bibliography/course.bib
+csl: ../bibliography/numeric.csl
+link-citations: true

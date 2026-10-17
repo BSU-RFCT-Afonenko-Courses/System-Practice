@@ -2,6 +2,10 @@ project:
   type: book
   output-dir: _output
   resources:
+  - '!tools/**'
+  - '!tests/**'
+  - '!**/projects/**'
+  - '!**/__pycache__/**'
   - '!**/*.qmd'
   - '!**/*.rmd'
   - '!**/*.ipynb'
@@ -31,7 +35,7 @@ filters:
 - course-presentation
 - reference-catalog
 reference-catalog:
-  namespace: theory
+  namespace: system-practice-theory
 profile:
   default: student
   group:
@@ -41,10 +45,13 @@ book:
   title: System Practice — теория
   chapters:
   - index.qmd
-  - topics/01-command-line.qmd
-  - topics/02-files-streams.qmd
-  - topics/03-diff-patch.qmd
-  - topics/04-git.qmd
+  - work-environment.qmd
+  - text-streams.qmd
+  - object-pipeline.qmd
+  - git-state.qmd
+  - git-branches.qmd
+  - project-maintenance.qmd
+  - sources.qmd
   search: true
   page-navigation: true
   sidebar:
@@ -52,3 +59,7 @@ book:
     - icon: house
       href: ../index.html#sec-system-practice
       text: Портал курса
+
+bibliography: ../bibliography/course.bib
+csl: ../bibliography/numeric.csl
+link-citations: true

@@ -1,3 +1,5 @@
+local __metrics=require("../observability/bridge").create_metrics("course-presentation",1)
+
 -- Компактные подписи формируются из учебных атрибутов. В course.json
 -- хранятся исходные значения, без созданных элементов оформления.
 local M = {}
@@ -45,4 +47,5 @@ function M.decorate(div, cfg)
   end
   return div
 end
+M.decorate=__metrics.wrap_sync({id="course-presentation.modules.metadata.decorate",kind='phase'},M.decorate)
 return M

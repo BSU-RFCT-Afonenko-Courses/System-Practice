@@ -1,0 +1,46 @@
+{
+  "practice/materials/version-control-demo.zip": {
+    "root": "historylab",
+    "selection": {
+      "refs": [
+        "188812520c99179f362a54fdffb68afae42006dc refs/heads/main",
+        "188812520c99179f362a54fdffb68afae42006dc refs/tags/start",
+        "8c70bdbca5ec2ff3bf140164d820ace656cf5920 refs/tags/units-reference"
+      ],
+      "head": "refs/heads/main",
+      "status": "MM collection.ini\n M guide.txt\nM  scratch.txt\n"
+    },
+    "integration": {
+      "refs": [
+        "716154c4297f4488f67e414ad83ad17881f860a2 refs/heads/main",
+        "27f2bd7920ac58fca190fae7dade7177dc30fe59 refs/heads/wide-report",
+        "68744ada02066481c870399dfc0d177d580ceb4f refs/tags/base",
+        "716154c4297f4488f67e414ad83ad17881f860a2 refs/tags/start"
+      ],
+      "head": "refs/heads/main",
+      "status": ""
+    }
+  },
+  "tasks/materials/version-control-start.zip": {
+    "root": "versioning",
+    "selection": {
+      "refs": [
+        "7945648ec4d60926694b58e0c8a92d52db11a8ea refs/heads/main",
+        "7945648ec4d60926694b58e0c8a92d52db11a8ea refs/tags/start",
+        "bba8835110045907fd0edac4ca8e4347cf86edf7 refs/tags/units-reference"
+      ],
+      "head": "refs/heads/main",
+      "status": " M guide.txt\nMM measurements.ini\nM  notes.txt\n"
+    },
+    "integration": {
+      "refs": [
+        "0d84b929b92794158e9e2289a649c7f80468f56d refs/heads/csv-output",
+        "a0782989f91d78d8633540a93c9fbbef33958b00 refs/heads/main",
+        "fd1d8bc82e9d7706bfae74c97ea86e555581d94d refs/tags/base",
+        "a0782989f91d78d8633540a93c9fbbef33958b00 refs/tags/start"
+      ],
+      "head": "refs/heads/main",
+      "status": ""
+    }
+  }
+}

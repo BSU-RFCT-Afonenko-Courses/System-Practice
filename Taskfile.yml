@@ -1,48 +1,54 @@
 version: '3'
 tasks:
   install:
+    desc: Проверить зафиксированную vendor-поставку без переустановки
     cmds:
-    - quarto add Afonenko-Course-Tools/quarto-course@v5.0.2 --no-prompt
-    - quarto add Afonenko-Course-Tools/quarto-project-publish@v5.0.0 --no-prompt
-    - quarto add Afonenko-Course-Tools/quarto-reference-catalog@v3.0.0 --no-prompt
-    - task: install:theory
-    - task: install:tasks
-    - task: install:practice
-    - task: install:handbook
+    - python3 tools/materialize-providers.py --check
+  install:from-sources:
+    desc: Воспроизвести exact release + local patch из заранее полученных checkouts
+    requires:
+      vars: [PROVIDERS_ROOT]
+    cmds:
+    - python3 tools/materialize-providers.py --providers-root '{{.PROVIDERS_ROOT}}' --write
+    - python3 tools/materialize-providers.py --check
+  test:providers:
+    cmds:
+    - python3 tools/test-materialize-providers.py
+    - python3 tools/materialize-providers.py --check
   render:
+    deps: [install, materials:check]
     cmds:
     - quarto render --profile student
   render:full:
+    deps: [install, materials:check]
     cmds:
     - quarto render --profile full
   preview:
+    deps: [install, materials:check]
     cmds:
     - quarto preview --profile student --no-watch-inputs
   publish:
+    deps: [install, materials:check]
     cmds:
     - quarto render --profile student
     - quarto publish gh-pages --profile student --no-render
-  install:theory:
-    internal: true
-    dir: theory
+  materials:check:
+    desc: Проверить исходные ZIP и идентичные публичные копии
     cmds:
-    - quarto add Afonenko-Course-Tools/quarto-course@v5.0.2 --no-prompt
-    - quarto add Afonenko-Course-Tools/quarto-reference-catalog@v3.0.0 --no-prompt
-  install:tasks:
-    internal: true
-    dir: tasks
+    - python3 tools/build_materials.py --check
+    - python3 tools/build_materials.py --project data-processing --check
+    - python3 tools/build_git_materials.py --check
+    - python3 tools/build_maintenance_materials.py --check
+    - python3 tools/materialize_public_materials.py --check
+  materials:write:
+    desc: Воспроизвести наборы с защитой локальных изменений
     cmds:
-    - quarto add Afonenko-Course-Tools/quarto-course@v5.0.2 --no-prompt
-    - quarto add Afonenko-Course-Tools/quarto-reference-catalog@v3.0.0 --no-prompt
-  install:practice:
-    internal: true
-    dir: practice
+    - python3 tools/build_materials.py --write
+    - python3 tools/build_materials.py --project data-processing --write
+    - python3 tools/build_git_materials.py --write
+    - python3 tools/build_maintenance_materials.py --write
+    - python3 tools/materialize_public_materials.py --write
+  test:materials:
+    desc: Проверить файловые договоры, репозитории и защиту локальных изменений
     cmds:
-    - quarto add Afonenko-Course-Tools/quarto-course@v5.0.2 --no-prompt
-    - quarto add Afonenko-Course-Tools/quarto-reference-catalog@v3.0.0 --no-prompt
-  install:handbook:
-    internal: true
-    dir: handbook
-    cmds:
-    - quarto add Afonenko-Course-Tools/quarto-course@v5.0.2 --no-prompt
-    - quarto add Afonenko-Course-Tools/quarto-reference-catalog@v3.0.0 --no-prompt
+    - python3 -m unittest discover -s tests -p 'test_*.py' -v

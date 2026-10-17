@@ -1,0 +1,30 @@
+---
+format: html
+---
+
+# Лекции {#sec-lectures}
+
+{{< xref system-practice-lectures sec-lecture-work-environment "Рабочая среда" >}}:
+терминал и оболочка, аргументы, рабочий каталог, копирование и перемещение
+файла, справка и проверка состояния.
+
+{{< xref system-practice-lectures sec-lecture-text-streams "Текстовые потоки" >}}:
+каналы процесса, текстовый конвейер, числовые ключи, пустой результат
+и ошибка чтения.
+
+{{< xref system-practice-lectures sec-lecture-object-pipeline "Объектный конвейер" >}}:
+свойства и типы, поэлементный отбор, порядок, проекция, сериализация
+и состояние выполнения сценария.
+
+{{< xref system-practice-lectures sec-lecture-git-state "Состояние репозитория" >}}:
+три состояния файла, сравнения, исторический источник и выбранный снимок.
+
+{{< xref system-practice-lectures sec-lecture-git-branches "Ветвление и слияние" >}}:
+точка начала, движение ссылок, общий предок и два вида объединения истории.
+
+{{< xref system-practice-lectures sec-lecture-project-maintenance "Сопровождение проекта" >}}:
+локальный обмен, согласование конфликтующих изменений, патч и выпуск.
+Это подготовка к добровольному проекту.
+
+{{< xref system-practice-theory sec-theory "Теория" >}} содержит развёрнутые объяснения
+и примеры для чтения.

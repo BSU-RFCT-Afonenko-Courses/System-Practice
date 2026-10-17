@@ -1,0 +1,70 @@
+{
+  "namespace": "Afonenko-Course-Tools",
+  "providers": {
+    "core": {
+      "repository": "Afonenko-Course-Tools/quarto-course",
+      "checkout": "quarto-course",
+      "commit": "aebf6f4580c0bd5e9468498e840221619fc69e5f",
+      "packages": {
+        "course-core": [
+          ".",
+          "theory",
+          "lectures",
+          "practice",
+          "tasks",
+          "handbook"
+        ],
+        "course-presentation": [
+          ".",
+          "theory",
+          "lectures",
+          "practice",
+          "tasks",
+          "handbook"
+        ],
+        "course-navigation": [
+          ".",
+          "theory",
+          "lectures",
+          "practice",
+          "tasks",
+          "handbook"
+        ]
+      },
+      "version": "7.2.0",
+      "tag": "v7.2.0",
+      "sourceZip": "https://github.com/Afonenko-Course-Tools/quarto-course/archive/refs/tags/v7.2.0.zip"
+    },
+    "site": {
+      "repository": "Afonenko-Course-Tools/quarto-project-publish",
+      "checkout": "quarto-project-publish",
+      "commit": "62f8c4a01a5fd9af11f5f66abba2bb48c2ef2631",
+      "packages": {
+        "course-site": [
+          "."
+        ]
+      },
+      "version": "5.1.0",
+      "tag": "v5.1.0",
+      "sourceZip": "https://github.com/Afonenko-Course-Tools/quarto-project-publish/archive/refs/tags/v5.1.0.zip"
+    },
+    "qrc": {
+      "repository": "Afonenko-Course-Tools/quarto-reference-catalog",
+      "checkout": "quarto-reference-catalog",
+      "commit": "3df2110e9f525f03f3ecb4926b5d55718e955c4c",
+      "packages": {
+        "reference-catalog": [
+          ".",
+          "theory",
+          "lectures",
+          "practice",
+          "tasks",
+          "handbook"
+        ]
+      },
+      "version": "3.1.0",
+      "tag": "v3.1.0",
+      "sourceZip": "https://github.com/Afonenko-Course-Tools/quarto-reference-catalog/archive/refs/tags/v3.1.0.zip"
+    }
+  }
+}

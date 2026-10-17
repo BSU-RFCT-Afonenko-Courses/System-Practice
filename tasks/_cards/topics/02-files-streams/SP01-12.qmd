@@ -7,7 +7,7 @@
 | Статус | дополнительная |
 | Сложность | средний |
 | Время | **45 мин**, из них 10 мин на беглое чтение; остальное — выполнение и самостоятельная проверка |
-| Предварительно | {{< xref theory sec-01-command-line "01-command-line" >}}; {{< xref theory sec-02-files-streams "02-files-streams" >}} |
+| Предварительно | {{< xref system-practice-theory sec-01-command-line "01-command-line" >}}; {{< xref system-practice-theory sec-02-files-streams "02-files-streams" >}} |
 
 ### Условие
 
@@ -15,7 +15,7 @@
 
 ### Источник и перенос
 
-{{< xref tasks sec-mslearn "MSLEARN" >}}: Export-Csv; Примеры 1–2: экспорт свойств процесса и повторный импорт. [Ссылка на оригинал или карточку издания](https://learn.microsoft.com/ru-ru/powershell/module/microsoft.powershell.utility/export-csv?view=powershell-7.5).
+{{< xref system-practice-tasks sec-mslearn "MSLEARN" >}}: Export-Csv; Примеры 1–2: экспорт свойств процесса и повторный импорт. [Ссылка на оригинал или карточку издания](https://learn.microsoft.com/ru-ru/powershell/module/microsoft.powershell.utility/export-csv?view=powershell-7.5).
 
 Учебное задание на основе примера или вопроса источника. Windows-процесс WmiPrvSE заменен всеми доступными процессами; добавлены фильтрация импортированных записей и повторный экспорт. Порог выбран для учебного задания.
 
@@ -29,6 +29,6 @@
 
 Облако: файлы в рабочей области VS Code PrairieLearn. Локально: те же файлы отдельными вложениями или одним ZIP-архивом.
 
-{{< xref theory sec-02-files-streams "К теме" >}} · {{< xref tasks sec-bank "Правила банка" >}}
+{{< xref system-practice-theory sec-02-files-streams "К теме" >}} · {{< xref system-practice-tasks sec-bank "Правила банка" >}}
 
 :::

@@ -7,7 +7,7 @@
 | Статус | обязательная |
 | Сложность | начальный |
 | Время | **25 мин**, из них 5 мин на беглое чтение; остальное — выполнение и самостоятельная проверка |
-| Предварительно | {{< xref tasks exr-sp01-02 "SP01-02" >}} или {{< xref tasks exr-sp01-06 "SP01-06" >}} |
+| Предварительно | {{< xref system-practice-tasks exr-sp01-02 "SP01-02" >}} или {{< xref system-practice-tasks exr-sp01-06 "SP01-06" >}} |
 
 ### Условие
 
@@ -15,7 +15,7 @@
 
 ### Источник и перенос
 
-{{< xref tasks sec-git-docs "GIT-DOCS" >}}: git-diff; DESCRIPTION: сравнение двух путей с --no-index. [Ссылка на оригинал или карточку издания](https://git-scm.com/docs/git-diff).
+{{< xref system-practice-tasks sec-git-docs "GIT-DOCS" >}}: git-diff; DESCRIPTION: сравнение двух путей с --no-index. [Ссылка на оригинал или карточку издания](https://git-scm.com/docs/git-diff).
 
 Учебное задание на основе примера или вопроса источника. Практическое задание составлено по документированной форме сравнения двух путей; самостоятельного упражнения в руководстве нет.
 
@@ -29,6 +29,6 @@
 
 Облако: файлы в рабочей области VS Code PrairieLearn. Локально: те же файлы отдельными вложениями или одним ZIP-архивом.
 
-{{< xref theory sec-03-diff-patch "К теме" >}} · {{< xref tasks sec-bank "Правила банка" >}}
+{{< xref system-practice-theory sec-03-diff-patch "К теме" >}} · {{< xref system-practice-tasks sec-bank "Правила банка" >}}
 
 :::

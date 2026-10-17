@@ -1,0 +1,40 @@
+{
+  "practice/materials/project-maintenance-demo.zip": {
+    "root": "maintenancelab",
+    "files": {
+      ".gitattributes": "* text=auto eol=lf\n",
+      "report.ini": "format=text\ncolumns=code\n",
+      "guide.txt": "Run the report.\n"
+    },
+    "main": {
+      "report.ini": "format=text\ncolumns=code,units\n"
+    },
+    "shared": {
+      "report.ini": "format=text\ncolumns=code,site\n"
+    },
+    "patch": {
+      "name": "guide.patch",
+      "path": "guide.txt",
+      "text": "Run the report.\nReview the units.\n"
+    }
+  },
+  "tasks/materials/project-maintenance-start.zip": {
+    "root": "maintenance",
+    "files": {
+      ".gitattributes": "* text=auto eol=lf\n",
+      "report.ini": "format=text\ncolumns=code\ndecimal=dot\n",
+      "instructions.txt": "Check the input.\n"
+    },
+    "main": {
+      "report.ini": "format=csv\ncolumns=code,value\ndecimal=dot\n"
+    },
+    "shared": {
+      "report.ini": "format=text\ncolumns=code,quality\ndecimal=dot\n"
+    },
+    "patch": {
+      "name": "review.patch",
+      "path": "instructions.txt",
+      "text": "Check the input.\nKeep the quality flag.\n"
+    }
+  }
+}

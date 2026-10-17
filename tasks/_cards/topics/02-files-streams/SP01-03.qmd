@@ -7,7 +7,7 @@
 | Статус | обязательная |
 | Сложность | средний |
 | Время | **35 мин**, из них 5 мин на беглое чтение; остальное — выполнение и самостоятельная проверка |
-| Предварительно | {{< xref theory sec-01-command-line "01-command-line" >}}; {{< xref tasks exr-sp01-02 "SP01-02" >}} или {{< xref tasks exr-sp01-06 "SP01-06" >}} |
+| Предварительно | {{< xref system-practice-theory sec-01-command-line "01-command-line" >}}; {{< xref system-practice-tasks exr-sp01-02 "SP01-02" >}} или {{< xref system-practice-tasks exr-sp01-06 "SP01-06" >}} |
 
 ### Условие
 
@@ -15,7 +15,7 @@
 
 ### Источник и перенос
 
-{{< xref tasks sec-mm2020ru "MM2020RU" >}}: Обзор курса + shell; Упражнение №9. [Ссылка на оригинал или карточку издания](https://missing-semester-rus.github.io/2020/course-shell/).
+{{< xref system-practice-tasks sec-mm2020ru "MM2020RU" >}}: Обзор курса + shell; Упражнение №9. [Ссылка на оригинал или карточку издания](https://missing-semester-rus.github.io/2020/course-shell/).
 
 Адаптированное авторское условие. Вместо sh-сценария и сетевого запроса выдается сохраненный текст HTTP-заголовков. Добавлены дописывание и отдельное перенаправление ошибки; Linux выполняет интерактивные команды fish, а не Bash-сценарий. Локальный повтор необязателен.
 
@@ -30,6 +30,6 @@
 
 Облако: файлы в рабочей области VS Code PrairieLearn. Локально: те же файлы отдельными вложениями или одним ZIP-архивом.
 
-{{< xref theory sec-02-files-streams "К теме" >}} · {{< xref tasks sec-bank "Правила банка" >}}
+{{< xref system-practice-theory sec-02-files-streams "К теме" >}} · {{< xref system-practice-tasks sec-bank "Правила банка" >}}
 
 :::

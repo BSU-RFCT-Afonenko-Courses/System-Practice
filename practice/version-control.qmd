@@ -1,0 +1,283 @@
+---
+title: Управление версиями
+subtitle: Подготовка снимка и объединение линий
+course-navigation:
+  course-url: https://bsu-rfct-afonenko-courses.github.io/System-Practice/
+  links:
+  - text: Курс
+    href: /index.html
+    scope: course
+  - text: Введения
+    href: /index.html
+    scope: project
+  - text: Условие
+    href: /tasks/labs/version-control.html
+    scope: course
+format:
+  revealjs:
+    width: 1280
+    height: 800
+    fontsize: 30px
+    incremental: false
+    show-notes: false
+---
+
+## Два опыта с историей {#sec-version-control-intro}
+
+Распакуйте [демонстрационный архив](materials/version-control-demo.zip)
+в новую папку. В `historylab` два независимых репозитория:
+
+- `selection` — подготовленный снимок и незавершённые правки;
+- `integration` — ветвление и объединение совместимых изменений.
+
+Сохраните оба `.git`. Работайте в fish/Linux либо PowerShell 7;
+команды Git одинаковы, файлы меняются редактором. Сначала перейдите
+в `historylab/selection`.
+
+::: {.notes}
+Проверить текущий каталог и наличие .git. Найти в теории исходный набор
+selection и установить цель каждого из двух независимых опытов.
+Не запускать git init поверх подготовленных репозиториев.
+:::
+
+## Исходные состояния selection
+
+История A → B; main/HEAD и тег start на B, units-reference на A.
+
+| Файл | HEAD | Индекс | Рабочее дерево |
+|---|---|---|---|
+| collection.ini, samples | 6 | 8 | 10 |
+| guide.txt | six | six | eight |
+| scratch.txt, draft | none | trial | trial |
+| legend.txt, unit | s | s | s |
+
+collection.ini также содержит site=hill. six/eight сокращают предложения
+`Record six readings.` / `Record eight readings.`. В A единица — ms.
+
+::: {.notes}
+Предложить предсказать три сравнения collection.ini. Прочитать рабочие
+файлы редактором и отметить, какие значения ещё не совпадают с индексом.
+Уточнить, что тег адресует сохранённую версию A.
+:::
+
+## Сравнения перед переносом
+
+```console
+git status --short
+git --no-pager diff -- collection.ini
+git --no-pager diff --staged -- collection.ini
+git show 'units-reference:legend.txt'
+```
+
+Ожидается: collection.ini — MM; рабочее изменение 8 → 10;
+подготовленное 6 → 8; историческая единица unit=ms.
+
+{{< xref system-practice-theory sec-git-differences "Пары сравнения" >}}
+
+::: {.notes}
+Сопоставить каждый вывод с прогнозом. Попросить выбрать сравнение
+для проверки будущего коммита и отдельно для сохранности рабочего опыта.
+Разобрать местное значение -- и staged.
+:::
+
+## Цель снимка и оставшаяся работа
+
+В новый коммит нужны samples=8, инструкция про восемь наблюдений,
+draft=none и историческая unit=ms. В рабочей папке должны остаться
+samples=10 и draft=trial.
+
+| Путь | Нужный перенос |
+|---|---|
+| collection.ini | Уже подготовлен нужный вариант |
+| guide.txt | Рабочий вариант → индекс |
+| scratch.txt | HEAD → индекс |
+| legend.txt | units-reference → индекс и рабочий файл |
+
+::: {.notes}
+До показа следующего экрана попросить выбрать команды по таблице.
+Особенно проверить назначение для scratch: черновик должен сохраниться
+в рабочем файле. Обосновать отсутствие операции над collection.
+:::
+
+## Подготовка четырёх файлов
+
+```console
+git add -- guide.txt
+git restore --staged -- scratch.txt
+git restore --source=units-reference --staged --worktree -- legend.txt
+git --no-pager diff --staged
+git --no-pager diff
+```
+
+Индекс: 8 / eight / none / ms. Рабочее дерево: 10 / eight / trial / ms.
+История и main по-прежнему на B.
+
+{{< xref system-practice-handbook sec-reference-git-restore "Источник и назначение restore" >}}
+
+::: {.notes}
+Выполнить команды и прочитать оба патча. Назвать изменение на каждой
+строке. Если значения расходятся с таблицей, найти источник и назначение
+последнего переноса до создания коммита.
+:::
+
+## Автор и коммит
+
+Выберите имя и адрес для учебных коммитов, заменив значения примера:
+
+```console
+git config set --local user.name 'Учебный автор'
+git config set --local user.email 'author@example.test'
+git commit -m 'Prepare eight readings'
+git status --short
+```
+
+Локальные настройки относятся к selection. Новый C имеет родителя B;
+main теперь на C. В рабочем дереве ещё есть изменения collection и scratch.
+
+::: {.notes}
+Попросить предсказать число в новом коммите. Объяснить, почему команда
+без -a и путей использует проверенный индекс. Установить, какие две
+строки статуса должны остаться и в какой колонке будет M.
+:::
+
+## Проверка результата selection
+
+```console
+git show 'HEAD:collection.ini'
+git show ':collection.ini'
+git --no-pager diff --staged
+git --no-pager diff start HEAD
+git --no-pager diff
+```
+
+В HEAD и индексе samples=8; staged diff пуст. Снимок отличается
+от start числом 6 → 8, инструкцией six → eight и единицей s → ms.
+Рабочие правки 8 → 10 и none → trial сохранены.
+
+::: {.notes}
+Открыть рабочие файлы и подтвердить сохранность правок. Завершить опыт
+с непустым рабочим деревом: оно соответствует поставленной цели.
+Затем перейти в отдельный integration, не переключая ветки selection.
+:::
+
+## Исходные линии integration
+
+Текущий каталог — `historylab/integration`. Индекс и рабочие файлы чисты.
+Задайте автора локально здесь теми же формами config set.
+
+```text
+      M   main ← HEAD, start: guide review=required
+     /
+A   base: report columns=code; guide review=optional
+     \
+      F   wide-report: report columns=code,units
+```
+
+report.ini также содержит format=text. Цель — добавить описание единиц
+к основной линии, объединить колонки и включить результат в main.
+
+::: {.notes}
+Прочитать status и log по знакомым формам. Попросить найти две независимые
+правки относительно A. Перед продолжением проверить чистоту именно
+этого репозитория и локальную настройку автора.
+:::
+
+## Собственная линия labels
+
+```console
+git switch -c labels main
+```
+
+Создайте редактором `labels.txt`: одна строка `units=milliseconds`, UTF-8,
+с завершающим переводом строки. Затем:
+
+```console
+git add -- labels.txt
+git --no-pager diff --staged
+git commit -m 'Describe measurement units'
+```
+
+C продолжает M. labels на C, main остаётся на M, wide-report — на F.
+
+::: {.notes}
+Попросить объяснить выбранное начало labels до запуска switch.
+Проверить, что в коммит вошёл только новый файл. После commit найти
+три ветки на графе и назвать положение HEAD.
+:::
+
+## Объединение разошедшихся линий
+
+```console
+git status --short
+git merge --no-ff --no-edit wide-report
+git --no-pager log --graph --oneline --decorate --all
+```
+
+Перед merge статус пуст. Создан D с родителями C/F; labels теперь на D.
+Его файлы: columns=code,units; review=required; units=milliseconds.
+main и wide-report сохранили положения.
+
+{{< xref system-practice-theory sec-git-merge "Три снимка при слиянии" >}}
+
+::: {.notes}
+Найти общую базу и объяснить совместимость правок. Сопоставить
+автоматический результат с тремя требуемыми файлами. Попросить показать
+линию, которая включена командой, и текущую принимающую ветку.
+:::
+
+## Продвижение main
+
+```console
+git switch main
+git merge --ff-only labels
+git status --short
+git --no-pager show --no-patch --format=raw HEAD
+```
+
+main продвинулась M → D по готовой истории; новый коммит не создан.
+HEAD на main, labels тоже на D. У D остались родители C/F.
+Индекс и рабочее дерево совпадают с итоговым снимком.
+
+::: {.notes}
+Сопоставить число коммитов до и после операции. Попросить пройти
+цепочку от D к M и объяснить достаточное условие fast-forward.
+Найти две строки parent в raw-выводе.
+:::
+
+## Проверка истории и передача
+
+```console
+git --no-pager log --graph --oneline --decorate --all
+git --no-pager diff start HEAD
+```
+
+Граф сохраняет M, C и F; сравнение показывает колонки и labels.txt,
+добавленные после M. Исходные теги остались на своих коммитах.
+
+Передача незавершённой работы требует рабочих файлов и `.git`
+с историей и индексом. Проверьте, что ZIP включает скрытые каталоги;
+архив выбранного снимка через git archive этих данных не содержит.
+
+::: {.notes}
+Попросить перечислить данные, которые потеряются при копировании только
+видимых файлов. Сопоставить два репозитория: в selection нужны ещё
+незавершённые рабочие варианты, в integration — связи объединённых линий.
+:::
+
+## Самостоятельная работа
+
+{{< xref system-practice-tasks sec-lab-version-control "Лабораторная «Управление версиями»" >}}
+использует другой набор `versioning`.
+
+В selection требуется собрать выбранное изменение параметров, сохранив
+другой опыт в рабочем дереве. В integration нужно продолжить указанную
+боковую линию и включить её историю в main.
+
+Условие задаёт снимки и отношения; команды выбираются самостоятельно.
+Сдаются оба полных репозитория и пояснение переходов.
+
+::: {.notes}
+Открыть условие и найти исходный индекс, требуемый снимок и точку
+начала собственной ветки. Не строить самостоятельное решение на экране.
+Проверить понимание сдачи .git и отдельного объяснения восстановленного файла.
+:::
