@@ -4,7 +4,7 @@
     "core": {
       "repository": "Afonenko-Course-Tools/quarto-course",
       "checkout": "quarto-course",
-      "commit": "04a6295569f5dcc0fc1b991dc076bafc050dbd49",
+      "commit": "aebf6f4580c0bd5e9468498e840221619fc69e5f",
       "packages": {
         "course-core": [
           ".",
@@ -31,21 +31,9 @@
           "handbook"
         ]
       },
-      "version": "7.1.0",
-      "tag": "v7.1.0",
-      "sourceZip": "https://github.com/Afonenko-Course-Tools/quarto-course/archive/refs/tags/v7.1.0.zip",
-      "candidate": {
-        "status": "local-unpublished",
-        "commit": "c8b2fe868cf805301fb6ebeba6587f8c96197369",
-        "baseCommit": "04a6295569f5dcc0fc1b991dc076bafc050dbd49",
-        "patch": "tools/provider-patches/local-java-sources-20261016/core.patch",
-        "patchSha256": "2ff1bd07abf585f5276a2cebae246341caa13cf78ba4ddda77bcd1ca9776e321",
-        "packageHashes": {
-          "course-core": "863e6824b336fe7abc4ee21e990cc9580288a5d439830c33913c5527e422b72c",
-          "course-presentation": "d93806da3c7e268fa1e9b8e61cccd389dfc6bd983a8b4f92e73ced7922902bc1",
-          "course-navigation": "a197f03ed3048e5c193c386c66e0fdb5de7d4e6f89bcb8fb98c898c1f564b0df"
-        }
-      }
+      "version": "7.2.0",
+      "tag": "v7.2.0",
+      "sourceZip": "https://github.com/Afonenko-Course-Tools/quarto-course/archive/refs/tags/v7.2.0.zip"
     },
     "site": {
       "repository": "Afonenko-Course-Tools/quarto-project-publish",

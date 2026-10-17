@@ -3,10 +3,10 @@
   "packages": {
     "course-core": {
       "repository": "Afonenko-Course-Tools/quarto-course",
-      "commit": "04a6295569f5dcc0fc1b991dc076bafc050dbd49",
-      "tag": "v7.1.0",
-      "version": "7.1.0",
-      "sourceZip": "https://github.com/Afonenko-Course-Tools/quarto-course/archive/refs/tags/v7.1.0.zip",
+      "commit": "aebf6f4580c0bd5e9468498e840221619fc69e5f",
+      "tag": "v7.2.0",
+      "version": "7.2.0",
+      "sourceZip": "https://github.com/Afonenko-Course-Tools/quarto-course/archive/refs/tags/v7.2.0.zip",
       "provider": "core",
       "scopes": [
         ".",
@@ -18,7 +18,7 @@
       ],
       "files": {
         "_extension.yml": {
-          "sha256": "05d4d67f44f2068f30f816019c08b38feb6694cc5272ea68b2bd897271711299",
+          "sha256": "ba40502c07ebd46bb45377328083da5d9b12d1efe4849929367f718ab62f3da0",
           "size": 211,
           "mode": 420
         },
@@ -293,26 +293,14 @@
           "mode": 420
         }
       },
-      "extensionTree": "dbb5fd8db4cee97e1fac2547d0d9663626d99951",
-      "candidate": {
-        "status": "local-unpublished",
-        "commit": "c8b2fe868cf805301fb6ebeba6587f8c96197369",
-        "baseCommit": "04a6295569f5dcc0fc1b991dc076bafc050dbd49",
-        "patch": "tools/provider-patches/local-java-sources-20261016/core.patch",
-        "patchSha256": "2ff1bd07abf585f5276a2cebae246341caa13cf78ba4ddda77bcd1ca9776e321",
-        "packageHashes": {
-          "course-core": "863e6824b336fe7abc4ee21e990cc9580288a5d439830c33913c5527e422b72c",
-          "course-presentation": "d93806da3c7e268fa1e9b8e61cccd389dfc6bd983a8b4f92e73ced7922902bc1",
-          "course-navigation": "a197f03ed3048e5c193c386c66e0fdb5de7d4e6f89bcb8fb98c898c1f564b0df"
-        }
-      }
+      "extensionTree": "150c82e8075ee93cd81347f2a99d19ff50a44806"
     },
     "course-presentation": {
       "repository": "Afonenko-Course-Tools/quarto-course",
-      "commit": "04a6295569f5dcc0fc1b991dc076bafc050dbd49",
-      "tag": "v7.1.0",
-      "version": "7.1.0",
-      "sourceZip": "https://github.com/Afonenko-Course-Tools/quarto-course/archive/refs/tags/v7.1.0.zip",
+      "commit": "aebf6f4580c0bd5e9468498e840221619fc69e5f",
+      "tag": "v7.2.0",
+      "version": "7.2.0",
+      "sourceZip": "https://github.com/Afonenko-Course-Tools/quarto-course/archive/refs/tags/v7.2.0.zip",
       "provider": "core",
       "scopes": [
         ".",
@@ -324,7 +312,7 @@
       ],
       "files": {
         "_extension.yml": {
-          "sha256": "daf333af5d0d13e948080fbf9ea7d29c630928290d2eade237a3ba9f5ebecc82",
+          "sha256": "883448c778f704afc1e3d73aa0c26105ad11ebe8a6b00cf3ae0b55e02c213f91",
           "size": 178,
           "mode": 420
         },
@@ -389,26 +377,14 @@
           "mode": 420
         }
       },
-      "extensionTree": "133ab35ee6ed4a897792897be1fc4c23f6cc9eaa",
-      "candidate": {
-        "status": "local-unpublished",
-        "commit": "c8b2fe868cf805301fb6ebeba6587f8c96197369",
-        "baseCommit": "04a6295569f5dcc0fc1b991dc076bafc050dbd49",
-        "patch": "tools/provider-patches/local-java-sources-20261016/core.patch",
-        "patchSha256": "2ff1bd07abf585f5276a2cebae246341caa13cf78ba4ddda77bcd1ca9776e321",
-        "packageHashes": {
-          "course-core": "863e6824b336fe7abc4ee21e990cc9580288a5d439830c33913c5527e422b72c",
-          "course-presentation": "d93806da3c7e268fa1e9b8e61cccd389dfc6bd983a8b4f92e73ced7922902bc1",
-          "course-navigation": "a197f03ed3048e5c193c386c66e0fdb5de7d4e6f89bcb8fb98c898c1f564b0df"
-        }
-      }
+      "extensionTree": "576c47c9a89154781fcf0994e8cda339af0b08ef"
     },
     "course-navigation": {
       "repository": "Afonenko-Course-Tools/quarto-course",
-      "commit": "04a6295569f5dcc0fc1b991dc076bafc050dbd49",
-      "tag": "v7.1.0",
-      "version": "7.1.0",
-      "sourceZip": "https://github.com/Afonenko-Course-Tools/quarto-course/archive/refs/tags/v7.1.0.zip",
+      "commit": "aebf6f4580c0bd5e9468498e840221619fc69e5f",
+      "tag": "v7.2.0",
+      "version": "7.2.0",
+      "sourceZip": "https://github.com/Afonenko-Course-Tools/quarto-course/archive/refs/tags/v7.2.0.zip",
       "provider": "core",
       "scopes": [
         ".",
@@ -425,7 +401,7 @@
           "mode": 420
         },
         "_extension.yml": {
-          "sha256": "e8cdecac2ab03d9c9982698122a9bfd51b105010943cb9631382e5684817c417",
+          "sha256": "ff52b80085c1bad13ad07b9a975245ec7004e05a7b6f8021e76e878eb9e6ec3b",
           "size": 252,
           "mode": 420
         },
@@ -480,19 +456,7 @@
           "mode": 420
         }
       },
-      "extensionTree": "763389e8de3ec359205a1c09a9a1b36a9498d74d",
-      "candidate": {
-        "status": "local-unpublished",
-        "commit": "c8b2fe868cf805301fb6ebeba6587f8c96197369",
-        "baseCommit": "04a6295569f5dcc0fc1b991dc076bafc050dbd49",
-        "patch": "tools/provider-patches/local-java-sources-20261016/core.patch",
-        "patchSha256": "2ff1bd07abf585f5276a2cebae246341caa13cf78ba4ddda77bcd1ca9776e321",
-        "packageHashes": {
-          "course-core": "863e6824b336fe7abc4ee21e990cc9580288a5d439830c33913c5527e422b72c",
-          "course-presentation": "d93806da3c7e268fa1e9b8e61cccd389dfc6bd983a8b4f92e73ced7922902bc1",
-          "course-navigation": "a197f03ed3048e5c193c386c66e0fdb5de7d4e6f89bcb8fb98c898c1f564b0df"
-        }
-      }
+      "extensionTree": "fbef35a4a5ed5e3261e8f6a5a893abdf47cdb9a6"
     },
     "course-site": {
       "repository": "Afonenko-Course-Tools/quarto-project-publish",
