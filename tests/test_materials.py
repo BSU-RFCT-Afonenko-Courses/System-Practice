@@ -35,14 +35,18 @@ class MaterialsTests(unittest.TestCase):
         self.assertEqual(before, [p.read_bytes() for p in paths])
         build(self.root, write=False)
         with zipfile.ZipFile(paths[0]) as archive:
-            self.assertEqual(['lab/input/room A.txt', 'lab/reports/input/room A.txt'], archive.namelist())
+            self.assertEqual({'lab/input/room A.txt', 'lab/reports/input/room A.txt',
+                              'lab/tools/count.ps1', 'lab/tools/count.fish'}, set(archive.namelist()))
+            demo_tools = {name: archive.read('lab/tools/' + name) for name in ['count.ps1', 'count.fish']}
             self.assertEqual(b'north\n', archive.read('lab/input/room A.txt'))
             self.assertEqual(b'south\n', archive.read('lab/reports/input/room A.txt'))
         with zipfile.ZipFile(paths[1]) as archive:
             self.assertEqual({'survey/source/morning log.txt': b'A=12\nB=7\n',
                               'survey/source/evening.txt': b'A=10\nB=9\n',
                               'survey/work/draft.txt': b'station=west\n',
-                              'survey/work/scratch.txt': b'temporary\n'},
+                              'survey/work/scratch.txt': b'temporary\n',
+                              'survey/tools/count.ps1': demo_tools['count.ps1'],
+                              'survey/tools/count.fish': demo_tools['count.fish']},
                              {n: archive.read(n) for n in archive.namelist()})
 
     def test_projects_keep_separate_manifests_and_preserve_other_archives(self):

@@ -5,14 +5,18 @@ import json
 from pathlib import Path
 from system_support import ArchiveError, read_zip
 
-CONTRACT = Path(__file__).resolve().parents[1] / 'tasks/projects/work-environment/expected.json'
+PROJECT = Path(__file__).resolve().parents[1] / 'tasks/projects/work-environment'
+CONTRACT = PROJECT / 'expected.json'
 
 
 def check_archive(path):
     expected = json.loads(CONTRACT.read_text())
+    supplied = json.loads((PROJECT / 'materials.json').read_text())['tasks/materials/work-environment-start.zip']
+    exact_files = expected['exactFiles'] | {name: supplied[expected['root'] + '/' + name]
+                                           for name in expected['suppliedFiles']}
     errors = []
-    manual = ['Смысл explanation.md: среда, относительный путь, пробел и собственный выбор по справке.',
-              'Работа в выбранной оболочке и чтение результата при очном разборе.']
+    manual = ['Смысл explanation.md: среда, относительный путь, пробел, справка и объяснение числа строк.',
+              'Наблюдение запуска поставленного count с новым временным отчётом: CWD, аргументы, код и чтение результата; затем удаление временного отчёта.']
     try:
         archive = read_zip(path)
         prefix = expected['root'] + '/'
@@ -20,23 +24,18 @@ def check_archive(path):
         if any(name != expected['root'] and not name.startswith(prefix) for name in members):
             errors.append('ZIP должен содержать один корень survey с результатом внутри него')
         files = {name.removeprefix(prefix): data for name, data in archive.files.items() if name.startswith(prefix)}
-        for name, text in expected['exactFiles'].items():
+        for name, text in exact_files.items():
             if name not in files:
                 errors.append(f'Файл отсутствует: {name}')
             elif files[name] != text.encode('utf-8'):
                 errors.append(f'Содержимое не совпало с условием: {name}')
-        allowed = set(expected['exactFiles']) | {'result/README.txt'}
+        allowed = set(exact_files)
         for name in sorted(files):
-            if name.startswith(('source/', 'result/')) and name not in allowed:
+            if (name.startswith(('source/', 'result/')) and name not in allowed
+                    and Path(name).name != '.DS_Store' and not Path(name).name.startswith('._')):
                 errors.append(f'Лишний учебный файл: {name}')
         if any(name == prefix + 'work' or name.startswith(prefix + 'work/') for name in members):
             errors.append('Каталог work должен отсутствовать после завершения работы')
-        try:
-            readme = files.get('result/README.txt', b'').decode('utf-8').replace('\r\n', '\n')
-            if '\r' in readme or readme.removesuffix('\n').split('\n') != expected['readmeLines']:
-                errors.append('result/README.txt должен содержать три заданные строки UTF-8 без BOM')
-        except UnicodeDecodeError:
-            errors.append('result/README.txt не читается как UTF-8')
         try:
             if not files.get('explanation.md', b'').decode('utf-8-sig').strip():
                 errors.append('Нужен непустой читаемый explanation.md')

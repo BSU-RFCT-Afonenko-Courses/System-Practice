@@ -10,4 +10,4 @@ cp -- source/evening.txt result/current/evening.txt; or exit 1
 mv -- work/draft.txt result/archive/station.txt; or exit 1
 rm -- work/scratch.txt; or exit 1
 rmdir -- work; or exit 1
-printf '%s\n' 'Dataset: station observations' 'Current: morning.txt, evening.txt' 'Archive: station.txt' > result/README.txt
+fish --no-config tools/count.fish result/current/morning.txt result/line-count.txt; or exit $status

@@ -5,11 +5,11 @@
     "source/evening.txt": "A=10\nB=9\n",
     "result/current/morning.txt": "A=12\nB=7\n",
     "result/current/evening.txt": "A=10\nB=9\n",
-    "result/archive/station.txt": "station=west\n"
+    "result/archive/station.txt": "station=west\n",
+    "result/line-count.txt": "lines=2\n"
   },
-  "readmeLines": [
-    "Dataset: station observations",
-    "Current: morning.txt, evening.txt",
-    "Archive: station.txt"
+  "suppliedFiles": [
+    "tools/count.ps1",
+    "tools/count.fish"
   ]
 }

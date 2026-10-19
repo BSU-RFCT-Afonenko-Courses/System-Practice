@@ -8,8 +8,5 @@ Copy-Item -LiteralPath 'source/evening.txt' -Destination 'result/current/evening
 Move-Item -LiteralPath 'work/draft.txt' -Destination 'result/archive/station.txt'
 Remove-Item -LiteralPath 'work/scratch.txt'
 Remove-Item -LiteralPath 'work'
-Set-Content -LiteralPath 'result/README.txt' -Encoding utf8NoBOM -Value @(
-    'Dataset: station observations'
-    'Current: morning.txt, evening.txt'
-    'Archive: station.txt'
-)
+pwsh -NoProfile -File ./tools/count.ps1 ./result/current/morning.txt ./result/line-count.txt
+if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
