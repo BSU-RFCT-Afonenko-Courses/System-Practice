@@ -1,6 +1,18 @@
 ---
 title: Рабочая среда
 subtitle: Файлы учебного проекта
+course-navigation:
+  course-url: https://bsu-rfct-afonenko-courses.github.io/System-Practice/
+  links:
+  - text: Курс
+    href: /index.html
+    scope: course
+  - text: Введения
+    href: /index.html
+    scope: project
+  - text: Условие
+    href: /tasks/labs/work-environment.html
+    scope: course
 format:
   revealjs:
     width: 1280
