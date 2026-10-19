@@ -22,6 +22,28 @@ class ProjectMaintenance(unittest.TestCase):
                     if p.is_file():p.write_bytes(p.read_bytes().replace(b'\n',b'\r\n'))
                 archive=package(base,sub/'submission.zip');r=check_archive(archive,initial_path=sub/'tasks/projects/project-maintenance/initial-state.json')
                 self.assertEqual('pass',r['automated'],r);self.assertTrue(r['manualRequired'])
+    def test_staged_executable_mode_is_dirty(self):
+        base=solution(self.root);w=base/'work'
+        self.assertEqual('pass',self.check(base)['automated'])
+        run(w,'update-index','--chmod=+x','VERSION')
+        self.assertIn(b'mode change 100644 => 100755 VERSION',run(w,'diff','--cached','--summary').stdout)
+        self.expect_failure(base,'Индекс')
+    def executable_release(self):
+        base=solution(self.root);w=base/'work'
+        run(w,'update-index','--chmod=+x','VERSION');run(w,'commit','-qm','Сохранить исполняемый режим VERSION')
+        finish(base)
+        run(w,'config','core.filemode','false');(w/'VERSION').chmod(0o644)
+        (w/'VERSION').write_bytes(b'2.0\r\n')
+        self.assertTrue(run(w,'ls-tree','HEAD','VERSION').stdout.startswith(b'100755 '))
+        self.assertTrue(run(w,'ls-files','--stage','VERSION').stdout.startswith(b'100755 '))
+        return base
+    def test_committed_executable_mode_accepts_windows_style_work_and_crlf(self):
+        self.assertEqual('pass',self.check(self.executable_release())['automated'])
+    def test_release_patch_must_reproduce_committed_mode(self):
+        base=self.executable_release();patch=base/'release.patch'
+        before=patch.read_bytes();self.assertIn(b'new file mode 100755',before)
+        patch.write_bytes(before.replace(b'new file mode 100755',b'new file mode 100644'))
+        self.expect_failure(base,'release.patch')
     def test_conflict_resolution_cannot_drop_quality(self):
         base=solution(self.root);w=base/'work';(w/'report.ini').write_bytes(b'format=csv\ncolumns=code,value\ndecimal=dot\n');run(w,'add','report.ini');run(w,'commit','-qm','Wrong choice');finish(base);self.expect_failure(base,'report.ini')
     def test_patch_commit_must_start_at_A(self):self.expect_failure(solution(self.root,bad_parent=True),'review-note')

@@ -41,7 +41,7 @@ def check_archive(path,initial_path=INITIAL):
                 if repo.ref('refs/tags/base')!=a:raise GitDataError('Изменён исходный base')
             if work.ref('refs/tags/start')!=m or shared.ref('refs/tags/incoming')!=f:raise GitDataError('Изменены start/incoming')
             r=work.ref('refs/heads/main');tree=work.tree(r)
-            if work.index()!=tree or normalized_work(work.work)!=tree:raise GitDataError('Индекс и рабочие файлы должны совпадать с main без незавершённой работы')
+            if work.index()!=tree or not work.index_modes_match_tree(r) or normalized_work(work.work)!=tree:raise GitDataError('Индекс и рабочие файлы должны совпадать с main без незавершённой работы')
             wanted={'.gitattributes':ATTR,'report.ini':b'format=csv\ncolumns=code,value,quality\ndecimal=dot\n','instructions.txt':b'Check the input.\nKeep the quality flag.\n','VERSION':b'2.0\n'}
             if set(tree)!=set(wanted)|{'CHANGELOG.md'}:raise GitDataError('В main нужны ровно пять опубликованных файлов выпуска')
             for name,data in wanted.items():
@@ -88,7 +88,7 @@ def check_archive(path,initial_path=INITIAL):
                 work.git('apply','--cached','--check','--binary','--unidiff-zero',str(patch_path))
                 work.git('apply','--cached','--binary','--unidiff-zero',str(patch_path))
             except GitDataError as problem:raise GitDataError('release.patch не применяется к start: '+str(problem)) from problem
-            if work.index()!=tree:raise GitDataError('release.patch на start не воспроизводит дерево main')
+            if work.index()!=tree or not work.index_modes_match_tree(r):raise GitDataError('release.patch на start не воспроизводит дерево main')
             facts.update(main=r,patchCommit=p,annotatedTag=tag,sharedMain=r,releaseFiles=sorted(tree),patchReproducesMain=True)
     except (ArchiveError,GitDataError,UnicodeError,ValueError,OSError,KeyError) as problem:errors.append(str(problem))
     return {'automated':'fail' if errors else 'pass','errors':errors,'facts':facts,'manualRequired':manual}

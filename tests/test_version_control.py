@@ -114,6 +114,37 @@ class VersionControlTests(unittest.TestCase):
         self.assertNotIn('Traceback', result.stderr)
         self.assertEqual('fail', json.loads(receipt.read_text())['automated'])
 
+    def test_staged_executable_mode_is_dirty_in_either_repository(self):
+        for name in ['project', 'verification']:
+            with self.subTest(repository=name):
+                where = self.root / name; where.mkdir()
+                base, _ = solution(where)
+                self.assertEqual('pass', self.check(base)['automated'])
+                run(base / name, 'update-index', '--chmod=+x', 'README.md')
+                self.assertIn(b'mode change 100644 => 100755 README.md',
+                              run(base / name, 'diff', '--cached', '--summary').stdout)
+                result = self.check(base)
+                self.assertEqual('fail', result['automated'], result)
+                self.assertIn('индекс', ' '.join(result['errors']).lower())
+
+    def test_committed_executable_mode_accepts_windows_style_work_and_crlf(self):
+        base, _ = solution(self.root)
+        repo = base / 'project'
+        run(repo, 'update-index', '--chmod=+x', 'README.md')
+        run(repo, 'commit', '-qm', 'Сохранить исполняемый режим README')
+        from git_fixture import sync
+        sync(base)
+        for name in ['project', 'verification']:
+            repo = base / name
+            run(repo, 'config', 'core.filemode', 'false')
+            path = repo / 'README.md'; path.chmod(0o644)
+            path.write_bytes(path.read_bytes().replace(b'\n', b'\r\n'))
+            self.assertTrue(run(repo, 'ls-tree', 'HEAD', 'README.md').stdout.startswith(b'100755 '))
+            self.assertTrue(run(repo, 'ls-files', '--stage', 'README.md').stdout.startswith(b'100755 '))
+        for kind in ['zip', 'tar.gz']:
+            with self.subTest(kind=kind):
+                self.assertEqual('pass', self.check(base, kind)['automated'])
+
     def test_git_quoted_remote_url_is_read_as_data(self):
         base, _ = solution(self.root)
         p = base / 'verification/.git/config'

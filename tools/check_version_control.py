@@ -76,6 +76,12 @@ class Repository:
             if stage!=b'0' or mode not in [b'100644',b'100755']:raise GitDataError('Индекс содержит конфликт или необычный тип файла')
             result[name.decode('utf-8')]=self.git('cat-file','blob',blob.decode())
         return result
+    def index_modes_match_tree(self,oid):
+        """Сравнить режимы Git; права рабочего файла из ZIP здесь не используются."""
+        def modes(raw):
+            return {name:meta.split()[0] for meta,name in
+                    (entry.split(b'\t',1) for entry in raw.split(b'\0') if entry)}
+        return modes(self.git('ls-files','--stage','-z'))==modes(self.git('ls-tree','-rz',oid))
     def commits(self,oid):return set(self.git('rev-list',oid).decode().split())
 
 def encoded(mapping):return {name:text.encode() for name,text in mapping.items()}
@@ -209,7 +215,8 @@ def check_archive(path):
                 if repo.git('symbolic-ref', 'HEAD').strip() != b'refs/heads/main':
                     raise GitDataError(f'{name}: HEAD должен выбирать main')
                 head = repo.ref('refs/heads/main'); tree = _normalized_files(repo.tree(head))
-                if _normalized_files(repo.index()) != tree or _normalized_files(repo.work) != tree:
+                if (_normalized_files(repo.index()) != tree or not repo.index_modes_match_tree(head)
+                        or _normalized_files(repo.work) != tree):
                     raise GitDataError(f'{name}: индекс и рабочие файлы должны совпадать с main')
                 for data in tree.values():
                     if any(line.startswith((b'<<<<<<< ', b'>>>>>>> ')) for line in data.splitlines()):
