@@ -1,4 +1,4 @@
-"""Read a full Git submission as data, without extracting archive paths."""
+"""Читать полную сдачу Git как данные без извлечения архивных путей."""
 import gzip
 import io
 from pathlib import Path

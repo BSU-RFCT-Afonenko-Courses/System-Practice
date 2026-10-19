@@ -13,6 +13,11 @@ class ArchiveError(ValueError):
     pass
 
 
+class ArchiveLimit(ArchiveError):
+    """Средство исчерпало ресурсный предел; нарушение учебного договора не установлено."""
+    pass
+
+
 def safe_archive_name(name):
     path = PurePosixPath(name)
     if (not name or '\0' in name or not path.parts or '\\' in name or ':' in name or path.is_absolute()
@@ -34,7 +39,7 @@ def read_zip(path, max_entries=1000, max_bytes=8 * 1024 * 1024):
         with zipfile.ZipFile(path) as archive:
             entries = archive.infolist()
             if len(entries) > max_entries or sum(e.file_size for e in entries) > max_bytes:
-                raise ArchiveError('Превышен лимит средства проверки ZIP; передайте архив преподавателю для отдельной проверки')
+                raise ArchiveLimit('Превышен лимит средства проверки ZIP; передайте архив преподавателю для отдельной проверки')
             for entry in entries:
                 original = safe_archive_name(entry.orig_filename)
                 name = safe_archive_name(entry.filename)
@@ -65,20 +70,20 @@ def read_zip(path, max_entries=1000, max_bytes=8 * 1024 * 1024):
 def read_tar_gz(path, max_entries=1000, max_bytes=8 * 1024 * 1024):
     """Прочитать обычные файлы tar.gz как данные без извлечения и ссылок."""
     files, directories, seen = {}, set(), set()
-    # Bound the container too: gzip/PAX headers and padding must not bypass
-    # the file-data limit. Allow ordinary tar headers, names and end padding.
+    # Ограничиваем также контейнер: заголовки gzip/PAX и заполнение входят в предел.
+    # Оставляем место для обычных заголовков tar, имён и завершающего заполнения.
     container_limit = max_bytes + max_entries * 4096 + 10240
     try:
         with gzip.open(path, 'rb') as compressed:
             expanded = compressed.read(container_limit + 1)
         if len(expanded) > container_limit:
-            raise ArchiveError('Превышен лимит распакованного tar.gz; передайте архив преподавателю для отдельной проверки')
+            raise ArchiveLimit('Превышен лимит распакованного tar.gz; передайте архив преподавателю для отдельной проверки')
         total = 0
         with tarfile.open(fileobj=io.BytesIO(expanded), mode='r:') as archive:
             for entry in archive:
                 name = safe_archive_name(entry.name)
                 if len(seen) >= max_entries:
-                    raise ArchiveError('Превышен лимит записей tar.gz; передайте архив преподавателю для отдельной проверки')
+                    raise ArchiveLimit('Превышен лимит записей tar.gz; передайте архив преподавателю для отдельной проверки')
                 if name in seen:
                     raise ArchiveError(f'Повторное имя в tar.gz: {name}')
                 seen.add(name)
@@ -88,7 +93,7 @@ def read_tar_gz(path, max_entries=1000, max_bytes=8 * 1024 * 1024):
                     raise ArchiveError(f'Неверный размер записи tar.gz: {name}')
                 total += entry.size
                 if total > max_bytes:
-                    raise ArchiveError('Превышен лимит данных tar.gz; передайте архив преподавателю для отдельной проверки')
+                    raise ArchiveLimit('Превышен лимит данных tar.gz; передайте архив преподавателю для отдельной проверки')
                 for parent in PurePosixPath(name).parents:
                     if parent.as_posix() != '.':
                         directories.add(parent.as_posix())

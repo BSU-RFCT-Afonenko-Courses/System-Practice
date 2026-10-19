@@ -1,97 +1,167 @@
-"""Фактические Git snapshots/ancestry; имена и даты собственных коммитов свободны."""
-import os
-from pathlib import Path
+"""Свойства и отношения в настоящих историях, созданных по условию."""
+import io
+import json
 import subprocess
+import tarfile
+from pathlib import Path
+import shutil
+import sys
 import tempfile
 import unittest
 import zipfile
-import sys
-sys.path.insert(0,str(Path(__file__).resolve().parents[1]/'tools'))
+sys.path.insert(0, str(Path(__file__).resolve().parents[1] / 'tools'))
 from check_version_control import check_archive
-ROOT=Path(__file__).resolve().parents[1]
+from git_fixture import solution, package, run, commit
+
 
 class VersionControlTests(unittest.TestCase):
- def setUp(self):
-  self.temporary=tempfile.TemporaryDirectory();self.addCleanup(self.temporary.cleanup)
-  self.parent=Path(self.temporary.name)
-  with zipfile.ZipFile(ROOT/'tasks/materials/version-control-start.zip') as z:z.extractall(self.parent)
-  self.work=self.parent/'versioning';(self.work/'explanation.md').write_text('Снимок и история требуют отдельного устного разбора.\n')
-  self.env={k:v for k,v in os.environ.items() if not k.startswith('GIT_')}
-  self.env.update(GIT_CONFIG_GLOBAL='/dev/null',GIT_CONFIG_NOSYSTEM='1',GIT_AUTHOR_NAME='Other learner',GIT_AUTHOR_EMAIL='other@example.invalid',GIT_COMMITTER_NAME='Other learner',GIT_COMMITTER_EMAIL='other@example.invalid')
- def git(self,repo,*args):
-  return subprocess.check_output(['git','-c','commit.gpgsign=false','-c','core.hooksPath=/dev/null','-C',str(self.work/repo),*args],env=self.env,stderr=subprocess.PIPE)
- def solve(self,alternate=False):
-  p=self.work/'selection';original=(p/'measurements.ini').read_bytes()
-  self.git('selection','restore','--staged','notes.txt')
-  (p/'measurements.ini').write_text('site=river\nsamples=10\nwindow=long\n')
-  self.git('selection','add','measurements.ini','guide.txt')
-  self.git('selection','restore','--source=units-reference','--staged','--worktree','protocol.txt')
-  self.git('selection','commit','-m','Select long window and restore milliseconds')
-  (p/'measurements.ini').write_bytes(original)
-  self.git('integration','switch','-c','validation','csv-output')
-  (self.work/'integration/checks.txt').write_text('order=units,code\n')
-  self.git('integration','add','checks.txt');self.git('integration','commit','-m','Validate CSV ordering')
-  if alternate:
-   self.git('integration','merge','--no-edit','main')
-   self.git('integration','switch','main');self.git('integration','merge','--ff-only','validation')
-  else:
-   self.git('integration','switch','main');self.git('integration','merge','--no-edit','validation')
- def archive(self):
-  out=self.parent/'submission.zip'
-  with zipfile.ZipFile(out,'w') as z:
-   for p in self.work.rglob('*'):
-    if p.is_file():z.write(p,p.relative_to(self.parent))
-  return out
- def test_accepts_actual_snapshots_with_free_identity_and_merge_order(self):
-  for alternate in [False,True]:
-   with self.subTest(alternate=alternate):
-    if alternate:
-     import shutil
-     shutil.rmtree(self.work)
-     with zipfile.ZipFile(ROOT/'tasks/materials/version-control-start.zip') as z:z.extractall(self.parent)
-     (self.work/'explanation.md').write_text('Пояснение требует ручной оценки.\n')
-    self.solve(alternate)
-    result=check_archive(self.archive());self.assertEqual('pass',result['automated'],result);self.assertTrue(result['manualRequired'])
- def test_accepts_packed_objects_and_crlf_worktree(self):
-  self.solve()
-  for repo in ['selection','integration']:
-   self.git(repo,'gc','--prune=now')
-   for p in (self.work/repo).iterdir():
-    if p.is_file():p.write_bytes(p.read_bytes().replace(b'\n',b'\r\n'))
-  result=check_archive(self.archive());self.assertEqual('pass',result['automated'],result)
- def test_reports_malformed_git_without_traceback_or_execution(self):
-  self.solve();(self.work/'selection/.git/index').write_bytes(b'not a Git index')
-  result=check_archive(self.archive());self.assertEqual('fail',result['automated']);self.assertTrue(result['errors']);self.assertTrue(result['manualRequired'])
- def test_rejects_starter_and_wrong_index_despite_correct_head(self):
-  self.assertEqual('fail',check_archive(self.archive())['automated'])
-  self.solve();self.git('selection','add','notes.txt')
-  self.assertEqual('fail',check_archive(self.archive())['automated'])
- def test_rejects_correct_files_without_required_parent_history(self):
-  self.solve();p=self.work/'integration'
-  self.git('integration','switch','--orphan','replacement')
-  for name,text in {'report.ini':'format=csv\ncolumns=code,units\n','guide.txt':'review=required\n','checks.txt':'order=units,code\n','.gitattributes':'* text=auto eol=lf\n'}.items():(p/name).write_text(text)
-  self.git('integration','add','.');self.git('integration','commit','-m','Copy final files')
-  self.git('integration','branch','-f','main','HEAD');self.git('integration','switch','main')
-  self.assertEqual('fail',check_archive(self.archive())['automated'])
- def test_rejects_changed_attributes_in_intermediate_merge(self):
-  self.solve();p=self.work/'integration'
-  original=self.git('integration','rev-parse','HEAD').decode().strip()
-  c=self.git('integration','rev-parse','validation').decode().strip()
-  (p/'.gitattributes').write_text('* text=auto eol=crlf\n')
-  self.git('integration','add','.gitattributes');bad_tree=self.git('integration','write-tree').decode().strip()
-  e=self.git('integration','commit-tree',bad_tree,'-p',original,'-p',c,'-m','Temporary attribute change').decode().strip()
-  good_tree=self.git('integration','rev-parse',original+'^{tree}').decode().strip()
-  h=self.git('integration','commit-tree',good_tree,'-p',e,'-p',c,'-m','Restore attributes').decode().strip()
-  self.git('integration','update-ref','refs/heads/main',h);self.git('integration','reset','--hard','main')
-  result=check_archive(self.archive());self.assertEqual('fail',result['automated'],result)
-  self.assertTrue(any('.gitattributes' in error for error in result['errors']),result)
- def test_ignores_untrusted_config_and_hooks_without_execution(self):
-  self.solve();marker=self.parent/'EXECUTED'
-  for repo in ['selection','integration']:
-   gd=self.work/repo/'.git'
-   (gd/'hooks').mkdir(exist_ok=True)
-   hook=gd/'hooks/post-index-change';hook.write_text('#!/bin/sh\ntouch '+str(marker)+'\n');hook.chmod(0o755)
-   with (gd/'config').open('a') as f:f.write('\n[core]\n fsmonitor = '+str(hook)+'\n[alias]\n show = !touch '+str(marker)+'\n')
-  result=check_archive(self.archive());self.assertEqual('pass',result['automated'],result);self.assertFalse(marker.exists())
+    def setUp(self):
+        self.tmp = tempfile.TemporaryDirectory(prefix='new-git-result-')
+        self.addCleanup(self.tmp.cleanup)
+        self.root = Path(self.tmp.name)
 
-if __name__=='__main__':unittest.main()
+    def check(self, base, kind='zip'):
+        return check_archive(package(base, self.root / ('submission.' + kind)))
+
+    def test_accepts_zip_and_tar_gz_with_actual_history(self):
+        base, ids = solution(self.root)
+        for kind in ['zip', 'tar.gz']:
+            with self.subTest(kind=kind):
+                result = self.check(base, kind)
+                self.assertEqual('pass', result['automated'], result)
+                self.assertTrue(result['manualRequired'])
+                self.assertEqual(ids['A'], result['facts']['A'])
+                self.assertEqual(ids['D'], result['facts']['D'])
+
+    def test_accepts_reverse_merge_extra_commits_files_and_short_decimal(self):
+        base, ids = solution(self.root, reverse=True, extras=True, threshold='0.03', branch='units-and-notes')
+        self.assertEqual('pass', self.check(base)['automated'])
+
+    def test_accepts_packed_objects_refs_and_crlf(self):
+        base, _ = solution(self.root)
+        for name in ['project', 'verification']:
+            repo = base / name
+            run(repo, 'gc', '--prune=now')
+            for p in repo.iterdir():
+                if p.is_file(): p.write_bytes(p.read_bytes().replace(b'\n', b'\r\n'))
+        self.assertEqual('pass', self.check(base)['automated'])
+
+    def test_rejects_final_files_without_required_merge_history(self):
+        base, _ = solution(self.root); repo = base / 'project'
+        run(repo, 'checkout', '--orphan', 'flattened')
+        commit(repo, 'Сохранить только итоговые файлы')
+        run(repo, 'branch', '-f', 'main', 'HEAD'); run(repo, 'switch', 'main')
+        from git_fixture import sync
+        sync(base)
+        self.assertEqual('fail', self.check(base)['automated'])
+
+    def test_rejects_wrong_units_measurements_stale_clone_and_dirty_index(self):
+        for mutation in ['units', 'measurements', 'clone', 'index', 'branch', 'merge-state']:
+            with self.subTest(mutation=mutation):
+                where = self.root / mutation; where.mkdir()
+                base, _ = solution(where); repo = base / 'project'
+                if mutation == 'units':
+                    (repo / 'criteria.txt').write_text('latency_limit = 0.030 ms\n'); commit(repo, 'Неверная единица')
+                elif mutation == 'measurements':
+                    (repo / 'measurements.tsv').write_text('sensor\tlatency_ms\nnorth\t18\nsouth\t34\n'); commit(repo, 'Неверные измерения')
+                elif mutation == 'clone':
+                    (repo / 'new.txt').write_text('Новое состояние\n'); commit(repo, 'Изменить первую копию')
+                elif mutation == 'index':
+                    (repo / 'criteria.txt').write_text('latency_limit = 50 ms\n'); run(repo, 'add', 'criteria.txt')
+                elif mutation == 'branch': run(repo, 'branch', '-D', 'seconds-unit')
+                else: (repo / '.git/MERGE_HEAD').write_text('a' * 40 + '\n')
+                self.assertEqual('fail', self.check(base)['automated'])
+
+    def test_rejects_missing_index_and_unresolved_markers(self):
+        base, _ = solution(self.root)
+        (base / 'verification/.git/index').unlink()
+        self.assertEqual('fail', self.check(base)['automated'])
+        run(base / 'verification', 'reset', '--hard', 'HEAD')
+        (base / 'project/README.md').write_text('<<<<<<< HEAD\nleft\n=======\nright\n>>>>>>> seconds\n')
+        commit(base / 'project', 'Оставить маркеры конфликта')
+        self.assertEqual('fail', self.check(base)['automated'])
+
+    def test_untrusted_config_includes_helpers_and_hooks_never_run(self):
+        base, _ = solution(self.root); marker = self.root / 'EXECUTED'
+        for name in ['project', 'verification']:
+            gd = base / name / '.git'; hooks = gd / 'hooks'; hooks.mkdir(exist_ok=True)
+            hook = hooks / 'post-index-change'; hook.write_text('#!/bin/sh\ntouch ' + str(marker) + '\n'); hook.chmod(0o755)
+            with (gd / 'config').open('a') as stream:
+                stream.write(f'\n[include]\n path = {self.root / "unread-config"}\n[core]\n fsmonitor = {hook}\n[alias]\n show = !touch {marker}\n[credential]\n helper = !touch {marker}\n')
+        self.assertEqual('pass', self.check(base)['automated'])
+        self.assertFalse(marker.exists())
+
+    def test_committed_crlf_text_is_accepted(self):
+        base, _ = solution(self.root)
+        for path in (base / 'project').iterdir():
+            if path.is_file(): path.write_bytes(path.read_bytes().replace(b'\n', b'\r\n'))
+        commit(base / 'project', 'Сохранить Windows-переводы строк')
+        from git_fixture import sync
+        sync(base)
+        self.assertEqual('pass', self.check(base)['automated'])
+
+    def test_unsafe_tar_returns_cli_receipt_without_extraction(self):
+        path = self.root / 'submission.tar.gz'
+        with tarfile.open(path, 'w:gz') as archive:
+            info = tarfile.TarInfo('versioning/project/.git/HEAD')
+            info.type = tarfile.SYMTYPE; info.linkname = '/etc/passwd'
+            archive.addfile(info)
+        self.assertEqual('fail', check_archive(path)['automated'])
+        receipt = self.root / 'receipt.json'
+        result = subprocess.run([sys.executable, str(Path(__file__).resolve().parents[1] / 'tools/check_version_control.py'),
+                                 str(path), '--output', str(receipt)], capture_output=True, text=True)
+        self.assertEqual(1, result.returncode)
+        self.assertNotIn('Traceback', result.stderr)
+        self.assertEqual('fail', json.loads(receipt.read_text())['automated'])
+
+    def test_git_quoted_remote_url_is_read_as_data(self):
+        base, _ = solution(self.root)
+        p = base / 'verification/.git/config'
+        text = p.read_text().replace('url = ssh://git@github.com/owner/latency.git',
+                                     'url = "ssh://git@github.com/owner/latency.git" # repository address')
+        self.assertIn('"ssh://', text)
+        p.write_text(text)
+        self.assertEqual('pass', self.check(base)['automated'])
+
+    def test_large_valid_history_is_manual_tool_limit_not_contract_failure(self):
+        base, _ = solution(self.root)
+        repo = base / 'project'
+        for i in range(253):
+            (repo / 'revision-notes.txt').write_text(f'Примечание к проверке измерений {i}.\n')
+            commit(repo, f'Уточнить сопроводительное примечание {i}')
+        from git_fixture import sync
+        sync(base)
+        for name in ['project', 'verification']: run(base / name, 'gc', '--prune=now')
+        result = self.check(base)
+        self.assertEqual('manual', result['automated'], result)
+        self.assertTrue(result['toolLimited'])
+        self.assertEqual([], result['errors'])
+        self.assertTrue(result['diagnostics'])
+        self.assertTrue(result['manualRequired'])
+        receipt = self.root / 'manual.json'
+        cli = subprocess.run([sys.executable, str(Path(__file__).resolve().parents[1] / 'tools/check_version_control.py'),
+                              str(self.root / 'submission.zip'), '--output', str(receipt)], capture_output=True, text=True)
+        self.assertEqual(2, cli.returncode)
+        self.assertEqual('manual', json.loads(receipt.read_text())['automated'])
+
+    def test_archive_resource_limit_is_manual_without_contract_errors(self):
+        path = self.root / 'large.zip'
+        with zipfile.ZipFile(path, 'w') as archive:
+            for i in range(1001): archive.writestr(f'versioning/project/item-{i}', b'x')
+        result = check_archive(path)
+        self.assertEqual('manual', result['automated'])
+        self.assertTrue(result['toolLimited'])
+        self.assertEqual([], result['errors'])
+
+    def test_corrupt_git_and_non_ssh_remotes_are_structured_failures(self):
+        base, _ = solution(self.root)
+        for address in ['https://github.com/owner/repo.git', 'file:///tmp/repo.git', 'C:/local/repo.git']:
+            with self.subTest(address=address):
+                run(base / 'verification', 'remote', 'set-url', 'origin', address)
+                result = self.check(base)
+                self.assertEqual('fail', result['automated']); self.assertTrue(result['manualRequired'])
+        (base / 'verification/.git/index').write_bytes(b'not an index')
+        self.assertEqual('fail', self.check(base)['automated'])
+
+
+if __name__ == '__main__': unittest.main()

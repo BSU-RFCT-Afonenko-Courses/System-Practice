@@ -1,104 +1,18 @@
 {
   "practice/materials/version-control-demo.zip": {
-    "root": "historylab",
-    "selection": {
-      "A": {
-        ".gitattributes": "* text=auto eol=lf\n",
-        "collection.ini": "site=hill\nsamples=4\n",
-        "guide.txt": "Record four readings.\n",
-        "scratch.txt": "draft=none\n",
-        "legend.txt": "unit=ms\n"
-      },
-      "B": {
-        ".gitattributes": "* text=auto eol=lf\n",
-        "collection.ini": "site=hill\nsamples=6\n",
-        "guide.txt": "Record six readings.\n",
-        "scratch.txt": "draft=none\n",
-        "legend.txt": "unit=s\n"
-      },
-      "index": {
-        ".gitattributes": "* text=auto eol=lf\n",
-        "collection.ini": "site=hill\nsamples=8\n",
-        "guide.txt": "Record six readings.\n",
-        "scratch.txt": "draft=trial\n",
-        "legend.txt": "unit=s\n"
-      },
-      "worktree": {
-        ".gitattributes": "* text=auto eol=lf\n",
-        "collection.ini": "site=hill\nsamples=10\n",
-        "guide.txt": "Record eight readings.\n",
-        "scratch.txt": "draft=trial\n",
-        "legend.txt": "unit=s\n"
-      }
-    },
-    "integration": {
-      "A": {
-        ".gitattributes": "* text=auto eol=lf\n",
-        "report.ini": "format=text\ncolumns=code\n",
-        "guide.txt": "review=optional\n"
-      },
-      "main": {
-        ".gitattributes": "* text=auto eol=lf\n",
-        "report.ini": "format=text\ncolumns=code\n",
-        "guide.txt": "review=required\n"
-      },
-      "sideName": "wide-report",
-      "side": {
-        ".gitattributes": "* text=auto eol=lf\n",
-        "report.ini": "format=text\ncolumns=code,units\n",
-        "guide.txt": "review=optional\n"
-      }
+    "root": "latency-demo",
+    "files": {
+      "README.md": "# Измерения задержки\n\nmeasurements.tsv хранит задержки двух датчиков в миллисекундах.\nВ отчёт включаются измерения не выше порога из criteria.txt.\n",
+      "criteria.txt": "latency_limit = 10 ms\n",
+      "measurements.tsv": "sensor\tlatency_ms\nnorth\t8\nsouth\t18\n"
     }
   },
   "tasks/materials/version-control-start.zip": {
     "root": "versioning",
-    "selection": {
-      "A": {
-        ".gitattributes": "* text=auto eol=lf\n",
-        "measurements.ini": "site=river\nsamples=8\nwindow=short\n",
-        "guide.txt": "window=short\n",
-        "notes.txt": "draft=none\n",
-        "protocol.txt": "unit=ms\n"
-      },
-      "B": {
-        ".gitattributes": "* text=auto eol=lf\n",
-        "measurements.ini": "site=river\nsamples=10\nwindow=short\n",
-        "guide.txt": "window=short\n",
-        "notes.txt": "draft=none\n",
-        "protocol.txt": "unit=s\n"
-      },
-      "index": {
-        ".gitattributes": "* text=auto eol=lf\n",
-        "measurements.ini": "site=river\nsamples=12\nwindow=short\n",
-        "guide.txt": "window=short\n",
-        "notes.txt": "draft=trial\n",
-        "protocol.txt": "unit=s\n"
-      },
-      "worktree": {
-        ".gitattributes": "* text=auto eol=lf\n",
-        "measurements.ini": "site=river\nsamples=12\nwindow=long\n",
-        "guide.txt": "window=long\n",
-        "notes.txt": "draft=trial\n",
-        "protocol.txt": "unit=s\n"
-      }
-    },
-    "integration": {
-      "A": {
-        ".gitattributes": "* text=auto eol=lf\n",
-        "report.ini": "format=text\ncolumns=code,units\n",
-        "guide.txt": "review=optional\n"
-      },
-      "main": {
-        ".gitattributes": "* text=auto eol=lf\n",
-        "report.ini": "format=text\ncolumns=code,units\n",
-        "guide.txt": "review=required\n"
-      },
-      "sideName": "csv-output",
-      "side": {
-        ".gitattributes": "* text=auto eol=lf\n",
-        "report.ini": "format=csv\ncolumns=code,units\n",
-        "guide.txt": "review=optional\n"
-      }
+    "files": {
+      "project/README.md": "# Измерения задержки\n\nmeasurements.tsv хранит задержки двух датчиков в миллисекундах.\nВ отчёт включаются измерения не выше порога из criteria.txt.\n",
+      "project/criteria.txt": "latency_limit = 25 ms\n",
+      "project/measurements.tsv": "sensor\tlatency_ms\nnorth\t18\nsouth\t28\n"
     }
   }
 }

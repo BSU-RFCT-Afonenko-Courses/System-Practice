@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Воспроизводимые обычные Git-репозитории по авторскому исходному договору."""
+"""Воспроизводимые исходные файлы проекта; вспомогательные операции Git сохранены для сопровождения."""
 import argparse,hashlib,json,os,shutil,subprocess,sys,tempfile
 from pathlib import Path
 from build_materials import target,packed,atomic_write
@@ -41,17 +41,16 @@ def normalize(repo):
 
 
 def generate(seed):
-    outputs={};states={}
-    with tempfile.TemporaryDirectory(prefix='git-course-seed-') as temporary:
-        parent=Path(temporary);template=parent/'template';template.mkdir()
-        for archive,spec in seed.items():
-            base=parent/spec['root'];base.mkdir();selection=base/'selection';initialize(selection,template)
-            plan=spec['selection'];a=commit(selection,plan['A'],'Исходный набор');git(selection,'tag','units-reference',a);b=commit(selection,plan['B'],'Обновить исходные измерения');git(selection,'tag','start',b)
-            put(selection,plan['index']);git(selection,'add','--all');put(selection,plan['worktree']);selection_state=normalize(selection)
-            integration=base/'integration';initialize(integration,template);plan=spec['integration'];a=commit(integration,plan['A'],'Исходный отчёт');git(integration,'tag','base',a);m=commit(integration,plan['main'],'Требовать проверку отчёта');git(integration,'tag','start',m);git(integration,'switch','-qc',plan['sideName'],a);f=commit(integration,plan['side'],'Изменить представление отчёта');git(integration,'switch','-q','main');integration_state=normalize(integration)
-            states[archive]={'root':spec['root'],'selection':selection_state,'integration':integration_state}
-            entries={p.relative_to(parent).as_posix():p.read_bytes() for p in base.rglob('*') if p.is_file()};outputs[archive]=packed(entries)
-    outputs['tasks/projects/version-control/initial-state.json']=(json.dumps(states,ensure_ascii=False,indent=2)+'\n').encode()
+    outputs = {}; states = {}
+    expected_roots = {'practice/materials/version-control-demo.zip': 'latency-demo',
+                      'tasks/materials/version-control-start.zip': 'versioning'}
+    if set(seed) != set(expected_roots): raise ValueError('Нужны демонстрационный и стартовый архивы')
+    for archive, spec in seed.items():
+        if spec['root'] != expected_roots[archive]: raise ValueError('Неожиданный корень материала')
+        entries = {spec['root'] + '/' + name: text for name, text in spec['files'].items()}
+        outputs[archive] = packed(entries)
+        states[archive] = {'root': spec['root'], 'files': sorted(entries), 'preparedHistory': False}
+    outputs['tasks/projects/version-control/initial-state.json'] = (json.dumps(states, ensure_ascii=False, indent=2) + '\n').encode()
     return outputs
 
 
