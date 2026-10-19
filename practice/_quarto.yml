@@ -32,6 +32,7 @@ project:
 format:
   revealjs:
     css: assets/lesson.css
+    include-after-body: ../includes/reveal-layout.html
     theme: default
     slide-level: 2
     navigation-mode: linear
@@ -71,6 +72,3 @@ course-navigation:
   - text: Введения
     href: /index.html
     scope: project
-  - text: Условие
-    href: /tasks/labs/work-environment.html
-    scope: course

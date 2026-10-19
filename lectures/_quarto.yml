@@ -40,6 +40,7 @@ filters:
 format:
   revealjs:
     css: assets/lesson.css
+    include-after-body: ../includes/reveal-layout.html
     slide-level: 2
     navigation-mode: linear
     theme: default
