@@ -126,23 +126,52 @@ mv work/selected.txt reports/selected.txt
 
 ### PowerShell 7 / Windows
 
-В текущем сеансе разрешите локальные сценарии:
+Посмотрите политики по областям:
 
 ```powershell
 Get-ExecutionPolicy -List
-Set-ExecutionPolicy -Scope Process -ExecutionPolicy RemoteSigned
 ```
 
-Для скачанного сценария из проверенного набора курса прочитайте файл,
-проверьте источник и снимите метку интернет-загрузки именно с него:
+Пример результата:
+
+| Область, от старшей к младшей | Значение |
+|---|---|
+| `MachinePolicy` | `Undefined` |
+| `UserPolicy` | `Undefined` |
+| `Process` | `Undefined` |
+| `CurrentUser` | `Restricted` |
+| `LocalMachine` | `RemoteSigned` |
+
+`Undefined` означает отсутствие настройки в области. Действует первое
+заданное значение сверху: в примере это `CurrentUser / Restricted`,
+сценарии запрещены. Если действующее значение задаёт `MachinePolicy` либо `UserPolicy`
+и оно равно `Restricted`, сценарии запрещены; `AllSigned` требует
+цифровой подписи. Учебный сценарий неподписан. При таком ограничении
+организации остановите запуск и используйте разрешённую учебную среду;
+изменение `Process` и `Unblock-File` его не снимают.
+
+Для показанного состояния с незаданными групповыми политиками:
+
+```powershell
+Set-ExecutionPolicy -Scope Process -ExecutionPolicy RemoteSigned
+Get-ExecutionPolicy
+```
+
+Второй вызов показывает `RemoteSigned`: настройка `Process` получила
+приоритет над `CurrentUser`. `RemoteSigned` разрешает локальные сценарии.
+Настройка действует в текущем сеансе и его дочерних процессах.
+При другом результате повторите `Get-ExecutionPolicy -List`
+и установите определяющую область; разрешённая среда согласуется до исполнения.
+
+Прочитайте полученный из набора курса сценарий и проверьте источник.
+При действующей `RemoteSigned` неподписанный файл с меткой
+интернет-загрузки требует её снятия:
 
 ```powershell
 Unblock-File -LiteralPath .\tools\count.ps1
 ```
 
-Область `Process` сохраняется до закрытия сеанса и его дочерних процессов.
-Групповые политики организации имеют приоритет; запрещённый ими запуск
-требует предоставленной преподавателем разрешённой среды.
+Команда изменяет метку файла, сохраняя действующую политику.
 [@bib-powershell-execution-policies; @bib-powershell-unblock-file]
 
 ```powershell
