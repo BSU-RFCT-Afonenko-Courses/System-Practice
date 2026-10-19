@@ -6,39 +6,47 @@ format:
 
 # System Practice {#sec-system-practice}
 
-Командная среда связывает программы с файлами и данными. Курс объясняет,
-как задавать действия командами, проверять полученное состояние и сохранять
-изменения в истории проекта. Предполагается опыт программирования;
-терминал, оболочка, пути и Git вводятся с исходных понятий.
+Командная оболочка позволяет задавать действия над файлами, запускать
+программы, передавать данные между этапами обработки. Git сохраняет
+выбранные состояния проекта в истории, объединяет изменения участников,
+переносит историю между репозиториями. Курс предполагает опыт
+программирования; устройство командной среды объясняется с исходных понятий.
 
-Практический маршрут выбирается один: fish / Linux либо PowerShell 7 / Windows.
-Для лабораторных используются локальная рабочая папка, текстовый
-редактор и установленная оболочка выбранного маршрута. Обработка данных
-выполняется собственным сценарием; история проекта ведётся через Git CLI.
+Основной маршрут — PowerShell 7 на Windows. Для fish на Linux приведены
+собственные объяснения с полными примерами. Практическая работа выполняется
+в одном выбранном маршруте. Нужны установленная оболочка, текстовый редактор,
+локальная рабочая папка; для управления версиями используется Git CLI.
 
-## Предметная карта
+## Материалы курса
 
-::: {.course-map tabindex="0" role="region" aria-label="Предметная карта"}
+Теория объясняет понятия через устройство механизмов. Лекции развивают
+два цельных рассказа: «Командный интерфейс», «Управление версиями».
+Справочник помогает найти запись нужной операции. Введение восстанавливает
+знакомый пример перед самостоятельной работой; условие задания задаёт
+новые данные с требованиями к результату.
+
+::: {.course-map tabindex="0" role="region" aria-label="Материалы курса по темам"}
 
 | Предмет | Теория | Лекция | Справочник | Введение | Самостоятельная работа |
 |---|---|---|---|---|---|
-| Команды, пути и файловое состояние | {{< xref system-practice-theory sec-work-environment "Объяснение" >}} | {{< xref system-practice-lectures sec-lecture-work-environment "Рабочая среда" >}} | {{< xref system-practice-handbook sec-work-environment-reference "Операции" >}} | {{< xref system-practice-practice sec-work-environment-intro "Разбор примера" >}} | {{< xref system-practice-tasks sec-lab-work-environment "Набор наблюдений" >}} |
-| Текстовые потоки | {{< xref system-practice-theory sec-text-streams "Объяснение" >}} | {{< xref system-practice-lectures sec-lecture-text-streams "Текстовые потоки" >}} | {{< xref system-practice-handbook sec-reference-text-selection "Отбор и порядок" >}} | {{< xref system-practice-practice sec-data-processing-intro "Разбор обработки" >}} | {{< xref system-practice-tasks sec-lab-data-processing "Обработка данных" >}} |
-| Объектный конвейер | {{< xref system-practice-theory sec-object-pipeline "Объяснение" >}} | {{< xref system-practice-lectures sec-lecture-object-pipeline "Объектный конвейер" >}} | {{< xref system-practice-handbook sec-reference-object-selection "Объектные операции" >}} | {{< xref system-practice-practice sec-data-processing-intro "Разбор обработки" >}} | {{< xref system-practice-tasks sec-lab-data-processing "Обработка данных" >}} |
-| Снимок, индекс и история | {{< xref system-practice-theory sec-git-state "Объяснение" >}} | {{< xref system-practice-lectures sec-lecture-git-state "Состояние репозитория" >}} | {{< xref system-practice-handbook sec-reference-git-state "Состояние и сравнения" >}} | {{< xref system-practice-practice sec-version-control-intro "Разбор Git" >}} | {{< xref system-practice-tasks sec-lab-version-control "Управление версиями" >}} |
-| Ветвление и слияние | {{< xref system-practice-theory sec-git-branches "Объяснение" >}} | {{< xref system-practice-lectures sec-lecture-git-branches "Ветвление и слияние" >}} | {{< xref system-practice-handbook sec-reference-git-merge "Объединение линий" >}} | {{< xref system-practice-practice sec-version-control-intro "Разбор Git" >}} | {{< xref system-practice-tasks sec-lab-version-control "Управление версиями" >}} |
-| Обмен и выпуск | {{< xref system-practice-theory sec-project-maintenance "Объяснение" >}} | {{< xref system-practice-lectures sec-lecture-project-maintenance "Сопровождение проекта" >}} | {{< xref system-practice-handbook sec-maintenance-reference "Операции сопровождения" >}} | {{< xref system-practice-practice sec-maintenance-intro "Разбор выпуска" >}} | {{< xref system-practice-tasks sec-project-maintenance-task "Добровольный проект" >}} |
+| Рабочая среда | {{< xref system-practice-theory sec-work-environment "Рабочая среда" >}} | {{< xref system-practice-lectures sec-lecture-command-interface "Командный интерфейс" >}} | {{< xref system-practice-handbook sec-work-environment-reference "Рабочая среда" >}} | {{< xref system-practice-practice sec-work-environment-intro "Пример с наблюдениями" >}} | {{< xref system-practice-tasks sec-lab-work-environment "Рабочая среда" >}} |
+| Обработка данных | {{< xref system-practice-theory sec-object-pipeline "Объектный конвейер" >}}; {{< xref system-practice-theory sec-text-streams "Текстовые потоки" >}} | {{< xref system-practice-lectures sec-lecture-command-interface "Командный интерфейс" >}} | {{< xref system-practice-handbook sec-data-processing-reference "Обработка данных" >}} | {{< xref system-practice-practice sec-data-processing-intro "Пример обработки" >}} | {{< xref system-practice-tasks sec-lab-data-processing "Обработка данных" >}} |
+| Состояние репозитория | {{< xref system-practice-theory sec-git-state "Состояние репозитория" >}} | {{< xref system-practice-lectures sec-lecture-version-control "Управление версиями" >}} | {{< xref system-practice-handbook sec-reference-git-state "Состояние репозитория" >}} | {{< xref system-practice-practice sec-version-control-intro "Пример истории проекта" >}} | {{< xref system-practice-tasks sec-lab-version-control "Управление версиями" >}} |
+| Ветвление истории | {{< xref system-practice-theory sec-git-branches "Ветвление истории" >}} | {{< xref system-practice-lectures sec-lecture-version-control "Управление версиями" >}} | {{< xref system-practice-handbook sec-reference-git-merge "Слияние веток" >}} | {{< xref system-practice-practice sec-version-control-intro "Пример истории проекта" >}} | {{< xref system-practice-tasks sec-lab-version-control "Управление версиями" >}} |
+| Обмен репозиториями | {{< xref system-practice-theory sec-git-exchange "Обмен репозиториями" >}} | {{< xref system-practice-lectures sec-lecture-version-control "Управление версиями" >}} | {{< xref system-practice-handbook sec-reference-git-ssh "Доступ к GitHub по SSH" >}} | {{< xref system-practice-practice sec-version-control-intro "Пример обмена через GitHub" >}} | {{< xref system-practice-tasks sec-lab-version-control "Управление версиями" >}} |
+| Сопровождение проекта | {{< xref system-practice-theory sec-project-maintenance "Сопровождение проекта" >}} | {{< xref system-practice-lectures sec-lecture-version-control "Управление версиями" >}} | {{< xref system-practice-handbook sec-maintenance-reference "Сопровождение проекта" >}} | {{< xref system-practice-practice sec-maintenance-intro "Пример выпуска" >}} | {{< xref system-practice-tasks sec-project-maintenance-task "Добровольный проект" >}} |
 
 :::
-
-Теория объясняет механизм, лекция связывает наблюдения в рассказ,
-справочник помогает найти запись операции. Введение восстанавливает
-знакомый пример; лабораторная задаёт самостоятельное преобразование
-нового набора файлов.
 
 ## Практическая работа
 
 Обязательная часть состоит из трёх лабораторных: «Рабочая среда»,
-«Обработка данных» и «Управление версиями». Добровольное «Сопровождение
-проекта» продолжает Git: смысловой конфликт, патч, локальный обмен
-историей и подготовка выпуска имеют собственные объяснение и введение.
+«Обработка данных», «Управление версиями». В третьей работе студент
+создаёт репозиторий Git, объединяет ветки, передаёт историю в GitHub
+по SSH, клонирует репозиторий по SSH во вторую локальную копию.
+Репозиторий может быть публичным или частным; способы предоставления
+результата описаны в условии.
+
+Добровольный проект «Сопровождение проекта» посвящён подготовке выпуска:
+требуется согласовать изменения, применить входной патч на подходящей базе,
+передать версию в соседний репозиторий, подготовить материалы выпуска.

@@ -1,29 +1,81 @@
 ---
 nocite: |
-  @bib-shotts-tlcl, @bib-jones-powershell-intro, @bib-fish-tutorial, @bib-fish-language, @bib-powershell-help, @bib-powershell-quoting, @bib-powershell-location, @bib-powershell-copy, @bib-powershell-files, @bib-petty-powershell-scripting, @bib-gnu-sort, @bib-gnu-grep-status, @bib-powershell-import-csv, @bib-powershell-export-csv, @bib-powershell-sort-object, @bib-powershell-streams, @bib-powershell-pipelines, @bib-powershell-common-parameters, @bib-chacon-straub-progit, @bib-git-diff, @bib-git-restore, @bib-git-merge, @bib-git-switch, @bib-git-status, @bib-git-add, @bib-git-commit, @bib-git-revisions, @bib-git-config, @bib-git-attributes, @bib-git-show, @bib-git-archive, @bib-git-remote, @bib-git-fetch, @bib-git-push, @bib-git-apply, @bib-git-tag, @bib-git-ls-remote, @bib-git-diff-format
+  @bib-shotts-tlcl,
+  @bib-fish-tutorial,
+  @bib-fish-language,
+  @bib-powershell-help,
+  @bib-powershell-quoting,
+  @bib-powershell-location,
+  @bib-powershell-copy,
+  @bib-powershell-files,
+  @bib-gnu-grep-status,
+  @bib-powershell-import-csv,
+  @bib-powershell-export-csv,
+  @bib-powershell-sort-object,
+  @bib-powershell-streams,
+  @bib-powershell-common-parameters,
+  @bib-chacon-straub-progit,
+  @bib-git-diff,
+  @bib-git-restore,
+  @bib-git-merge,
+  @bib-git-status,
+  @bib-git-commit,
+  @bib-git-revisions,
+  @bib-git-show,
+  @bib-git-archive,
+  @bib-git-remote,
+  @bib-git-fetch,
+  @bib-git-push,
+  @bib-git-apply,
+  @bib-git-tag,
+  @bib-powershell-execution-policies,
+  @bib-powershell-unblock-file,
+  @bib-powershell-pwsh,
+  @bib-fish-invocation,
+  @bib-powershell-automatic,
+  @bib-git-worktree
 ---
 
 # Источники {#sec-handbook-sources}
 
-Формы команд и условия параметров уточняются по документации соответствующего
-инструмента. Книжные главы дают объяснение командной среды и файлового дерева.
+## Командная среда
 
-Для обработки данных использованы главы 6 и 20 Shotts, выбранные разделы
-глав 4, 6, 9 и 17 Jones и глав 9, 12, 13 и 15 Петти, Джонса и Хикса.
-Записи операций опираются на документацию fish 4.9.3, GNU Grep 3.12,
-GNU Coreutils 9.11 и PowerShell 7.5. Точная область применения каждого
-примера указана рядом с ним.
+Записи файловых операций опираются на документацию fish 4.9.3,
+страницы Microsoft Learn для PowerShell 7.5. Объяснение файлового дерева
+связано с *The Linux Command Line* Уильяма Шоттса, Seventh Internet Edition,
+25.12A. Точные страницы указаны возле примеров. [@bib-shotts-tlcl]
 
-Git опирается на выбранные разделы глав 1–3 Pro Git: снимок, индекс,
-история, восстановление и объединение линий. Русский экземпляр второго
-издания имеет версию 2.1.124-4-gbef0ce5 от 24.08.2026. Современные формы
-restore, switch, config set и варианты merge уточнены по официальным
-руководствам Git. Номера страниц относятся к этому экземпляру книги.
+Запуск `pwsh`, политика выполнения сценариев, снятие блокировки
+загруженного файла описаны по документации PowerShell 7.6.
+Для обработки CSV, сортировки объектов, потоков диагностики используются
+страницы PowerShell 7.5. Назначение кода завершения `grep` устанавливает
+руководство GNU Grep 3.12.
+[@bib-powershell-pwsh; @bib-powershell-execution-policies; @bib-powershell-unblock-file; @bib-gnu-grep-status]
 
-Сопровождение опирается на главы 2–5 Pro Git: обмен с другим
-репозиторием, конфликт, тематическая ветка патча, тег и выпуск.
-Семантика fetch/apply/push, аннотированных тегов и архива выбранной
-версии уточнена по первичным руководствам Git.
+## Управление версиями
+
+*Pro Git* Скотта Чакона, Бена Штрауба даёт объяснение состояний
+репозитория, ветвления, обмена. Номера страниц относятся к русскому
+электронному экземпляру второго издания версии 2.1.124-4-gbef0ce5
+от 24 августа 2026 года. Формы команд уточнены по официальным
+руководствам Git; адресные ссылки сопровождают операции.
+[@bib-chacon-straub-progit]
+
+Подготовка GitHub опирается на документацию сервиса:
+[создание аккаунта](https://docs.github.com/en/account-and-profile/how-tos/account-management/creating-an-account-on-github),
+[создание ключа SSH](https://docs.github.com/en/authentication/connecting-to-github-with-ssh/generating-a-new-ssh-key-and-adding-it-to-the-ssh-agent),
+[добавление ключа в аккаунт](https://docs.github.com/en/authentication/connecting-to-github-with-ssh/adding-a-new-ssh-key-to-your-github-account),
+[проверка соединения](https://docs.github.com/en/authentication/connecting-to-github-with-ssh/testing-your-ssh-connection).
+Для первого соединения используется отдельная
+[страница отпечатков ключей GitHub](https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/githubs-ssh-key-fingerprints).
+
+## Сопровождение проекта
+
+Операции с дополнительным рабочим деревом описаны в руководстве
+`git-worktree`. Проверка патча, его применение, создание именованной
+версии, отправка изменений, подготовка архива опираются на руководства
+соответствующих команд Git.
+[@bib-git-worktree; @bib-git-apply; @bib-git-tag; @bib-git-push; @bib-git-archive]
 
 ::: {#refs}
 :::

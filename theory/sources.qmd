@@ -1,35 +1,140 @@
 ---
 nocite: |
-  @bib-shotts-tlcl, @bib-jones-powershell-intro, @bib-fish-tutorial, @bib-fish-language, @bib-powershell-help, @bib-powershell-quoting, @bib-powershell-location, @bib-powershell-copy, @bib-powershell-files, @bib-petty-powershell-scripting, @bib-gnu-sort, @bib-gnu-grep-status, @bib-powershell-import-csv, @bib-powershell-export-csv, @bib-powershell-sort-object, @bib-powershell-streams, @bib-powershell-pipelines, @bib-powershell-common-parameters, @bib-chacon-straub-progit, @bib-git-diff, @bib-git-restore, @bib-git-merge, @bib-git-switch, @bib-git-status, @bib-git-add, @bib-git-commit, @bib-git-revisions, @bib-git-config, @bib-git-attributes, @bib-git-show, @bib-git-archive, @bib-git-remote, @bib-git-fetch, @bib-git-push, @bib-git-apply, @bib-git-tag, @bib-git-ls-remote, @bib-git-diff-format
+  @bib-shotts-tlcl,
+  @bib-jones-powershell-intro,
+  @bib-fish-tutorial,
+  @bib-fish-language,
+  @bib-powershell-help,
+  @bib-powershell-quoting,
+  @bib-powershell-location,
+  @bib-powershell-copy,
+  @bib-powershell-files,
+  @bib-petty-powershell-scripting,
+  @bib-gnu-sort,
+  @bib-gnu-grep-status,
+  @bib-powershell-import-csv,
+  @bib-powershell-export-csv,
+  @bib-powershell-sort-object,
+  @bib-powershell-streams,
+  @bib-powershell-pipelines,
+  @bib-powershell-common-parameters,
+  @bib-chacon-straub-progit,
+  @bib-git-diff,
+  @bib-git-restore,
+  @bib-git-merge,
+  @bib-git-switch,
+  @bib-git-status,
+  @bib-git-add,
+  @bib-git-commit,
+  @bib-git-attributes,
+  @bib-git-archive,
+  @bib-git-fetch,
+  @bib-git-push,
+  @bib-git-apply,
+  @bib-git-tag,
+  @bib-git-ls-remote,
+  @bib-git-diff-format,
+  @bib-powershell-execution-policies,
+  @bib-powershell-unblock-file,
+  @bib-powershell-pwsh,
+  @bib-powershell-install-windows,
+  @bib-corbato-ctss,
+  @bib-ritchie-unix-history,
+  @bib-fish-invocation,
+  @bib-powershell-automatic,
+  @bib-powershell-command-precedence,
+  @bib-powershell-get-item,
+  @bib-powershell-get-member,
+  @bib-powershell-scripts,
+  @bib-monad-manifesto,
+  @bib-monad-origin,
+  @bib-git-worktree,
+  @bib-git-format-patch,
+  @bib-git-am,
+  @bib-anthropic-scion-2026,
+  @bib-github-agent-scale-2026,
+  @bib-vscode-delegate-two-tasks,
+  @bib-github-large-files,
+  @bib-github-lfs,
+  @bib-github-lfs-collaboration
 ---
 
 # Источники {#sec-theory-sources}
 
-Для рабочей среды использованы выбранные разделы глав 1–5 и 7
-Shotts о командах, дереве каталогов и файловых операциях; главы 2–3 Jones
-о запуске команд и справке. Печатные страницы приводятся рядом с объяснением.
-Книга Jones описывает Windows PowerShell 2011 года; команды современной
-темы сверены с документацией PowerShell 7.5. Запись команд fish опирается
-на документацию fish 4.9.3.
+## Книги
 
-Обработка данных опирается на главу 6 и выбранные разделы главы 20 Shotts
-о каналах процесса, отборе, сортировке, выделении полей и сравнении;
-главы 4, 6, 9 и 17 Jones об объектах, конвейере, сортировке и параметрах;
-главы 9, 12, 13 и 15 Петти, Джонса и Хикса о сценариях, форматировании,
-потоках и ошибках. Современные формы импорта, экспорта и упорядочения
-уточнены по документации PowerShell 7.5; текстовые ключи и коды завершения —
-по документации GNU и fish.
+*The Linux Command Line* Уильяма Шоттса объясняет командную среду Unix,
+файловое дерево, обработку текстовых потоков. В курсе используется
+Seventh Internet Edition, 25.12A. Примеры для fish сопровождаются ссылками
+на документацию этой оболочки. [@bib-shotts-tlcl]
 
-Git опирается на выбранные разделы глав 1–3 Pro Git: снимок, индекс,
-история, восстановление и объединение линий. Русский экземпляр второго
-издания имеет версию 2.1.124-4-gbef0ce5 от 24.08.2026. Современные формы
-restore, switch, config set и варианты merge уточнены по официальным
-руководствам Git. Номера страниц относятся к этому экземпляру книги.
+*Learn Windows PowerShell in a Month of Lunches* Дона Джонса даёт основу
+объяснения команд, справки, объектов, конвейера. Книга 2011 года описывает
+Windows PowerShell; современные команды курса опираются на документацию
+PowerShell 7. Книга Джеймса Петти, Дона Джонса, Джеффри Хикса
+«Изучаем скриптинг PowerShell за месяц» дополняет разбор сценариев,
+преобразования типов, форматирования, диагностики.
+[@bib-jones-powershell-intro; @bib-petty-powershell-scripting]
 
-Сопровождение опирается на главы 2–5 Pro Git: обмен с другим
-репозиторием, конфликт, тематическая ветка патча, тег и выпуск.
-Семантика fetch/apply/push, аннотированных тегов и архива выбранной
-версии уточнена по первичным руководствам Git.
+*Pro Git* Скотта Чакона, Бена Штрауба объясняет историю версий,
+состояния репозитория, ветвление, обмен, сопровождение проекта.
+Номера страниц относятся к русскому электронному экземпляру второго
+издания версии 2.1.124-4-gbef0ce5 от 24 августа 2026 года.
+Точные страницы книжных фрагментов указаны возле соответствующих
+объяснений. [@bib-chacon-straub-progit]
+
+## Командная среда
+
+Синтаксис fish уточняется по документации версии 4.9.3.
+Для файловых операций, объектов, обработки CSV, потоков диагностики
+используются страницы Microsoft Learn для PowerShell 7.5.
+Запуск `pwsh`, политика выполнения сценариев, снятие блокировки
+загруженного файла описаны по страницам PowerShell 7.6.
+Версия сохранена в адресе соответствующего источника.
+Текстовые операции опираются на документацию GNU Coreutils 9.11
+и GNU Grep 3.12.
+
+Исторический контекст интерактивной работы даёт статья авторов CTSS.
+Деннис Ритчи описывает развитие Unix, в том числе управление процессами,
+появление каналов. Замысел объектной оболочки изложен в
+*Monad Manifesto* Джеффри Сновера; история документа представлена
+в публикации Microsoft 2007 года.
+[@bib-corbato-ctss; @bib-ritchie-unix-history; @bib-monad-manifesto; @bib-monad-origin]
+
+## Управление версиями
+
+Официальные руководства Git уточняют действие команд, способы
+адресации состояний, представление различий. Ссылки на конкретные
+руководства приведены возле примеров.
+
+Глава об обмене использует документацию GitHub:
+[адреса удалённых репозиториев](https://docs.github.com/en/get-started/git-basics/about-remote-repositories),
+[подготовка ключа SSH](https://docs.github.com/en/authentication/connecting-to-github-with-ssh/generating-a-new-ssh-key-and-adding-it-to-the-ssh-agent),
+[регистрация открытого ключа](https://docs.github.com/en/authentication/connecting-to-github-with-ssh/adding-a-new-ssh-key-to-your-github-account),
+[проверка соединения](https://docs.github.com/en/authentication/connecting-to-github-with-ssh/testing-your-ssh-connection).
+Подпись при аутентификации пользователя определена в
+[RFC 4252, §7](https://www.rfc-editor.org/rfc/rfc4252).
+Транспортный протокол, проверка подписи сервера описаны в
+[RFC 4253, §§7–8](https://www.rfc-editor.org/rfc/rfc4253).
+Доверие ключу GitHub устанавливается по
+[официальным отпечаткам](https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/githubs-ssh-key-fingerprints).
+
+## Сопровождение проекта
+
+Документация Git определяет работу дополнительного рабочего дерева,
+применение патча, создание тега, передачу версии, получение архива снимка.
+Страницы GitHub описывают ограничения для больших файлов,
+хранение содержимого через Git LFS, совместную работу с LFS.
+[@bib-git-worktree; @bib-github-large-files; @bib-github-lfs; @bib-github-lfs-collaboration]
+
+Современные случаи рассмотрены по первичным публикациям.
+Статья Anthropic от 13 октября 2026 года, обновлённая 15 октября,
+посвящена устройству работы с собственным монорепозиторием.
+Статья GitHub от 6 октября, обновлённая 7 октября, описывает
+серверную инфраструктуру при росте нагрузки от агентов.
+Руководство Visual Studio Code показывает разделение двух делегированных
+задач по рабочим деревьям.
+[@bib-anthropic-scion-2026; @bib-github-agent-scale-2026; @bib-vscode-delegate-two-tasks]
 
 ::: {#refs}
 :::
