@@ -18,7 +18,7 @@ jobs:
       - name: Установить Quarto
         uses: quarto-dev/quarto-actions/setup@8a96df13519ee81fd526f2dfca5962811136661b
         with:
-          version: '1.11.5'
+          version: '1.11.6'
       - name: Установить CUE
         uses: cue-lang/setup-cue@b0e30e540a2dae47304ebf16586a5b2db023b61c
         with:
