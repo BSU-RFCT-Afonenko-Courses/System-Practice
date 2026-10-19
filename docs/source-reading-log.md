@@ -18,6 +18,17 @@
 `course-revision-plan.md`, строки 292–371. Предметные объёмы Java
 не переносятся. Ниже зафиксировано непосредственное чтение источников.
 
+### Дополнение к чтению обработки данных: 20.10.2026
+
+До учебного текста продолжения дополнительно прочитаны адресные разделы
+Microsoft Learn для PowerShell 7.5:
+
+- [Sort-Object](https://learn.microsoft.com/en-us/powershell/module/microsoft.powershell.utility/sort-object?view=powershell-7.5): Description, примеры 1–4, параметры Culture, Descending, InputObject, Property, CaseSensitive, Stable. Установлены последовательное сравнение нескольких свойств, порядок по возрастанию и выбор культуры; различаются передача элементов через конвейер и единой коллекции через InputObject.
+- [Get-Member](https://learn.microsoft.com/en-us/powershell/module/microsoft.powershell.utility/get-member?view=powershell-7.5): Description и примеры 1–5. Команда исследует тип, свойства и методы полученных объектов; это основание для проверки строкового Units после Import-Csv.
+- [Get-Item](https://learn.microsoft.com/en-us/powershell/module/microsoft.powershell.management/get-item?view=powershell-7.5): Inputs, Outputs, Notes. Для файловой системы возвращаются FileInfo/DirectoryInfo; свойство объекта файла используется для перехода от принятого файлового примера к данным команды.
+
+Полного чтения страниц Sort-Object и Get-Member не заявляется.
+
 ### Непосредственное чтение книг
 
 Личные экземпляры находятся в
