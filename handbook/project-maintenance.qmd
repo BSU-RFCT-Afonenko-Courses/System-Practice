@@ -1,139 +1,250 @@
 # Сопровождение проекта {#sec-maintenance-reference}
 
-Формы ниже относятся к maintenancelab/work из
-[демонстрационного архива](materials/project-maintenance-demo.zip).
-Полный опыт и исходные состояния — в
+Темы раздела: получение изменений; разрешение конфликта; выбор базы
+патча; тег; материалы выпуска; связанные рабочие деревья; упаковка истории.
+Команды Git выполняются в корне нужного репозитория. Пути в примерах
+соответствуют work внутри maintenancelab или maintenance.
+Полный опыт изложен в
 {{< xref system-practice-theory sec-project-maintenance "теории сопровождения" >}}.
-Команды Git одинаковы в fish и PowerShell 7; редактор изменяет текстовые файлы.
 
-## Адрес и получение {#sec-reference-maintenance-remote}
+## Получение истории {#sec-reference-maintenance-remote}
 
-При отсутствии origin, из work:
+Для соседнего bare-репозитория shared.git, когда origin ещё отсутствует:
 
 ```console
 git remote add origin ../shared.git
 git remote -v
 git fetch origin
-```
-
-remote add сохраняет имя и адрес. fetch получает объекты и обновляет
-origin/main согласно настройке; текущая main, индекс и рабочие файлы
-не объединяются автоматически. origin/main — локальная запись полученной
-вершины, которую читают обычными log/show. [@bib-git-remote; @bib-git-fetch]
-
-```console
 git --no-pager log --graph --oneline --decorate --all
-git show 'origin/main:report.ini'
 ```
 
-Если адрес неверен, сначала проверьте remote -v и расположение соседнего
-каталога. Относительный ../shared.git здесь задан от корня work.
+Адрес `../shared.git` отсчитывается от work. Remote add сохраняет
+настройку. Fetch получает объекты и обновляет origin/main по правилам
+получения; собственная main, индекс и рабочие файлы сохраняются.
+[remote](https://git-scm.com/docs/git-remote),
+[fetch](https://git-scm.com/docs/git-fetch).
 
-## Содержательный конфликт {#sec-reference-maintenance-conflict}
+| Наблюдение | Действие |
+|---|---|
+| origin уже существует | Прочитать remote -v; при необходимости исправить адрес через remote set-url |
+| main — предок origin/main | `git merge --ff-only origin/main` продвигает main |
+| Истории расходятся | Прочитать оба изменения и общую базу; согласовать результат слияния |
+| Push отклонён как non-fast-forward | Получить актуальную историю и проверить, какие изменения требуется включить |
 
-До начала слияния индекс и рабочее дерево чисты, текущая main на M,
-origin/main на F. При конфликте команда merge завершится ненулевым кодом:
+## Разрешение конфликта {#sec-reference-maintenance-conflict}
+
+Начинайте слияние при чистом рабочем дереве и индексе:
 
 ```console
-git merge --no-ff --no-edit origin/main
+git merge origin/main
 git status
 ```
 
-HEAD остаётся на M; файл с неразрешённым конфликтом требует согласования.
-Обычные маркеры `<<<<<<<`, `=======`, `>>>>>>>` отделяют версии сторон.
-Первоначальные тексты можно прочитать через show с base, HEAD и origin/main.
+Остановка на конфликте оставляет текущую ветку на прежнем коммите.
+Варианты конфликтного файла доступны из индекса:
 
-После ручного согласования report.ini по политике выпуска:
+```console
+git show ':1:report.ini'
+git show ':2:report.ini'
+git show ':3:report.ini'
+```
+
+Для обычного трёхстороннего конфликта стадия 1 — общая база,
+2 — текущая сторона, 3 — присоединяемая. При добавлении или удалении
+файла отдельные стадии могут отсутствовать.
+[Представление конфликта](https://git-scm.com/docs/git-merge#_true_merge).
+
+После выбора содержимого и удаления маркеров:
 
 ```console
 git add -- report.ini
 git --no-pager diff --staged
-git status
-git commit -m 'Combine site and units in the report'
+git commit -m "Согласовать требования к отчёту"
+git --no-pager show --no-patch --format=raw HEAD
 ```
 
-add сохраняет разрешённый текст; commit завершает слияние с двумя
-родителями. Проверяйте и статус, и предметный смысл файла.
-Для отказа от ещё незавершённой операции существует `git merge --abort`;
-восстановление может осложняться правками, имевшимися до её начала.
-[@bib-chacon-straub-progit, с. 79–82; @bib-git-merge]
+Проверяются и родители, и содержимое снимка. `git merge --continue`
+также завершает подготовленное слияние. `git merge --abort` отменяет
+незавершённую операцию; предварительное чистое состояние упрощает
+возврат к исходным файлам.
 
-## Применимость и запись патча {#sec-reference-maintenance-apply}
+## Выбор базы патча {#sec-reference-maintenance-patch}
 
-В демонстрации после слияния guide.txt содержит `Run the report.`:
+Вместо BASE укажите тег или ID согласованной исходной версии.
+Имя patch-review должно быть свободно:
 
 ```console
-git apply --stat ../incoming/guide.patch
-git apply --check ../incoming/guide.patch
-git apply ../incoming/guide.patch
+git status --short
+git switch -c patch-review BASE
+git apply --stat ../incoming/review.patch
+git apply --check ../incoming/review.patch
 ```
 
-| Форма | Изменение состояния |
+Проверка --check не меняет файлы. Прочитайте предлагаемый текст целиком:
+PowerShell — `Get-Content -LiteralPath ../incoming/review.patch`,
+fish — `cat ../incoming/review.patch`. После успешной проверки:
+
+```console
+git apply ../incoming/review.patch
+git --no-pager diff
+git add -- instructions.txt
+git commit -m "Уточнить проверку входных данных"
+```
+
+В демонстрации путь патча — incoming/guide.patch, изменяемый файл —
+README.md. Команды проверки и применения соответствуют фактическому
+пути и выбранному файлу. Обычный apply меняет рабочие файлы; родитель
+нового коммита определяется текущей вершиной выбранной ветки.
+[@bib-git-apply]
+
+| Режим | Назначение |
 |---|---|
-| apply --stat | Показывает сводку; файлы прежние |
-| apply --check | Проверяет применимость; файлы прежние |
-| apply | Меняет рабочие файлы; индекс и коммит прежние |
-| apply --index | Меняет рабочие файлы и индекс; коммита ещё нет |
+| `git apply --check PATCH` | Проверка применимости без записи |
+| `git apply PATCH` | Изменение рабочего дерева |
+| `git apply --index PATCH` | Применение к индексу и рабочему дереву; исходное содержимое и режимы затронутых файлов должны совпадать |
+| `git format-patch BASE` / `git am PATCH` | Отдельный формат передачи обычных коммитов со сведениями автора и сообщениями |
 
-Для --index исходные рабочие файлы и записи индекса затронутых путей
-должны совпадать. Неприменимый патч требует проверки базы и содержимого.
-После успешного apply отдельно просмотрите diff, подготовьте изменение
-и создайте коммит. [@bib-git-apply]
+Если нужное изменение должно продолжать BASE непосредственно, до его
+commit в этой линии не создают других коммитов. После фиксации можно
+вернуться в main и включить подготовленную ветку операцией merge.
+Исходную версию, порядок интеграции и результат выбирают по условию проекта.
 
-Патч от прежней версии можно проверить в тематической ветке от неё,
-зафиксировать там и затем включить историю в текущую работу.
-Форма выбора начала ветки разобрана в
-{{< xref system-practice-handbook sec-reference-git-branches "справке о ветках" >}}.
+## Аннотированный тег {#sec-reference-maintenance-tag}
 
-## Тег и передача {#sec-reference-maintenance-release-tag}
-
-После фиксации всех файлов выпуска текущая main указывает на готовый R:
+После проверки итогового коммита создайте отсутствующий тег:
 
 ```console
-git tag -a demo-v1.1 -m 'Report with site and units'
-git --no-pager show --no-patch demo-v1.1
+git tag -a v2.0 -m "Выпуск отчёта с признаком качества"
+git --no-pager show --no-patch v2.0
+git cat-file -t v2.0
+git rev-parse 'v2.0^{commit}'
+```
+
+`cat-file -t` должен вывести `tag`; rev-parse раскрывает тег до помеченного
+коммита. Без указанной версии tag помечает текущий HEAD. В демонстрации
+используется имя v1.0. У уже переданного имени выпуска сохраняют его
+значение; новое исправление получает новый номер.
+[@bib-git-tag]
+
+```console
 git push origin main
-git push origin demo-v1.1
+git push origin v2.0
 git ls-remote origin
 ```
 
-Аннотированный тег содержит объект назначения, автора, дату и сообщение.
-Обычный commit оставляет тег на прежней версии. push передаёт объекты
-и обновляет указанную ссылку у получателя. В этом опыте исходная F
-является предком R; обновление main сохраняет её историю.
-Отказ non-fast-forward требует проверить полученную историю и её включение.
-[@bib-git-tag; @bib-git-push]
+Ветка и тег передаются явно. У аннотированного тега ls-remote показывает
+его собственный ID и раскрытую строку с `^{}`. Раскрытый ID должен
+совпасть с выбранным коммитом выпуска. Сохранность исходной линии
+проверяется по отношениям родителей.
 
-ls-remote показывает реальные ссылки origin. Для аннотированного тега
-строка без `^{}` содержит хеш объекта тега, строка с этим суффиксом —
-объект назначения, здесь коммит R. [@bib-git-ls-remote]
+## Материалы выпуска {#sec-reference-maintenance-release}
 
-## Патч двух снимков {#sec-reference-maintenance-diff}
+Для снимка v2.0 и исходного start:
 
 ```console
-git diff --output=../release.patch start demo-v1.1
+git diff --output=../release.patch start v2.0
+git archive --format=zip --prefix=report-2.0/ --output=../report-2.0.zip v2.0
 ```
 
-start — исходная сторона, demo-v1.1 — итоговая. --output записывает
-патч напрямую. Полученный diff описывает изменение файлов; проверить
-его нужно на чистой копии исходной версии. Совпадение конечных файлов
-не переносит связи коммитов — для этого передаётся история репозитория.
-[@bib-git-diff]
+Разность направлена от start к v2.0; --output записывает патч через Git.
+Archive читает дерево v2.0 и добавляет общий префикс report-2.0/.
+В демонстрации используются v1.0 и latency-1.0/. Рабочие незакоммиченные
+правки в архив выбранного коммита не входят.
+[@bib-git-diff; @bib-git-archive]
 
-## Архив версии {#sec-reference-maintenance-archive}
+Откройте ZIP в архиваторе: проверьте единственный корневой каталог,
+состав и тексты файлов. При заданном export-ignore отдельные пути
+исключаются; требуемые файлы выпуска должны присутствовать.
+
+## Проверка патча выпуска {#sec-reference-maintenance-check}
+
+Для сравнения с v2.0 можно создать временное связанное дерево на start.
+Имя patch-check должно быть свободно. Основной work остаётся на выпуске:
 
 ```console
-git archive --format=zip --prefix=report-demo-1.1/ --output=../report-demo-1.1.zip demo-v1.1
+git worktree add --detach ../patch-check start
+git -C ../patch-check apply --check ../release.patch
+git -C ../patch-check apply ../release.patch
+git -C ../patch-check add --all
+git -C ../patch-check diff --cached --exit-code v2.0
 ```
 
-| Параметр | Назначение |
+Add включает также новые файлы. Последнее сравнение сопоставляет весь
+подготовленный снимок с v2.0. При совпадении вывод пуст и код равен 0.
+Код читается сразу: `$LASTEXITCODE` в PowerShell, `echo $status` в fish.
+При различии diff показывает пути и содержимое, которые нужно исследовать.
+
+После успешного сравнения созданные для опыта правки больше не нужны.
+Верните **только проверочное дерево** к start и удалите его:
+
+```console
+git -C ../patch-check restore --source=start --staged --worktree -- .
+git -C ../patch-check status --short
+git worktree remove ../patch-check
+```
+
+Восстановление заменяет проверенные файлы исходным снимком, включая
+удаление добавленных патчем и уже подготовленных файлов. Remove
+выполняется после пустого статуса. Собственные полезные правки в этой
+временной папке перед восстановлением нужно сохранить отдельно.
+В демонстрации последняя версия сравнения — v1.0.
+
+## Связанное рабочее дерево {#sec-reference-maintenance-worktree}
+
+| Назначение | Команда |
 |---|---|
-| --format=zip | Формат архива |
-| --prefix=report-demo-1.1/ | Общий каталог перед именами файлов |
-| --output=... или -o ... | Выходной файл |
-| demo-v1.1 | Снимок, из которого читаются файлы |
+| Просмотреть старую версию | `git worktree add --detach ../previous REV` |
+| Начать отдельную линию | `git worktree add -b docs-check ../docs-check main` |
+| Прочитать связанные пути | `git worktree list` |
+| Удалить чистое дополнительное дерево | `git worktree remove ../previous` |
 
-Рабочие изменения после тега в этот архив не попадают. Откройте ZIP,
-сверьте пути и содержимое с помеченной версией. Архив снимка не содержит
-полную историю и индекс; для передачи этих данных нужен полный репозиторий.
-[@bib-chacon-straub-progit, с. 174–175; @bib-git-archive]
+REV заменяют собственным ID, тегом или выражением вроде HEAD~1.
+Новая ветка и новый путь должны иметь свободные имена. У каждого
+дерева свои HEAD, индекс и файлы; обычные refs и база объектов общие.
+По умолчанию Git защищает уже выбранную в другом дереве ветку от второго
+checkout. Порты и базы данных разделяются отдельными средствами.
+[Руководство worktree](https://git-scm.com/docs/git-worktree).
+
+В связанном каталоге `.git` — файл-указатель. При сдаче полной истории
+используйте предусмотренные условием обычные репозитории с собственным
+`.git` и включайте их в архив целиком.
+
+## Упаковка проекта {#sec-reference-maintenance-package}
+
+Архив выпуска содержит один снимок. Полная сдача добровольного проекта
+сохраняет maintenance/work/.git, shared.git, incoming и созданные
+материалы. Завершите запись файлов и операции Git перед упаковкой.
+
+Используйте {{< xref system-practice-handbook sec-reference-git-package "способ полной упаковки" >}}:
+в PowerShell 7 штатный ZipFile.CreateFromDirectory, в fish/Linux GNU tar.
+Для этого проекта исходный корневой каталог — **maintenance**.
+В PowerShell задайте для опубликованного вызова:
+
+```powershell
+$source = (Resolve-Path -LiteralPath './maintenance').Path
+$archive = Join-Path (Get-Location).Path 'maintenance-submission.zip'
+```
+
+Остальные аргументы сохраняются: Optimal и includeBaseDirectory=true.
+Вызов выполняется из родительской папки maintenance. В fish из этой
+же папки:
+
+```fish
+tar -czf maintenance-submission.tar.gz maintenance
+tar -tzf maintenance-submission.tar.gz
+```
+
+Выходное имя должно быть свободно. После извлечения в отдельный каталог
+проверьте обычный work и bare-репозиторий. При корне archive-check:
+
+```console
+git -C archive-check/maintenance/work rev-parse HEAD
+git -C archive-check/maintenance/work status --short
+git -C archive-check/maintenance/work log --graph --oneline --all
+git -C archive-check/maintenance/shared.git rev-parse main
+git -C archive-check/maintenance/shared.git rev-parse 'v2.0^{commit}'
+```
+
+Ожидаются выбранный R, чистое состояние work, сохранённые исходные линии
+и одинаковый помеченный коммит у получателя. Отдельно откройте
+release.patch, ZIP выпуска и explanation.md из извлечённой папки.
