@@ -1,10 +1,11 @@
 """Факты проекта: допустимые истории и содержательные неверные результаты."""
-import io,shutil,sys,tempfile,unittest,zipfile,zlib,subprocess,json,shlex,os
+import io,shutil,sys,tempfile,unittest,zipfile,zlib,subprocess,json,shlex,os,tarfile,stat
 from pathlib import Path
 sys.path.insert(0,str(Path(__file__).resolve().parents[1]/'tools'))
 from check_project_maintenance import check_archive
 from maintenance_fixture import solution,run,finish,package
 from build_materials import packed
+from system_support import read_zip,read_tar_gz,ArchiveError,ArchiveLimit
 
 class ProjectMaintenance(unittest.TestCase):
     def setUp(self):
@@ -60,6 +61,90 @@ class ProjectMaintenance(unittest.TestCase):
         self.assertEqual('pass',self.check(base)['automated'])
         for value in ['/old/computer/shared.git','https://example.invalid/repo','../elsewhere.git']:
             run(w,'remote','set-url','origin',value);self.expect_failure(base,'origin')
+    def directory_package(self,base,kind):
+        path=self.root/('directories.'+kind)
+        if kind=='zip':
+            with zipfile.ZipFile(path,'w') as archive:
+                for item in base.rglob('*'):archive.write(item,item.relative_to(base.parent).as_posix())
+        else:package(base,path)
+        return path
+    def test_origin_components_must_exist_and_be_directories_for_fetch_and_push(self):
+        base=solution(self.root);w=base/'work'
+        for role in ['fetch','push']:
+            for component in ['missing','VERSION']:
+                with self.subTest(role=role,component=component):
+                    run(w,'remote','set-url','origin','../shared.git')
+                    run(w,'config','--unset-all','remote.origin.pushurl',ok=False)
+                    value='./'+component+'/../../shared.git'
+                    if role=='fetch':run(w,'remote','set-url','origin',value)
+                    else:run(w,'config','remote.origin.pushurl',value)
+                    native=run(w,'push','--dry-run','origin','main',ok=False)
+                    self.assertEqual(128,native.returncode,native.stderr)
+                    with self.assertRaises(OSError) as failure:(w/value).stat()
+                    self.assertEqual(2 if component=='missing' else 20,failure.exception.errno)
+                    for kind in ['zip','tar.gz']:
+                        with self.subTest(kind=kind):
+                            result=check_archive(package(base,self.root/('broken.'+kind)),initial_path=self.root/'tasks/projects/project-maintenance/initial-state.json')
+                            self.assertEqual('fail',result['automated'],result)
+                            self.assertEqual('fail',result['facts']['originAddressStatus'])
+                            self.assertIn(role,' '.join(result['errors']))
+    def test_origin_can_traverse_existing_packaged_directories_and_archive_root(self):
+        base=solution(self.root,extras=True);w=base/'work'
+        for value in ['./docs/../../shared.git','../../maintenance/shared.git']:
+            with self.subTest(value=value):
+                run(w,'remote','set-url','origin',value)
+                self.assertEqual(0,run(w,'push','--dry-run','origin','main').returncode)
+                for kind in ['zip','tar.gz']:
+                    result=check_archive(package(base,self.root/('valid.'+kind)),initial_path=self.root/'tasks/projects/project-maintenance/initial-state.json')
+                    self.assertEqual('pass',result['automated'],result)
+    def test_explicit_empty_directory_route_survives_zip_and_tar(self):
+        base=solution(self.root);w=base/'work';(w/'empty-route').mkdir()
+        run(w,'remote','set-url','origin','./empty-route/../../shared.git')
+        self.assertEqual(0,run(w,'push','--dry-run','origin','main').returncode)
+        for kind,reader in [('zip',read_zip),('tar.gz',read_tar_gz)]:
+            with self.subTest(kind=kind):
+                path=self.directory_package(base,kind);observed=reader(path)
+                self.assertIn('maintenance/work/empty-route',observed.directories)
+                self.assertNotIn('maintenance/work/empty-route',observed.files)
+                result=check_archive(path,initial_path=self.root/'tasks/projects/project-maintenance/initial-state.json')
+                self.assertEqual('pass',result['automated'],result)
+                restored=self.root/('restore-'+kind);restored.mkdir()
+                # Распаковываем только собственный доверенный fixture для нативного наблюдения.
+                if kind=='zip':
+                    with zipfile.ZipFile(path) as archive:archive.extractall(restored)
+                else:
+                    with tarfile.open(path) as archive:archive.extractall(restored,filter='data')
+                self.assertTrue((restored/'maintenance/work/empty-route').is_dir())
+                self.assertEqual(0,run(restored/'maintenance/work','push','--dry-run','origin','main').returncode)
+        result=self.check(base) # Этот ZIP намеренно содержит только файлы, пустой каталог отсутствует.
+        self.assertEqual('fail',result['automated'],result)
+    def test_origin_path_outside_observed_archive_is_manual(self):
+        base=solution(self.root);run(base/'work','remote','set-url','origin','../../../outside/maintenance/shared.git')
+        result=self.check(base)
+        self.assertEqual('manual',result['automated'],result);self.assertTrue(result['toolLimited'])
+        self.assertEqual([],result['errors']);self.assertEqual('manual',result['facts']['originAddressStatus'])
+    def test_directory_metadata_keeps_archive_safety_and_entry_limits(self):
+        for kind,reader in [('zip',read_zip),('tar.gz',read_tar_gz)]:
+            for case in ['traversal','symlink','file-parent','limit']:
+                with self.subTest(kind=kind,case=case):
+                    path=self.root/('unsafe.'+kind)
+                    names=['maintenance/work/empty/']
+                    if case=='traversal':names=['maintenance/work/../empty/']
+                    if case=='file-parent':names=['maintenance/work/file','maintenance/work/file/empty/']
+                    if case=='limit':names=['maintenance/work/one/','maintenance/work/two/']
+                    if kind=='zip':
+                        with zipfile.ZipFile(path,'w') as archive:
+                            for name in names:
+                                item=zipfile.ZipInfo(name);item.create_system=3
+                                item.external_attr=((stat.S_IFLNK if case=='symlink' else stat.S_IFDIR if name.endswith('/') else stat.S_IFREG)|0o755)<<16
+                                archive.writestr(item,b'')
+                    else:
+                        with tarfile.open(path,'w:gz') as archive:
+                            for name in names:
+                                item=tarfile.TarInfo(name);item.type=tarfile.SYMTYPE if case=='symlink' else tarfile.DIRTYPE if name.endswith('/') else tarfile.REGTYPE
+                                if case=='symlink':item.linkname='../shared.git'
+                                archive.addfile(item)
+                    with self.assertRaises(ArchiveLimit if case=='limit' else ArchiveError):reader(path,**({'max_entries':1} if case=='limit' else {}))
     def test_missing_index_binary_bom_and_nonterminated_documents_fail(self):
         base=solution(self.root);w=base/'work';index=w/'.git/index';saved=index.read_bytes();index.unlink()
         self.expect_failure(base,'index');index.write_bytes(saved)

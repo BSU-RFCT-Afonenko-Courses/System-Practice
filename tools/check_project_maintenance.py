@@ -3,7 +3,6 @@
 import argparse
 import hashlib
 import json
-import posixpath
 import tempfile
 from pathlib import Path, PurePosixPath
 from system_support import ArchiveError, ArchiveLimit, read_zip
@@ -29,16 +28,27 @@ def text_files(files):
     return result
 
 
-def portable_origin(value):
+def portable_origin(value,archive):
+    """Проверить компоненты относительного пути по наблюдаемой топологии сдачи."""
     if not value or value.startswith(('/', '\\')) or ':' in value:return False
-    return posixpath.normpath('maintenance/work/'+value.replace('\\','/'))=='maintenance/shared.git'
+    current=['maintenance','work']
+    for component in value.replace('\\','/').split('/'):
+        # Даже перед «..» текущий компонент должен существовать как каталог.
+        if current and '/'.join(current) not in archive.directories:return False
+        if component in ('','.'):continue
+        if component=='..':
+            if not current:
+                raise ToolLimit('Адресное наблюдение origin вышло за корень архива; нужна ручная проверка разрешимости пути')
+            current.pop()
+        else:current.append(component)
+    return current==['maintenance','shared.git'] and '/'.join(current) in archive.directories
 
 
 def bare_config(repo):
     return repo.native_bare_state()
 
 
-def origin_address(repo,facts):
+def origin_address(repo,facts,archive):
     """Установить обе стороны простого origin; неподдержанный адресный слой передать человеку."""
     entries=repo.config_entries()
     urls=[value if value is not None else '' for key,value in entries if key=='remote.origin.url']
@@ -53,10 +63,10 @@ def origin_address(repo,facts):
         raise ToolLimit('Адресное наблюдение origin не разрешило includes/преобразования URL; нужна ручная проверка: '+', '.join(unknown))
     active=pushurls if pushurls else urls
     facts.update(originPushURLs=active,originPushSource='pushurl' if pushurls else 'url')
-    if not portable_origin(origin):
+    if not portable_origin(origin,archive):
         facts['originAddressStatus']='fail'
         raise GitDataError('origin fetch должен переносимо указывать на соседний shared.git')
-    if not active or any(not portable_origin(url) for url in active):
+    if not active or any(not portable_origin(url,archive) for url in active):
         facts['originAddressStatus']='fail'
         raise GitDataError('Все активные origin push направления должны переносимо указывать на соседний shared.git')
     facts['originAddressStatus']='pass'
@@ -94,7 +104,7 @@ def check_archive(path,initial_path=INITIAL):
             facts['sharedBare']=bare_config(shared)
             facts['sharedBareStatus']='pass' if facts['sharedBare'] else 'fail'
             if not facts['sharedBare']:raise GitDataError('shared.git должен быть эффективно bare')
-            origin=origin_address(work,facts)
+            origin=origin_address(work,facts,archive)
             r=work.ref('refs/heads/main');tree=work.tree(r);text=text_files(tree)
             if work.index()!=tree or not work.index_modes_match_tree(r) or text_files(work.work)!=text:
                 raise GitDataError('Индекс и рабочие файлы должны совпадать с main без незавершённой работы')
