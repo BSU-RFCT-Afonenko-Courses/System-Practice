@@ -36,8 +36,30 @@ class MaintenanceMaterials(unittest.TestCase):
         self.assertEqual(start,self.git(w,'rev-parse','HEAD').stdout);self.git(w,'merge','--abort')
         self.git(w,'switch','-c','review-note','base');before=(w/'instructions.txt').read_bytes()
         self.git(w,'apply','--check','../incoming/review.patch');self.assertEqual(before,(w/'instructions.txt').read_bytes())
-        self.git(w,'apply','../incoming/review.patch');self.assertEqual(b'Check the input.\nKeep the quality flag.\n',(w/'instructions.txt').read_bytes())
+        self.git(w,'apply','../incoming/review.patch');self.assertEqual('Проверьте входные данные.\nСохраните признак качества.\n'.encode(),(w/'instructions.txt').read_bytes())
         self.assertEqual(self.git(w,'rev-parse','base').stdout,self.git(w,'rev-parse','HEAD').stdout)
+    def test_demo_continues_latency_N_and_receives_U_without_local_U_ref(self):
+        build(self.root,write=True)
+        with zipfile.ZipFile(self.root/'practice/materials/project-maintenance-demo.zip') as z:z.extractall(self.root/'demo')
+        base=self.root/'demo/maintenancelab';w=base/'work';shared=base/'shared.git'
+        state=json.loads((self.root/'tasks/projects/project-maintenance/initial-state.json').read_text())['practice/materials/project-maintenance-demo.zip']
+        self.assertIn('history',state)
+        self.assertEqual({'A','B','C','S','T','M','N','U'},set(state['history']))
+        ids=state['history'];self.assertEqual(ids['N'],self.git(w,'rev-parse','HEAD').stdout.decode().strip())
+        self.assertEqual(ids['T']+' '+ids['S'],self.git(w,'show','-s','--format=%P',ids['M']).stdout.decode().strip())
+        self.assertEqual(ids['M'],self.git(w,'show','-s','--format=%P',ids['N']).stdout.decode().strip())
+        self.assertEqual({'README.md','criteria.txt','measurements.tsv'},set(self.git(w,'ls-tree','--name-only','HEAD').stdout.decode().splitlines()))
+        self.assertEqual(b'latency_limit = 0.020 s\n',(w/'criteria.txt').read_bytes())
+        self.assertEqual(b'sensor\tlatency_ms\nnorth\t8\nsouth\t18\n',(w/'measurements.tsv').read_bytes())
+        self.assertEqual(7,len((w/'README.md').read_text().splitlines()))
+        self.assertNotIn(ids['U'],self.git(w,'show-ref').stdout.decode())
+        self.assertEqual(ids['U'],self.git(shared,'rev-parse','HEAD').stdout.decode().strip())
+        self.assertEqual(ids['N'],self.git(shared,'show','-s','--format=%P','HEAD').stdout.decode().strip())
+        self.git(w,'remote','add','origin','../shared.git');self.git(w,'fetch','origin');self.git(w,'merge','--ff-only','origin/main')
+        self.assertIn('Обе задержки не превышают порог 0.020 s.',(w/'CHECKS.md').read_text())
+        before=(w/'README.md').read_bytes();self.git(w,'apply','--check','../incoming/guide.patch');self.assertEqual(before,(w/'README.md').read_bytes())
+        self.git(w,'apply','../incoming/guide.patch')
+        self.assertEqual(before+'Перед сравнением с порогом переведите миллисекунды в секунды.\n'.encode(),(w/'README.md').read_bytes())
     def test_private_configuration_and_host_paths_are_absent(self):
         base=self.unpack()
         for r in [base/'work',base/'shared.git']:

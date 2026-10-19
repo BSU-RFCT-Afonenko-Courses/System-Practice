@@ -76,12 +76,16 @@ class Repository:
             if stage!=b'0' or mode not in [b'100644',b'100755']:raise GitDataError('Индекс содержит конфликт или необычный тип файла')
             result[name.decode('utf-8')]=self.git('cat-file','blob',blob.decode())
         return result
+    @staticmethod
+    def _modes(raw):
+        return {name:meta.split()[0] for meta,name in
+                (entry.split(b'\t',1) for entry in raw.split(b'\0') if entry)}
+    def tree_modes(self,oid):
+        """Прочитать режимы снимка для сравнения исторических состояний."""
+        return self._modes(self.git('ls-tree','-rz',oid))
     def index_modes_match_tree(self,oid):
         """Сравнить режимы Git; права рабочего файла из ZIP здесь не используются."""
-        def modes(raw):
-            return {name:meta.split()[0] for meta,name in
-                    (entry.split(b'\t',1) for entry in raw.split(b'\0') if entry)}
-        return modes(self.git('ls-files','--stage','-z'))==modes(self.git('ls-tree','-rz',oid))
+        return self._modes(self.git('ls-files','--stage','-z'))==self.tree_modes(oid)
     def commits(self,oid):return set(self.git('rev-list',oid).decode().split())
 
 def encoded(mapping):return {name:text.encode() for name,text in mapping.items()}
@@ -121,7 +125,7 @@ def _config_value(value):
 
 def _remotes(repo):
     # Читаем данные: ConfigParser не обрабатывает Git include/includeIf и не вызывает helpers.
-    parser = configparser.RawConfigParser(strict=False, allow_no_value=True)
+    parser = configparser.RawConfigParser(strict=False, allow_no_value=True, default_section='')
     try: parser.read_string(repo.files.get('.git/config', b'').decode('utf-8'))
     except (configparser.Error, UnicodeError) as error:
         raise GitDataError('Не удалось прочитать адреса remote из .git/config') from error

@@ -17,24 +17,35 @@ def generate(seed):
     with tempfile.TemporaryDirectory(prefix='maintenance-seed-') as temporary:
         parent=Path(temporary);template=parent/'template';template.mkdir()
         for archive,spec in seed.items():
-            base=parent/spec['root'];base.mkdir();work=base/'work';initialize(work,template)
-            a=commit(work,spec['files'],'Исходное описание отчёта');git(work,'tag','base',a)
-            m=commit(work,spec['main'],'Изменить локальный отчёт');git(work,'tag','start',m)
-            git(work,'switch','-qc','transfer-source',a);f=commit(work,spec['shared'],'Изменить совместный отчёт')
-            # Bare receives objects by a local trusted seed copy, without recording a remote path.
+            base=parent/spec['root'];base.mkdir();work=base/'work';initialize(work,template);ids={}
+            # Создаём объявленные снимки и родителей; личная конфигурация не участвует.
+            for label,node in spec['history'].items():
+                git(work,'read-tree','--empty')
+                for name,text in sorted(node['files'].items()):
+                    target(work,name)
+                    blob=git(work,'hash-object','-w','--stdin',input=text.encode()).decode().strip()
+                    git(work,'update-index','--add','--cacheinfo','100644',blob,name)
+                tree=git(work,'write-tree').decode().strip();parents=[]
+                for predecessor in node['parents']:parents+=['-p',ids[predecessor]]
+                ids[label]=git(work,'commit-tree',tree,*parents,'-m','Учебное состояние '+label).decode().strip()
+            git(work,'update-ref','refs/heads/main',ids[spec['workHead']])
+            for name,label in spec['workBranches'].items():git(work,'update-ref','refs/heads/'+name,ids[label])
+            for name,label in spec['workTags'].items():git(work,'update-ref','refs/tags/'+name,ids[label])
+            git(work,'reset','--hard','main')
             shared=base/'shared.git';shared.mkdir();git(shared,'init','-q','--bare','--initial-branch=main','--object-format=sha1','--template='+str(template))
             shutil.copytree(work/'.git/objects',shared/'objects',dirs_exist_ok=True)
-            git(shared,'update-ref','refs/heads/main',f);git(shared,'update-ref','refs/tags/base',a);git(shared,'update-ref','refs/tags/incoming',f)
+            git(shared,'update-ref','refs/heads/main',ids[spec['sharedHead']])
+            for name,label in spec['sharedTags'].items():git(shared,'update-ref','refs/tags/'+name,ids[label])
             (shared/'description').unlink(missing_ok=True)
-            git(work,'switch','-q','main');git(work,'branch','-D','transfer-source')
-            # A plain diff is computed on A; this operation creates no commit and is reverted before packing.
-            git(work,'switch','-q','--detach',a);p=spec['patch'];put(work,{p['path']:p['text']})
-            patch=git(work,'diff','--no-ext-diff','--binary','--',p['path']);git(work,'restore','--source=HEAD','--worktree','--',p['path']);git(work,'switch','-q','main')
-            incoming=base/'incoming';incoming.mkdir();target(incoming,p['name']).write_bytes(patch)
+            git(work,'switch','-q','--detach',ids[spec['patchBase']]);patch_spec=spec['patch'];put(work,{patch_spec['path']:patch_spec['text']})
+            patch=git(work,'diff','--no-ext-diff','--binary','--',patch_spec['path'])
+            git(work,'restore','--source=HEAD','--worktree','--',patch_spec['path']);git(work,'switch','-q','main')
+            # Поступившая линия доступна через соседний bare; лишних объектов work нет.
+            git(work,'prune','--expire=now')
+            incoming=base/'incoming';incoming.mkdir();target(incoming,patch_spec['name']).write_bytes(patch)
             state=normalize(work)
-            states[archive]={'root':spec['root'],'A':a,'M':m,'F':f,'work':state,'sharedRefs':git(shared,'show-ref').decode().splitlines(),'patch':{'name':p['name'],'sha256':hashlib.sha256(patch).hexdigest()}}
-            entries={p.relative_to(parent).as_posix():p.read_bytes() for p in base.rglob('*') if p.is_file()}
-            outputs[archive]=packed(entries)
+            states[archive]={'root':spec['root'],'history':ids,**{k:ids[k] for k in ['A','M','F'] if k in ids},'work':state,'sharedRefs':git(shared,'show-ref').decode().splitlines(),'patch':{'name':patch_spec['name'],'sha256':hashlib.sha256(patch).hexdigest()}}
+            entries={p.relative_to(parent).as_posix():p.read_bytes() for p in base.rglob('*') if p.is_file()};outputs[archive]=packed(entries)
     outputs[DIRECTORY+'/initial-state.json']=(json.dumps(states,ensure_ascii=False,indent=2)+'\n').encode()
     return outputs
 

@@ -1,50 +1,64 @@
 {
   "practice/materials/project-maintenance-demo.zip": {
     "root": "maintenancelab",
-    "A": "1a5911496817adcea60d638ca92888df53a2e998",
-    "M": "505521ade5d0d5464634c34ac80a17f810090940",
-    "F": "c1a73132a235e9f6c28e2ea9993e17c99b923ead",
+    "history": {
+      "A": "6c375fc4dbd2420b97e734d09f8d9a66d726d148",
+      "B": "d6f54c5d8e89bf8657bb394c72fa29b480b6fb2f",
+      "C": "4c77121d12d129e48ffa007c8d50160aadfc4d36",
+      "S": "23bc1a9ff9764461647b13fb63cc748c806beb61",
+      "T": "036a2c6f4287d5fa752ff9f7073f4d907500da33",
+      "M": "0f3548618bb32a2605cc175f9bec134716ac3b3b",
+      "N": "d3fb5344864eb2cef7a823d123f1930e390532ed",
+      "U": "c18d05ea1444532c8d7b2c10234761da6cb22a1d"
+    },
+    "A": "6c375fc4dbd2420b97e734d09f8d9a66d726d148",
+    "M": "0f3548618bb32a2605cc175f9bec134716ac3b3b",
     "work": {
       "refs": [
-        "505521ade5d0d5464634c34ac80a17f810090940 refs/heads/main",
-        "1a5911496817adcea60d638ca92888df53a2e998 refs/tags/base",
-        "505521ade5d0d5464634c34ac80a17f810090940 refs/tags/start"
+        "d3fb5344864eb2cef7a823d123f1930e390532ed refs/heads/main",
+        "23bc1a9ff9764461647b13fb63cc748c806beb61 refs/heads/seconds",
+        "4c77121d12d129e48ffa007c8d50160aadfc4d36 refs/heads/source-note",
+        "d3fb5344864eb2cef7a823d123f1930e390532ed refs/tags/start"
       ],
       "head": "refs/heads/main",
       "status": ""
     },
     "sharedRefs": [
-      "c1a73132a235e9f6c28e2ea9993e17c99b923ead refs/heads/main",
-      "1a5911496817adcea60d638ca92888df53a2e998 refs/tags/base",
-      "c1a73132a235e9f6c28e2ea9993e17c99b923ead refs/tags/incoming"
+      "c18d05ea1444532c8d7b2c10234761da6cb22a1d refs/heads/main",
+      "d3fb5344864eb2cef7a823d123f1930e390532ed refs/tags/start"
     ],
     "patch": {
       "name": "guide.patch",
-      "sha256": "03a9886c5519589b68c035fab8d344253b1e7cfe598c3d879a742120214129fe"
+      "sha256": "7bca2efbc1ddc74643232d82f8a3e4b6949efaf15cf43bf294e9b035e0000570"
     }
   },
   "tasks/materials/project-maintenance-start.zip": {
     "root": "maintenance",
-    "A": "935f480dc65209b17de5b150abfeb452b33b50e4",
-    "M": "7ac38ccc264b901684c3f9ce6f14de13a32a9a0c",
-    "F": "c44f3a03485ebaec5a6397f4fd1f4451f2d679fa",
+    "history": {
+      "A": "6ecfd86e67d9b8a5c9615a6d58a0311f15124b8f",
+      "M": "e3950e3bef0262fbfeb7f231b189e9346ee84646",
+      "F": "3006cd2543784dccd780d62cf7ada33008bd0058"
+    },
+    "A": "6ecfd86e67d9b8a5c9615a6d58a0311f15124b8f",
+    "M": "e3950e3bef0262fbfeb7f231b189e9346ee84646",
+    "F": "3006cd2543784dccd780d62cf7ada33008bd0058",
     "work": {
       "refs": [
-        "7ac38ccc264b901684c3f9ce6f14de13a32a9a0c refs/heads/main",
-        "935f480dc65209b17de5b150abfeb452b33b50e4 refs/tags/base",
-        "7ac38ccc264b901684c3f9ce6f14de13a32a9a0c refs/tags/start"
+        "e3950e3bef0262fbfeb7f231b189e9346ee84646 refs/heads/main",
+        "6ecfd86e67d9b8a5c9615a6d58a0311f15124b8f refs/tags/base",
+        "e3950e3bef0262fbfeb7f231b189e9346ee84646 refs/tags/start"
       ],
       "head": "refs/heads/main",
       "status": ""
     },
     "sharedRefs": [
-      "c44f3a03485ebaec5a6397f4fd1f4451f2d679fa refs/heads/main",
-      "935f480dc65209b17de5b150abfeb452b33b50e4 refs/tags/base",
-      "c44f3a03485ebaec5a6397f4fd1f4451f2d679fa refs/tags/incoming"
+      "3006cd2543784dccd780d62cf7ada33008bd0058 refs/heads/main",
+      "6ecfd86e67d9b8a5c9615a6d58a0311f15124b8f refs/tags/base",
+      "3006cd2543784dccd780d62cf7ada33008bd0058 refs/tags/incoming"
     ],
     "patch": {
       "name": "review.patch",
-      "sha256": "dcbbc8d1174fd9e24d92662876eedd1ce48c5ca7ce7c259b6b1dcc8e57c07842"
+      "sha256": "7681b92dd7cbb3736b8757ee8ade2d833390ae6d207409360cb1fc5e7727f006"
     }
   }
 }

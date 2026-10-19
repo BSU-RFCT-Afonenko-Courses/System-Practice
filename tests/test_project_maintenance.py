@@ -1,5 +1,5 @@
 """Факты проекта: допустимые истории и содержательные неверные результаты."""
-import io,shutil,sys,tempfile,unittest,zipfile,zlib
+import io,shutil,sys,tempfile,unittest,zipfile,zlib,subprocess,json,shlex
 from pathlib import Path
 sys.path.insert(0,str(Path(__file__).resolve().parents[1]/'tools'))
 from check_project_maintenance import check_archive
@@ -44,13 +44,85 @@ class ProjectMaintenance(unittest.TestCase):
         before=patch.read_bytes();self.assertIn(b'new file mode 100755',before)
         patch.write_bytes(before.replace(b'new file mode 100755',b'new file mode 100644'))
         self.expect_failure(base,'release.patch')
+    def test_free_patch_branch_nested_documents_extra_commits_and_reverse_merge(self):
+        for reverse in [False,True]:
+            with self.subTest(reverse=reverse):
+                sub=self.root/str(reverse);sub.mkdir();seed=sub/'tasks/projects/project-maintenance/seed.json';seed.parent.mkdir(parents=True);shutil.copyfile(self.root/'tasks/projects/project-maintenance/seed.json',seed)
+                base=solution(sub,branch='quality-instruction',extras=True,reverse=reverse)
+                for kind in ['zip','tar.gz']:
+                    result=check_archive(package(base,sub/('submission.'+kind)),initial_path=sub/'tasks/projects/project-maintenance/initial-state.json')
+                    self.assertEqual('pass',result['automated'],result)
+                    self.assertIn('refs/heads/quality-instruction',result['facts']['patchBranches'])
+                    self.assertIn('docs/quality.md',result['facts']['releaseFiles'])
+    def test_portable_origin_required_and_equivalent_relative_path_accepted(self):
+        base=solution(self.root);w=base/'work'
+        run(w,'remote','set-url','origin','./../shared.git')
+        self.assertEqual('pass',self.check(base)['automated'])
+        for value in ['/old/computer/shared.git','https://example.invalid/repo','../elsewhere.git']:
+            run(w,'remote','set-url','origin',value);self.expect_failure(base,'origin')
+    def test_missing_index_binary_bom_and_nonterminated_documents_fail(self):
+        base=solution(self.root);w=base/'work';index=w/'.git/index';saved=index.read_bytes();index.unlink()
+        self.expect_failure(base,'index');index.write_bytes(saved)
+        for content in [b'\x00\xff',b'\xef\xbb\xbftext\n',b'no trailing newline']:
+            (w/'extra.txt').write_bytes(content);run(w,'add','extra.txt');run(w,'commit','-qm','Добавить недопустимый документ');finish(base)
+            self.assertEqual('fail',self.check(base)['automated'])
+    def test_P_must_preserve_initial_file_modes(self):
+        base=solution(self.root);w=base/'work'
+        run(w,'switch','review-note');run(w,'update-index','--chmod=+x','instructions.txt');run(w,'commit','--amend','--no-edit')
+        run(w,'switch','main');run(w,'merge','--no-edit','review-note');finish(base)
+        self.expect_failure(base,'P')
+    def test_bare_config_is_required_as_data(self):
+        base=solution(self.root);config=base/'shared.git/config'
+        config.write_text(config.read_text().replace('bare = true','bare = false'))
+        self.expect_failure(base,'bare')
+    def test_bare_config_section_case_and_no_configparser_default_inheritance(self):
+        base=solution(self.root);config=base/'shared.git/config';original=config.read_text()
+        config.write_text(original.replace('[core]','[CORE]'))
+        self.assertEqual('pass',self.check(base)['automated'])
+        config.write_text(original.replace('\tbare = true\n','')+'\n[DEFAULT]\n bare=true\n')
+        self.expect_failure(base,'bare')
+    def test_bare_config_observes_order_across_section_case_variants(self):
+        base=solution(self.root);config=base/'shared.git/config';original=config.read_text()
+        config.write_text(original+'\n[CORE]\n bare=false\n')
+        self.expect_failure(base,'bare')
+        config.write_text(original+'\n[CORE]\n bare=false\n[core]\n bare=true\n')
+        self.assertEqual('pass',self.check(base)['automated'])
+    def test_origin_cannot_inherit_a_configparser_DEFAULT_url(self):
+        base=solution(self.root);config=base/'work/.git/config'
+        config.write_text(config.read_text().replace('\turl = ../shared.git\n','')+'\n[DEFAULT]\n url=../shared.git\n')
+        self.expect_failure(base,'origin')
+    def test_archive_limit_is_manual_without_contract_failure(self):
+        path=self.root/'large.zip'
+        with zipfile.ZipFile(path,'w') as archive:
+            for i in range(1001):archive.writestr(f'maintenance/work/item-{i}',b'x')
+        result=check_archive(path)
+        self.assertEqual('manual',result['automated']);self.assertTrue(result['toolLimited']);self.assertEqual([],result['errors'])
+        receipt=self.root/'receipt.json'
+        cli=subprocess.run([sys.executable,str(Path(__file__).resolve().parents[1]/'tools/check_project_maintenance.py'),str(path),'--output',str(receipt)],capture_output=True,text=True)
+        self.assertEqual(2,cli.returncode);self.assertEqual('manual',json.loads(receipt.read_text())['automated'])
+    def test_large_valid_history_is_manual_without_educational_maximum(self):
+        base=solution(self.root);w=base/'work'
+        for i in range(250):
+            (w/'notes.txt').write_text(f'Сопроводительное примечание {i}.\n');run(w,'add','notes.txt');run(w,'commit','-qm',f'Уточнить примечание {i}')
+        finish(base);run(w,'gc','--prune=now');run(base/'shared.git','gc','--prune=now')
+        result=self.check(base)
+        self.assertEqual('manual',result['automated'],result);self.assertTrue(result['toolLimited']);self.assertEqual([],result['errors'])
     def test_conflict_resolution_cannot_drop_quality(self):
         base=solution(self.root);w=base/'work';(w/'report.ini').write_bytes(b'format=csv\ncolumns=code,value\ndecimal=dot\n');run(w,'add','report.ini');run(w,'commit','-qm','Wrong choice');finish(base);self.expect_failure(base,'report.ini')
-    def test_patch_commit_must_start_at_A(self):self.expect_failure(solution(self.root,bad_parent=True),'review-note')
+    def test_patch_commit_must_start_at_A(self):self.expect_failure(solution(self.root,bad_parent=True),'P')
     def test_lightweight_tag_is_not_annotated(self):
         base=solution(self.root);finish(base,lightweight=True);self.expect_failure(base,'аннотированный')
     def test_shared_main_must_receive_the_final_commit(self):
         base=solution(self.root);run(base/'shared.git','update-ref','refs/heads/main',run(base/'work','rev-parse','start').stdout.decode().strip());self.expect_failure(base,'shared.git')
+    def test_original_F_line_cannot_be_replaced_by_equal_final_files(self):
+        base=solution(self.root);w=base/'work'
+        tree=run(w,'rev-parse','HEAD^{tree}').stdout.decode().strip()
+        oid=run(w,'commit-tree',tree,'-p','start','-p','review-note','-m','Синтезировать итог без F').stdout.decode().strip()
+        run(w,'reset','--hard',oid);run(base/'shared.git','update-ref','refs/heads/main',run(w,'rev-parse','start').stdout.decode().strip());finish(base)
+        self.expect_failure(base,'предков')
+    def test_patch_from_A_instead_of_start_is_not_the_release_transition(self):
+        base=solution(self.root);run(base/'work','diff','--binary','--output=../release.patch','base','v2.0')
+        self.expect_failure(base,'release.patch')
     def test_outgoing_patch_must_reproduce_the_final_tree(self):
         base=solution(self.root);(base/'release.patch').write_bytes(b'');self.expect_failure(base,'release.patch')
     def test_release_archive_must_contain_committed_bytes_only(self):
@@ -81,6 +153,8 @@ class ProjectMaintenance(unittest.TestCase):
         base=solution(self.root);run(base/'work','diff','--binary','--unified=0','--output=../release.patch','start','v2.0')
         self.assertEqual('pass',self.check(base)['automated'])
     def test_untrusted_config_is_never_executed(self):
-        base=solution(self.root);w=base/'work';(w/'.git/config').write_text('[core]\n bare=false\n fsmonitor=/do-not-execute\n hooksPath=/do-not-execute\n[include]\n path=/do-not-read\n')
-        self.assertEqual('pass',self.check(base)['automated'])
+        base=solution(self.root);w=base/'work';marker=self.root/'EXECUTED';hook=w/'.git/unsafe-hook'
+        hook.write_text('#!/bin/sh\ntouch '+shlex.quote(str(marker))+'\n');hook.chmod(0o755)
+        with (w/'.git/config').open('a') as stream:stream.write('[core]\n fsmonitor='+str(hook)+'\n hooksPath=/do-not-execute\n[include]\n path=/do-not-read\n[credential]\n helper=!touch '+str(marker)+'\n')
+        self.assertEqual('pass',self.check(base)['automated']);self.assertFalse(marker.exists())
 if __name__=='__main__':unittest.main()
