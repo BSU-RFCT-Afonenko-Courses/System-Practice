@@ -1,171 +1,418 @@
 # Управление версиями {#sec-version-control-reference}
 
-Команды выполняются из корня обычного Git-репозитория в fish/Linux
-или PowerShell 7. Примеры относятся к `historylab/selection` и
-`historylab/integration`; переход между ними указан явно.
-Термины и полные опыты разобраны в
-{{< xref system-practice-theory sec-git-state "состоянии репозитория" >}}
-и {{< xref system-practice-theory sec-git-branches "ветвлении" >}}.
+Темы раздела: начальная настройка; состояние файлов; снимок; история;
+ветки; слияние; удалённые репозитории; SSH; упаковка результата.
+Команды Git выполняются в корне
+нужного репозитория; переход в другой каталог указан отдельно.
+Механизмы разобраны в теории
+{{< xref system-practice-theory sec-git-state "состояния репозитория" >}},
+{{< xref system-practice-theory sec-git-branches "ветвления" >}}
+и {{< xref system-practice-theory sec-git-exchange "обмена" >}}.
 
-## Текущее состояние и сравнение {#sec-reference-git-state}
+## Начальная настройка {#sec-reference-git-init}
 
-| Команда | Наблюдение |
+```console
+git --version
+git init -b main
+git config user.name "Ваше имя"
+git config user.email "YOUR_EMAIL"
+git config --get user.name
+git config --get user.email
+```
+
+`init` выполняется в выбранной папке исходных файлов. Имя и почту
+заменяют собственными значениями. Без `--global` настройка относится
+к текущему репозиторию. Почта коммитов доступна читателям истории;
+можно выбрать свой GitHub `noreply` из настроек аккаунта.
+Аутентификация аккаунта выполняется при соединении с сервером.
+
+## Наблюдение состояния {#sec-reference-git-state}
+
+| Команда | Что показывает |
 |---|---|
-| `git status` | Текущая ветка, подготовленные и рабочие изменения, состояние слияния |
-| `git status --short` | Две колонки: индекс относительно HEAD; рабочий файл относительно индекса |
+| `git status` | Текущую ветку, подготовленные/рабочие изменения, состояние слияния |
+| `git status --short` | Краткие состояния путей; для обычного изменённого файла первая колонка относится к индексу, вторая — к рабочему дереву |
 | `git --no-pager diff` | Изменения рабочего дерева относительно индекса |
 | `git --no-pager diff --staged` | Подготовленные изменения относительно HEAD |
-| `git --no-pager diff HEAD` | Рабочий вариант относительно HEAD |
-| `git --no-pager diff start HEAD` | Различие двух сохранённых снимков |
+| `git --no-pager diff HEAD` | Рабочее содержимое относительно HEAD |
+| `git --no-pager diff ID_A ID_B` | Различия двух сохранённых снимков |
+
+Вместо ID_A/ID_B подставляют идентификаторы из своей истории.
+`--no-pager` выводит результат прямо в терминал; `-- criteria.txt`
+в конце команды ограничивает наблюдение одним файлом.
 
 Для обычного отслеживаемого файла `M` означает изменение, пробел —
-совпадение. `MM collection.ini` в исходном selection означает 6/8/10
-в HEAD/индексе/рабочем дереве. `??` показывает неотслеживаемый файл,
-который ещё не добавлен в индекс. `--no-pager` отключает постраничный
-просмотр; `-- путь` ограничивает сравнение выбранным файлом.
-[@bib-git-status; @bib-git-diff]
+совпадение. `MM criteria.txt` возможно при пороге 10 в HEAD, 12 в индексе
+и 20 в рабочем файле. `??` обозначает неотслеживаемый путь; `UU` —
+конфликт, в котором обе стороны меняли файл.
+[status](https://git-scm.com/docs/git-status),
+[diff](https://git-scm.com/docs/git-diff).
 
-## История и конкретная версия {#sec-reference-git-history}
+## Сохранение снимка {#sec-reference-git-commit}
+
+```console
+git add -- criteria.txt README.md
+git --no-pager diff --staged
+git commit -m "Описать сохранённое изменение"
+```
+
+`add` подготавливает содержимое названных файлов в момент вызова.
+Обычный commit без путей сохраняет подготовленный снимок. После дальнейшей
+правки рабочего файла индекс сохраняет ранее выбранное содержимое
+до следующего действия с индексом. Режим `commit -a` подготавливает
+изменения и удаления отслеживаемых файлов; новые неотслеживаемые файлы
+требуют добавления. [Руководство commit](https://git-scm.com/docs/git-commit).
+
+## Чтение истории {#sec-reference-git-history}
 
 ```console
 git --no-pager log --oneline --decorate
 git --no-pager log --graph --oneline --decorate --all
-git --no-pager log -p -- legend.txt
-git show 'HEAD:collection.ini'
-git show ':collection.ini'
-git show 'units-reference:legend.txt'
-```
-
-Первая команда идёт от HEAD. `--all` включает все ссылки, `--graph`
-показывает связи; `--decorate` добавляет имена веток и тегов.
-`-p` выводит патч. Последние три формы читают файл из HEAD, индекса
-и указанного тега. Двоеточие отделяет версию от пути;
-без версии перед ним читается обычная запись индекса.
-[@bib-chacon-straub-progit, с. 42–48; @bib-git-revisions]
-
-Родители выбранного коммита:
-
-```console
+git --no-pager log -p -- criteria.txt
+git show 'HEAD:criteria.txt'
+git show ':criteria.txt'
+git show 'ID_A:criteria.txt'
 git --no-pager show --no-patch --format=raw HEAD
+git rev-parse HEAD
 ```
 
-`--no-patch` убирает патч, формат raw показывает поля `parent`.
-Две такие строки — два непосредственных родителя. Положение веток
-отдельно читается по decorated log. [@bib-git-show]
-
-## Подготовка и фиксация {#sec-reference-git-commit}
-
-В этом примере автор уже настроен локально. В selection подготовлено
-samples=8, scratch снят с подготовки, legend восстановлен в ms;
-осталось подготовить рабочую инструкцию guide. Полная подготовка дана
-в {{< xref system-practice-theory sec-git-restore "разборе переноса версий" >}}.
-
-```console
-git add -- guide.txt
-git --no-pager diff --staged
-git commit -m 'Prepare eight readings'
-```
-
-add сохраняет текущее содержимое пути в индекс. Дальнейшие изменения
-редактора не обновляют его автоматически. commit без -a и перечисления
-путей сохраняет подготовленный снимок; -m задаёт сообщение.
-`commit -a` предварительно подготавливает изменения отслеживаемых файлов;
-эта форма имеет другой выбор содержимого. [@bib-git-add; @bib-git-commit]
-
-Данные автора задаются отдельно в каждом учебном репозитории:
-
-```console
-git config set --local user.name 'Учебный автор'
-git config set --local user.email 'author@example.test'
-```
-
-Выберите свои значения. `config set` записывает настройку, `--local`
-ограничивает её текущим `.git/config`. Если commit сообщает об отсутствии
-автора, проверьте настройки в том репозитории, где выполняется команда.
-[@bib-git-config]
+`log` начинает обход от HEAD; `--all` включает все ссылки, `--graph`
+рисует родительские связи, `--decorate` подписывает текущие имена.
+`-p` добавляет изменения. Три формы show читают файл из HEAD, индекса
+и указанного коммита. В raw-описании коммита строки `parent` называют
+непосредственных родителей. `rev-parse HEAD` печатает полный идентификатор.
+[@bib-chacon-straub-progit, с. 42–48; @bib-git-revisions; @bib-git-show]
 
 ## Восстановление содержимого {#sec-reference-git-restore}
 
-| Задача | Форма | Источник → назначение |
-|---|---|---|
-| Вернуть рабочий файл к подготовленной версии | `git restore -- file` | Индекс → рабочее дерево |
-| Снять подготовку, сохранив рабочий файл | `git restore --staged -- file` | HEAD → индекс |
-| Взять исторический файл в рабочую папку | `git restore --source=tag --worktree -- file` | Тег → рабочее дерево |
-| Подготовить исторический файл и получить его рабочую копию | `git restore --source=tag --staged --worktree -- file` | Тег → оба места |
+Перед заменой рабочего файла прочитайте diff и сохраните полезные правки.
 
-Замените file и tag нужными именами. Восстановление рабочего файла
-заменяет его текущий текст. Перед переносом используйте show/diff,
-чтобы выбрать источник и сохранить ещё нужные рабочие изменения.
-Сама команда restore не создаёт коммит и не передвигает ветку.
-[@bib-git-restore]
-
-## Ветки и начало линии {#sec-reference-git-branches}
-
-Примеры далее выполняются в чистом `historylab/integration`:
-
-```console
-git branch --list
-git switch -c labels main
-```
-
-branch показывает существующие локальные ветки. switch -c создаёт
-новую labels от main и делает её текущей. Общая форма:
-`git switch -c имя начало`; начало можно задать другой веткой или тегом.
-`git switch main` переключает на уже существующую main.
-
-Индекс и отслеживаемые файлы получают выбранную версию с учётом
-сохраняемых локальных изменений. Если переключение уничтожило бы
-локальную правку, Git отказывает. Сначала исследуйте status и diff.
-Примеры слияния предполагают чистое исходное состояние.
-[@bib-git-switch]
-
-## Слияние и fast-forward {#sec-reference-git-merge}
-
-После создания C в labels объединение с разошедшейся wide-report:
-
-```console
-git merge --no-ff --no-edit wide-report
-```
-
-Команда включает указанную историю в текущую ветку. --no-ff выбирает
-коммит слияния; --no-edit принимает подготовленное сообщение.
-В демонстрации создаётся D с родителями C и F, labels указывает на D.
-
-Если текущая main на M является предком D, её можно продвинуть:
-
-```console
-git switch main
-git merge --ff-only labels
-```
-
-При fast-forward ссылка main получает D без нового коммита.
-Для чистого репозитория `--ff-only` различает три отношения:
-
-| Отношение вершин | Результат |
+| Источник → назначение | Команда |
 |---|---|
-| Вершины различны; текущая — предок включаемой | Fast-forward: текущая ветка продвигается к включаемой вершине |
-| Включаемая вершина — предок текущей или совпадает с ней | Успех без изменения ветки: `Already up to date.` |
-| Ни одна вершина не является предком другой | Отказ: линии разошлись |
+| Индекс → рабочий файл | `git restore -- criteria.txt` |
+| HEAD → индекс | `git restore --staged -- criteria.txt` |
+| Указанный коммит → рабочий файл | `git restore --source=ID_A --worktree -- criteria.txt` |
+| Указанный коммит → индекс и рабочий файл | `git restore --source=ID_A --staged --worktree -- criteria.txt` |
 
-Поэтому повторное включение wide-report/F в main/D завершается успешно
-и сохраняет D. Отказ при расхождении относится к истории. Конфликт
-содержимого возникает при несовместимом слиянии изменений и требует
-отдельного согласования файлов.
-[@bib-git-merge]
+У обычного restore источник по умолчанию — индекс; с `--staged` — HEAD.
+Восстановление из старого коммита переносит его содержимое в указанное
+место. Чтобы закрепить его в новом состоянии истории, подготовьте
+результат и создайте коммит.
+[Руководство restore](https://git-scm.com/docs/git-restore).
 
-После операции прочитайте status, граф, родителей и итоговые файлы.
-`git merge --abort` относится к незавершённому слиянию; оно пытается
-восстановить состояние до начала. Исходные незакоммиченные правки могут
-затруднить восстановление, поэтому учебный опыт начинает с чистого дерева.
+## Ветки {#sec-reference-git-branches}
 
-## Полная передача репозитория {#sec-reference-git-transfer}
+| Действие | Команда | Наблюдение |
+|---|---|---|
+| Перечислить локальные ветки | `git branch --list` | Звёздочкой отмечена текущая |
+| Создать ссылку на текущий коммит | `git branch seconds` | Текущая ветка сохраняется |
+| Выбрать существующую ветку | `git switch seconds` | HEAD выбирает seconds; при чистом состоянии файлы и индекс обновляются по её снимку |
+| Создать и выбрать ветку | `git switch -c seconds` | Новая ветка начинается от текущего коммита |
+| Создать от выбранного коммита | `git switch -c seconds ID_A` | Исходный снимок выбирается явно |
 
-Для передачи истории вместе с незавершённой работой включите рабочие
-файлы и обычный каталог `.git`, где находится также индекс.
-Проверьте список файлов архива: средство ZIP должно включать скрытые
-каталоги и файлы. Архив создаётся вне упаковываемой папки.
+При переключении Git сохраняет совместимые незавершённые изменения;
+действие, которое затёрло бы их, блокируется. Status перед переключением
+помогает установить исходное состояние.
 
-`git archive` экспортирует файлы выбранного снимка. В таком экспорте
-нет полной истории и отдельного подготовленного состояния индекса;
-для сдачи этих данных требуется архив всей учебной папки.
-[@bib-git-archive]
+## Слияние {#sec-reference-git-merge}
+
+При чистом состоянии текущей main:
+
+```console
+git merge --ff-only source-note
+```
+
+| Отношение историй | Результат ff-only |
+|---|---|
+| main — предок source-note | main перемещается к её вершине, нового коммита нет |
+| source-note уже включена в историю main | `Already up to date`, продвижение не требуется |
+| Вершины расходятся | Отказ; ссылки сохраняются |
+
+Для соединения расходящихся main и seconds:
+
+```console
+git merge seconds
+git status
+```
+
+При конфликте прочитайте обе версии и их смысл, приведите файл
+к согласованному состоянию, удалите маркеры, проверьте результат:
+
+```console
+git add -- criteria.txt
+git --no-pager diff --staged
+git commit -m "Согласовать порог"
+```
+
+Другой способ завершить подготовленное слияние — `git merge --continue`.
+Для отказа от незавершённого слияния служит `git merge --abort`.
+Незакоммиченные изменения, существовавшие до merge, могут затруднить
+возврат; описанный маршрут начинается с чистых файлов и индекса.
+[Руководство merge](https://git-scm.com/docs/git-merge).
+
+## Удалённые репозитории {#sec-reference-git-remote}
+
+| Действие | Команда | Результат |
+|---|---|---|
+| Задать имя адреса | `git remote add origin git@github.com:OWNER/REPOSITORY.git` | Локальная настройка origin |
+| Прочитать адреса | `git remote -v` | Адреса fetch/push |
+| Исправить существующий адрес | `git remote set-url origin git@github.com:OWNER/REPOSITORY.git` | Новый адрес того же remote |
+| Отправить main | `git push -u origin main` | Передача объектов, обновление серверной main, настройка upstream |
+| Получить новую копию | `git clone git@github.com:OWNER/REPOSITORY.git verification` | Новый каталог с репозиторием и рабочими файлами |
+| Получить новые сведения | `git fetch origin` | Объекты и настроенные remote-tracking refs |
+| Включить полученного потомка | `git merge --ff-only origin/main` | Продвижение текущей ветки при подходящем отношении истории |
+
+OWNER/REPOSITORY заменяется своим адресом. Clone запускается из родительской
+папки будущей копии. `origin/main` хранится локально и отражает полученное
+состояние main другого репозитория. Fetch позволяет сначала прочитать
+изменившийся граф; merge затем меняет текущую ветку и рабочие файлы.
+[@bib-git-fetch; @bib-git-push]
+
+## Подготовка аккаунта {#sec-reference-git-account}
+
+1. Войдите в свой GitHub либо пройдите
+   [регистрацию](https://docs.github.com/en/account-and-profile/how-tos/account-management/creating-an-account-on-github).
+   Подтверждение почты связывает адрес с аккаунтом.
+2. Настройте защиту входа в `Settings → Password and authentication`.
+   При [2FA](https://docs.github.com/en/authentication/securing-your-account-with-two-factor-authentication-2fa/configuring-two-factor-authentication)
+   сохраните коды восстановления в личном защищённом хранилище.
+3. Выберите почту будущих коммитов; свой `noreply` доступен в настройках
+   почты аккаунта. Проверьте `git config --get user.email` в проекте.
+4. Создайте пустой репозиторий через `New repository`. Видимость выбираете
+   вы. При переносе готовой локальной истории оставьте создание README,
+   лицензии и .gitignore на сервере выключенным.
+
+Веб-вход управляет аккаунтом, SSH-ключ подтверждает аккаунт при Git-операциях,
+а права репозитория определяют разрешение чтения/записи.
+
+## Windows OpenSSH {#sec-reference-git-ssh}
+
+Основной Windows-маршрут: системный OpenSSH и служба Windows ssh-agent.
+Проверка и дальнейшие команды выполняются в PowerShell 7.
+
+```powershell
+$openSshDir = Join-Path $env:WINDIR 'System32/OpenSSH'
+$sshClient = Join-Path $openSshDir 'ssh.exe'
+$sshKeygen = Join-Path $openSshDir 'ssh-keygen.exe'
+$sshAdd = Join-Path $openSshDir 'ssh-add.exe'
+Test-Path -LiteralPath $sshClient
+& $sshClient -V
+```
+
+При отсутствии клиента установите компонент OpenSSH Client по
+[инструкции Microsoft](https://learn.microsoft.com/en-us/windows-server/administration/openssh/openssh_install_firstuse).
+Установка требует прав администратора. В отдельном административном
+PowerShell запустите службу:
+
+```powershell
+Get-Service -Name ssh-agent | Set-Service -StartupType Manual
+Start-Service ssh-agent
+Get-Service ssh-agent
+```
+
+Ожидается `Running`. С режимом Manual после остановки или перезагрузки
+может понадобиться новый запуск службы. В обычном пользовательском
+PowerShell проверьте прежний выбор ssh и при переходе на системный клиент
+сохраните согласованную команду для Git:
+
+```powershell
+git config --global --get core.sshCommand
+$sshProgram = '"' + $sshClient.Replace('\', '/') + '"'
+git config --global core.sshCommand $sshProgram
+git config --show-origin --get core.sshCommand
+```
+
+`--global` относится ко всем репозиториям пользователя. `--show-origin`
+показывает, из какого файла взялось действующее значение в текущем проекте.
+Настройки репозитория и переменные `GIT_SSH`/`GIT_SSH_COMMAND` могут влиять
+на выбор команды. При несовпадении клиента проверьте их и прежнюю настройку
+перед изменением. Git for Windows и Windows OpenSSH могут использовать
+разные агенты.
+[Документация GitHub](https://docs.github.com/en/authentication/connecting-to-github-with-ssh/generating-a-new-ssh-key-and-adding-it-to-the-ssh-agent).
+
+## Выбор ключа
+
+В PowerShell прочитайте имена файлов в `$HOME/.ssh`; в fish — в `~/.ssh`.
+Открытая часть пары имеет окончание `.pub`. Существующий подходящий ключ
+можно использовать повторно. Для новой пары сначала проверьте свободное
+имя обоих файлов.
+
+PowerShell, после настройки системного клиента:
+
+```powershell
+Get-ChildItem -Force -LiteralPath "$HOME/.ssh"
+New-Item -ItemType Directory -Force -Path "$HOME/.ssh"
+$keyPath = Join-Path $HOME '.ssh/id_ed25519_course'
+Test-Path -LiteralPath $keyPath
+Test-Path -LiteralPath "$keyPath.pub"
+```
+
+Если каталога ещё нет, первая команда сообщит об отсутствии. Для нового
+имени два Test-Path должны вернуть False. Только для свободного имени:
+
+```powershell
+& $sshKeygen -t ed25519 -C 'course-computer' -f $keyPath
+```
+
+При существующей паре задайте `$keyPath` её фактическим путём.
+Добавление выбранного ключа в работающий агент:
+
+```powershell
+& $sshAdd $keyPath
+& $sshAdd -l
+Get-Content -Raw -LiteralPath "$keyPath.pub"
+```
+
+При создании задаётся парольная фраза; ssh-add запрашивает её для открытия
+ключа. `-l` показывает отпечатки доступных агенту ключей. Последняя команда
+читает открытую часть для регистрации в GitHub.
+
+## Ключ в fish/Linux {#sec-reference-git-ssh-fish}
+
+```fish
+ssh -V
+ssh-add -l
+ls -la ~/.ssh
+```
+
+При доступном агенте можно продолжать с ним. Если агент отсутствует,
+команда `ssh-agent fish` откроет вложенный fish с доступом к новому агенту;
+этот агент завершится при выходе из вложенного сеанса.
+
+```fish
+ssh-agent fish
+mkdir -p ~/.ssh
+test -e ~/.ssh/id_ed25519_course
+echo $status
+test -e ~/.ssh/id_ed25519_course.pub
+echo $status
+```
+
+У test код 0 означает существующий путь. Для занятого имени выбирается
+другое; генерация выполняется только для двух свободных путей:
+
+```fish
+ssh-keygen -t ed25519 -C 'course-computer' -f ~/.ssh/id_ed25519_course
+ssh-add ~/.ssh/id_ed25519_course
+ssh-add -l
+cat ~/.ssh/id_ed25519_course.pub
+```
+
+Для уже существующей пары используйте её путь в ssh-add и cat;
+генерация пропускается. Закрытая часть используется локально,
+открытая добавляется в аккаунт.
+
+## Проверка доступа {#sec-reference-git-ssh-test}
+
+В GitHub откройте `Settings → SSH and GPG keys → New SSH key`.
+Задайте понятное название компьютера, выберите `Authentication` и вставьте
+полный текст выбранного `.pub`.
+[Регистрация ключа](https://docs.github.com/en/authentication/connecting-to-github-with-ssh/adding-a-new-ssh-key-to-your-github-account).
+
+PowerShell с выбранным системным клиентом:
+
+```powershell
+& $sshClient -T git@github.com
+$LASTEXITCODE
+```
+
+Fish:
+
+```fish
+ssh -T git@github.com
+echo $status
+```
+
+Первое доверие серверу подтверждается после сверки типа и полного отпечатка
+с [официальной страницей](https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/githubs-ssh-key-fingerprints).
+При несовпадении соединение прерывают и выясняют причину. Ожидаемое
+сообщение называет аккаунт и успешную аутентификацию, затем отсутствие
+shell-доступа. У GitHub этот тест штатно заканчивается кодом 1.
+Push дополнительно проверяет право записи в выбранный репозиторий.
+[Проверка SSH](https://docs.github.com/en/authentication/connecting-to-github-with-ssh/testing-your-ssh-connection).
+
+## Диагностика обмена
+
+| Наблюдение | Проверка |
+|---|---|
+| Агент недоступен | Windows: состояние службы и выбранный ssh-add; fish: окружение сеанса, запущенного под агентом |
+| `Permission denied (publickey)` | Наличие нужного ключа в агенте, открытый ключ в ожидаемом аккаунте, выбранный клиент |
+| SSH приветствует другой аккаунт | Какой ключ использован и в каком аккаунте он зарегистрирован |
+| Ключ сервера отличается от доверенного | Адрес сервера, официальный отпечаток, причина изменения; соединение остаётся остановленным до выяснения |
+| `Repository not found` | OWNER/REPOSITORY, существование репозитория, права распознанного аккаунта |
+| `remote origin already exists` | Прочитать `remote -v`; исправить адрес существующего origin при необходимости |
+| Push отклонён как non-fast-forward | Получить историю fetch, прочитать обе линии, интегрировать полезные изменения |
+
+## Упаковка результата {#sec-reference-git-package}
+
+Полный локальный результат включает файлы, индекс, ссылки и историю
+в `.git`. Для сдачи используется каталог `versioning` с двумя обычными
+репозиториями и explanation.md. Завершите операции Git и редактирование
+перед созданием архива. Команды выполняются из **родительской папки**
+versioning; выходной архив находится рядом с ним.
+
+PowerShell 7 использует штатный API .NET, включающий скрытое содержимое:
+
+```powershell
+$source = (Resolve-Path -LiteralPath './versioning').Path
+$archive = Join-Path (Get-Location).Path 'version-control.zip'
+[System.IO.Compression.ZipFile]::CreateFromDirectory(
+    $source, $archive,
+    [System.IO.Compression.CompressionLevel]::Optimal, $true
+)
+```
+
+`$source` и `$archive` содержат абсолютные пути. Последний аргумент
+`$true` включает корневое имя versioning в ZIP. Выходное имя должно
+быть свободно; существующий архив вызывает исключение. При повторной
+сдаче выберите новое имя либо уберите собственный предыдущий архив
+после проверки нужной версии.
+[ZipFile.CreateFromDirectory](https://learn.microsoft.com/en-us/dotnet/api/system.io.compression.zipfile.createfromdirectory).
+
+`Compress-Archive` исключает скрытые файлы и каталоги. Его обычный вызов
+может потерять `.git`; для репозиториев применяется показанный API .NET.
+[Описание Compress-Archive](https://learn.microsoft.com/en-us/powershell/module/microsoft.powershell.archive/compress-archive?view=powershell-7.5).
+
+Fish/Linux с GNU tar:
+
+```fish
+tar -czf version-control.tar.gz versioning
+tar -tzf version-control.tar.gz
+```
+
+`-c` создаёт архив, `-z` включает gzip, `-f` задаёт имя файла;
+`-t` перечисляет содержимое. Передаётся сам каталог versioning,
+поэтому рекурсивно включаются его обычные и скрытые файлы. В списке
+должны присутствовать оба `.git/HEAD` и объектные данные `.git`.
+
+Извлеките собственный архив в новую папку `archive-check`. Для ZIP
+в PowerShell:
+
+```powershell
+Expand-Archive -LiteralPath ./version-control.zip -DestinationPath ./archive-check
+```
+
+`-LiteralPath` задаёт буквальный путь ZIP. Отсутствующая папка назначения
+создаётся при извлечении; существующие файлы без `-Force` сохраняются.
+[Expand-Archive](https://learn.microsoft.com/en-us/powershell/module/microsoft.powershell.archive/expand-archive?view=powershell-7.5).
+
+Для tar.gz в fish:
+
+```fish
+mkdir archive-check
+tar -xzf version-control.tar.gz -C archive-check
+```
+
+Затем в любой из двух оболочек:
+
+```console
+git -C archive-check/versioning/project rev-parse HEAD
+git -C archive-check/versioning/project log --oneline --all
+git -C archive-check/versioning/project status --short
+git -C archive-check/versioning/verification rev-parse HEAD
+git -C archive-check/versioning/verification status --short
+```
+
+Идентификаторы должны совпасть с упакованными вершинами, история —
+содержать нужные исходные коммиты и слияние, оба статуса — быть чистыми.
+Проверьте также восстановленные файлы.
