@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 """Установить факты Git-сдачи; объяснение истории оценивается отдельно."""
 import argparse
-import configparser
 from decimal import Decimal
 import re
 from urllib.parse import urlsplit
@@ -86,6 +85,23 @@ class Repository:
     def index_modes_match_tree(self,oid):
         """Сравнить режимы Git; права рабочего файла из ZIP здесь не используются."""
         return self._modes(self.git('ls-files','--stage','-z'))==self.tree_modes(oid)
+    def _config_data_file(self):
+        path=self.gitdir/'submitted-config.data'
+        path.write_bytes(self.files.get('.git/config',b''))
+        return str(path)
+    def config_entries(self):
+        """Прочитать упорядоченные значения Git как данные, не активируя config сдачи."""
+        raw=self.git('config','--no-includes','--file',self._config_data_file(),'--null','--list')
+        entries=[]
+        for record in raw.split(b'\0'):
+            if record:
+                key,separator,value=record.partition(b'\n')
+                entries.append((key.decode('utf-8'),value.decode('utf-8') if separator else None))
+        return entries
+    def config_bool(self,key):
+        """Отличить отсутствующий boolean от нативных true/false, включая ключ без значения."""
+        if not any(name==key for name,_ in self.config_entries()):return None
+        return self.git('config','--no-includes','--file',self._config_data_file(),'--null','--type=bool','--get',key)==b'true\0'
     def commits(self,oid):return set(self.git('rev-list',oid).decode().split())
 
 def encoded(mapping):return {name:text.encode() for name,text in mapping.items()}
@@ -123,18 +139,18 @@ def _config_value(value):
     return ''.join(result).rstrip()
 
 
-def _remotes(repo):
-    # Читаем данные: ConfigParser не обрабатывает Git include/includeIf и не вызывает helpers.
-    parser = configparser.RawConfigParser(strict=False, allow_no_value=True, default_section='')
-    try: parser.read_string(repo.files.get('.git/config', b'').decode('utf-8'))
-    except (configparser.Error, UnicodeError) as error:
-        raise GitDataError('Не удалось прочитать адреса remote из .git/config') from error
-    result = {}
-    for section in parser.sections():
-        match = re.fullmatch(r'remote\s+"([^"]+)"', section, re.I)
-        if match and parser.has_option(section, 'url'):
-            result[match.group(1)] = _config_value(parser.get(section, 'url', raw=True))
+def _remote_urls(repo):
+    """Сохранить все настроенные URL в порядке Git; include и helpers не выполняются."""
+    result={}
+    for key,value in repo.config_entries():
+        match=re.fullmatch(r'remote\.(.+)\.url',key)
+        if match:result.setdefault(match.group(1),[]).append(value if value is not None else '')
     return result
+
+
+def _remotes(repo):
+    # Git получает данные с первого URL, последующие адреса не подменяют его.
+    return {name:values[0] for name,values in _remote_urls(repo).items()}
 
 
 def _ssh_address(value):
@@ -232,7 +248,7 @@ def check_archive(path):
                 if not tree.get('README.md', b'').decode('utf-8').strip():
                     raise GitDataError(f'{name}: нужен README.md; смысл пояснения единиц проверяется вручную')
                 repo.git('fsck', '--full', '--no-reflogs', '--no-dangling', '--no-progress', head)
-                final[name] = (head, tree); facts[name + 'Remotes'] = _remotes(repo)
+                final[name] = (head, tree); facts[name + 'Remotes'] = _remotes(repo); facts[name + 'RemoteURLs'] = _remote_urls(repo)
             if final['project'] != final['verification']:
                 raise GitDataError('project и verification должны иметь одинаковый main и снимок')
             if not any(_ssh_address(url) for url in facts['projectRemotes'].values()):

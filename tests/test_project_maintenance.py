@@ -1,5 +1,5 @@
 """Факты проекта: допустимые истории и содержательные неверные результаты."""
-import io,shutil,sys,tempfile,unittest,zipfile,zlib,subprocess,json,shlex
+import io,shutil,sys,tempfile,unittest,zipfile,zlib,subprocess,json,shlex,os
 from pathlib import Path
 sys.path.insert(0,str(Path(__file__).resolve().parents[1]/'tools'))
 from check_project_maintenance import check_archive
@@ -91,6 +91,52 @@ class ProjectMaintenance(unittest.TestCase):
         base=solution(self.root);config=base/'work/.git/config'
         config.write_text(config.read_text().replace('\turl = ../shared.git\n','')+'\n[DEFAULT]\n url=../shared.git\n')
         self.expect_failure(base,'origin')
+    def test_first_native_fetch_url_and_all_url_order_are_preserved(self):
+        base=solution(self.root);w=base/'work'
+        cases=[(['/old/computer/shared.git','../shared.git'],'fail'),
+               (['../shared.git','./../shared.git'],'pass'),
+               (['./../shared.git','../shared.git'],'pass')]
+        for urls,expected in cases:
+            with self.subTest(urls=urls):
+                run(w,'config','--unset-all','remote.origin.url')
+                for url in urls:run(w,'config','--add','remote.origin.url',url)
+                native=run(w,'remote','get-url','origin').stdout.decode().strip()
+                self.assertEqual(urls[0],native)
+                self.assertEqual(urls,run(w,'config','--get-all','remote.origin.url').stdout.decode().splitlines())
+                result=self.check(base);self.assertEqual(expected,result['automated'],result)
+                if expected=='pass':
+                    self.assertEqual(native,result['facts']['origin'])
+                    self.assertEqual(urls,result['facts']['originURLs'])
+    def test_native_implicit_bare_true_and_explicit_missing_false(self):
+        base=solution(self.root);shared=base/'shared.git';config=shared/'config';original=config.read_text()
+        for spelling,native in [('bare','true'),('bare = true','true'),('bare =','false'),('bare = false','false'),('', None)]:
+            with self.subTest(spelling=spelling):
+                config.write_text(original.replace('bare = true',spelling))
+                query=run(shared,'config','--type=bool','--get','core.bare',ok=False)
+                if native is None:self.assertEqual(1,query.returncode)
+                else:
+                    self.assertEqual(native,query.stdout.decode().strip())
+                    self.assertEqual(native,run(shared,'rev-parse','--is-bare-repository').stdout.decode().strip())
+                result=self.check(base)
+                self.assertEqual('pass' if native=='true' else 'fail',result['automated'],result)
+    def test_data_config_parser_does_not_follow_even_malformed_existing_include(self):
+        base=solution(self.root);w=base/'work';included=self.root/'unread-config';included.write_text('THIS IS NOT GIT CONFIG\n')
+        with (w/'.git/config').open('a') as stream:stream.write('\n[include]\n path='+str(included)+'\n')
+        self.assertEqual('pass',self.check(base)['automated'])
+    def test_data_config_parser_ignores_inherited_git_configuration(self):
+        base=solution(self.root);archive=package(base,self.root/'env.zip')
+        poison=self.root/'poison-config';poison.write_text('THIS IS NOT GIT CONFIG\n')
+        env={**os.environ,'GIT_CONFIG_GLOBAL':str(poison),'GIT_CONFIG_COUNT':'1',
+             'GIT_CONFIG_KEY_0':'core.bare','GIT_CONFIG_VALUE_0':'false'}
+        script='import json,sys;sys.path.insert(0,sys.argv[1]);from check_project_maintenance import check_archive;print(json.dumps(check_archive(sys.argv[2],sys.argv[3])))'
+        result=subprocess.run([sys.executable,'-c',script,str(Path(__file__).resolve().parents[1]/'tools'),str(archive),str(self.root/'tasks/projects/project-maintenance/initial-state.json')],env=env,capture_output=True,text=True)
+        self.assertEqual(0,result.returncode,result.stderr)
+        self.assertEqual('pass',json.loads(result.stdout)['automated'])
+    def test_data_config_output_limit_is_manual_not_contract_failure(self):
+        base=solution(self.root);config=base/'work/.git/config'
+        with config.open('a') as stream:stream.write('\n[course]\n note='+('a'*(1024*1024+128))+'\n')
+        result=self.check(base)
+        self.assertEqual('manual',result['automated'],result);self.assertTrue(result['toolLimited']);self.assertEqual([],result['errors'])
     def test_archive_limit_is_manual_without_contract_failure(self):
         path=self.root/'large.zip'
         with zipfile.ZipFile(path,'w') as archive:

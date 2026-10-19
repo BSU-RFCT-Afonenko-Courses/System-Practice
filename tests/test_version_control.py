@@ -145,6 +145,26 @@ class VersionControlTests(unittest.TestCase):
             with self.subTest(kind=kind):
                 self.assertEqual('pass', self.check(base, kind)['automated'])
 
+    def test_first_native_fetch_url_controls_each_repository(self):
+        for name,remote in [('project','course'),('verification','origin')]:
+            with self.subTest(repository=name):
+                where=self.root/name;where.mkdir();base,_=solution(where);repo=base/name
+                run(repo,'remote','set-url',remote,'https://github.com/owner/latency.git')
+                run(repo,'config','--add','remote.'+remote+'.url','ssh://git@github.com/owner/latency.git')
+                self.assertEqual(b'https://github.com/owner/latency.git\n',run(repo,'remote','get-url',remote).stdout)
+                self.assertEqual('fail',self.check(base)['automated'])
+    def test_ordered_ssh_urls_match_native_fetch_and_remain_observable(self):
+        base,_=solution(self.root);repo=base/'verification'
+        urls=['ssh://git@github.com/first/repo.git','git@fixture-alias:second/repo.git']
+        for values in [urls,list(reversed(urls))]:
+            run(repo,'config','--unset-all','remote.origin.url')
+            for value in values:run(repo,'config','--add','remote.origin.url',value)
+            native=run(repo,'remote','get-url','origin').stdout.decode().strip()
+            self.assertEqual(values[0],native)
+            result=self.check(base);self.assertEqual('pass',result['automated'],result)
+            self.assertEqual(native,result['facts']['verificationRemotes']['origin'])
+            self.assertEqual(values,result['facts']['verificationRemoteURLs']['origin'])
+
     def test_git_quoted_remote_url_is_read_as_data(self):
         base, _ = solution(self.root)
         p = base / 'verification/.git/config'

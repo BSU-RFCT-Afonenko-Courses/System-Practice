@@ -1,15 +1,13 @@
 #!/usr/bin/env python3
 """Наблюдать файлы и отношения истории сопровождения; приёмы принимает преподаватель."""
 import argparse
-import configparser
 import hashlib
 import json
 import posixpath
-import re
 import tempfile
 from pathlib import Path, PurePosixPath
 from system_support import ArchiveError, ArchiveLimit, read_zip
-from check_version_control import Repository, GitDataError, ToolLimit, ATTR, normalized_work, _read_submission, _remotes, _config_value
+from check_version_control import Repository, GitDataError, ToolLimit, ATTR, normalized_work, _read_submission, _remotes, _remote_urls
 
 ROOT=Path(__file__).resolve().parents[1]
 INITIAL=ROOT/'tasks/projects/project-maintenance/initial-state.json'
@@ -37,12 +35,7 @@ def portable_origin(value):
 
 
 def bare_config(repo):
-    parser=configparser.RawConfigParser(strict=False,allow_no_value=True,default_section='')
-    raw=repo.files.get('.git/config',b'').decode('utf-8')
-    # Git объединяет core/CORE по порядку; секция DEFAULT не задаёт наследования.
-    raw=re.sub(r'(?im)^[ \t]*\[[ \t]*core[ \t]*\]', '[core]', raw)
-    parser.read_string(raw)
-    return _config_value(parser.get('core','bare',raw=True,fallback='')).lower() in ('true','yes','on','1')
+    return repo.config_bool('core.bare') is True
 
 
 def check_archive(path,initial_path=INITIAL):
@@ -126,10 +119,10 @@ def check_archive(path,initial_path=INITIAL):
             except ToolLimit:raise
             except GitDataError as problem:raise GitDataError('release.patch не применяется к start: '+str(problem)) from problem
             if work.index()!=tree or not work.index_modes_match_tree(r):raise GitDataError('release.patch на start не воспроизводит дерево main')
-            facts.update(main=r,patchCommit=p,patchBranches=matches[p],annotatedTag=tag,sharedMain=r,releaseFiles=sorted(tree),patchReproducesMain=True,origin=origin)
+            facts.update(main=r,patchCommit=p,patchBranches=matches[p],annotatedTag=tag,sharedMain=r,releaseFiles=sorted(tree),patchReproducesMain=True,origin=origin,originURLs=_remote_urls(work).get('origin',[]))
     except (ArchiveLimit,ToolLimit) as problem:
         return {'automated':'manual','toolLimited':True,'errors':[],'diagnostics':[str(problem)],'facts':facts,'manualRequired':manual}
-    except (ArchiveError,GitDataError,UnicodeError,ValueError,OSError,KeyError,configparser.Error) as problem:errors.append(str(problem))
+    except (ArchiveError,GitDataError,UnicodeError,ValueError,OSError,KeyError) as problem:errors.append(str(problem))
     return {'automated':'fail' if errors else 'pass','errors':errors,'facts':facts,'manualRequired':manual}
 
 
