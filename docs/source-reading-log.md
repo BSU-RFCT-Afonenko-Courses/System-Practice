@@ -1,5 +1,211 @@
 # Журнал чтения источников
 
+## Управление версиями редакции от 19 октября 2026 года
+
+Автор: `git_author`, собственный чат
+`01a155f3-5fd5-7e30-a36a-1d1996aae91e`, исходный ход
+`01a155f3-6012-7230-b664-594352c34e89`. Чтение выполнено 19–20.10.2026.
+Допуск `gpt-6-astra / ultra` подтверждён на входе и после возобновления
+за весь исходный интервал. Свидетельства хранятся в `model-evidence/`
+внешней рабочей области редакции. Запись внесена до первого учебного
+текста набора: состояния Git, ветвление, обмен репозиториями, лекция
+«Управление версиями», справочник, введение и третья лабораторная.
+
+### Pro Git
+
+Scott Chacon, Ben Straub, *Pro Git*, русское второе издание,
+электронная версия `2.1.124-4-gbef0ce5` от 24.08.2026.
+Личный файл: `/home/tolya/JavaBooks/system-practice-source-pack-2026-10-16/books/ProGit.pdf`.
+SHA-256: `1d28970ac131b1d76fd9bd61e048f9172527f232512f73d2f0a9ec2093c68a69`.
+На прочитанных участках номер страницы PDF равен печатному номеру плюс 6.
+Полное чтение книги не заявляется.
+
+| Прочитанные страницы: печатные / PDF | Предмет | Решение для будущего набора |
+|---|---|---|
+| 10–18 / 16–24 | Копии каталогов; локальные, централизованные, распределённые СКВ; история; снимки; три области; CLI | Начать со знакомого сохранения копий, показать отношения снимков и назначение локальной истории. Интерфейсы описывать через доступные операции. |
+| 22–39 / 28–45 | Настройка автора, init/clone, отслеживание, add, status, повторная правка после add, diff, commit | Развить один файл через HEAD/index/worktree, показать сохранённую при add версию и различие двух сравнений. |
+| 42–58 / 48–64 | История и граф, исправление/отмена, восстановление, remote, fetch/pull/push | Историческую версию выбирать по смыслу. Разделить источник и место восстановления. Remote ввести перед сетевым обменом. Начало раздела тегов просмотрено, полный раздел тегов не заявляется. |
+| 66–82 / 72–88 | Commit/tree/blob; родители; ветка; HEAD; switch; fast-forward; трёхстороннее слияние; конфликт | Рисовать снимок отдельно от связей родителей; при каждом действии сохранять прежние вершины и явно двигать ссылки. Показать содержательное разрешение конфликта. |
+| 89–99 / 95–105 | Remote-tracking refs, clone, fetch, push, upstream, локально известное ahead/behind, pull | На схеме три отдельных репозитория/копии и локальный origin/main. Fetch обновляет наблюдение об удалённой стороне; интеграция требует отдельного действия. Начало rebase прочитано только как граница раздела. |
+| 110–115 / 116–121 | Сервер, bare, локальный путь, HTTP/HTTPS, SSH, git:// | Различить хостинг, клиент и транспорт. Описать современные условия GitHub по первичной документации. Серверное администрирование в обязательную работу не добавлять. |
+
+Страницы PDF 46–47 (печатные 40–41) в эту запись не входят.
+
+Визуально рассмотрены полноразмерные страницы PDF
+21, 23, 73, 76, 77, 78, 82, 83, 85, 97, 98, 99.
+Личные изображения страниц сохранены во внешней рабочей области автора.
+Рассмотрены рисунки 4–6, 9–10, 14–17, 21–22, 24–25, 30–32:
+снимки, области состояния, дерево объектов, движение HEAD/ветки,
+расхождение, fast-forward, общий предок, коммит слияния, две стороны fetch.
+В курс планируются собственные схемы с конкретным содержимым текущего примера;
+книжные изображения и полные страницы в публичную поставку не включаются.
+
+Уточнения к переносу книги:
+
+- Снимок — семантическая модель; упаковка объектов может использовать дельты.
+- Обычный clone получает историю, доступную при выбранных параметрах;
+  shallow/partial clone исключают универсальное утверждение о любой копии.
+- Современный Git поддерживает SHA-1 и SHA-256; ветка не определяется
+  универсально как отдельный файл фиксированной длины.
+- Источник обычного `restore` — индекс; у `restore --staged` по умолчанию HEAD.
+- Fast-forward определяется достижимостью по родителям; прямое родительство
+  для него не требуется.
+- `origin/main` хранит локально полученное значение. После чужого push оно
+  может отставать до следующего обмена.
+- Исторические указания об HTTPS-пароле аккаунта GitHub требуют замены
+  современным описанием GCM/браузерного входа.
+
+### Первичные источники
+
+Онлайн-источники ниже открыты и прочитаны адресно 19–20 октября 2026 года.
+Открытие страницы без чтения её нужного текста в список не засчитывалось.
+
+#### История
+
+1. [Интервью Torvalds к десятилетию Git](https://www.linuxfoundation.org/blog/blog/10-years-of-git-an-interview-with-git-creator-linus-torvalds), основная статья полностью.
+   Мотивы: опыт распределённой работы BitKeeper, собственные локальные
+   репозитории, частая интеграция Linux, производительность и целостность.
+   Рассказ об отношениях с BitKeeper передаётся как свидетельство Torvalds;
+   его оценка GitHub в интервью 2015 года не переносится на современный сервис.
+2. [Первоначальный README Git](https://github.com/git/git/blob/e83c5163316f89bfbde7d9ab23ca2e25604af290/README), полностью.
+   Ранняя объектная модель и directory cache дают первичное свидетельство
+   устройства. Ранние команды и детали хеширования не служат современной инструкцией.
+
+#### Команды Git
+
+Прочитаны описания и непосредственно нужные опции:
+[init](https://git-scm.com/docs/git-init),
+[add](https://git-scm.com/docs/git-add),
+[commit](https://git-scm.com/docs/git-commit),
+[status](https://git-scm.com/docs/git-status),
+[diff](https://git-scm.com/docs/git-diff),
+[restore](https://git-scm.com/docs/git-restore),
+[switch](https://git-scm.com/docs/git-switch),
+[merge](https://git-scm.com/docs/git-merge),
+[clone](https://git-scm.com/docs/git-clone),
+[fetch](https://git-scm.com/docs/git-fetch),
+[push](https://git-scm.com/docs/git-push).
+Для merge дополнительно прочитаны pre-merge checks, fast-forward, true merge,
+представление/разрешение конфликтов; для push — fast-forward rules.
+
+Контрольные границы: первый `init` создаёт ещё не родившуюся ветку;
+`add` фиксирует текущее содержимое для следующего обычного commit;
+`commit -a` не добавляет новые неотслеживаемые файлы; `switch` может сохранять
+совместимые незакоммиченные изменения, а потеря содержимого блокируется;
+основные опыты начинаются с чистого состояния, чтобы видно было одно действие.
+`merge --ff-only` допускает также уже включённую историю; расходящиеся вершины
+требуют иного способа интеграции. Разрешение конфликта завершается подготовкой
+выбранного содержимого и обычным commit либо merge --continue.
+
+#### Учётная запись GitHub
+
+- [Создание аккаунта](https://docs.github.com/en/account-and-profile/how-tos/account-management/creating-an-account-on-github): основная последовательность, подтверждение почты.
+- [Настройка 2FA](https://docs.github.com/en/authentication/securing-your-account-with-two-factor-authentication-2fa/configuring-two-factor-authentication): основное объяснение, TOTP, сохранение recovery codes; прочитаны также варианты SMS/passkey для границ основного маршрута.
+- [Восстановление доступа](https://docs.github.com/en/authentication/securing-your-account-with-two-factor-authentication-2fa/configuring-two-factor-authentication-recovery-methods): хранение кодов и изменение/повторное получение. Сами коды в сдачу не входят.
+- [Почта коммитов](https://docs.github.com/en/account-and-profile/how-tos/email-preferences/setting-your-commit-email-address): настройка глобально/локально, связь автора с аккаунтом, выбор GitHub noreply из личных настроек; изменение настройки действует на будущие коммиты.
+- [Создание репозитория](https://docs.github.com/en/repositories/creating-and-managing-repositories/creating-a-new-repository): веб-форма, owner/name/visibility, существующая локальная история требует пустого удалённого репозитория без независимого начального README.
+
+#### SSH
+
+- [О SSH на GitHub](https://docs.github.com/en/authentication/connecting-to-github-with-ssh/about-ssh).
+- [Проверка существующих ключей](https://docs.github.com/en/authentication/connecting-to-github-with-ssh/checking-for-existing-ssh-keys).
+- [Новая пара и агент](https://docs.github.com/en/authentication/connecting-to-github-with-ssh/generating-a-new-ssh-key-and-adding-it-to-the-ssh-agent): основная последовательность и Windows/Linux; раздел аппаратных ключей не входит в основной маршрут.
+- [Добавление открытого ключа](https://docs.github.com/en/authentication/connecting-to-github-with-ssh/adding-a-new-ssh-key-to-your-github-account): веб-маршрут и тип Authentication.
+- [Проверка соединения](https://docs.github.com/en/authentication/connecting-to-github-with-ssh/testing-your-ssh-connection), включая штатный код 1.
+- [Отпечатки GitHub](https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/githubs-ssh-key-fingerprints): сверка с официальным источником при первом подключении; значения не превращаются в вечные константы курса.
+- [Windows OpenSSH](https://learn.microsoft.com/en-us/windows-server/administration/openssh/openssh_install_firstuse): требования и установка клиентского компонента. Установка sshd и серверные правила firewall студенту для GitHub не нужны.
+- [ssh-agent(1)](https://man.openbsd.org/ssh-agent): описание, запуск дочерней команды, срок жизни, переменные окружения, добавление ключей. Запуск `ssh-agent fish` поддерживается формой command и не требует Bourne `eval`.
+- [ssh(1)](https://man.openbsd.org/ssh): адресно назначение `-T`, запрет выделения псевдотерминала.
+- [RFC 4253](https://www.rfc-editor.org/rfc/rfc4253): Abstract, §1, §7, начало §7.2, §7.3, ввод §8; защищённый транспорт, проверка сервера, обмен и получение ключей сеанса. Устаревшие наборы алгоритмов RFC не рекомендуются студентам.
+- [RFC 4252](https://www.rfc-editor.org/rfc/rfc4252): §7 полностью; подтверждение владения закрытым ключом подписью и серверная проверка.
+
+Планируемая схема соединения различает ключ сервера, пользовательскую пару,
+шифрование сеанса и права на конкретный репозиторий. Успешный `ssh -T`
+показывает распознанный аккаунт; последующий push проверяет право записи.
+Подпись коммитов остаётся отдельной возможностью и не включается в обязательную настройку.
+
+#### Способы обмена
+
+- [Адреса удалённых репозиториев](https://docs.github.com/en/get-started/git-basics/about-remote-repositories): SSH/HTTPS URL и выбор способа аутентификации.
+- [Git Credential Manager](https://docs.github.com/en/get-started/git-basics/caching-your-github-credentials-in-git): HTTPS с браузерным входом, поставка с Git for Windows, хранение credentials.
+- [Изменение безопасности протоколов GitHub](https://github.blog/security/application-security/improving-git-protocol-security-github/): основной текст и календарь; `git://` отключён 15.03.2022. Эта схема не даёт шифрования и аутентификации.
+
+CLI/GUI/IDE — способы управления клиентом, GitHub — сервис размещения,
+HTTPS/SSH/git:// — сетевые способы обмена; локальный путь задаёт локальный
+источник. `gh` — клиент GitHub. Современные двоичные данные, агенты,
+worktree и добровольное сопровождение в этой подготовке не разворачивались.
+
+### Команды оболочек
+
+Дополнительно адресно прочитаны 20.10.2026:
+
+- [Set-Content PowerShell 7.5](https://learn.microsoft.com/en-us/powershell/module/microsoft.powershell.management/set-content?view=powershell-7.5): Description, примеры 1–3, Encoding. Запись строк в учебных опытах, UTF-8 без BOM по умолчанию.
+- [about_Automatic_Variables PowerShell 7.5](https://learn.microsoft.com/en-us/powershell/module/microsoft.powershell.core/about/about_automatic_variables?view=powershell-7.5): полный раздел LASTEXITCODE; чтение кода внешнего ssh непосредственно после команды.
+- [fish printf 4.9.3](https://fishshell.com/docs/current/cmds/printf.html): Synopsis, Description, Format Specifiers, Backslash Escapes, Errors and Return Status, Example; собственная запись текста и TAB/LF в Linux-маршруте.
+- [The fish language 4.9.3](https://fishshell.com/docs/current/language.html): The status variable до примера SIGPIPE, отдельное определение status; немедленное чтение кода ssh.
+
+### Передача локального результата
+
+Дополнительно прочитано 20.10.2026 до выбора опубликованного способа сдачи:
+
+- [Compress-Archive 7.5](https://learn.microsoft.com/en-us/powershell/module/microsoft.powershell.archive/compress-archive?view=powershell-7.5): Description и примеры 1–5. Скрытые файлы/каталоги исключаются; для включения документация направляет к .NET API.
+- [ZipFile.CreateFromDirectory](https://learn.microsoft.com/en-us/dotnet/api/system.io.compression.zipfile.createfromdirectory?view=net-10.0): Definition, перегрузка String/String целиком с параметрами, исключениями, примерами и Remarks; параметры includeBaseDirectory соседней перегрузки. Сохранение структуры и включение содержимого исходного каталога; абсолютные пути исключают зависимость от текущего каталога процесса .NET. Существующий выходной архив вызывает исключение.
+- [git-bundle](https://git-scm.com/docs/git-bundle): Description, Bundle Format, create/verify/list-heads, Specifying References, Object Prerequisites, первый полный пример backup/clone. Bundle сохраняет refs и достижимую историю; текущее рабочее дерево, индекс и конфигурация в такой пакет не входят. Для сдачи двух фактических локальных копий выбран архив каталогов.
+- Локальная первичная справка `GNU tar 1.35`, `tar --help`: прочитана полностью; используются create/list/extract, file, directory, gzip и рекурсивное включение каталога по умолчанию. Два запроса веб-руководства GNU завершились timeout и не засчитываются как чтение.
+
+### Методические опоры
+
+Прочитаны HANDOFF, MODELS, SOURCES от 19 октября, общее языковое правило,
+AGENTS, документационный вход и предметный план. В текущих методике и
+образцах System Practice адресно прочитаны состояния индекса, ветвление
+и SSH во всех представленных формах. После независимой рецензии прочитаны
+две правки `889cd654`: определение рабочего дерева/индекса на первом экране
+и удаление повторной подписи; прочитана закрывающая рецензия.
+
+Из текущей Java-методики прочитаны разделы об аудитории, полноте темы,
+развивающемся примере, вводе темы, истории средств, заголовках, лекциях,
+слайдах, notes, справочнике, введении, самостоятельной работе, учебной прозе,
+источниках, связности, авторстве и приёмке. Из Java-образцов адресно
+разобраны передача аргументов по значению, прямое объяснение и разбор
+редакторских оговорок. Переносится достаточное определение, одно развитие
+состояния, наблюдаемый результат, предметное основание и сценарная функция
+notes. Знакомая работа с графическими приложениями служит входом System
+Practice; предпосылка знания C++ сюда не переносится.
+
+Полностью прочитаны существующие theory/git-state.qmd,
+theory/git-branches.qmd, handbook/version-control.qmd,
+practice/version-control.qmd, tasks/labs/version-control.qmd,
+lectures/git-state.qmd и lectures/git-branches.qmd. Сохраняются точные пары
+diff, источник/назначение restore, предки и три исхода ff-only. Начальный
+набор двух сложных репозиториев заменяется одним простым проектом с
+самостоятельно создаваемой историей и обязательным GitHub по SSH.
+
+Эта запись подтверждает чтение указанного объёма. Windows, fish-исполнение,
+реальный credentialed GitHub, render и публикация требуют собственных
+технических свидетельств. Полные книги и изображения страниц остаются
+в личной области автора; в публичную поставку входят собственный текст
+и ссылки на источники.
+
+## Дополнительное чтение файлового набора — 20 октября 2026 года
+
+Автор `file_entry_author`, собственный чат
+`01a155f0-10f6-7a81-995a-101589986e2e`, исходный ход
+`01a155f0-1128-7913-8c56-900eb252457d`; подтверждённая пара
+`gpt-6-astra / ultra`. Чтение выполнено непосредственно через официальные
+страницы. Перечень обозначает возвращённые и прочитанные разделы.
+
+| Источник | Фактически прочитанный объём | Применение |
+|---|---|---|
+| [about_Execution_Policies](https://learn.microsoft.com/en-us/powershell/module/microsoft.powershell.core/about/about_execution_policies?view=powershell-7.6) | Short/Long description; Execution policies; Scope and precedence; Managing с получением политики и областями Process/CurrentUser/LocalMachine; Set a different policy for one session; Use Group Policy; Manage signed and unsigned scripts | Условие запуска готового сценария на Windows, временная область Process, приоритет групповой политики и метка интернет-загрузки. Постоянное изменение политики и Bypass в маршрут не включены |
+| [Unblock-File](https://learn.microsoft.com/en-us/powershell/module/microsoft.powershell.utility/unblock-file?view=powershell-7.6) | Syntax, Description, примеры 1–3, LiteralPath, Notes | Проверка файла и источника перед снятием метки у единственного поставленного сценария; эффект отсутствующей метки; политика выполнения сохраняется |
+| [about_Pwsh](https://learn.microsoft.com/en-us/powershell/module/microsoft.powershell.core/about/about_pwsh?view=powershell-7.6) | Syntax, File, начало Command, ExecutionPolicy, NoProfile | Явный запуск дочернего процесса, файл сценария и последующие аргументы, код exit, исключение профиля. Полное чтение прочих параметров не заявляется |
+| [fish invocation 4.9.3](https://fishshell.com/docs/current/cmds/fish.html) | Synopsis, Description и весь перечень параметров, Debugging, Examples | Запуск файла с аргументами и --no-config; назначение параметра версия. Диагностическая трассировка и профилирование в учебную работу не включаются |
+
+Дополнительные страницы уточняют Windows-предпосылку и способ исполнения
+готового инструмента. Базовые страницы automatic variables, command
+precedence, installation уже записаны в основном чтении b115987.
+Чтение документации не означает испытания Windows, Linux или VS Code.
+
 ## Методика редакции от 19 октября 2026 года
 
 Автор: `methodology_author`, собственный чат
