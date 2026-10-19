@@ -1,7 +1,10 @@
 # Источники System Practice
 
-Книжная опора находится в личном каталоге `WORKSPACE/books` восстановленного
-единого handoff r3. Полные файлы доступны автору; в ресурсы публичного курса
+Книжная опора находится в личном каталоге
+`/home/tolya/JavaBooks/system-practice-source-pack-2026-10-16/books/`.
+Действующий указатель — `SOURCES.md` комплекта
+`system-practice-revision-handoff-2026-10-19`. Полные файлы доступны автору;
+в ресурсы публичного курса
 они не включаются. Фактическое содержательное чтение фиксируется отдельно
 в [журнале](source-reading-log.md).
 
@@ -26,7 +29,13 @@
 Pro Git к имени `Изучаем скриптинг PowerShell .pdf` не переносится.
 Страницы старой ссылки нельзя автоматически считать страницами новой книги.
 
-## Первичная документация
+## Документация ранее прочитанных наборов
+
+Следующий перечень сохраняет происхождение редакции от 16 октября.
+Названия S2–S3в обозначают прежние наборы. Их решения о составе курса
+имеют историческую область действия; обязательный GitHub/SSH и две лекции
+установлены [текущим планом](course-revision-plan.md). Новое адресное чтение
+фиксируется отдельно в журнале.
 
 - [fish Tutorial](https://fishshell.com/docs/current/tutorial.html): команды,
   аргументы, справка, перенаправления и код завершения. При чтении
@@ -137,10 +146,61 @@ Pro Git к имени `Изучаем скриптинг PowerShell .pdf` не �
   аннотация, состав архива и запись средствами Git; в git-diff отдельно
   прочитан --output.
 
-Курс использует локальный bare-каталог для обмена. HTTP/SSH-сервис,
-учётные записи, цифровая подпись, rerere и am не становятся требованиями
-добровольного проекта. Прочитанные варианты книги используются для
-осмысленного выбора достаточной композиции.
+Прежний набор использовал локальный bare-каталог для обмена. Его границы
+HTTP/SSH и учётных записей не определяют новую третью лабораторную.
+Цифровая подпись коммитов, rerere и am остаются самостоятельными
+углублениями при наличии учебной цели.
+
+## Опора новой редакции
+
+Методические основания — `authoring-methodology.md`, `authoring-examples.md`
+и применимые части `course-revision-plan.md` из `/home/tolya/Java/docs/`.
+Их проверенный снимок находится в `reference/java/docs/` управляющего
+комплекта. Переносятся качество объяснения, развитие примера, сценарий notes,
+самостоятельность работ и цикл рецензии. Аудитория GUI, PowerShell/Windows
+и две лекции определены собственным заданием System Practice.
+
+Для трёх новых образцов непосредственно прочитаны Jones, печ. 1–4;
+TLCL, печ. 7–12; Pro Git, печ. 14–18 и 66–71. Пагинация, просмотр рисунка
+и вклад записаны в [журнале](source-reading-log.md). Первичные уточнения:
+
+- [Get-Content 7.5](https://learn.microsoft.com/en-us/powershell/module/microsoft.powershell.management/get-content?view=powershell-7.5)
+  и [Set-Location 7.5](https://learn.microsoft.com/en-us/powershell/module/microsoft.powershell.management/set-location?view=powershell-7.5):
+  чтение файла и текущее расположение в первом Windows-примере.
+- [GitHub: создание ключа](https://docs.github.com/en/authentication/connecting-to-github-with-ssh/generating-a-new-ssh-key-and-adding-it-to-the-ssh-agent):
+  сохранность существующих ключей, парольная фраза, клиент и агент Windows.
+- [GitHub: проверка SSH](https://docs.github.com/en/authentication/connecting-to-github-with-ssh/testing-your-ssh-connection)
+  и [отпечатки сервера](https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/githubs-ssh-key-fingerprints):
+  проверка стороны, имени аккаунта и кода завершения теста.
+- [RFC 4253](https://www.rfc-editor.org/rfc/rfc4253)
+  и [RFC 4252](https://www.rfc-editor.org/rfc/rfc4252): модель защищённого
+  транспорта и подписи пользователя. Старые рекомендации алгоритмов
+  не являются настройкой современного клиента.
+- [Руководство ssh](https://man.openbsd.org/ssh.1): назначение `-T`.
+  [Автоматические переменные PowerShell](https://learn.microsoft.com/en-us/powershell/module/microsoft.powershell.core/about/about_automatic_variables?view=powershell-7.5):
+  `$LASTEXITCODE` для результата внешней программы.
+
+### Чтение для следующих наборов
+
+Этот перечень задаёт адресную очередь. Наличие ссылки не означает,
+что новый автор уже прочитал её содержание.
+
+| Предмет | Первичные источники и роль |
+|---|---|
+| Интерактивная среда | [Corbató и др., 1962](https://cseweb.ucsd.edu/classes/wi19/cse221-a/papers/corbato62.pdf): интерактивный доступ; [Ritchie](https://www.nokia.com/bell-labs/about/dennis-m-ritchie/hist.html): развитие Unix; [Monad Manifesto](https://www.jsnover.com/Docs/MonadManifesto.pdf) и [Microsoft](https://devblogs.microsoft.com/powershell/monad-manifesto-the-origin-of-windows-powershell/): замысел объектной среды |
+| Командная оболочка | [Microsoft](https://learn.microsoft.com/en-us/powershell/scripting/what-is-a-command-shell), [about_Pipelines](https://learn.microsoft.com/en-us/powershell/module/microsoft.powershell.core/about/about_pipelines), [fish Tutorial](https://fishshell.com/docs/current/tutorial.html): современные определения и модель данных |
+| Происхождение Git | [Интервью Torvalds](https://www.linuxfoundation.org/blog/blog/10-years-of-git-an-interview-with-git-creator-linus-torvalds) и [исходный README](https://github.com/git/git/blob/e83c5163316f89bfbde7d9ab23ca2e25604af290/README): Linux, BitKeeper и цели создания |
+| Удалённый доступ | [Pro Git: протоколы](https://git-scm.com/book/en/v2/Git-on-the-Server-The-Protocols), [создание аккаунта](https://docs.github.com/en/account-and-profile/how-tos/account-management/creating-an-account-on-github), [адреса remote](https://docs.github.com/en/get-started/git-basics/about-remote-repositories), [SSH](https://docs.github.com/en/authentication/connecting-to-github-with-ssh/about-ssh), [изменение безопасности протоколов](https://github.blog/security/application-security/improving-git-protocol-security-github/): полный лабораторный маршрут |
+| Двоичные данные | [Git LFS](https://docs.github.com/en/repositories/working-with-files/managing-large-files/about-git-large-file-storage) и [большие файлы GitHub](https://docs.github.com/en/repositories/working-with-files/managing-large-files/about-large-files-on-github): хранение указателя, отдельное содержимое и ограничения хостинга |
+| Параллельная работа | [git-worktree](https://git-scm.com/docs/git-worktree), [делегирование в VS Code](https://code.visualstudio.com/docs/agents/guides/delegate-two-tasks): рабочие каталоги, индекс, HEAD и общая база |
+| Нагрузка агентной разработки | [Anthropic: Redesigning source control](https://www.anthropic.com/engineering/redesigning-source-control) и [GitHub: Building Git infrastructure for agent-scale development](https://github.blog/engineering/architecture-optimization/building-git-infrastructure-for-agent-scale-development/): конкретные профили нагрузки и инженерные ответы |
+
+Перед авторством современных случаев сверяются даты, числа и границы
+обобщения. Первичные мотивы разработчиков отличают от педагогической
+интерпретации. Новые версии PowerShell сверяются с документацией;
+Windows PowerShell 2011 года не обозначается как PowerShell 7.
+Для Git учитываются shallow/partial clone и современные форматы объектов;
+всеобщая полнота clone и неизменность SHA-1 не предполагаются.
 
 ## Использование и границы
 
