@@ -9,12 +9,8 @@ project:
   - ../_extensions/Afonenko-Course-Tools/course-site/entrypoints/collect.ts
   render:
   - index.qmd
-  - work-environment.qmd
-  - text-streams.qmd
-  - object-pipeline.qmd
-  - git-state.qmd
-  - git-branches.qmd
-  - project-maintenance.qmd
+  - command-interface.qmd
+  - version-control.qmd
   resources:
   - '!tools/**'
   - '!tests/**'

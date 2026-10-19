@@ -43,7 +43,7 @@ project:
 format:
   html:
     theme: cosmo
-    toc: true
+    toc: false
 lang: ru
 fail-if-warnings: true
 website:
