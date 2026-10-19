@@ -8,6 +8,7 @@ import json
 import os
 from pathlib import Path
 import resource
+import shutil
 import subprocess
 import tempfile
 from system_support import ArchiveError,ArchiveLimit,read_zip,read_tar_gz
@@ -46,9 +47,11 @@ class Repository:
         self.env.update(GIT_CONFIG_GLOBAL='/dev/null',GIT_CONFIG_NOSYSTEM='1',GIT_CONFIG_COUNT='0',GIT_NO_REPLACE_OBJECTS='1',GIT_OPTIONAL_LOCKS='0',GIT_TERMINAL_PROMPT='0',GIT_ALLOW_PROTOCOL='')
         if any(n in self.files for n in ['.git/MERGE_HEAD','.git/CHERRY_PICK_HEAD','.git/REVERT_HEAD']) or any(n.startswith(('.git/rebase-merge/','.git/rebase-apply/')) for n in self.files):raise GitDataError(f'{name}: незавершённая операция Git')
     def git(self,*args):
+        return self._run_git(['--git-dir='+str(self.gitdir),*args])
+    def _run_git(self,args,cwd=None):
         with tempfile.TemporaryFile() as out,tempfile.TemporaryFile() as err:
             try:
-                p=subprocess.run(['git','--no-pager','--git-dir='+str(self.gitdir),*args],env=self.env,stdout=out,stderr=err,timeout=6,preexec_fn=limits)
+                p=subprocess.run(['git','--no-pager',*args],cwd=cwd,env=self.env,stdout=out,stderr=err,timeout=6,preexec_fn=limits)
             except (OSError,subprocess.TimeoutExpired) as e:raise ToolLimit(f'Git не завершил безопасное чтение; требуется ручная проверка: {e}') from e
             out.seek(0);data=out.read(1024*1024+1)
             if len(data)>1024*1024 or p.returncode < 0:
@@ -102,6 +105,24 @@ class Repository:
         """Отличить отсутствующий boolean от нативных true/false, включая ключ без значения."""
         if not any(name==key for name,_ in self.config_entries()):return None
         return self.git('config','--no-includes','--file',self._config_data_file(),'--null','--type=bool','--get',key)==b'true\0'
+    def native_bare_state(self):
+        """Наблюдать bare в эквивалентном shared.git без активного config сдачи."""
+        entries=self.config_entries()
+        unknown=[key for key,value in entries if key=='include.path' or key.startswith('includeif.')
+                 or key=='core.worktree' or key.startswith('extensions.')
+                 or (key=='core.repositoryformatversion' and value!='0')]
+        if unknown:raise ToolLimit('Bare-наблюдение shared.git требует ручной проверки неохваченных настроек: '+', '.join(unknown))
+        configured=self.config_bool('core.bare')
+        with tempfile.TemporaryDirectory(prefix='bare-observation-',dir=self.gitdir.parent) as temporary:
+            probe=Path(temporary)/'maintenance/shared.git';probe.mkdir(parents=True)
+            for name in ['objects','refs']:shutil.copytree(self.gitdir/name,probe/name)
+            for name in ['HEAD','packed-refs']:
+                if (self.gitdir/name).exists():shutil.copyfile(self.gitdir/name,probe/name)
+            config='[core]\n repositoryformatversion=0\n hooksPath=/dev/null\n fsmonitor=false\n'
+            # Отсутствующий bare остаётся отсутствующим; явный boolean сохраняет значение.
+            if configured is not None:config+=' bare='+('true' if configured else 'false')+'\n'
+            (probe/'config').write_text(config)
+            return self._run_git(['rev-parse','--is-bare-repository'],cwd=probe).strip()==b'true'
     def commits(self,oid):return set(self.git('rev-list',oid).decode().split())
 
 def encoded(mapping):return {name:text.encode() for name,text in mapping.items()}

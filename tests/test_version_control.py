@@ -165,6 +165,12 @@ class VersionControlTests(unittest.TestCase):
             self.assertEqual(native,result['facts']['verificationRemotes']['origin'])
             self.assertEqual(values,result['facts']['verificationRemoteURLs']['origin'])
 
+    def test_local_maintenance_push_policy_is_not_applied_to_github_lab(self):
+        base,_=solution(self.root);repo=base/'verification'
+        run(repo,'config','remote.origin.pushurl','https://github.com/owner/latency.git')
+        self.assertEqual(b'https://github.com/owner/latency.git\n',run(repo,'remote','get-url','--push','origin').stdout)
+        result=self.check(base);self.assertEqual('pass',result['automated'],result);self.assertTrue(result['manualRequired'])
+
     def test_git_quoted_remote_url_is_read_as_data(self):
         base, _ = solution(self.root)
         p = base / 'verification/.git/config'

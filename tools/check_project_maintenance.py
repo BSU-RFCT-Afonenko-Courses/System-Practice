@@ -35,7 +35,32 @@ def portable_origin(value):
 
 
 def bare_config(repo):
-    return repo.config_bool('core.bare') is True
+    return repo.native_bare_state()
+
+
+def origin_address(repo,facts):
+    """Установить обе стороны простого origin; неподдержанный адресный слой передать человеку."""
+    entries=repo.config_entries()
+    urls=[value if value is not None else '' for key,value in entries if key=='remote.origin.url']
+    pushurls=[value if value is not None else '' for key,value in entries if key=='remote.origin.pushurl']
+    origin=urls[0] if urls else None
+    facts.update(origin=origin,originURLs=urls,originConfiguredPushURLs=pushurls,
+                 originAddressStatus='manual')
+    unknown=[key for key,_ in entries if key=='include.path' or key.startswith('includeif.')
+             or (key.startswith('url.') and key.rsplit('.',1)[-1] in ['insteadof','pushinsteadof'])]
+    if unknown:
+        facts['originAddressUnresolvedKeys']=unknown
+        raise ToolLimit('Адресное наблюдение origin не разрешило includes/преобразования URL; нужна ручная проверка: '+', '.join(unknown))
+    active=pushurls if pushurls else urls
+    facts.update(originPushURLs=active,originPushSource='pushurl' if pushurls else 'url')
+    if not portable_origin(origin):
+        facts['originAddressStatus']='fail'
+        raise GitDataError('origin fetch должен переносимо указывать на соседний shared.git')
+    if not active or any(not portable_origin(url) for url in active):
+        facts['originAddressStatus']='fail'
+        raise GitDataError('Все активные origin push направления должны переносимо указывать на соседний shared.git')
+    facts['originAddressStatus']='pass'
+    return origin
 
 
 def check_archive(path,initial_path=INITIAL):
@@ -64,9 +89,12 @@ def check_archive(path,initial_path=INITIAL):
                 if repo.ref('refs/tags/base')!=a:raise GitDataError('Изменён исходный base')
             if work.ref('refs/tags/start')!=m or shared.ref('refs/tags/incoming')!=f:raise GitDataError('Изменены start/incoming')
             if '.git/index' not in work.files:raise GitDataError('У work отсутствует .git/index')
-            if not bare_config(shared):raise GitDataError('shared.git должен сохранять core.bare=true')
-            origin=_remotes(work).get('origin')
-            if not portable_origin(origin):raise GitDataError('origin должен переносимо указывать на соседний shared.git')
+            facts['sharedBareStatus']='manual'
+            facts['sharedBareConfiguredValues']=[value for key,value in shared.config_entries() if key=='core.bare']
+            facts['sharedBare']=bare_config(shared)
+            facts['sharedBareStatus']='pass' if facts['sharedBare'] else 'fail'
+            if not facts['sharedBare']:raise GitDataError('shared.git должен быть эффективно bare')
+            origin=origin_address(work,facts)
             r=work.ref('refs/heads/main');tree=work.tree(r);text=text_files(tree)
             if work.index()!=tree or not work.index_modes_match_tree(r) or text_files(work.work)!=text:
                 raise GitDataError('Индекс и рабочие файлы должны совпадать с main без незавершённой работы')

@@ -79,7 +79,9 @@ class ProjectMaintenance(unittest.TestCase):
         base=solution(self.root);config=base/'shared.git/config';original=config.read_text()
         config.write_text(original.replace('[core]','[CORE]'))
         self.assertEqual('pass',self.check(base)['automated'])
-        config.write_text(original.replace('\tbare = true\n','')+'\n[DEFAULT]\n bare=true\n')
+        config.write_text(original.replace('\tbare = true\n','')+'\n[DEFAULT]\n bare=false\n')
+        self.assertEqual('pass',self.check(base)['automated'])
+        config.write_text(original.replace('bare = true','bare = false')+'\n[DEFAULT]\n bare=true\n')
         self.expect_failure(base,'bare')
     def test_bare_config_observes_order_across_section_case_variants(self):
         base=solution(self.root);config=base/'shared.git/config';original=config.read_text()
@@ -118,11 +120,62 @@ class ProjectMaintenance(unittest.TestCase):
                     self.assertEqual(native,query.stdout.decode().strip())
                     self.assertEqual(native,run(shared,'rev-parse','--is-bare-repository').stdout.decode().strip())
                 result=self.check(base)
-                self.assertEqual('pass' if native=='true' else 'fail',result['automated'],result)
+                self.assertEqual('pass' if native in ('true',None) else 'fail',result['automated'],result)
+    def test_all_active_push_directions_must_address_packaged_shared(self):
+        base=solution(self.root);w=base/'work'
+        cases=[(['../shared.git'],['../other.git'],'fail'),
+               (['../shared.git','../other.git'],[],'fail'),
+               (['../shared.git','../other.git'],['.././shared.git','./../shared.git'],'pass'),
+               (['../shared.git'],['../shared.git','../other.git'],'fail'),
+               (['../shared.git','./../shared.git'],[],'pass')]
+        for urls,pushurls,expected in cases:
+            with self.subTest(urls=urls,pushurls=pushurls):
+                run(w,'config','--unset-all','remote.origin.url');run(w,'config','--unset-all','remote.origin.pushurl',ok=False)
+                for value in urls:run(w,'config','--add','remote.origin.url',value)
+                for value in pushurls:run(w,'config','--add','remote.origin.pushurl',value)
+                native=run(w,'remote','get-url','--push','--all','origin').stdout.decode().splitlines()
+                self.assertEqual(pushurls or urls,native)
+                result=self.check(base);self.assertEqual(expected,result['automated'],result)
+                if expected=='pass':
+                    self.assertIn('originPushURLs',result['facts'])
+                    self.assertEqual(native,result['facts']['originPushURLs'])
+                    self.assertEqual('pass',result['facts']['originAddressStatus'])
+                else:self.assertIn('push',' '.join(result['errors']))
+    def test_address_rewrites_and_unread_includes_are_manual(self):
+        for kind in ['insteadOf','pushInsteadOf','include']:
+            with self.subTest(kind=kind):
+                sub=self.root/kind;sub.mkdir();seed=sub/'tasks/projects/project-maintenance/seed.json';seed.parent.mkdir(parents=True);shutil.copyfile(self.root/'tasks/projects/project-maintenance/seed.json',seed)
+                base=solution(sub);w=base/'work'
+                if kind=='insteadOf':
+                    run(w,'remote','set-url','origin','course:');run(w,'config','url.../shared.git.insteadOf','course:')
+                    self.assertEqual(b'../shared.git\n',run(w,'remote','get-url','origin').stdout)
+                elif kind=='pushInsteadOf':
+                    run(w,'config','url.../other.git.pushInsteadOf','../shared.git')
+                    self.assertEqual(b'../other.git\n',run(w,'remote','get-url','--push','origin').stdout)
+                else:
+                    included=sub/'outside-config';included.write_text('[remote "origin"]\n pushurl=../other.git\n')
+                    with (w/'.git/config').open('a') as stream:stream.write('\n[include]\n path='+str(included)+'\n')
+                    self.assertEqual(b'../other.git\n',run(w,'remote','get-url','--push','origin').stdout)
+                result=check_archive(package(base,sub/'submission.zip'),initial_path=sub/'tasks/projects/project-maintenance/initial-state.json')
+                self.assertEqual('manual',result['automated'],result);self.assertTrue(result['toolLimited']);self.assertEqual([],result['errors'])
+                self.assertEqual('manual',result['facts']['originAddressStatus'])
+    def test_native_bare_without_key_and_bare_completeness_remain_distinct(self):
+        base=solution(self.root);shared=base/'shared.git';config=shared/'config'
+        config.write_text(config.read_text().replace('\tbare = true\n',''))
+        self.assertEqual(b'true\n',run(shared,'rev-parse','--is-bare-repository').stdout)
+        self.assertEqual('pass',self.check(base)['automated'])
+        oid=run(shared,'rev-parse','v2.0').stdout.decode().strip();(shared/'objects'/oid[:2]/oid[2:]).unlink()
+        self.expect_failure(base,'Git object')
+    def test_unmodelled_bare_worktree_settings_are_manual(self):
+        base=solution(self.root);config=base/'shared.git/config'
+        with config.open('a') as stream:stream.write('\n[core]\n worktree=../unexpected-work\n')
+        result=self.check(base)
+        self.assertEqual('manual',result['automated'],result);self.assertTrue(result['toolLimited']);self.assertEqual([],result['errors'])
+        self.assertEqual('manual',result['facts']['sharedBareStatus'])
     def test_data_config_parser_does_not_follow_even_malformed_existing_include(self):
         base=solution(self.root);w=base/'work';included=self.root/'unread-config';included.write_text('THIS IS NOT GIT CONFIG\n')
         with (w/'.git/config').open('a') as stream:stream.write('\n[include]\n path='+str(included)+'\n')
-        self.assertEqual('pass',self.check(base)['automated'])
+        result=self.check(base);self.assertEqual('manual',result['automated']);self.assertEqual([],result['errors'])
     def test_data_config_parser_ignores_inherited_git_configuration(self):
         base=solution(self.root);archive=package(base,self.root/'env.zip')
         poison=self.root/'poison-config';poison.write_text('THIS IS NOT GIT CONFIG\n')
@@ -202,5 +255,5 @@ class ProjectMaintenance(unittest.TestCase):
         base=solution(self.root);w=base/'work';marker=self.root/'EXECUTED';hook=w/'.git/unsafe-hook'
         hook.write_text('#!/bin/sh\ntouch '+shlex.quote(str(marker))+'\n');hook.chmod(0o755)
         with (w/'.git/config').open('a') as stream:stream.write('[core]\n fsmonitor='+str(hook)+'\n hooksPath=/do-not-execute\n[include]\n path=/do-not-read\n[credential]\n helper=!touch '+str(marker)+'\n')
-        self.assertEqual('pass',self.check(base)['automated']);self.assertFalse(marker.exists())
+        result=self.check(base);self.assertEqual('manual',result['automated']);self.assertEqual([],result['errors']);self.assertFalse(marker.exists())
 if __name__=='__main__':unittest.main()
