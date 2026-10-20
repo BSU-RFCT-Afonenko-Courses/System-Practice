@@ -1,5 +1,5 @@
 """Реальные Git-состояния поставки сопровождения, воспроизводимость и сохранение правок."""
-import json,os,shutil,subprocess,sys,tempfile,unittest,zipfile
+import json,os,shutil,subprocess,sys,tempfile,unittest,zipfile,shlex
 from pathlib import Path
 sys.path.insert(0,str(Path(__file__).resolve().parents[1]/'tools'))
 from build_maintenance_materials import build
@@ -21,6 +21,24 @@ class MaintenanceMaterials(unittest.TestCase):
         first=build(self.root,write=True);before={n:((self.root/n).read_bytes(),(self.root/n).stat().st_mtime_ns) for n in first}
         self.assertEqual(first,build(self.root,write=True));self.assertEqual(first,build(self.root,write=False))
         self.assertEqual(before,{n:((self.root/n).read_bytes(),(self.root/n).stat().st_mtime_ns) for n in first})
+    def test_native_loose_compression_defaults_do_not_change_published_bytes(self):
+        real_git=shutil.which('git');source=Path(__file__).resolve().parents[1];outputs=[]
+        for level in [1,9]:
+            root=self.root/str(level);seed=root/'tasks/projects/project-maintenance/seed.json'
+            seed.parent.mkdir(parents=True);shutil.copyfile(self.root/'tasks/projects/project-maintenance/seed.json',seed)
+            bin_dir=root/'bin';bin_dir.mkdir();wrapper=bin_dir/'git'
+            # Обе среды исполняют настоящий Git с разными исходными уровнями сжатия объектов.
+            wrapper.write_text('#!/bin/sh\nexec '+shlex.quote(real_git)+' -c core.looseCompression='+str(level)+' "$@"\n');wrapper.chmod(0o755)
+            env={**os.environ,'PATH':str(bin_dir)+os.pathsep+os.environ['PATH']}
+            command=[sys.executable,str(source/'tools/build_maintenance_materials.py'),'--root',str(root)]
+            generated=subprocess.run([*command,'--write'],env=env,capture_output=True,text=True,timeout=30)
+            self.assertEqual(0,generated.returncode,generated.stderr)
+            checked=subprocess.run([*command,'--check'],env=env,capture_output=True,text=True,timeout=30)
+            self.assertEqual(0,checked.returncode,checked.stderr)
+            names=json.loads(generated.stdout);outputs.append({name:(root/name).read_bytes() for name in names})
+        self.assertEqual(outputs[0].keys(),outputs[1].keys())
+        for name in outputs[0]:
+            with self.subTest(artifact=name):self.assertEqual(outputs[0][name],outputs[1][name])
     def test_actual_fetch_conflict_and_patch_keep_their_declared_boundaries(self):
         base=self.unpack();w=base/'work';shared=base/'shared.git'
         self.assertEqual(b'',self.git(w,'status','--porcelain').stdout)

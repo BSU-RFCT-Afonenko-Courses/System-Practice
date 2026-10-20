@@ -3,10 +3,15 @@
 import argparse,hashlib,json,shutil,subprocess,sys,tempfile
 from pathlib import Path
 from build_materials import target,packed,atomic_write
-from build_git_materials import git,put,commit,initialize,normalize
+from build_git_materials import git as seed_git,put,commit,initialize,normalize
 
 DIRECTORY='tasks/projects/project-maintenance'
 ARCHIVES={'practice/materials/project-maintenance-demo.zip','tasks/materials/project-maintenance-start.zip'}
+
+
+def git(repo,*args,input=None):
+    """Хранить объекты набора без зависимости от алгоритма сжатия zlib Git."""
+    return seed_git(repo,'-c','core.looseCompression=0',*args,input=input)
 
 
 def generate(seed):
