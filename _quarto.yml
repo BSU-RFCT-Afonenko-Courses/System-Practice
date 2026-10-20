@@ -4,6 +4,16 @@ project:
   render:
   - index.qmd
   resources:
+  - '!tools/**'
+  - '!providers.json'
+  - '!installed-packages.json'
+  - '!tests/**'
+  - '!**/projects/**'
+  - '!**/__pycache__/**'
+  - '!lectures/**'
+  - '!docs/**'
+  - '!bibliography/**'
+  - '!includes/**'
   - '!theory/**'
   - '!tasks/**'
   - '!practice/**'
@@ -34,7 +44,7 @@ project:
 format:
   html:
     theme: cosmo
-    toc: true
+    toc: false
 lang: ru
 fail-if-warnings: true
 website:
@@ -44,9 +54,11 @@ website:
     left:
     - text: Теория
       href: theory/index.html
-    - text: Банк задач
+    - text: Лекции
+      href: lectures/index.html
+    - text: Лабораторные
       href: tasks/index.html
-    - text: Занятия
+    - text: Введения
       href: practice/index.html
     - text: Справочник
       href: handbook/index.html
@@ -55,7 +67,7 @@ filters:
 - course-presentation
 - reference-catalog
 reference-catalog:
-  namespace: portal
+  namespace: system-practice-portal
   publication:
     title: System Practice
 course:
@@ -67,6 +79,7 @@ profile:
     - full
 subprojects:
 - theory
+- lectures
 - tasks
 - practice
 - handbook

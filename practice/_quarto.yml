@@ -2,6 +2,11 @@ project:
   type: website
   output-dir: _output
   resources:
+  - materials/**
+  - '!tools/**'
+  - '!tests/**'
+  - '!**/projects/**'
+  - '!**/__pycache__/**'
   - '!**/*.qmd'
   - '!**/*.rmd'
   - '!**/*.ipynb'
@@ -20,38 +25,50 @@ project:
   - ../_extensions/Afonenko-Course-Tools/course-site/entrypoints/collect.ts
   render:
   - index.qmd
-  - 01.qmd
-  - 02.qmd
-  - 02-project.qmd
+  - work-environment.qmd
+  - data-processing.qmd
+  - version-control.qmd
+  - project-maintenance.qmd
 format:
-  html:
-    theme: cosmo
-    toc: true
-    code-copy: true
-    code-tools: false
+  revealjs:
+    css: assets/lesson.css
+    include-after-body: ../includes/reveal-layout.html
+    theme: default
+    slide-level: 2
+    navigation-mode: linear
+    slide-number: true
+    pdf-separate-fragments: false
+    revealjs-plugins:
+    - course-navigation
 lang: ru
 fail-if-warnings: true
 filters:
+- course-navigation
 - course-core
 - course-presentation
 - reference-catalog
 reference-catalog:
-  namespace: practice
+  namespace: system-practice-practice
 profile:
   default: student
   group:
   - - student
     - full
 website:
-  title: System Practice — занятия
+  title: System Practice — введения
   search: true
   navbar:
     left:
-    - text: Портал
+    - text: Курс
       href: ../index.html
-    - text: Занятие 1
-      href: 01.qmd
-    - text: Занятие 2
-      href: 02.qmd
-    - text: Проектная замена
-      href: 02-project.qmd
+    - text: Рабочая среда
+      href: work-environment.qmd
+course-navigation:
+  course-url: https://bsu-rfct-afonenko-courses.github.io/System-Practice/
+  links:
+  - text: Курс
+    href: /index.html
+    scope: course
+  - text: Введения
+    href: /index.html
+    scope: project

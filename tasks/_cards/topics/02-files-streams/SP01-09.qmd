@@ -7,7 +7,7 @@
 | Статус | дополнительная |
 | Сложность | повышенный |
 | Время | **60 мин**, из них 10 мин на беглое чтение; остальное — выполнение и самостоятельная проверка |
-| Предварительно | {{< xref theory sec-01-command-line "01-command-line" >}}; {{< xref theory sec-02-files-streams "02-files-streams" >}} |
+| Предварительно | {{< xref system-practice-theory sec-01-command-line "01-command-line" >}}; {{< xref system-practice-theory sec-02-files-streams "02-files-streams" >}} |
 
 ### Условие
 
@@ -15,7 +15,7 @@
 
 ### Источник и перенос
 
-{{< xref tasks sec-mm2020ru "MM2020RU" >}}: Оболочка и скрипты; Упражнение №4. [Ссылка на оригинал или карточку издания](https://missing-semester-rus.github.io/2020/shell-tools/).
+{{< xref system-practice-tasks sec-mm2020ru "MM2020RU" >}}: Оболочка и скрипты; Упражнение №4. [Ссылка на оригинал или карточку издания](https://missing-semester-rus.github.io/2020/shell-tools/).
 
 Адаптированное авторское условие. Сохранено исходное требование поиска и архивации HTML-файлов с пробелами в именах; длинное пояснение find/xargs опущено. Команда выполняется в fish.
 
@@ -29,6 +29,6 @@
 
 Облако: файлы в рабочей области VS Code PrairieLearn. Локально: те же файлы отдельными вложениями или одним ZIP-архивом.
 
-{{< xref theory sec-02-files-streams "К теме" >}} · {{< xref tasks sec-bank "Правила банка" >}}
+{{< xref system-practice-theory sec-02-files-streams "К теме" >}} · {{< xref system-practice-tasks sec-bank "Правила банка" >}}
 
 :::

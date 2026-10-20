@@ -1,0 +1,783 @@
+---
+title: Управление версиями
+subtitle: История проекта измерений
+course-navigation:
+  course-url: https://bsu-rfct-afonenko-courses.github.io/System-Practice/
+  links:
+  - text: Курс
+    href: /index.html
+    scope: course
+  - text: Введения
+    href: /index.html
+    scope: project
+  - text: Условие
+    href: /tasks/labs/version-control.html
+    scope: course
+format:
+  revealjs:
+    width: 1280
+    height: 800
+    fontsize: 30px
+    incremental: false
+    show-notes: false
+---
+
+## Состояния проекта {#sec-version-control-intro}
+
+- Локальная история проекта измерений.
+- Подготовка снимка. Чтение сохранённых состояний.
+- Развитие веток. Интеграция расходящихся изменений.
+- Настройка SSH. Обмен через свой репозиторий GitHub.
+- Проверка истории во второй копии.
+
+Команды выполняются в выбранном маршруте: PowerShell 7/Windows
+либо fish/Linux.
+
+::: {.notes}
+Восстановить по памяти три состояния файла: сохранённое, подготовленное,
+рабочее. Попросить привести знакомый пример копирования каталога перед
+экспериментом и назвать сведения, которые должна сохранить история.
+:::
+
+## Исходные файлы
+
+Распакуйте [демонстрационный архив](materials/version-control-demo.zip)
+в новую папку. В `latency-demo` три обычных файла; `.git` ещё отсутствует.
+
+| Файл | Назначение |
+|---|---|
+| criteria.txt | Порог `latency_limit = 10 ms` |
+| measurements.tsv | Измерения north — 8 ms, south — 18 ms |
+| README.md | Описание данных и включения измерений в отчёт |
+
+Откройте файлы редактором. При пороге 10 ms проходит запись north.
+Перейдите в latency-demo в PowerShell 7 либо fish.
+
+::: {.notes}
+Проверить текущую папку и прочитать три файла. Восстановить знакомую
+операцию копирования проекта перед изменением. Попросить объяснить,
+какая запись проходит исходный критерий.
+:::
+
+## Аккаунт проекта
+
+Для собственного удалённого репозитория используется личный аккаунт GitHub.
+Войдите в существующий аккаунт либо пройдите
+[регистрацию](https://docs.github.com/en/account-and-profile/how-tos/account-management/creating-an-account-on-github),
+подтвердите почту.
+
+Настройте защиту входа в `Settings → Password and authentication`.
+При [2FA](https://docs.github.com/en/authentication/securing-your-account-with-two-factor-authentication-2fa/configuring-two-factor-authentication)
+коды восстановления сохраняются в личном защищённом хранилище.
+
+Для коммитов можно выбрать подтверждённую почту или свой GitHub `noreply`
+из настроек почты. Этот адрес будет виден читателям истории.
+
+::: {.notes}
+Пользователь сам выполняет вход и настройку. Секретные поля и коды
+восстановления на общий экран не выводятся. Спросить, почему выбор
+почты следует сделать до сохранения истории для публикации.
+:::
+
+## Локальный репозиторий
+
+В корне latency-demo:
+
+```console
+git --version
+git init -b main
+git config user.name "Ваше имя"
+git config user.email "YOUR_EMAIL"
+git config --get user.name
+git config --get user.email
+```
+
+Подставьте своё имя и выбранный адрес. Настройка без `--global`
+относится к этой папке. Init создаёт `.git` и начальную ветку main;
+сохранённых коммитов ещё нет.
+
+::: {.notes}
+Показать status после init: три неотслеживаемых файла. Уточнить,
+что имя и почта являются сведениями автора в будущих коммитах.
+Проверка доступа к GitHub выполняется при отдельном соединении.
+:::
+
+## Первый снимок
+
+Рабочее дерево содержит редактируемые файлы. Индекс хранит
+подготовленное содержимое будущего снимка.
+[@bib-chacon-straub-progit, с. 22–39]
+
+```console
+git add -- README.md criteria.txt measurements.tsv
+git --no-pager diff --staged
+git commit -m "Сохранить исходные измерения"
+git status --short
+```
+
+Сохранён коммит A: порог 10 ms и два остальных исходных файла.
+Ветка main указывает на A; HEAD выбирает main. Пустой статус
+подтверждает совпадение рабочего дерева и индекса с A.
+
+::: {.notes}
+Перед commit прочитать подготовленные файлы. Найти идентификатор A
+в выводе и записать его для чтения истории. Попросить назвать действие,
+которое изменило индекс, и действие, которое создало коммит.
+:::
+
+## Подготовленный порог
+
+PowerShell 7:
+
+```powershell
+Set-Content -LiteralPath criteria.txt -Value 'latency_limit = 12 ms'
+```
+
+Fish:
+
+```fish
+printf '%s\n' 'latency_limit = 12 ms' > criteria.txt
+```
+
+В выбранной оболочке затем:
+
+```console
+git add -- criteria.txt
+git --no-pager diff --staged
+```
+
+Индекс хранит 12 ms; HEAD/A сохраняет 10 ms.
+
+::: {.notes}
+Попросить предсказать строки со знаками минус и плюс. Установить
+момент, в который add прочитал файл. Выполнять команды изменения
+содержимого только из варианта своей оболочки.
+:::
+
+## Рабочий эксперимент
+
+Какое значение сохранит обычный commit после следующей правки?
+
+Измените строку ещё раз на `latency_limit = 20 ms` в редакторе
+или соответствующей команде записи своей оболочки.
+
+```console
+git status --short
+git --no-pager diff -- criteria.txt
+git --no-pager diff --staged -- criteria.txt
+```
+
+| HEAD | Индекс | Рабочий файл |
+|---:|---:|---:|
+| 10 ms | 12 ms | 20 ms |
+
+Статус — `MM`. Обычный diff показывает 12 → 20,
+подготовленный diff — 10 → 12.
+
+::: {.notes}
+До выполнения следующего commit попросить прогноз сохранённой величины.
+При ответе 20 прочитать подготовленный diff. После уточнения прогноза
+продолжить опыт без повторного add.
+:::
+
+## Сохранение выбранного значения
+
+```console
+git commit -m "Уточнить порог до 12 ms"
+git show 'HEAD:criteria.txt'
+git status --short
+```
+
+Коммит B содержит 12 ms, его родитель — A. Рабочий файл сохраняет 20,
+поэтому короткий статус — ` M criteria.txt`.
+
+Для завершения эксперимента восстановите файл из индекса:
+
+```console
+git restore -- criteria.txt
+```
+
+Рабочее дерево, индекс и HEAD/B теперь содержат 12 ms.
+
+::: {.notes}
+Прочитать рабочий diff до восстановления. Получить осознанное решение
+о завершении экспериментальной правки. После restore показать пустой
+status и назвать источник восстановленного файла — индекс.
+:::
+
+## Линия описания
+
+```console
+git switch -c source-note
+```
+
+В README.md добавьте строку `Источник: учебные измерения двух датчиков.`
+
+```console
+git add -- README.md
+git commit -m "Указать происхождение измерений"
+```
+
+```text
+HEAD ──> source-note ──> C ──> B ──> A
+                             ^
+                      main ──┘
+```
+
+Новая ветка продолжила B. `main` осталась на прежнем снимке.
+
+::: {.notes}
+Попросить указать новую строку только в снимке C. Сопоставить создание
+ветки и создание коммита: первое добавило имя, второе — снимок
+с родительской связью.
+:::
+
+## Продвижение main
+
+```console
+git switch main
+```
+
+README.md снова соответствует B: строки происхождения нет.
+Для включения готового описания:
+
+```console
+git merge --ff-only source-note
+```
+
+`main` перемещается B → C по существующей истории. Нового коммита нет;
+рабочий README.md снова содержит строку происхождения.
+Это fast-forward: исходная вершина была предком новой.
+
+::: {.notes}
+Показывать содержимое между двумя командами. Спросить, где хранилась
+строка во время возврата к B. После merge сравнить число коммитов
+и положение ссылок в log --graph --decorate --all.
+:::
+
+## Запись в секундах
+
+На main/C порог равен 12 ms:
+
+```console
+git switch -c seconds
+```
+
+Измените criteria.txt на `latency_limit = 0.012 s`.
+Дополните README.md строкой `Порог в criteria.txt выражен в секундах.`
+
+```console
+git add -- criteria.txt README.md
+git commit -m "Выразить порог в секундах"
+```
+
+Коммит S сохраняет величину 12 ms в другой единице.
+Данные measurements.tsv продолжают выражаться в миллисекундах.
+
+::: {.notes}
+Проверить соотношение единиц перед add. Попросить прочитать оба
+подготовленных файла как одно согласованное изменение. Указать S
+в decorated log и его родителя C.
+:::
+
+## Изменение основной линии
+
+```console
+git switch main
+```
+
+Рабочие файлы возвращаются к C. Измените criteria.txt на
+`latency_limit = 20 ms`, затем:
+
+```console
+git add -- criteria.txt
+git commit -m "Повысить порог до 20 ms"
+```
+
+```text
+main ──> T ──> C <── S <── seconds
+```
+
+T и S расходятся от C. Новое требование main меняет величину порога.
+
+::: {.notes}
+Попросить прочитать путь от каждой вершины к C. Проверить отсутствие
+пути от T к S по родителям. Сопоставить физический смысл каждого
+из двух изменений до запуска merge.
+:::
+
+## Остановка на конфликте
+
+На main/T с чистым статусом:
+
+```console
+git merge seconds
+```
+
+Рабочий criteria.txt:
+
+```text
+<<<<<<< HEAD
+latency_limit = 20 ms
+=======
+latency_limit = 0.012 s
+>>>>>>> seconds
+```
+
+`main` остаётся на T. README.md получил совместимое пояснение из S.
+
+::: {.notes}
+Прочитать status и найти конфликтный путь. Спросить, какой коммит
+задаёт каждую сторону блока. Показать автоматически соединённый
+README и сохранить оба требования к критерию на доске.
+:::
+
+## Разрешение по требованиям
+
+Какой критерий одновременно выполняет оба требования?
+
+Нужно сохранить новый порог 20 ms и выражать его в секундах.
+Весь конфликтный блок заменяется на:
+
+```text
+latency_limit = 0.020 s
+```
+
+```console
+git add -- criteria.txt
+git --no-pager diff --staged
+git commit -m "Согласовать порог"
+```
+
+Коммит M имеет родителей T и S. Маркеры конфликта удалены,
+README.md поясняет секунды, исходные данные сохранились.
+
+::: {.notes}
+Попросить объяснить итог через 1000 ms = 1 s. Проверить обе стороны
+требования после редактирования. Прочитать staged diff относительно T,
+затем получить два parent в raw-описании M.
+:::
+
+## Проверка локальной истории
+
+```console
+git --no-pager log --graph --oneline --decorate --all
+git --no-pager show --no-patch --format=raw HEAD
+git show 'HEAD:criteria.txt'
+git status --short
+```
+
+```text
+main ──> M ──> T ──> C ──> B ──> A
+         │           ^
+         └──> S ─────┘
+              ^
+     seconds ─┘
+```
+
+Ожидаются M с двумя родителями, порог 0.020 s и чистое рабочее состояние.
+
+::: {.notes}
+Попросить найти A по связям из M. Проверить порог, единицу и исходные
+измерения. Найти в графе происхождение изменений, а в criteria.txt —
+выбранную величину порога и её единицу.
+:::
+
+## Проверка Windows OpenSSH
+
+В пользовательском PowerShell 7:
+
+```powershell
+$openSshDir = Join-Path $env:WINDIR 'System32/OpenSSH'
+$sshClient = Join-Path $openSshDir 'ssh.exe'
+$sshKeygen = Join-Path $openSshDir 'ssh-keygen.exe'
+$sshAdd = Join-Path $openSshDir 'ssh-add.exe'
+Test-Path -LiteralPath $sshClient
+& $sshClient -V
+```
+
+Ожидаются True и версия системного OpenSSH. При отсутствии клиента
+установите компонент OpenSSH Client по
+[инструкции Microsoft](https://learn.microsoft.com/en-us/windows-server/administration/openssh/openssh_install_firstuse).
+
+Fish/Linux использует `ssh -V`; его маршрут агента приведён отдельно ниже.
+
+::: {.notes}
+Сопоставить фактический путь с выбранным системным клиентом.
+Показать результат Test-Path и версию запущенного ssh.exe.
+Попросить назвать программу, к которой относится наблюдаемый вывод.
+:::
+
+## Агент Windows
+
+В отдельном PowerShell с правами администратора:
+
+```powershell
+Get-Service -Name ssh-agent | Set-Service -StartupType Manual
+Start-Service ssh-agent
+Get-Service ssh-agent
+```
+
+Ожидается Running. При Manual после остановки/перезагрузки службу
+может потребоваться запустить снова.
+
+Далее вернитесь в обычный пользовательский PowerShell. Агент предоставляет
+клиенту возможность подписывать запросы доступным ключом. Добавление
+личного ключа выполняется от своего пользователя.
+
+::: {.notes}
+Различить административную настройку службы и пользовательскую работу
+с ключом. Показать состояние службы. Уточнить, в каком окне сохранены
+переменные openSshDir и sshClient предыдущего шага.
+:::
+
+## Выбор клиента Git
+
+В обычном PowerShell прочитайте прежнюю настройку:
+
+```console
+git config --global --get core.sshCommand
+```
+
+При переходе на системный Windows OpenSSH:
+
+```powershell
+$sshProgram = '"' + $sshClient.Replace('\', '/') + '"'
+git config --global core.sshCommand $sshProgram
+git config --show-origin --get core.sshCommand
+```
+
+Проверьте совпадение действующего пути Git с выбранным системным клиентом.
+Глобальная настройка относится к репозиториям текущего пользователя.
+
+::: {.notes}
+Прочитать прежнее значение до изменения. При переопределении
+локальной конфигурацией или GIT_SSH_COMMAND разобрать источник
+по справочнику. Сопоставить путь проверочной программы со значением,
+полученным из конфигурации Git.
+:::
+
+## Выбор пары ключей
+
+PowerShell:
+
+```powershell
+Get-ChildItem -Force -LiteralPath "$HOME/.ssh"
+```
+
+Fish:
+
+```fish
+ls -la ~/.ssh
+```
+
+Открытый файл имеет окончание `.pub`, закрытый остаётся на компьютере.
+Существующую пригодную пару можно использовать. Для новой пары
+выберите свободное имя обоих файлов, например id_ed25519_course.
+Отсутствие каталога команда покажет сообщением.
+
+::: {.notes}
+Пользователь рассматривает имена своих файлов без чтения закрытого
+содержимого. Попросить объяснить назначение расширения .pub.
+При существующей настройке выбрать её путь перед вызовом ssh-add.
+:::
+
+## Новая пара в PowerShell
+
+```powershell
+New-Item -ItemType Directory -Force -Path "$HOME/.ssh"
+$keyPath = Join-Path $HOME '.ssh/id_ed25519_course'
+Test-Path -LiteralPath $keyPath
+Test-Path -LiteralPath "$keyPath.pub"
+```
+
+Для новой пары оба результата должны быть False. Только при свободном имени:
+
+```powershell
+& $sshKeygen -t ed25519 -C 'course-computer' -f $keyPath
+& $sshAdd $keyPath
+```
+
+Задайте парольную фразу. Для существующего ключа задайте его путь
+в keyPath и выполните только ssh-add.
+
+::: {.notes}
+До генерации проверить оба результата Test-Path. Объяснить подпись -C
+как узнаваемую метку устройства и -f как выбор файла. Парольную фразу
+пользователь вводит самостоятельно без сохранения в учебном отчёте.
+:::
+
+## Агент fish/Linux
+
+```fish
+ssh -V
+ssh-add -l
+```
+
+При доступном агенте можно использовать его. Если агент отсутствует:
+
+```fish
+ssh-agent fish
+```
+
+Откроется вложенный fish с адресом нового агента в окружении.
+Работа с ключом и Git продолжается в этом сеансе. Его `exit`
+завершит запущенный для него агент.
+
+::: {.notes}
+Сопоставить сообщения о пустом агенте и о недоступном агенте.
+При демонстрации нового агента отметить вложенность оболочки.
+Спросить, в каком процессе будут доступны его переменные окружения.
+:::
+
+## Новая пара в fish
+
+```fish
+mkdir -p ~/.ssh
+test -e ~/.ssh/id_ed25519_course
+echo $status
+test -e ~/.ssh/id_ed25519_course.pub
+echo $status
+```
+
+Код 0 у test означает занятое имя. Для двух свободных путей:
+
+```fish
+ssh-keygen -t ed25519 -C 'course-computer' -f ~/.ssh/id_ed25519_course
+ssh-add ~/.ssh/id_ed25519_course
+```
+
+Для существующей пары используется её путь в ssh-add; генерация пропускается.
+
+::: {.notes}
+Вывести $status сразу после соответствующего test. При занятом имени
+выбрать новое и повторить обе проверки. Объяснить работу парольной фразы
+при создании ключа и его добавлении в агент.
+:::
+
+## Открытый ключ в аккаунте
+
+Прочитайте `.pub` выбранной пары. PowerShell:
+
+```powershell
+Get-Content -Raw -LiteralPath "$keyPath.pub"
+```
+
+Fish:
+
+```fish
+cat ~/.ssh/id_ed25519_course.pub
+```
+
+В GitHub: `Settings → SSH and GPG keys → New SSH key`.
+Выберите Authentication, название компьютера и вставьте полный открытый
+ключ. Он позволит серверу проверить подпись клиента.
+
+::: {.notes}
+Сопоставить открытый ключ с путём закрытой части, загруженной в агент.
+Пользователь самостоятельно подтверждает добавление в аккаунт.
+Попросить назвать данные, которые сервер получает для проверки.
+:::
+
+## Ключ сервера
+
+PowerShell с выбранным клиентом:
+
+```powershell
+& $sshClient -T git@github.com
+```
+
+Fish:
+
+```fish
+ssh -T git@github.com
+```
+
+При первом запросе доверия сверяйте тип и полный отпечаток с
+[официальной страницей GitHub](https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/githubs-ssh-key-fingerprints).
+Подтвердите yes только после совпадения. При различии остановите соединение
+и выясните причину.
+
+::: {.notes}
+Различить ключ сервера и пользовательскую пару. Показать, какую строку
+официального списка выбирают по типу предложенного ключа. Установить,
+что последующие подключения сверяются с сохранённым known_hosts.
+:::
+
+## Результат аутентификации
+
+GitHub должен назвать ожидаемый аккаунт:
+
+```text
+Hi USERNAME! You've successfully authenticated, but GitHub does not provide shell access.
+```
+
+Сразу после ssh в PowerShell прочитайте `$LASTEXITCODE`, в fish —
+`echo $status`. Штатный код этого теста GitHub — **1**:
+сервис подтвердил аутентификацию и завершил соединение без shell.
+
+Право записи в конкретный репозиторий проверяется при push.
+Закрытый ключ остаётся локальным; сеансовые ключи защищают передачу.
+
+::: {.notes}
+Если показан другой аккаунт, вернуться к выбранной паре и её регистрации.
+При Permission denied (publickey) проверить агент, клиент и открытый ключ.
+Сопоставить успешное сообщение с назначением ssh -T у GitHub.
+:::
+
+## Пустой репозиторий GitHub
+
+Создайте `New repository` в своём аккаунте. Выберите имя и видимость
+Public либо Private. README, лицензию и .gitignore при создании оставьте
+выключенными: первая отправка принесёт готовую локальную историю.
+
+В latency-demo подставьте SSH-адрес созданного репозитория:
+
+```console
+git remote add origin git@github.com:OWNER/REPOSITORY.git
+git remote -v
+git push -u origin main
+```
+
+`origin` — локальное имя адреса. Push передаёт историю и обновляет
+серверную main; `-u` задаёт upstream для локальной main.
+
+::: {.notes}
+Проверить owner/name и фактическую видимость. После push открыть
+серверную историю, найти M и criteria.txt с 0.020 s. Если origin
+уже существует, сначала прочитать его адрес и действовать по справочнику.
+:::
+
+## Вторая копия
+
+Перейдите в родительскую папку latency-demo. Имя latency-check свободно:
+
+```console
+git clone git@github.com:OWNER/REPOSITORY.git latency-check
+```
+
+В новой папке latency-check:
+
+```console
+git rev-parse HEAD
+git remote -v
+git --no-pager log --graph --oneline --decorate --all
+git status --short
+```
+
+Получена своя main/M, собственные индекс и рабочие файлы. ID M
+совпадает с отправленным, порог равен 0.020 s, статус чист.
+
+::: {.notes}
+Сравнить данные обеих папок. Найти родителей M в полученной истории.
+Попросить объяснить отличие нового репозитория от одного скачанного
+файла criteria.txt через доступные наблюдения log и status.
+:::
+
+## Изменение второй копии
+
+В latency-check проверьте имя и почту автора. Локальная настройка
+первой папки не переносится при clone; задайте нужные значения здесь.
+
+Добавьте в README.md строку `Проверка: данные прочитаны во второй копии.`
+
+```console
+git add -- README.md
+git commit -m "Отметить проверку второй копии"
+git push origin main
+```
+
+Новый N имеет родителя M. Серверная main теперь выбирает N;
+первая копия сохраняет прежние сведения до обмена.
+
+::: {.notes}
+Проверить git config --get user.name и user.email перед commit.
+Зафиксировать ID N. Попросить предсказать содержимое README в первой
+папке и проверить его до fetch.
+:::
+
+## Fetch в первой копии
+
+Вернитесь в latency-demo:
+
+```console
+git fetch origin
+git --no-pager log --graph --oneline --decorate --all
+```
+
+```text
+origin/main ──> N ──> M
+                     ^
+              main ──┘
+```
+
+`origin/main` — локальная ссылка на полученное состояние серверной main.
+Fetch обновил её до N; собственная main и рабочий README пока сохраняют M.
+
+::: {.notes}
+Прочитать show origin/main:README.md и сравнить с рабочим файлом.
+Попросить объяснить два результата через разные ссылки на схеме.
+Отметить, какая часть операции уже потребовала сети.
+:::
+
+## Включение полученной истории
+
+В latency-demo:
+
+```console
+git merge --ff-only origin/main
+git rev-parse HEAD
+git show 'HEAD:criteria.txt'
+git status --short
+```
+
+`main` продвинулась M → N, рабочий README получил строку проверки.
+`criteria.txt` сохраняет 0.020 s, история — оба родителя M.
+
+В {{< xref system-practice-handbook sec-reference-git-package "справочнике упаковки" >}}
+приведены сохранение `.git` и проверка архива.
+{{< xref system-practice-tasks sec-lab-version-control "Самостоятельная работа" >}}
+задаёт свойства собственного проекта, истории и внешнего обмена.
+
+::: {.notes}
+Попросить разделить наблюдаемые эффекты fetch и merge. Сопоставить
+вершины и файлы двух копий после включения N. Для дальнейшей работы
+открыть самостоятельное условие и прочитать его исходные значения.
+:::
+
+## Источники по Git {.smaller}
+
+::: {#refs}
+:::
+
+[Документация add](https://git-scm.com/docs/git-add),
+[commit](https://git-scm.com/docs/git-commit),
+[diff](https://git-scm.com/docs/git-diff),
+[restore](https://git-scm.com/docs/git-restore): подготовка и сохранение снимка.
+
+[Документация switch](https://git-scm.com/docs/git-switch),
+[merge](https://git-scm.com/docs/git-merge): перемещение веток и интеграция.
+
+[Документация clone](https://git-scm.com/docs/git-clone),
+[fetch](https://git-scm.com/docs/git-fetch),
+[push](https://git-scm.com/docs/git-push): передача истории.
+
+::: {.notes}
+Открыть описание restore и найти источник содержимого по умолчанию.
+Попросить связать это условие с выполненным восстановлением рабочего файла.
+:::
+
+## Документация доступа {.smaller}
+
+- GitHub: [регистрация](https://docs.github.com/en/account-and-profile/how-tos/account-management/creating-an-account-on-github),
+  [защита входа](https://docs.github.com/en/authentication/securing-your-account-with-two-factor-authentication-2fa/configuring-two-factor-authentication).
+- GitHub: [ключи и агент](https://docs.github.com/en/authentication/connecting-to-github-with-ssh/generating-a-new-ssh-key-and-adding-it-to-the-ssh-agent),
+  [регистрация открытого ключа](https://docs.github.com/en/authentication/connecting-to-github-with-ssh/adding-a-new-ssh-key-to-your-github-account).
+- GitHub: [проверка соединения](https://docs.github.com/en/authentication/connecting-to-github-with-ssh/testing-your-ssh-connection),
+  [отпечатки ключей сервера](https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/githubs-ssh-key-fingerprints).
+- Microsoft: [системный Windows OpenSSH](https://learn.microsoft.com/en-us/windows-server/administration/openssh/openssh_install_firstuse).
+
+::: {.notes}
+Найти в инструкции GitHub ожидаемый код ssh -T и сопоставить его
+с наблюдавшимся сообщением. Показать официальный источник сверки сервера.
+:::

@@ -1,0 +1,163 @@
+diff --git a/_extensions/course-core/domain/model.ts b/_extensions/course-core/domain/model.ts
+index e8371cb..2a11cf9 100644
+--- a/_extensions/course-core/domain/model.ts
++++ b/_extensions/course-core/domain/model.ts
+@@ -34,7 +34,8 @@ export interface Pedagogy {
+ export type Extracted<T> = Omit<T, "body" | "gradingNotes" | "source" | "extensions"> & { bodyJson: string; gradingNotesJson?: string[] };
+ export interface TopicFact { source: string; semester?: string; categories: string[] }
+ export interface SourceProfile {mode:"implementation"|"student-tests";root:string;include:string[]}
+-export interface ResolvedProjectCheck {profile:string; runtime:string; sourceProfile:SourceProfile; "source-profile":string; tests:string[]; references?:{name:string;root:string;optional:boolean}[]; [key:string]: unknown}
++export interface ApiPrecheck {files:string[];entry:string}
++export interface ResolvedProjectCheck {profile:string; runtime:string; sourceProfile:SourceProfile; "source-profile":string; tests:string[]; "api-precheck"?:ApiPrecheck; "verification-api-precheck"?:ApiPrecheck; references?:{name:string;root:string;optional:boolean}[]; [key:string]: unknown}
+ export interface ProjectFact {exerciseId:string;source:string;projectRoot:string;bankMember:boolean;purpose?:ExercisePurpose;statementVisibility:StatementVisibility;artifactPolicy:{student?:"starter"|"full";full:"full";conditions:boolean};check?:ResolvedProjectCheck}
+ export interface Fragment {
+   projects?: ProjectFact[]; topic?: TopicFact;
+diff --git a/_extensions/course-core/project-checks/collect.ts b/_extensions/course-core/project-checks/collect.ts
+index 7fe950c..9844dc0 100644
+--- a/_extensions/course-core/project-checks/collect.ts
++++ b/_extensions/course-core/project-checks/collect.ts
+@@ -3,12 +3,13 @@ const __metrics=__createMetrics("course-core");
+ import { expandGlob } from "stdlib/fs";
+ import { join, relative, resolve } from "stdlib/path";
+ import { collectNativeModel } from "../body-export/collect.ts";
+-import type { ProjectFact } from "../domain/model.ts";
++import type { ProjectFact, ApiPrecheck } from "../domain/model.ts";
+ import { diagnostic } from "../domain/diagnostics.ts";
+ export interface SourceSelection {projectRelativePath:string;submissionRelativePath:string;sha256:string}
+ export interface CheckProject extends ProjectFact {
+   qualifiedId:string; sources:SourceSelection[]; trustedTests:SourceSelection[];
+   verificationTests:SourceSelection[];
++  apiPrecheck?:ApiPrecheck; verificationApiPrecheck?:ApiPrecheck;
+   references:{name:string;root:string;optional:boolean;sources:SourceSelection[];available:boolean}[];
+   contractCasesHash?:{projectRelativePath:string;sha256:string}; contractFixtures:SourceSelection[];readiness:{ready:boolean;missing:string[]};
+ }
+@@ -49,7 +50,7 @@ export async function selectSources(root:string,sourceRoot:string,patterns:strin
+ /** Explicit opted-in inventory; generation executes native Quarto, never Java. */
+ export async function collectProjectChecks(root:string,options:{book:string;profiles?:string[]},current?:Awaited<ReturnType<typeof collectNativeModel>>):Promise<ChecksManifest>{
+  const collected=current??await collectNativeModel(root,options);
+- if(relative(root,collected.projectRoot).replaceAll("\\","/")!==options.book && resolve(root,options.book)!==collected.projectRoot)throw diagnostic("CHECKS.OWNER_MISMATCH","Текущий collected owner не совпадает с выбранной книгой");
++ if(relative(root,collected.projectRoot).replaceAll("\\","/")!==options.book && resolve(root,options.book)!==collected.projectRoot)throw diagnostic("CHECKS.OWNER_MISMATCH","Текущий collected owner не совпадает с выбранным проектом");
+  const projects:CheckProject[]=[];
+  for(const fact of collected.result.model.projects??[]){
+   if(!fact.check)continue;
+@@ -63,6 +64,17 @@ export async function collectProjectChecks(root:string,options:{book:string;prof
+   const trustedTests=(await select("tests",check.tests.map(p=>p.startsWith("tests/")?p.slice(6):p))).map(s=>({...s,submissionRelativePath:s.submissionRelativePath.replace(/^junit\//,"")}));
+   if(!trustedTests.length)missing.push("trustedTests");
+   const verificationTests=await select("student",((check["verification-tests"]??[]) as string[]).map(p=>p.startsWith("student/")?p.slice(8):p));
++  const apiSubset=async (value:ApiPrecheck|undefined,partition:string,available:SourceSelection[],stripJunit=false):Promise<ApiPrecheck|undefined>=>{
++   if(!value)return undefined;
++   if(check.runtime!=="java25-junit-v1"||check.sourceProfile.mode!=="implementation"||!value.files.length||!/^[A-Za-z_$][\w$]*(?:\.[A-Za-z_$][\w$]*)*$/.test(value.entry))throw diagnostic("CHECKS.API_INVALID","API precheck требует Java implementation, files и entry");
++   const selected=(await select(partition,value.files.map(p=>p.startsWith(partition+"/")?p.slice(partition.length+1):p))).map(s=>({...s,submissionRelativePath:stripJunit?s.submissionRelativePath.replace(/^junit\//,""):s.submissionRelativePath}));
++   if(!selected.length){missing.push(partition+"ApiPrecheck");return {entry:value.entry,files:[]};}
++   if(selected.length>=available.length||selected.some(s=>!s.submissionRelativePath.endsWith('.java')||!available.some(a=>a.projectRelativePath===s.projectRelativePath&&a.submissionRelativePath===s.submissionRelativePath)))throw diagnostic("CHECKS.API_SUBSET_INVALID","API precheck должен быть собственным подмножеством выбранных доверенных Java sources");
++   return {files:selected.map(s=>s.submissionRelativePath),entry:value.entry};
++  };
++  const apiPrecheck=await apiSubset(check['api-precheck'],"tests",trustedTests,true);
++  const verificationApiPrecheck=await apiSubset(check['verification-api-precheck'],"student",verificationTests);
++  if(apiPrecheck&&verificationTests.length&&!verificationApiPrecheck)throw diagnostic("CHECKS.API_PUBLIC_MISSING","Публичная проверка fixed API требует собственной явной API precheck");
+   const references=[];
+   for(const ref of check.references??[]){
+    let available=true,files:SourceSelection[]=[];
+@@ -86,7 +98,7 @@ export async function collectProjectChecks(root:string,options:{book:string;prof
+    }catch(e){if(!(e instanceof Deno.errors.NotFound))throw e;missing.push('contract-cases');}
+   }
+   if(((check['verification-tests']??[]) as string[]).length&&!verificationTests.length)missing.push('verificationTests');
+-  projects.push({...fact,qualifiedId:collected.courseId+"/"+fact.exerciseId,sources,trustedTests,verificationTests,references,contractFixtures,readiness:{ready:missing.length===0,missing},...(contractCasesHash?{contractCasesHash}:{})});
++  projects.push({...fact,qualifiedId:collected.courseId+"/"+fact.exerciseId,sources,trustedTests,verificationTests,references,contractFixtures,readiness:{ready:missing.length===0,missing},...(apiPrecheck?{apiPrecheck}:{}),...(verificationApiPrecheck?{verificationApiPrecheck}:{}),...(contractCasesHash?{contractCasesHash}:{})});
+  }
+  projects.sort((a,b)=>a.qualifiedId.localeCompare(b.qualifiedId));
+  const sources=[];
+diff --git a/_extensions/course-core/project-checks/manifest.cue b/_extensions/course-core/project-checks/manifest.cue
+index 09c0079..d180b35 100644
+--- a/_extensions/course-core/project-checks/manifest.cue
++++ b/_extensions/course-core/project-checks/manifest.cue
+@@ -7,11 +7,13 @@ import "list"
+  qualifiedId:string & !=""
+  check:#ResolvedProjectCheck
+  sources:[...#Selection],trustedTests:[...#Selection],verificationTests:[...#Selection]
++ apiPrecheck?:{files:[...string],entry:#ApiPrecheck.entry}
++ verificationApiPrecheck?:{files:[...string],entry:#ApiPrecheck.entry}
+  references:[...{name:string,root:string,optional:bool,sources:[...#Selection],available:bool}]
+  contractFixtures:[...#Selection]
+  contractCasesHash?:{projectRelativePath:string,sha256:#SHA256}
+  readiness:{ready:bool,missing:[...string]}
+- if readiness.ready {readiness:missing:[],sources:list.MinItems(1),trustedTests:list.MinItems(1)}
++ if readiness.ready {readiness:missing:[],sources:list.MinItems(1),trustedTests:list.MinItems(1),apiPrecheck?:files:list.MinItems(1),verificationApiPrecheck?:files:list.MinItems(1)}
+  if !readiness.ready {readiness:missing:list.MinItems(1)}
+ }
+ #ChecksManifest: {
+diff --git a/_extensions/course-core/projects.lua b/_extensions/course-core/projects.lua
+index cb54e00..824529e 100644
+--- a/_extensions/course-core/projects.lua
++++ b/_extensions/course-core/projects.lua
+@@ -8,7 +8,8 @@ local expectationShape={['student-compilation']=true,job=true,['required-tests']
+ local checkShape={['source-profile']=true,runtime=true,java={release=true,encoding=true,['compiler-options']='array'},limits={['outer-seconds']=true,['compile-seconds']=true,['run-seconds']=true,networking=true,['max-output-bytes']=true},
+  scoring={mode=true,groups='array',basis=true,value=true},references='array',tests='array',['verification-tests']='array',['contract-cases']=true,
+  ['verification-expectations']={reference=expectationShape,starter=expectationShape},
+- discovery={['min-executed']=true,['allow-skipped']=true},variants={correct='array',mutants='array'}}
++ discovery={['min-executed']=true,['allow-skipped']=true},variants={correct='array',mutants='array'},
++ ['api-precheck']={files='array',entry=true},['verification-api-precheck']={files='array',entry=true}}
+ local function fail(field,detail,id) diagnostics.fail('CORE.PROJECT_CHECK_INVALID',detail,{source=quarto.doc.input_file,id=id,field=field}) end
+ local function scalar(value)
+  if type(value)=='boolean' then return value end
+@@ -96,6 +97,14 @@ function M.resolve(config,name,id)
+  if result.limits and result.limits.networking~=nil and result.limits.networking~=false then fail('limits.networking','Network must be false',id) end
+  if result.discovery and result.discovery['allow-skipped']~=nil and type(result.discovery['allow-skipped'])~='boolean' then fail('discovery.allow-skipped','Требуется boolean',id) end
+  if result.discovery and result.discovery['min-executed'] then result.discovery['min-executed']=tonumber(result.discovery['min-executed']);if not result.discovery['min-executed'] or result.discovery['min-executed']<1 or result.discovery['min-executed']%1~=0 then fail('discovery.min-executed','Требуется положительный integer',id) end end
++ for _,name in ipairs({'api-precheck','verification-api-precheck'}) do
++  local api=result[name]
++  if api then
++   if source.mode~='implementation' or result.runtime~='java25-junit-v1' then fail(name,'API precheck требует Java implementation',id) end
++   if not api.files or #api.files==0 or not api.entry or not api.entry:match('^[%a_$][%w_$.]*$') then fail(name,'API precheck требует files и Java entry class',id) end
++   for _,value in ipairs(api.files) do path(value,name..'.files') end
++  end
++ end
+  return result
+ end
+ function M.collect(doc,facts)
+diff --git a/_extensions/course-core/spec/core.cue b/_extensions/course-core/spec/core.cue
+index 2d23f2c..ad58b74 100644
+--- a/_extensions/course-core/spec/core.cue
++++ b/_extensions/course-core/spec/core.cue
+@@ -119,7 +119,7 @@ import "list"
+ #SourceProfile: {mode:"implementation"|"student-tests",root:string & !="",include:[...string] & list.MinItems(1)}
+ #VerificationExpectation: {"student-compilation"?:"success"|"failure",job?:"complete"|"failure","required-tests"?:"all-pass",classification?:string,"failed-tests"?:{"at-least"?:int & >=0,exactly?:int & >=0},"executed-tests"?:{"at-least"?:int & >=0,exactly?:int & >=0},"test-ids"?:[...string],score?:{"less-than"?:number & >=0,"at-least"?:number & >=0,exactly?:number & >=0}}
+ #Scoring: {mode:"weighted"} | {mode:"all-pass"} | {mode:"contract-groups",groups:[...{id:string & !="",weight:number & >0,tests:[...string] & list.MinItems(1)}] & list.MinItems(1)} | {mode:"threshold",basis:"score"|"passed-tests",value:number & >=0}
+-#ResolvedProjectCheck: {
++#ResolvedProjectCheck: CHECK={
+  profile:string & !="",runtime:string & !="",sourceProfile:#SourceProfile,"source-profile":string & !="",tests:[...string]
+  java?:{release:int & >0,encoding?:string & !="","compiler-options"?:[...string]}
+  limits?:{"outer-seconds"?:number & >0,"compile-seconds"?:number & >0,"run-seconds"?:number & >0,networking?:false,"max-output-bytes"?:int & >0}
+@@ -129,7 +129,12 @@ import "list"
+  "verification-expectations"?:{reference?:#VerificationExpectation,starter?:#VerificationExpectation}
+  discovery?:{"min-executed"?:int & >0,"allow-skipped"?:bool}
+  variants?:{correct:[...string] & list.MinItems(1),mutants:[...string] & list.MinItems(1)}
++ "api-precheck"?:#ApiPrecheck
++ "verification-api-precheck"?:#ApiPrecheck
++ if CHECK["api-precheck"] != _|_ {runtime:"java25-junit-v1",sourceProfile:mode:"implementation"}
++ if CHECK["verification-api-precheck"] != _|_ {runtime:"java25-junit-v1",sourceProfile:mode:"implementation"}
+ }
++#ApiPrecheck: {files:[...string & !=""] & list.MinItems(1),entry:string & =~"^[A-Za-z_$][A-Za-z0-9_$]*(\\.[A-Za-z_$][A-Za-z0-9_$]*)*$"}
+ #ProjectFact: {exerciseId:string, source:string, projectRoot:string & !="", bankMember:bool, purpose?:#ExercisePurpose, statementVisibility:#StatementVisibility, artifactPolicy:{student?:"starter"|"full",full:"full",conditions:bool},check?:#ResolvedProjectCheck}
+ #TopicFact: {source:string,semester?:string,categories:[...string]}
+ #Course: {
+diff --git a/_extensions/course-presentation/disclosure.js b/_extensions/course-presentation/disclosure.js
+index 8e06350..0300b89 100644
+--- a/_extensions/course-presentation/disclosure.js
++++ b/_extensions/course-presentation/disclosure.js
+@@ -12,7 +12,14 @@
+     const displayed = window.CoursePresentation?.exposeNote(target);
+     if (displayed) target = displayed;
+     let fragment = -1;
+-    const scroll = () => { if (!window.Reveal) target.scrollIntoView({block: 'center', behavior: 'auto'}); };
++    const scroll = () => {
++      if (!window.Reveal) {
++        // Начало длинного раздела должно оставаться видимым. Отступ под
++        // навигационную панель задаёт штатное оформление Quarto для :target.
++        const block = target.tagName === 'SECTION' ? 'start' : 'center';
++        target.scrollIntoView({block, behavior: 'auto'});
++      }
++    };
+     for (let element = target; element; element = element.parentElement) {
+       if (element.tagName === 'DETAILS') element.open = true;
+       if (element.classList.contains('collapse') && !element.classList.contains('show')) {

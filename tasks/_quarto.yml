@@ -2,6 +2,11 @@ project:
   type: book
   output-dir: _output
   resources:
+  - materials/**
+  - '!tools/**'
+  - '!tests/**'
+  - '!**/projects/**'
+  - '!**/__pycache__/**'
   - '!**/*.qmd'
   - '!**/*.rmd'
   - '!**/*.ipynb'
@@ -21,6 +26,7 @@ project:
 format:
   html:
     theme: cosmo
+    include-in-header: ../includes/book-tables.html
     toc: true
     code-copy: true
     code-tools: false
@@ -31,22 +37,20 @@ filters:
 - course-presentation
 - reference-catalog
 reference-catalog:
-  namespace: tasks
+  namespace: system-practice-tasks
 profile:
   default: student
   group:
   - - student
     - full
 book:
-  title: System Practice — банк задач
+  title: System Practice — лабораторные и проект
   chapters:
   - index.qmd
-  - topics/01-command-line.qmd
-  - topics/02-files-streams.qmd
-  - topics/03-diff-patch.qmd
-  - topics/04-git.qmd
-  - projects.qmd
-  - sources.qmd
+  - labs/work-environment.qmd
+  - labs/data-processing.qmd
+  - labs/version-control.qmd
+  - optional/project-maintenance.qmd
   search: true
   page-navigation: true
   sidebar:

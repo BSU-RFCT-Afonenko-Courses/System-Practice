@@ -1,0 +1,312 @@
+---
+title: Рабочая среда
+subtitle: Файлы учебного проекта
+course-navigation:
+  course-url: https://bsu-rfct-afonenko-courses.github.io/System-Practice/
+  links:
+  - text: Курс
+    href: /index.html
+    scope: course
+  - text: Введения
+    href: /index.html
+    scope: project
+  - text: Условие
+    href: /tasks/labs/work-environment.html
+    scope: course
+format:
+  revealjs:
+    width: 1280
+    height: 800
+    fontsize: 30px
+    slide-level: 2
+    incremental: false
+    show-notes: false
+---
+
+## Каталог наблюдений {#sec-work-environment-intro}
+
+Рабочий каталог. Копия файла. Перемещение. Запуск инструмента.
+
+[Набор для разбора](materials/work-environment-demo.zip) содержит знакомый
+`lab`. В файловом менеджере и редакторе доступны:
+
+```text
+lab/input/room A.txt          → north
+lab/reports/input/room A.txt  → south
+lab/tools/count.ps1          → инструмент PowerShell
+lab/tools/count.fish         → инструмент fish
+```
+
+Требуется сохранить исходники, получить `reports/selected.txt`
+с северным наблюдением и отчёт `reports/count.txt` о числе его строк.
+Выберите PowerShell 7 / Windows либо fish / Linux.
+Какой файл нужно скопировать? Откуда начинается путь к нему?
+
+::: {.notes}
+Использовать новую распаковку знакомого набора. Попросить найти файл
+с северным наблюдением в файловом менеджере и прочитать его редактором.
+До следующего экрана получить описание того, из какого каталога должен
+начинаться путь input/room A.txt.
+:::
+
+## Рабочий каталог
+
+Выберите распакованный `lab`. Полный путь замените фактическим.
+
+**PowerShell 7 / Windows**
+
+```powershell
+Set-Location -LiteralPath 'C:\course\lab'
+Get-Location
+Get-Content -LiteralPath '.\input\room A.txt'
+```
+
+**fish / Linux**
+
+```fish
+cd '/home/student/lab'
+pwd
+cat './input/room A.txt'
+```
+
+Чтение выводит `north`. Кавычки сохраняют пробел внутри одного пути.
+
+::: {.notes}
+Сопоставить фактическое поле Path либо вывод pwd с выбранным каталогом
+файлового менеджера. Предложить назвать роль каждой части команды чтения.
+Перед продолжением попросить восстановить действие, которое сохранит
+источник и создаст его рабочую копию.
+:::
+
+## Рабочая копия
+
+Текущий каталог — `lab`; `work` ещё отсутствует.
+
+**PowerShell 7 / Windows**
+
+```powershell
+New-Item -ItemType Directory -Path work
+Copy-Item -LiteralPath '.\input\room A.txt' -Destination work\selected.txt
+Get-Content -LiteralPath work\selected.txt
+```
+
+**fish / Linux**
+
+```fish
+mkdir work
+cp './input/room A.txt' work/selected.txt
+cat work/selected.txt
+```
+
+Источник сохраняется. Чтение копии даёт `north`.
+
+::: {.notes}
+Сопоставить команды с предложенным действием. Попросить объяснить,
+откуда берётся имя selected.txt и почему каталог назначения создан первым.
+Прочитать исходник после операции. До следующего экрана получить прогноз
+состояния work после перемещения единственного файла.
+:::
+
+## Размещение результата
+
+Из `lab` переместим копию в новое имя внутри существующего `reports`.
+
+**PowerShell 7 / Windows**
+
+```powershell
+Move-Item -LiteralPath work\selected.txt -Destination reports\selected.txt
+Get-ChildItem -LiteralPath work -Force
+Remove-Item -LiteralPath work
+```
+
+**fish / Linux**
+
+```fish
+mv work/selected.txt reports/selected.txt
+ls -a work
+rmdir work
+```
+
+Старое имя `work/selected.txt` исчезает; `reports/selected.txt` содержит
+`north`. Пустой `work` удаляется.
+
+::: {.notes}
+Сравнить прогноз с составом каталога. В выводе ls -a отдельно объяснить
+точку и две точки. Предложить чтением проверить новый путь, затем
+показать в справке параметр рекурсивного просмотра reports.
+:::
+
+## Проверка дерева
+
+После файловых операций:
+
+```text
+lab/
+├── input/room A.txt          north
+├── tools/                   два исходника инструмента
+└── reports/
+    ├── input/room A.txt      south
+    └── selected.txt          north
+```
+
+В PowerShell описание обхода вложенных каталогов находится запросом
+`Get-Help Get-ChildItem -Parameter Recurse`; в `ls --help` — параметр `-R`.
+Просмотр имён дополняется чтением каждого из трёх текстовых файлов.
+
+{{< xref system-practice-theory sec-command-help "Справка команды" >}}
+
+::: {.notes}
+Попросить выполнить найденный вариант рекурсивного просмотра. Предложить
+назвать изменение содержимого, которое оставило бы дерево имён прежним.
+Затем проверить чтением все три файла. Перед следующим экраном перейти
+в reports и получить путь к исходному северному наблюдению.
+:::
+
+## Относительный путь
+
+Текущий каталог — `lab/reports`.
+
+| Путь | Выбранный файл | Содержимое |
+|---|---|---|
+| `input/room A.txt` | `lab/reports/input/room A.txt` | `south` |
+| `../input/room A.txt` | `lab/input/room A.txt` | `north` |
+| `selected.txt` | `lab/reports/selected.txt` | `north` |
+
+`..` выбирает родителя `lab`. При записи команд PowerShell компоненты
+можно разделять `\`. Кавычки охватывают значение с пробелом целиком.
+
+::: {.notes}
+Сопоставить предложенный путь со второй строкой таблицы. Выполнить
+соответствующее чтение. Перед следующим экраном получить команду
+возвращения в lab и путь к selected.txt из этой точки.
+:::
+
+## Политика выполнения
+
+Вернитесь из `lab/reports` в `lab`: `Set-Location -LiteralPath ..`
+в PowerShell либо `cd ..` в fish. В Windows прочитайте
+`Get-ExecutionPolicy -List`. Пример результата:
+
+| Область, от старшей к младшей | Значение |
+|---|---|
+| `MachinePolicy` | `Undefined` |
+| `UserPolicy` | `Undefined` |
+| `Process` | `Undefined` |
+| `CurrentUser` | `Restricted` |
+| `LocalMachine` | `RemoteSigned` |
+
+`Undefined` означает отсутствие настройки; действует первая заданная
+политика сверху. Здесь это `CurrentUser / Restricted`, сценарии запрещены.
+При действующей групповой `MachinePolicy` или `UserPolicy` со значением `Restricted`
+либо `AllSigned` остановите запуск неподписанного инструмента и используйте
+разрешённую учебную среду. `AllSigned` требует цифровой подписи.
+
+::: {.notes}
+Восстановить выбор первой заданной области. Предложить случай MachinePolicy
+со значением AllSigned и объяснить невозможность разрешить неподписанный
+сценарий через Process. Вернуть значения показанного примера; до следующего
+экрана получить прогноз после настройки Process / RemoteSigned.
+:::
+
+## Подготовка сценария
+
+В примере обе групповые политики не заданы. PowerShell работает из `lab`:
+
+```powershell
+Set-ExecutionPolicy -Scope Process -ExecutionPolicy RemoteSigned
+Get-ExecutionPolicy
+```
+
+Результат второго вызова — `RemoteSigned`. Эта политика разрешает
+локальные сценарии. `Process` действует в этом сеансе и дочерних процессах.
+При другом результате повторите `Get-ExecutionPolicy -List`, установите
+старшую заданную область и согласуйте среду до исполнения.
+
+Для неподписанного файла с меткой интернет-загрузки требуется её снятие.
+Прочитайте файл из набора курса и проверьте источник, затем выполните:
+
+```powershell
+Unblock-File -LiteralPath .\tools\count.ps1
+```
+
+В fish/Linux исполняется готовый сценарий с `--no-config`, без файлов
+настройки fish. {{< xref system-practice-handbook sec-reference-script "Условия запуска" >}}
+
+::: {.notes}
+Сопоставить действующее значение с прогнозом. Попросить объяснить,
+что изменилось в сеансе и что у файла. В Linux показать доступность fish.
+По содержимому selected.txt получить прогноз строки отчёта до следующего экрана.
+:::
+
+## Отчёт о строках
+
+Текущий каталог — `lab`; `reports/selected.txt` содержит одну строку,
+`reports/count.txt` ещё отсутствует.
+
+**PowerShell 7 / Windows**
+
+```powershell
+pwsh -NoProfile -File .\tools\count.ps1 `
+  .\reports\selected.txt .\reports\count.txt
+$LASTEXITCODE
+```
+
+**fish / Linux**
+
+```fish
+fish --no-config tools/count.fish reports/selected.txt reports/count.txt
+echo $status
+```
+
+Инструмент выводит `lines=1` и создаёт файл с этой строкой.
+Код завершения вызова показывают `$LASTEXITCODE` в PowerShell
+и `echo $status` в fish; `0` означает успешную работу инструмента.
+Первый путь после сценария — вход, второй — отчёт.
+
+::: {.notes}
+Сопоставить показанное число с прогнозом по содержимому selected.txt.
+В PowerShell восстановить значение -File и обратного апострофа:
+он завершает первую строку без пробела и продолжает команду.
+После запуска прочитать отчёт. Попросить объяснить отличие сообщения
+инструмента от отдельно показанного числового кода.
+:::
+
+## Отсутствующий вход
+
+В `lab/input` нет `missing.txt`; отчёт `reports/missing-count.txt`
+также отсутствует. При передаче этих двух путей инструменту:
+
+```text
+вход input/missing.txt отсутствует
+            ↓
+сообщение о ненайденном входе; код 2
+            ↓
+reports/missing-count.txt не создан
+```
+
+Прежний `reports/count.txt` сохраняет `lines=1`.
+Проверка текущего каталога и состава `input` устанавливает причину отказа.
+
+::: {.notes}
+Предложить изменить только два пути в знакомом вызове. После запуска
+сопоставить код, сообщение и дерево; объяснить сохранность прежнего отчёта.
+Попросить указать, что о причине сообщает программа и как проверить
+отсутствие нового отчёта.
+:::
+
+## Самостоятельная лабораторная
+
+{{< xref system-practice-tasks sec-lab-work-environment "Лабораторная «Рабочая среда»" >}}
+содержит другой набор: измерения станции и рабочие записи.
+Нужно подготовить требуемые файлы и запустить готовый инструмент
+для указанного входа.
+
+Условие задаёт сохраняемые исходники, результат и предъявление запуска.
+Последовательность файловых команд выбирается самостоятельно.
+Пояснение связывает команду с рабочим каталогом, аргументами и справкой.
+
+::: {.notes}
+Открыть каноническое условие. Попросить выделить сохраняемые данные,
+требуемые результаты и границу учебного каталога. Оставить выбор путей
+назначения в командах и порядок действий для самостоятельного решения.
+:::

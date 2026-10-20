@@ -1,0 +1,18 @@
+{
+  "practice/materials/version-control-demo.zip": {
+    "root": "latency-demo",
+    "files": {
+      "README.md": "# Измерения задержки\n\nmeasurements.tsv хранит задержки двух датчиков в миллисекундах.\nВ отчёт включаются измерения не выше порога из criteria.txt.\n",
+      "criteria.txt": "latency_limit = 10 ms\n",
+      "measurements.tsv": "sensor\tlatency_ms\nnorth\t8\nsouth\t18\n"
+    }
+  },
+  "tasks/materials/version-control-start.zip": {
+    "root": "versioning",
+    "files": {
+      "project/README.md": "# Измерения задержки\n\nmeasurements.tsv хранит задержки двух датчиков в миллисекундах.\nВ отчёт включаются измерения не выше порога из criteria.txt.\n",
+      "project/criteria.txt": "latency_limit = 25 ms\n",
+      "project/measurements.tsv": "sensor\tlatency_ms\nnorth\t18\nsouth\t28\n"
+    }
+  }
+}

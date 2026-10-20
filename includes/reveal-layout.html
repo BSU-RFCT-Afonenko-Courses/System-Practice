@@ -1,0 +1,8 @@
+<script>
+// Панель notes меняет ширину Reveal после его внутреннего измерения.
+document.addEventListener('click', (event) => {
+  if (event.target instanceof Element && event.target.closest('.course-mode-toggle')) {
+    requestAnimationFrame(() => window.Reveal?.layout());
+  }
+});
+</script>

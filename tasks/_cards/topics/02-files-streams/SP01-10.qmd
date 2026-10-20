@@ -7,7 +7,7 @@
 | Статус | дополнительная |
 | Сложность | средний |
 | Время | **45 мин**, из них 10 мин на беглое чтение; остальное — выполнение и самостоятельная проверка |
-| Предварительно | {{< xref theory sec-01-command-line "01-command-line" >}}; {{< xref theory sec-02-files-streams "02-files-streams" >}} |
+| Предварительно | {{< xref system-practice-theory sec-01-command-line "01-command-line" >}}; {{< xref system-practice-theory sec-02-files-streams "02-files-streams" >}} |
 
 ### Условие
 
@@ -15,7 +15,7 @@
 
 ### Источник и перенос
 
-{{< xref tasks sec-ps2025 "PS2025" >}}: Глава 4. Привязка параметров и конвейер PowerShell; §4.1–4.3: демонстрация Get-Process → ConvertTo-HTML; не отдельное упражнение. Печатные страницы: 45–47; страницы PDF (с 1): 45, 46, 47. [Ссылка на оригинал или карточку издания](https://www.manning.com/books/learn-powershell-scripting-in-a-month-of-lunches-second-edition).
+{{< xref system-practice-tasks sec-ps2025 "PS2025" >}}: Глава 4. Привязка параметров и конвейер PowerShell; §4.1–4.3: демонстрация Get-Process → ConvertTo-HTML; не отдельное упражнение. Печатные страницы: 45–47; страницы PDF (с 1): 45, 46, 47. [Ссылка на оригинал или карточку издания](https://www.manning.com/books/learn-powershell-scripting-in-a-month-of-lunches-second-edition).
 
 Учебное задание на основе примера или вопроса источника. На основе авторского примера добавлено самостоятельное составление конвейера, выбор двух свойств, сортировка и сохранение HTML. Углубленная диагностика привязки и удаленные компьютеры исключены.
 
@@ -30,6 +30,6 @@
 
 Облако: файлы в рабочей области VS Code PrairieLearn. Локально: те же файлы отдельными вложениями или одним ZIP-архивом.
 
-{{< xref theory sec-02-files-streams "К теме" >}} · {{< xref tasks sec-bank "Правила банка" >}}
+{{< xref system-practice-theory sec-02-files-streams "К теме" >}} · {{< xref system-practice-tasks sec-bank "Правила банка" >}}
 
 :::

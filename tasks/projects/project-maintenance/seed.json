@@ -1,0 +1,155 @@
+{
+  "practice/materials/project-maintenance-demo.zip": {
+    "root": "maintenancelab",
+    "history": {
+      "A": {
+        "parents": [],
+        "files": {
+          "README.md": "# Измерения задержки\n\nmeasurements.tsv хранит задержки двух датчиков в миллисекундах.\nВ отчёт включаются измерения не выше порога из criteria.txt.\n",
+          "criteria.txt": "latency_limit = 10 ms\n",
+          "measurements.tsv": "sensor\tlatency_ms\nnorth\t8\nsouth\t18\n"
+        }
+      },
+      "B": {
+        "parents": [
+          "A"
+        ],
+        "files": {
+          "README.md": "# Измерения задержки\n\nmeasurements.tsv хранит задержки двух датчиков в миллисекундах.\nВ отчёт включаются измерения не выше порога из criteria.txt.\n",
+          "criteria.txt": "latency_limit = 12 ms\n",
+          "measurements.tsv": "sensor\tlatency_ms\nnorth\t8\nsouth\t18\n"
+        }
+      },
+      "C": {
+        "parents": [
+          "B"
+        ],
+        "files": {
+          "README.md": "# Измерения задержки\n\nmeasurements.tsv хранит задержки двух датчиков в миллисекундах.\nВ отчёт включаются измерения не выше порога из criteria.txt.\nИсточник: учебные измерения двух датчиков.\n",
+          "criteria.txt": "latency_limit = 12 ms\n",
+          "measurements.tsv": "sensor\tlatency_ms\nnorth\t8\nsouth\t18\n"
+        }
+      },
+      "S": {
+        "parents": [
+          "C"
+        ],
+        "files": {
+          "README.md": "# Измерения задержки\n\nmeasurements.tsv хранит задержки двух датчиков в миллисекундах.\nВ отчёт включаются измерения не выше порога из criteria.txt.\nИсточник: учебные измерения двух датчиков.\nПорог в criteria.txt выражен в секундах.\n",
+          "criteria.txt": "latency_limit = 0.012 s\n",
+          "measurements.tsv": "sensor\tlatency_ms\nnorth\t8\nsouth\t18\n"
+        }
+      },
+      "T": {
+        "parents": [
+          "C"
+        ],
+        "files": {
+          "README.md": "# Измерения задержки\n\nmeasurements.tsv хранит задержки двух датчиков в миллисекундах.\nВ отчёт включаются измерения не выше порога из criteria.txt.\nИсточник: учебные измерения двух датчиков.\n",
+          "criteria.txt": "latency_limit = 20 ms\n",
+          "measurements.tsv": "sensor\tlatency_ms\nnorth\t8\nsouth\t18\n"
+        }
+      },
+      "M": {
+        "parents": [
+          "T",
+          "S"
+        ],
+        "files": {
+          "README.md": "# Измерения задержки\n\nmeasurements.tsv хранит задержки двух датчиков в миллисекундах.\nВ отчёт включаются измерения не выше порога из criteria.txt.\nИсточник: учебные измерения двух датчиков.\nПорог в criteria.txt выражен в секундах.\n",
+          "criteria.txt": "latency_limit = 0.020 s\n",
+          "measurements.tsv": "sensor\tlatency_ms\nnorth\t8\nsouth\t18\n"
+        }
+      },
+      "N": {
+        "parents": [
+          "M"
+        ],
+        "files": {
+          "README.md": "# Измерения задержки\n\nmeasurements.tsv хранит задержки двух датчиков в миллисекундах.\nВ отчёт включаются измерения не выше порога из criteria.txt.\nИсточник: учебные измерения двух датчиков.\nПорог в criteria.txt выражен в секундах.\nПроверка: данные прочитаны во второй копии.\n",
+          "criteria.txt": "latency_limit = 0.020 s\n",
+          "measurements.tsv": "sensor\tlatency_ms\nnorth\t8\nsouth\t18\n"
+        }
+      },
+      "U": {
+        "parents": [
+          "N"
+        ],
+        "files": {
+          "README.md": "# Измерения задержки\n\nmeasurements.tsv хранит задержки двух датчиков в миллисекундах.\nВ отчёт включаются измерения не выше порога из criteria.txt.\nИсточник: учебные измерения двух датчиков.\nПорог в criteria.txt выражен в секундах.\nПроверка: данные прочитаны во второй копии.\n",
+          "criteria.txt": "latency_limit = 0.020 s\n",
+          "measurements.tsv": "sensor\tlatency_ms\nnorth\t8\nsouth\t18\n",
+          "CHECKS.md": "# Проверка критерия\n\nnorth: 8 ms = 0.008 s; измерение включается в отчёт.\nsouth: 18 ms = 0.018 s; измерение включается в отчёт.\nОбе задержки не превышают порог 0.020 s.\n"
+        }
+      }
+    },
+    "workHead": "N",
+    "workBranches": {
+      "source-note": "C",
+      "seconds": "S"
+    },
+    "workTags": {
+      "start": "N"
+    },
+    "sharedHead": "U",
+    "sharedTags": {
+      "start": "N"
+    },
+    "patchBase": "N",
+    "patch": {
+      "name": "guide.patch",
+      "path": "README.md",
+      "text": "# Измерения задержки\n\nmeasurements.tsv хранит задержки двух датчиков в миллисекундах.\nВ отчёт включаются измерения не выше порога из criteria.txt.\nИсточник: учебные измерения двух датчиков.\nПорог в criteria.txt выражен в секундах.\nПроверка: данные прочитаны во второй копии.\nПеред сравнением с порогом переведите миллисекунды в секунды.\n"
+    }
+  },
+  "tasks/materials/project-maintenance-start.zip": {
+    "root": "maintenance",
+    "history": {
+      "A": {
+        "parents": [],
+        "files": {
+          ".gitattributes": "* text=auto eol=lf\n",
+          "report.ini": "format=text\ncolumns=code\ndecimal=dot\n",
+          "instructions.txt": "Проверьте входные данные.\n"
+        }
+      },
+      "M": {
+        "parents": [
+          "A"
+        ],
+        "files": {
+          ".gitattributes": "* text=auto eol=lf\n",
+          "report.ini": "format=csv\ncolumns=code,value\ndecimal=dot\n",
+          "instructions.txt": "Проверьте входные данные.\n"
+        }
+      },
+      "F": {
+        "parents": [
+          "A"
+        ],
+        "files": {
+          ".gitattributes": "* text=auto eol=lf\n",
+          "report.ini": "format=text\ncolumns=code,quality\ndecimal=dot\n",
+          "instructions.txt": "Проверьте входные данные.\n"
+        }
+      }
+    },
+    "workHead": "M",
+    "workBranches": {},
+    "workTags": {
+      "base": "A",
+      "start": "M"
+    },
+    "sharedHead": "F",
+    "sharedTags": {
+      "base": "A",
+      "incoming": "F"
+    },
+    "patchBase": "A",
+    "patch": {
+      "name": "review.patch",
+      "path": "instructions.txt",
+      "text": "Проверьте входные данные.\nСохраните признак качества.\n"
+    }
+  }
+}

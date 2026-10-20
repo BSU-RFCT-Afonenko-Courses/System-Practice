@@ -6,8 +6,8 @@
 
 | Подраздел первоисточника | Где читать | Задачи | Роль |
 |---|---|---|---|
-| Редакторы сценариев | [PS2025, с. 31](https://www.manning.com/books/learn-powershell-scripting-in-a-month-of-lunches-second-edition) | {{< xref tasks exr-sp01-01 "SP01-01" >}} | основной маршрут |
-| Система справки | [MSLEARN](https://learn.microsoft.com/ru-ru/powershell/scripting/learn/ps101/02-help-system?view=powershell-7.5) | {{< xref tasks exr-sp01-01 "SP01-01" >}} | основной маршрут |
+| Редакторы сценариев | [PS2025, с. 31](https://www.manning.com/books/learn-powershell-scripting-in-a-month-of-lunches-second-edition) | {{< xref system-practice-tasks exr-sp01-01 "SP01-01" >}} | основной маршрут |
+| Система справки | [MSLEARN](https://learn.microsoft.com/ru-ru/powershell/scripting/learn/ps101/02-help-system?view=powershell-7.5) | {{< xref system-practice-tasks exr-sp01-01 "SP01-01" >}} | основной маршрут |
 
 Первое знакомство и повторение находятся в этой теме: для первого знакомства — указанные фрагменты источников; для повторения — ранее выбранная карточка или альтернатива и её ссылки. Отдельный пересказ теории и каталог API здесь не создаются.
 
@@ -15,8 +15,8 @@
 
 | Задача | Уровень | Всего, мин | Чтение, мин |
 |---|---|---:|---:|
-| {{< xref tasks exr-sp01-01 "SP01-01 — Настройка среды для скриптинга" >}} | начальный | 30 | 5 |
+| {{< xref system-practice-tasks exr-sp01-01 "SP01-01 — Настройка среды для скриптинга" >}} | начальный | 30 | 5 |
 
-{{< xref portal sec-system-practice "Программа курса" >}} · {{< xref tasks sec-bank "Навигация по банку" >}}
+{{< xref system-practice-portal sec-system-practice "Программа курса" >}} · {{< xref system-practice-tasks sec-bank "Навигация по банку" >}}
 
 {{< include ../_cards/topics/01-command-line/SP01-01.qmd >}}

@@ -1,0 +1,193 @@
+# Обработка данных {#sec-data-processing-reference}
+
+Команды используют знакомую ведомость частиц в пробах из
+[демонстрационного набора](materials/data-processing-demo.zip).
+Текущий каталог — `flowlab`, каталог `results` уже существует.
+Выберите PowerShell 7/Windows с CSV либо fish/Linux с текстовыми записями.
+
+## Передача данных {#sec-reference-data-channels}
+
+| Среда | Передача через конвейер | Диагностика |
+|---|---|---|
+| PowerShell | Объекты из Success команды A поступают в B | Error — отдельный поток |
+| fish, внешние программы | stdout программы A соединён со stdin программы B | stderr — отдельный канал |
+
+В Unix номера stdin, stdout, stderr равны `0`, `1`, `2`.
+`<` назначает stdin файл, `>` записывает stdout с заменой прежнего файла,
+`>>` дописывает, `2>` сохраняет stderr. Обычный `|` соединяет stdout.
+В PowerShell номера Success и Error для перенаправления — `1` и `2`.
+На границе процесса `pwsh` Error выдаётся в stderr.
+[@bib-shotts-tlcl, с. 56–63; @bib-powershell-streams]
+
+## Исследование объекта {#sec-reference-object-inspection}
+
+```powershell
+$raw = Import-Csv -LiteralPath inputs/readings.csv -Encoding utf8
+$raw | Get-Member
+```
+
+`Import-Csv` создаёт объект на запись. Заголовки задают имена свойств,
+их значения импортируются строками. `Get-Member` показывает тип,
+свойства и методы. Для отдельного объекта `$item.Code` выбирает
+значение свойства `Code`. [@bib-powershell-import-csv]
+
+## Сортировка объектов {#sec-reference-object-selection}
+
+```powershell
+$selected = $raw |
+    Where-Object { $_.State -ceq 'keep' } |
+    ForEach-Object {
+        [pscustomobject]@{
+            Code = $_.Code
+            Units = [int]$_.Units
+        }
+    } |
+    Sort-Object -Property Units, Code -Culture en-US
+```
+
+| Запись | Действие |
+|---|---|
+| `Where-Object { условие }` | Пропускает объекты с истинным условием |
+| `$_` | Текущий объект в данном блоке |
+| `-ceq` | Сравнивает строки с учётом регистра |
+| `[int]$_.Units` | Получает целое число из корректной десятичной строки |
+| `[pscustomobject]@{ ... }` | Создаёт объект с заданными свойствами |
+| `Sort-Object -Property Units, Code` | Сравнивает Units, при равенстве — Code |
+| `Select-Object -Property Code, Units` | Создаёт проекцию из двух свойств |
+
+`-Culture en-US` задаёт культуру строкового сравнения. Для кодов
+описанного формата получается порядок A–Z и 0–9.
+[@bib-powershell-sort-object]
+
+## Экспорт CSV {#sec-reference-data-export}
+
+```powershell
+$selected | Export-Csv -LiteralPath results/selected.csv -Encoding utf8NoBOM
+```
+
+Экспорт получает объекты данных и записывает их свойства. Для PowerShell 7
+служебная строка `#TYPE` по умолчанию отсутствует. `utf8NoBOM` означает
+UTF-8 без начальной метки. Существующий результат заменяется.
+Пустой вход этой команды создаёт файл нулевой длины.
+
+Экранное представление задаётся отдельной ветвью:
+
+```powershell
+$selected | Format-Table -Property Code, Units
+```
+
+`Format-Table` выдаёт инструкции оформления. Их экспорт сохраняет
+служебные свойства таблицы. До `Export-Csv` должны доходить объекты
+наблюдений. [@bib-powershell-export-csv, пример 7]
+
+## Текстовый отбор {#sec-reference-text-selection}
+
+```fish
+grep '|keep$' inputs/readings.txt |
+    env LC_ALL=C sort -t '|' -k2,2n -k1,1 |
+    cut -d '|' -f1,2 > results/selected.txt
+```
+
+- `grep '|keep$'` в обычном режиме GNU grep выбирает строки с окончанием `|keep`.
+- `sort -t '|' -k2,2n -k1,1` выделяет поля по `|`, сравнивает второе численно, затем коды в первом при равенстве чисел.
+- `env LC_ALL=C sort ...` задаёт локаль C только этому запуску sort.
+- `cut -d '|' -f1,2` оставляет поля 1 и 2 с разделителем между ними.
+- `> results/selected.txt` записывает stdout последней команды, заменяя прежний файл.
+
+Формат входа: одна запись `Code|Units|State` на строку, LF, UTF-8 без BOM;
+внутри поля нет разделителя или перевода строки. Показанная цепочка
+использует именно этот простой формат. CSV с кавычками имеет отдельные
+правила разбора. [@bib-shotts-tlcl, с. 293–304]
+
+## Коды завершения {#sec-reference-data-status}
+
+```fish
+printf 'last=%s; stages=%s\n' "$status" "$pipestatus"
+```
+
+Сразу после конвейера `$status` содержит код последней команды,
+`$pipestatus` — коды всех стадий слева направо. Сохранение
+`set -l stages $pipestatus` позволяет прочитать их после следующих команд.
+Для GNU grep обычный отбор даёт `0` при найденных строках, `1` при
+пустой выборке, `2` при ошибке. Успешные sort и cut дают `0`.
+[@bib-gnu-grep-status; @bib-fish-language]
+
+В PowerShell после запуска внешнего `pwsh` переменная `$LASTEXITCODE`
+содержит код этого процесса. Для своих сценариев результат задаётся
+`exit 0` при успехе и выбранным ненулевым кодом при отказе.
+Сообщение командлета в Error само по себе ещё не определяет код
+отдельного процесса. [@bib-powershell-pwsh; @bib-powershell-common-parameters]
+
+## Запуск сценария {#sec-reference-data-scripts}
+
+Полные разобранные сценарии:
+{{< xref system-practice-theory sec-powershell-processing-script "PowerShell" >}}
+и {{< xref system-practice-theory sec-fish-processing-script "fish" >}}.
+Оба получают вход и результат, проверяют наличие входа до записи
+и выполняются из `flowlab`. Сценарии сохраняются в его корне.
+
+::: {.panel-tabset}
+### PowerShell 7 / Windows
+
+```powershell
+pwsh -NoProfile -File .\Select-Readings.ps1 `
+    -InputPath inputs/readings.csv -OutputPath results/selected.csv `
+    2> results/selected.err
+$LASTEXITCODE
+```
+
+Параметры объявлены через `param`. `Test-Path -PathType Leaf` проверяет
+файл, `Write-Error` выдаёт диагностику. Подготовка Windows дана в
+{{< xref system-practice-handbook sec-reference-script "запуске сценария" >}}:
+действующая политика, приоритет областей, разрешённая среда и проверка
+скачанного файла перед снятием метки. `-NoProfile` исключает профили
+настройки дочернего процесса.
+
+### fish / Linux
+
+```fish
+fish --no-config ./select.fish inputs/readings.txt results/selected.txt 2> results/selected.err
+printf 'exit=%s\n' $status
+```
+
+`$argv[1]` и `$argv[2]` — первый и второй аргументы. `test -f` проверяет
+обычный файл. `printf 'Входной файл не найден: %s\n' "$input_path" >&2`
+выдаёт диагностику. `--no-config` исключает файлы настройки fish.
+:::
+
+Повторите вызов с `no-match.*` и затем с отсутствующим `absent.*`.
+Выходы — `empty.*` и `missing.*`; журналы — `empty.err` и `missing.err`.
+Успех даёт `0`, включая пустую выборку. В разобранных сценариях
+отсутствующий вход даёт `1` и сохраняет прежнее состояние выходного пути.
+Для опыта `missing.*` первоначально отсутствует.
+
+## Сопоставление результата {#sec-reference-data-comparison}
+
+В fish сравниваются точные текстовые записи:
+
+```fish
+diff -u expected/selected.txt results/selected.txt
+printf 'comparison=%s\n' $status
+```
+
+Код `0` означает совпадение, `1` — различия, больший код — проблему
+сравнения. При совпадении вывод пуст. Порядок строк и LF входят
+в формат данного результата.
+
+В PowerShell сравниваются записи после разбора CSV:
+
+```powershell
+Import-Csv -LiteralPath results/selected.csv -Encoding utf8 |
+    Format-Table -Property Code, Units
+Import-Csv -LiteralPath expected/selected.csv -Encoding utf8 |
+    Format-Table -Property Code, Units
+```
+
+Заголовок должен содержать ровно `Code,Units` в этом порядке.
+Сопоставьте число записей, значения и последовательность S07/2,
+S02/12, S11/12. Корректные CSV-кавычки и окончания LF/CRLF допустимы.
+Просмотр выбранных свойств дополняется проверкой полного заголовка.
+
+Пустой результат проверяется размером файла: в PowerShell
+`(Get-Item -LiteralPath results/empty.csv).Length`, в fish
+`wc -c < results/empty.txt`. В обоих случаях ожидается `0`.

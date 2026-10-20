@@ -10,7 +10,7 @@ permissions:
 
 jobs:
   render:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 30
     steps:
       - name: Получить исходники
@@ -18,23 +18,32 @@ jobs:
       - name: Установить Quarto
         uses: quarto-dev/quarto-actions/setup@8a96df13519ee81fd526f2dfca5962811136661b
         with:
-          version: '1.11.5'
+          version: '1.11.6'
       - name: Установить CUE
         uses: cue-lang/setup-cue@b0e30e540a2dae47304ebf16586a5b2db023b61c
         with:
           version: v0.17.1
-      - name: Установить Task с проверкой SHA-256
+      - name: Проверить точные tracked provider bytes и safe materializer
         run: |
-          cd "$RUNNER_TEMP"
-          curl --fail --location --output task.tar.gz https://github.com/go-task/task/releases/download/v3.54.0/task_linux_amd64.tar.gz
-          curl --fail --location --output task_checksums.txt https://github.com/go-task/task/releases/download/v3.54.0/task_checksums.txt
-          awk '$2 == "task_linux_amd64.tar.gz" {print $1 "  task.tar.gz"}' task_checksums.txt | sha256sum -c -
-          mkdir -p "$RUNNER_TEMP/task"
-          tar -xzf task.tar.gz -C "$RUNNER_TEMP/task" task
-          echo "$RUNNER_TEMP/task" >> "$GITHUB_PATH"
-      - name: Установить точные пакеты курса
-        run: task install
+          python3 tools/materialize-providers.py --check
+          python3 tools/test-materialize-providers.py
+      - name: Подготовить оболочки для проверки готовых сценариев
+        run: |
+          sudo apt-get update
+          sudo apt-get install --yes fish
+          fish --version
+          pwsh --version
+      - name: Проверить учебные материалы и файловые договоры
+        run: |
+          python3 tools/build_materials.py --check
+          python3 tools/build_materials.py --project data-processing --check
+          python3 tools/build_git_materials.py --check
+          python3 tools/build_maintenance_materials.py --check
+          python3 tools/materialize_public_materials.py --check
+          python3 -m unittest discover -s tests -p 'test_*.py' -v
       - name: Собрать student
-        run: task render
+        run: quarto render --profile student --fail-if-warnings
       - name: Собрать full
-        run: task render:full
+        run: quarto render --profile full --fail-if-warnings
+      - name: Вернуть student после full
+        run: quarto render --profile student --fail-if-warnings
