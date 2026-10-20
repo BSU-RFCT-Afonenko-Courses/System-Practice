@@ -26,6 +26,7 @@ project:
 format:
   html:
     theme: cosmo
+    include-in-header: ../includes/book-tables.html
     toc: true
     code-copy: true
     code-tools: false
