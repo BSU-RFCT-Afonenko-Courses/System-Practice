@@ -1,6 +1,10 @@
 <style>
 /* Узкие страницы книг сохраняют ширину; широкая таблица прокручивается внутри. */
 @media screen and (max-width: 767.98px) {
+  main.content a,
+  main.content :not(pre) > code {
+    overflow-wrap: anywhere;
+  }
   main.content table.table {
     display: block;
     max-width: 100%;
