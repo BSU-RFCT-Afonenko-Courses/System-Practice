@@ -1,0 +1,996 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="ru" xml:lang="ru"><head>
+
+<meta charset="utf-8">
+<meta name="generator" content="quarto-1.11.6">
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+
+
+<title>8&nbsp; Сопровождение проекта – System Practice — теория</title>
+<style>
+/* Default styles provided by pandoc.
+** See https://pandoc.org/MANUAL.html#variables-for-html for config info.
+*/
+span.smallcaps{font-variant: small-caps;}
+div.columns{display: flex; gap: 1.5em;}
+div.column{flex: auto;}
+@media screen {
+div.columns{gap: min(4vw, 1.5em);}
+div.column{overflow-x: auto;}
+}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+ul.task-list li input[type="checkbox"] {
+  width: 0.8em;
+  margin: 0 0.8em 0.2em -1em; /* quarto-specific, see https://github.com/quarto-dev/quarto-cli/issues/4556 */ 
+  vertical-align: middle;
+}
+/* CSS for syntax highlighting */
+html { -webkit-text-size-adjust: 100%; }
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+  { counter-reset: source-line 0; }
+pre.numberSource code > span
+  { position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+  { content: counter(source-line);
+    position: relative; left: -1em; text-align: right; vertical-align: baseline;
+    border: none; display: inline-block;
+    -webkit-touch-callout: none; -webkit-user-select: none;
+    -khtml-user-select: none; -moz-user-select: none;
+    -ms-user-select: none; user-select: none;
+    padding: 0 4px; width: 4em;
+  }
+pre.numberSource { margin-left: 3em;  padding-left: 4px; }
+div.sourceCode
+  {   }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
+/* CSS for citations */
+div.csl-bib-body { }
+div.csl-entry {
+  clear: both;
+  margin-bottom: 0em;
+}
+.hanging-indent div.csl-entry {
+  margin-left:2em;
+  text-indent:-2em;
+}
+div.csl-left-margin {
+  min-width:2em;
+  float:left;
+}
+div.csl-right-inline {
+  margin-left:2em;
+  padding-left:1em;
+}
+div.csl-indent {
+  margin-left: 2em;
+}</style>
+
+
+<script src="site_libs/quarto-nav/quarto-nav.js"></script>
+<script src="site_libs/quarto-nav/headroom.min.js"></script>
+<script src="site_libs/clipboard/clipboard.min.js"></script>
+<script src="site_libs/quarto-search/autocomplete.umd.js"></script>
+<script src="site_libs/quarto-search/fuse.min.js"></script>
+<script src="site_libs/quarto-search/quarto-search.js"></script>
+<meta name="quarto:offset" content="./">
+<link href="./sources.html" rel="next">
+<link href="./git-exchange.html" rel="prev">
+<script src="site_libs/quarto-html/quarto.js" type="module"></script>
+<script src="site_libs/quarto-html/tabsets/tabsets.js" type="module"></script>
+<script src="site_libs/quarto-html/scrollable-regions/scrollable-regions.js" type="module"></script>
+<script src="site_libs/quarto-html/popper.min.js"></script>
+<script src="site_libs/quarto-html/tippy.umd.min.js"></script>
+<script src="site_libs/quarto-html/anchor.min.js"></script>
+<link href="site_libs/quarto-html/tippy.css" rel="stylesheet">
+<link href="site_libs/quarto-html/quarto-syntax-highlighting-35fc0813589bbfbfa0b8ec974497eeb2.css" rel="stylesheet" id="quarto-text-highlighting-styles">
+<script src="site_libs/bootstrap/bootstrap.min.js"></script>
+<link href="site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
+<link href="site_libs/bootstrap/bootstrap-b3f6ff2dc823300d2c5fa49387c7b369.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
+<script src="site_libs/quarto-contrib/course-presentation-0.1.0/disclosure.js" data-course-runtime-asset="disclosure.js" data-course-runtime-provider="course-presentation"></script>
+<script src="site_libs/quarto-contrib/course-presentation-0.1.0/presentation.js" data-course-runtime-asset="presentation.js" data-course-runtime-provider="course-presentation"></script>
+<link href="site_libs/quarto-contrib/course-presentation-0.1.0/presentation.css" rel="stylesheet" data-course-runtime-asset="presentation.css" data-course-runtime-provider="course-presentation">
+
+<style>.task-items li:has(.course-assignment-omitted):not(:has(a)){display:none}</style>
+<script id="quarto-search-options" type="application/json">{
+  "location": "sidebar",
+  "copy-button": false,
+  "collapse-after": 3,
+  "panel-placement": "start",
+  "type": "textbox",
+  "limit": 50,
+  "keyboard-shortcut": [
+    "f",
+    "/",
+    "s"
+  ],
+  "show-item-context": false,
+  "language": {
+    "search-no-results-text": "Поиск не дал результатов",
+    "search-matching-documents-text": "Результаты поиска",
+    "search-copy-link-title": "Скопировать ссылку",
+    "search-hide-matches-text": "Скрыть дополнительные результаты",
+    "search-more-match-text": "дополнительный результат в этом документе",
+    "search-more-matches-text": "дополнительных результата(-ов) в этом документе",
+    "search-clear-button-title": "Очистить",
+    "search-text-placeholder": "",
+    "search-detached-cancel-button-title": "Отменить",
+    "search-submit-button-title": "Найти",
+    "search-label": "Поиск"
+  }
+}</script>
+<style>
+/* Узкие страницы книг сохраняют ширину; широкая таблица прокручивается внутри. */
+@media screen and (max-width: 767.98px) {
+  main.content a,
+  main.content :not(pre) > code {
+    overflow-wrap: anywhere;
+  }
+  main.content :not(pre) > code {
+    white-space: pre-wrap;
+  }
+  main.content table.table {
+    display: block;
+    max-width: 100%;
+    overflow-x: auto;
+  }
+}
+</style>
+
+
+</head>
+
+<body class="nav-sidebar floating quarto-light"><a id="quarto-skip-link" class="visually-hidden-focusable" href="#quarto-document-content">Skip to main content</a>
+
+<div id="quarto-search-results"></div>
+  <header id="quarto-header" class="headroom fixed-top">
+  <nav class="quarto-secondary-nav" aria-label="Панель инструментов">
+    <div class="container-fluid d-flex">
+      <button type="button" class="quarto-btn-toggle btn" data-bs-toggle="collapse" role="button" data-bs-target=".quarto-sidebar-collapse-item" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Переключить боковую панель навигации" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">
+        <i class="bi bi-layout-text-sidebar-reverse"></i>
+      </button>
+        <nav class="quarto-page-breadcrumbs" aria-label="Путь"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="./project-maintenance.html"><span class="chapter-number">8</span>&nbsp; <span class="chapter-title">Сопровождение проекта</span></a></li></ol></nav>
+        <a class="flex-grow-1" data-bs-toggle="collapse" data-bs-target=".quarto-sidebar-collapse-item" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">      
+        </a>
+      <button type="button" class="btn quarto-search-button" aria-label="Поиск" onclick="window.quartoOpenSearch();">
+        <i class="bi bi-search"></i>
+      </button>
+    </div>
+  </nav>
+</header>
+<!-- content -->
+<div id="quarto-content" class="quarto-container page-columns page-rows-contents page-layout-article">
+<!-- sidebar -->
+  <nav id="quarto-sidebar" class="sidebar collapse collapse-horizontal quarto-sidebar-collapse-item sidebar-navigation floating overflow-auto" aria-label="Сайт">
+    <div class="pt-lg-2 mt-2 text-left sidebar-header">
+    <div class="sidebar-title mb-0 py-0">
+      <a href="./">System Practice — теория</a> 
+        <div class="sidebar-tools-main">
+    <a href="./../index.html#sec-system-practice" title="Портал курса" class="quarto-navigation-tool px-1" aria-label="Портал курса"><i class="bi bi-house"></i></a>
+</div>
+    </div>
+      </div>
+        <div class="mt-2 flex-shrink-0 align-items-center">
+        <div class="sidebar-search">
+        <div id="quarto-search" class="" title="Поиск"></div>
+        </div>
+        </div>
+    <div class="sidebar-menu-container"> 
+    <ul class="list-unstyled mt-1">
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./index.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">1</span>&nbsp; <span class="chapter-title">Теория</span></span></a>
+  </div>
+</li>
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./work-environment.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">2</span>&nbsp; <span class="chapter-title">Рабочая среда</span></span></a>
+  </div>
+</li>
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./text-streams.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">3</span>&nbsp; <span class="chapter-title">Текстовые потоки</span></span></a>
+  </div>
+</li>
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./object-pipeline.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">4</span>&nbsp; <span class="chapter-title">Объектный конвейер</span></span></a>
+  </div>
+</li>
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./git-state.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">5</span>&nbsp; <span class="chapter-title">Состояние репозитория</span></span></a>
+  </div>
+</li>
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./git-branches.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">6</span>&nbsp; <span class="chapter-title">Ветвление истории</span></span></a>
+  </div>
+</li>
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./git-exchange.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">7</span>&nbsp; <span class="chapter-title">Обмен репозиториями</span></span></a>
+  </div>
+</li>
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./project-maintenance.html" class="sidebar-item-text sidebar-link active">
+ <span class="menu-text"><span class="chapter-number">8</span>&nbsp; <span class="chapter-title">Сопровождение проекта</span></span></a>
+  </div>
+</li>
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./sources.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">9</span>&nbsp; <span class="chapter-title">Источники</span></span></a>
+  </div>
+</li>
+    </ul>
+    </div>
+</nav>
+<div id="quarto-sidebar-glass" class="quarto-sidebar-collapse-item" data-bs-toggle="collapse" data-bs-target=".quarto-sidebar-collapse-item"></div>
+<!-- margin-sidebar -->
+    <div id="quarto-margin-sidebar" class="sidebar margin-sidebar">
+        <nav id="TOC" role="doc-toc" aria-labelledby="toc-title" class="toc-active">
+    <h2 id="toc-title">Содержание</h2>
+   
+  <ul>
+  <li><a href="#версия-для-получателя" id="toc-версия-для-получателя" class="nav-link active" data-scroll-target="#версия-для-получателя"><span class="header-section-number">8.1</span> Версия для получателя</a></li>
+  <li><a href="#sec-maintenance-input" id="toc-sec-maintenance-input" class="nav-link" data-scroll-target="#sec-maintenance-input"><span class="header-section-number">8.2</span> Подготовленная копия</a></li>
+  <li><a href="#sec-maintenance-worktree" id="toc-sec-maintenance-worktree" class="nav-link" data-scroll-target="#sec-maintenance-worktree"><span class="header-section-number">8.3</span> Проверка другой версии</a></li>
+  <li><a href="#sec-maintenance-fetch" id="toc-sec-maintenance-fetch" class="nav-link" data-scroll-target="#sec-maintenance-fetch"><span class="header-section-number">8.4</span> Получение проверки</a></li>
+  <li><a href="#sec-maintenance-patch" id="toc-sec-maintenance-patch" class="nav-link" data-scroll-target="#sec-maintenance-patch"><span class="header-section-number">8.5</span> Изменение в патче</a></li>
+  <li><a href="#sec-maintenance-tag" id="toc-sec-maintenance-tag" class="nav-link" data-scroll-target="#sec-maintenance-tag"><span class="header-section-number">8.6</span> Именование выпуска</a></li>
+  <li><a href="#sec-maintenance-push" id="toc-sec-maintenance-push" class="nav-link" data-scroll-target="#sec-maintenance-push"><span class="header-section-number">8.7</span> Передача выпуска</a></li>
+  <li><a href="#sec-maintenance-release" id="toc-sec-maintenance-release" class="nav-link" data-scroll-target="#sec-maintenance-release"><span class="header-section-number">8.8</span> Снимок выпуска</a></li>
+  <li><a href="#sec-maintenance-binary" id="toc-sec-maintenance-binary" class="nav-link" data-scroll-target="#sec-maintenance-binary"><span class="header-section-number">8.9</span> Двоичное содержимое</a></li>
+  <li><a href="#sec-maintenance-lfs" id="toc-sec-maintenance-lfs" class="nav-link" data-scroll-target="#sec-maintenance-lfs"><span class="header-section-number">8.10</span> Git LFS</a></li>
+  <li><a href="#sec-maintenance-parallel" id="toc-sec-maintenance-parallel" class="nav-link" data-scroll-target="#sec-maintenance-parallel"><span class="header-section-number">8.11</span> Параллельная работа</a></li>
+  <li><a href="#sec-maintenance-scale" id="toc-sec-maintenance-scale" class="nav-link" data-scroll-target="#sec-maintenance-scale"><span class="header-section-number">8.12</span> Нагрузка большого проекта</a></li>
+  </ul>
+</nav>
+    </div>
+<!-- main -->
+<main class="content" id="quarto-document-content" tabindex="-1">
+
+<header id="title-block-header" class="quarto-title-block default">
+<div class="quarto-title">
+<h1 class="title"><span id="sec-project-maintenance" class="quarto-section-identifier"><span class="chapter-number">8</span>&nbsp; <span class="chapter-title">Сопровождение проекта</span></span></h1>
+</div>
+
+
+
+<div class="quarto-title-meta">
+
+    
+  
+    
+  </div>
+  
+
+
+</header>
+
+
+<p>Темы главы: проверка другой версии; связанные рабочие деревья; получение изменений; патч и выбор базы; аннотированный тег; снимок выпуска; двоичные файлы; Git LFS; условия параллельной разработки.</p>
+<section id="версия-для-получателя" class="level2" data-number="8.1">
+<h2 data-number="8.1" class="anchored" data-anchor-id="версия-для-получателя"><span class="header-section-number">8.1</span> Версия для получателя</h2>
+<p>Сопровождение сохраняет пригодность проекта после очередного изменения. Поступившую работу связывают с её исходной версией, согласуют с текущими требованиями и проверяют перед передачей получателю. Для воспроизводимого выпуска нужны сохранённый снимок, сведения о его происхождении и способ получить именно эту версию.</p>
+<p>В проекте измерений уже согласованы величина порога и единица его записи. После <a data-qrc-custom="true" data-qrc-ref="system-practice-theory:sec-git-exchange" data-qrc-style="default" class="qrc-link" href="git-exchange.html#sec-git-exchange">обмена репозиториями</a> обе локальные main выбирают N. Этот коммит продолжает M, который сохранил две линии T и S с общей базой C. Порог в criteria.txt равен <code>0.020 s</code>, measurements.tsv по-прежнему содержит north — 8 ms и south — 18 ms. README.md дополнен строкой проверки во второй копии.</p>
+<pre class="text"><code>main ──&gt; N ──&gt; M ──&gt; T ──&gt; C
+               │           ^
+               └──&gt; S ─────┘</code></pre>
+<p>Ветка main продолжит двигаться при новых коммитах. Получателю выпуска нужно устойчивое имя проверенной версии. Архив с файлами этой версии позволит открыть проект без рабочего репозитория. Для следующего изменения сохраняется история, по которой можно установить родителей и исходные условия работы.</p>
+</section>
+<section id="sec-maintenance-input" class="level2" data-number="8.2">
+<h2 data-number="8.2" class="anchored" data-anchor-id="sec-maintenance-input"><span class="header-section-number">8.2</span> Подготовленная копия</h2>
+<p><a href="materials/project-maintenance-demo.zip">Демонстрационный архив</a> восстанавливает проект измерений в состоянии N и добавляет материалы для следующего выпуска. Распакуйте его в новую папку:</p>
+<pre class="text"><code>maintenancelab/
+├── work/                 проект измерений и .git
+├── shared.git/           репозиторий обмена
+└── incoming/
+    └── guide.patch       дополнение README.md</code></pre>
+<p>В work сохранены история до N и main/N. <strong>Легковесный тег</strong> start — имя со ссылкой непосредственно на N; новые коммиты ветки сохраняют этот тег на исходной версии. Рабочие файлы и индекс чисты. <code>shared.git</code> — <strong>bare-репозиторий</strong>: объекты и ссылки Git без рабочего дерева. Его main уже продолжена коммитом U с родителем N. U добавляет CHECKS.md с проверкой обоих исходных измерений по порогу 0.020 s. Остальные файлы сохранились. Соседний каталог доступен через файловую систему. <span class="citation" data-cites="bib-chacon-straub-progit"><a href="sources.html#ref-bib-chacon-straub-progit" role="doc-biblioref">[1, сс. 110–115]</a></span></p>
+<p>Откройте терминал в maintenancelab/work. Команды Git подходят для PowerShell 7/Windows и fish/Linux; используется одна выбранная среда. Задайте собственные имя и почту автора в этом репозитории:</p>
+<pre class="console"><code>git config user.name "Ваше имя"
+git config user.email "YOUR_EMAIL"
+git status --short
+git --no-pager log --graph --oneline --decorate --all</code></pre>
+</section>
+<section id="sec-maintenance-worktree" class="level2" data-number="8.3">
+<h2 data-number="8.3" class="anchored" data-anchor-id="sec-maintenance-worktree"><span class="header-section-number">8.3</span> Проверка другой версии</h2>
+<p>Для сравнения README из M и N можно развернуть M рядом с текущей работой. <strong>Связанное рабочее дерево</strong> Git имеет собственные файлы, индекс и HEAD, используя общую базу объектов и обычные ссылки основного репозитория.</p>
+<pre class="console"><code>git worktree add --detach ../previous HEAD~1
+git worktree list
+git -C ../previous show 'HEAD:README.md'
+git show 'HEAD:README.md'</code></pre>
+<p><code>HEAD~1</code> выбирает первого родителя текущего N, то есть M. Параметр <code>--detach</code> помещает HEAD дополнительного дерева непосредственно на M. Новая ветка для чтения старой версии не создаётся. Параметр <code>-C</code> выполняет команду Git в названном каталоге. В основном work остаются main/N и его файлы; в previous отсутствует строка проверки второй копии.</p>
+<pre class="text"><code>work:     HEAD ──&gt; main ──&gt; N    свой индекс, файлы N
+previous: HEAD ───────────&gt; M    свой индекс, файлы M
+                    общие объекты и обычные refs</code></pre>
+<p>После просмотра проверьте чистоту дополнительного дерева и удалите его через Git:</p>
+<pre class="console"><code>git -C ../previous status --short
+git worktree remove ../previous</code></pre>
+<p>Обычный remove отказывается удалять дерево с изменёнными файлами. Внутри связанного каталога <code>.git</code> является файлом со ссылкой на служебные данные. Для переноса всей истории нужно сохранить общее хранилище; копирование одного такого каталога оставит внешнюю зависимость. <a href="https://git-scm.com/docs/git-worktree">Руководство worktree</a>.</p>
+</section>
+<section id="sec-maintenance-fetch" class="level2" data-number="8.4">
+<h2 data-number="8.4" class="anchored" data-anchor-id="sec-maintenance-fetch"><span class="header-section-number">8.4</span> Получение проверки</h2>
+<p>В основном work задайте адрес подготовленного bare-репозитория:</p>
+<pre class="console"><code>git remote add origin ../shared.git
+git fetch origin
+git --no-pager log --graph --oneline --decorate --all
+git show 'origin/main:CHECKS.md'</code></pre>
+<p>Fetch получает U и обновляет локальную origin/main. Собственная main и рабочие файлы ещё соответствуют N. В полученной проверке указано: 8 ms = 0.008 s и 18 ms = 0.018 s; обе величины не превышают 0.020 s. Поскольку N является предком U, готовую проверку можно включить продвижением ветки:</p>
+<pre class="console"><code>git merge --ff-only origin/main</code></pre>
+<p>Теперь main и файлы соответствуют U. Если полученная и собственная линии расходятся, требуется их интеграция с сохранением требований обеих сторон. При конфликте исходные версии читают отдельно, выбирают согласованный результат и завершают слияние, как в <a data-qrc-custom="true" data-qrc-ref="system-practice-theory:sec-git-conflict" data-qrc-style="default" class="qrc-link" href="git-branches.html#sec-git-conflict">разборе порога</a>.</p>
+</section>
+<section id="sec-maintenance-patch" class="level2" data-number="8.5">
+<h2 data-number="8.5" class="anchored" data-anchor-id="sec-maintenance-patch"><span class="header-section-number">8.5</span> Изменение в патче</h2>
+<p><strong>Патч</strong> описывает изменение файлов относительно исходного содержимого. В нём указаны пути, участки контекста, удаляемые и добавляемые строки. Входной guide.patch подготовлен по README из N:</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb9"><pre class="sourceCode diff code-with-copy"><code class="sourceCode diff"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a><span class="kw">diff --git a/README.md b/README.md</span></span>
+<span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a><span class="dt">--- a/README.md</span></span>
+<span id="cb9-3"><a href="#cb9-3" aria-hidden="true" tabindex="-1"></a><span class="dt">+++ b/README.md</span></span>
+<span id="cb9-4"><a href="#cb9-4" aria-hidden="true" tabindex="-1"></a><span class="dt">@@ -5,3 +5,4 @@</span></span>
+<span id="cb9-5"><a href="#cb9-5" aria-hidden="true" tabindex="-1"></a> Источник: учебные измерения двух датчиков.</span>
+<span id="cb9-6"><a href="#cb9-6" aria-hidden="true" tabindex="-1"></a> Порог в criteria.txt выражен в секундах.</span>
+<span id="cb9-7"><a href="#cb9-7" aria-hidden="true" tabindex="-1"></a> Проверка: данные прочитаны во второй копии.</span>
+<span id="cb9-8"><a href="#cb9-8" aria-hidden="true" tabindex="-1"></a><span class="va">+Перед сравнением с порогом переведите миллисекунды в секунды.</span></span></code></pre></div><button title="Скопировать текст" class="code-copy-button"><i class="bi"></i></button></div>
+<p><code>a/</code> и <code>b/</code> обозначают старую и новую стороны. В строке <code>@@</code> записаны начало и длина участка каждой стороны. Пробел перед строкой обозначает сохраняемый контекст, <code>+</code> — добавление, <code>-</code> — удаление. <a href="https://git-scm.com/docs/diff-format">Формат патча</a>.</p>
+<p>Прочитайте файл целиком. В PowerShell:</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb10"><pre class="sourceCode powershell code-with-copy"><code class="sourceCode powershell"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a><span class="fu">Get-Content</span> <span class="op">-</span>LiteralPath <span class="op">../</span>incoming<span class="op">/</span>guide<span class="op">.</span><span class="fu">patch</span></span></code></pre></div><button title="Скопировать текст" class="code-copy-button"><i class="bi"></i></button></div>
+<p>В fish:</p>
+<pre class="fish"><code>cat ../incoming/guide.patch</code></pre>
+<p>Проверьте его действие и применимость:</p>
+<pre class="console"><code>git apply --stat ../incoming/guide.patch
+git apply --check ../incoming/guide.patch</code></pre>
+<p><code>--stat</code> показывает затронутые файлы и объём правки. <code>--check</code> проверяет возможность применения без записи. U добавил другой файл, сохранив README из N, поэтому исходный контекст патча подходит. При отказе проверки нужно сопоставить путь, кодировку и исходный текст с выбранной версией. Успешная проверка устанавливает применимость; смысл дополнения проверяется по единицам исходных данных и порога. <span class="citation" data-cites="bib-chacon-straub-progit"><a href="sources.html#ref-bib-chacon-straub-progit" role="doc-biblioref">[1, сс. 160–165]</a></span></p>
+<pre class="console"><code>git apply ../incoming/guide.patch
+git --no-pager diff -- README.md
+git add -- README.md
+git commit -m "Уточнить сравнение единиц"</code></pre>
+<p>Обычный apply изменяет рабочие файлы. Отдельные add и commit сохраняют результат в истории: новый P имеет родителя U. Исходный текст README в N и U совпадал, однако выбранный родитель P определяется текущей веткой в момент commit. Текстовый патч сам по себе не задаёт эту родительскую связь. <a href="https://git-scm.com/docs/git-apply">Руководство apply</a>.</p>
+<p>Если изменение должно составить отдельную линию от заданной версии, сначала создают ветку от этой версии, затем проверяют и фиксируют патч. При последующем слиянии история сохраняет обе линии. Формат <code>format-patch</code> вместе с <code>am</code> позволяет передавать также сведения автора и сообщения коммитов; обычный diff-патч в этом опыте переносит файловое изменение. <a href="https://git-scm.com/docs/git-format-patch">format-patch</a>, <a href="https://git-scm.com/docs/git-am">am</a>.</p>
+</section>
+<section id="sec-maintenance-tag" class="level2" data-number="8.6">
+<h2 data-number="8.6" class="anchored" data-anchor-id="sec-maintenance-tag"><span class="header-section-number">8.6</span> Именование выпуска</h2>
+<p><strong>Выпуск</strong> — выбранная проверенная версия с именем и материалами для получателя. Для версии 1.0 создайте VERSION с единственной строкой <code>1.0</code>. В PowerShell 7:</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb14"><pre class="sourceCode powershell code-with-copy"><code class="sourceCode powershell"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a><span class="fu">Set-Content</span> <span class="op">-</span>LiteralPath VERSION <span class="op">-</span>Value <span class="st">'1.0'</span></span></code></pre></div><button title="Скопировать текст" class="code-copy-button"><i class="bi"></i></button></div>
+<p>В fish:</p>
+<pre class="fish"><code>printf '%s\n' '1.0' &gt; VERSION</code></pre>
+<p>В редакторе создайте CHANGELOG.md:</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb16"><pre class="sourceCode markdown code-with-copy"><code class="sourceCode markdown"><span id="cb16-1"><a href="#cb16-1" aria-hidden="true" tabindex="-1"></a><span class="fu"># 1.0</span></span>
+<span id="cb16-2"><a href="#cb16-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb16-3"><a href="#cb16-3" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>Проверены оба измерения по порогу 0.020 s.</span>
+<span id="cb16-4"><a href="#cb16-4" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>Указан перевод единиц перед сравнением.</span></code></pre></div><button title="Скопировать текст" class="code-copy-button"><i class="bi"></i></button></div>
+<p>Сохраните выпуск и пометьте полученный коммит R:</p>
+<pre class="console"><code>git add -- VERSION CHANGELOG.md
+git --no-pager diff --staged
+git commit -m "Подготовить выпуск измерений 1.0"
+git tag -a v1.0 -m "Измерения с проверкой порога"
+git --no-pager show --no-patch v1.0</code></pre>
+<p><strong>Аннотированный тег</strong> — отдельный объект с указанием помеченного объекта, автора тега, даты и сообщения. Имя v1.0 обращается к этому объекту. Ветка main перемещается при последующих коммитах; тег сохраняет выбранный R. У опубликованного имени версии сохраняют прежнее значение, чтобы получатели могли согласованно обращаться к выпуску. <span class="citation" data-cites="bib-chacon-straub-progit bib-git-tag"><a href="sources.html#ref-bib-chacon-straub-progit" role="doc-biblioref">[1, сс. 58–63, 172–175]</a>, <a href="sources.html#ref-bib-git-tag" role="doc-biblioref">[4]</a></span></p>
+</section>
+<section id="sec-maintenance-push" class="level2" data-number="8.7">
+<h2 data-number="8.7" class="anchored" data-anchor-id="sec-maintenance-push"><span class="header-section-number">8.7</span> Передача выпуска</h2>
+<pre class="console"><code>git push origin main
+git push origin v1.0
+git rev-parse 'v1.0^{commit}'
+git ls-remote origin</code></pre>
+<p>R продолжает U через P; отправка main сохраняет прежнюю линию репозитория shared.git. Тег передаётся отдельной командой. Для аннотированного тега ls-remote показывает объект тега и строку с окончанием <code>^{}</code> — помеченный коммит. Его ID должен совпасть с R и с новой main другого репозитория. <span class="citation" data-cites="bib-git-push bib-git-ls-remote"><a href="sources.html#ref-bib-git-ls-remote" role="doc-biblioref">[2]</a>, <a href="sources.html#ref-bib-git-push" role="doc-biblioref">[3]</a></span></p>
+</section>
+<section id="sec-maintenance-release" class="level2" data-number="8.8">
+<h2 data-number="8.8" class="anchored" data-anchor-id="sec-maintenance-release"><span class="header-section-number">8.8</span> Снимок выпуска</h2>
+<p>Получатель может получить полный набор файлов R либо разность от своего исходного снимка start/N:</p>
+<pre class="console"><code>git diff --output=../release.patch start v1.0
+git archive --format=zip --prefix=latency-1.0/ --output=../latency-1.0.zip v1.0</code></pre>
+<p>Первый аргумент diff задаёт исходную сторону, второй — итоговую. <code>--output</code> записывает патч средствами Git. Патч нужно проверить на чистой версии start; результат применения должен совпасть с файлами v1.0. <a href="https://git-scm.com/docs/git-diff">Руководство diff</a>.</p>
+<p>Archive читает дерево выбранного коммита. В ZIP под latency-1.0/ попадают README.md, criteria.txt, measurements.tsv, CHECKS.md, VERSION и CHANGELOG.md из R. Незакоммиченные изменения рабочего дерева в этот набор не входят. Атрибут <code>export-ignore</code>, если он задан в проекте, исключает отмеченные пути из архива; в этом опыте таких исключений нет. <a href="https://git-scm.com/docs/git-archive">Руководство archive</a>.</p>
+<table class="caption-top table">
+<colgroup>
+<col style="width: 50%">
+<col style="width: 50%">
+</colgroup>
+<thead>
+<tr class="header">
+<th>Передаваемый материал</th>
+<th>Что может проверить получатель</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>Патч start → v1.0</td>
+<td>Применимость к исходным файлам и получившийся снимок</td>
+</tr>
+<tr class="even">
+<td>Архив latency-1.0.zip</td>
+<td>Пути и содержимое файлов выпуска</td>
+</tr>
+<tr class="odd">
+<td>Полный репозиторий</td>
+<td>Коммиты, родительские связи, ветки и теги</td>
+</tr>
+</tbody>
+</table>
+<p>Архив выпуска содержит файлы выбранного дерева. Для чтения истории потребуется репозиторий с объектами и ссылками. Способы проверки патча и полной упаковки приведены в <a data-qrc-custom="true" data-qrc-ref="system-practice-handbook:sec-maintenance-reference" data-qrc-style="default" class="qrc-link" href="../handbook/project-maintenance.html#sec-maintenance-reference">справочнике сопровождения</a>.</p>
+</section>
+<section id="sec-maintenance-binary" class="level2" data-number="8.9">
+<h2 data-number="8.9" class="anchored" data-anchor-id="sec-maintenance-binary"><span class="header-section-number">8.9</span> Двоичное содержимое</h2>
+<p>Git сохраняет содержимое файлов как последовательности байтов. Для исходного текста построчный diff показывает изменённые выражения, а трёхстороннее слияние сопоставляет строки общей базы и двух продолжений. Формат изображения, архива или другого двоичного документа может требовать собственного способа сравнения и согласования. Например, две правки разных объектов рисунка нуждаются в программе, которая понимает эти объекты.</p>
+<p>Встроенный драйвер <code>binary</code> при конфликте сохраняет текущую сторону в рабочем файле и оставляет путь неразрешённым. Проект может назначить специализированный драйвер слияния через атрибуты. <a href="https://git-scm.com/docs/gitattributes#_performing_a_three_way_merge">Драйверы слияния</a>. Само сохранение двоичного файла в истории не обеспечивает такого сравнения.</p>
+<p>Большие меняющиеся файлы увеличивают объём хранимой истории и передачи обычной полной копии. Правила сервиса размещения задают дополнительные ограничения размера и квоты. GitHub описывает их отдельно и предлагает прикреплять распространяемые двоичные материалы к выпуску. <a href="https://docs.github.com/en/repositories/working-with-files/managing-large-files/about-large-files-on-github">Большие файлы GitHub</a> (проверено 20.10.2026).</p>
+</section>
+<section id="sec-maintenance-lfs" class="level2" data-number="8.10">
+<h2 data-number="8.10" class="anchored" data-anchor-id="sec-maintenance-lfs"><span class="header-section-number">8.10</span> Git LFS</h2>
+<p><strong>Git LFS</strong> хранит в Git небольшой текстовый указатель, а содержимое большого файла передаёт через отдельное хранилище. Указатель содержит версию формата, идентификатор SHA-256 содержимого и размер. Клиент LFS получает соответствующий объект для рабочего файла. Без него участник может увидеть только текст указателя. <a href="https://docs.github.com/en/repositories/working-with-files/managing-large-files/about-git-large-file-storage">Устройство LFS</a>, <a href="https://docs.github.com/en/repositories/working-with-files/managing-large-files/collaboration-with-git-large-file-storage">совместная работа</a>.</p>
+<p>Доступность объекта, квоты сервиса и включение LFS-содержимого в создаваемый GitHub архив проверяются по настройкам проекта. Для согласования двух версий изображения по-прежнему нужен способ, учитывающий его формат.</p>
+</section>
+<section id="sec-maintenance-parallel" class="level2" data-number="8.11">
+<h2 data-number="8.11" class="anchored" data-anchor-id="sec-maintenance-parallel"><span class="header-section-number">8.11</span> Параллельная работа</h2>
+<p>Если две задачи редактируют один рабочий каталог, они видят изменения друг друга и подготавливают общий индекс. Разные ветки предоставляют разные имена истории; для одновременных рабочих файлов каждой задаче нужен собственный каталог. Worktree позволяет получить такой каталог без второй полной базы объектов:</p>
+<pre class="console"><code>git worktree add -b docs-check ../docs-check main
+git worktree list</code></pre>
+<p>Новая ветка docs-check начинается от текущей main, отдельный HEAD выбирает её в docs-check. Обычные ветки доступны всем связанным деревьям; по умолчанию Git запрещает одновременно выбрать одну ветку в двух деревьях. Настройка репозитория также обычно общая. Порты, базы данных и внешние сервисы могут оставаться общими и требуют самостоятельного разделения. <a href="https://git-scm.com/docs/git-worktree">Git worktree</a>.</p>
+<p>Руководство VS Code от 14.10.2026 предлагает для двух независимых агентных заданий разные worktree от общей базы, раздельную проверку изменений, затем проверку их объединения. Механизм Git сохраняет происхождение обеих работ; согласованность совместного результата устанавливают проверки проекта. <a href="https://code.visualstudio.com/docs/agents/guides/delegate-two-tasks">Параллельные задачи VS Code</a>.</p>
+</section>
+<section id="sec-maintenance-scale" class="level2" data-number="8.12">
+<h2 data-number="8.12" class="anchored" data-anchor-id="sec-maintenance-scale"><span class="header-section-number">8.12</span> Нагрузка большого проекта</h2>
+<p>Стоимость работы с репозиторием зависит от объёма истории, размера рабочих файлов, частоты записи и числа одновременных чтений. Частые проверки CI — автоматической сборки и испытаний — могут многократно запрашивать один снимок. Обновления одной общей ветки должны согласовывать её новое значение, даже когда изменения готовятся независимо.</p>
+<p>В статье Anthropic от 13.10.2026, обновлённой 15.10, описан собственный огромный монорепозиторий — единое хранилище многих частей разработки. Основную нагрузку создавали постоянно подключённые задания и агенты. В Scion операции истории перенесены на сервер; клиент получает нужное содержимое по запросу и хранит ограниченный кэш. Такое устройство требует доступного сервера и собственного набора средств проверки, поиска и CI. Авторы связывают применимость решения с этим необычным масштабом. <a href="https://www.anthropic.com/engineering/redesigning-source-control">Источник Anthropic</a>.</p>
+<p>GitHub 06.10.2026, с обновлением 07.10, описал перестройку серверного хранения для множества конкурирующих записей и чтений. В прежней схеме новая долговечная реплика для чтения добавляла работу при каждой записи. Проектируемое устройство отделяет постоянное хранение Azure Blob Storage от вычислительных узлов с кэшами, сохраняя семантику Git. Это продолжаемая перестройка хостинга. <a href="https://github.blog/engineering/architecture-optimization/building-git-infrastructure-for-agent-scale-development/">Источник GitHub</a>.</p>
+
+
+
+<div id="refs" class="references csl-bib-body" data-entry-spacing="0" role="list" style="display: none">
+<div id="ref-bib-chacon-straub-progit" class="csl-entry" role="listitem">
+<div class="csl-left-margin">[1] </div><div class="csl-right-inline">S. Chacon и B. Straub, <em>Pro Git</em>, 2-я изд. 2026.</div>
+</div>
+<div id="ref-bib-git-ls-remote" class="csl-entry" role="listitem">
+<div class="csl-left-margin">[2] </div><div class="csl-right-inline">Git contributors, <span>«git-ls-remote»</span>. Просмотрено: 16 октябрь 2026 г. [Онлайн]. Доступно на: <a href="https://git-scm.com/docs/git-ls-remote">https://git-scm.com/docs/git-ls-remote</a></div>
+</div>
+<div id="ref-bib-git-push" class="csl-entry" role="listitem">
+<div class="csl-left-margin">[3] </div><div class="csl-right-inline">Git contributors, <span>«git-push»</span>. Просмотрено: 16 октябрь 2026 г. [Онлайн]. Доступно на: <a href="https://git-scm.com/docs/git-push">https://git-scm.com/docs/git-push</a></div>
+</div>
+<div id="ref-bib-git-tag" class="csl-entry" role="listitem">
+<div class="csl-left-margin">[4] </div><div class="csl-right-inline">Git contributors, <span>«git-tag»</span>. Просмотрено: 16 октябрь 2026 г. [Онлайн]. Доступно на: <a href="https://git-scm.com/docs/git-tag">https://git-scm.com/docs/git-tag</a></div>
+</div>
+</div>
+</section>
+
+</main> <!-- /main -->
+<script id="quarto-html-after-body" type="application/javascript">
+  window.document.addEventListener("DOMContentLoaded", function (event) {
+    const icon = "";
+    const anchorJS = new window.AnchorJS();
+    anchorJS.options = {
+      placement: 'right',
+      icon: icon
+    };
+    anchorJS.add('.anchored');
+    const isCodeAnnotation = (el) => {
+      for (const clz of el.classList) {
+        if (clz.startsWith('code-annotation-')) {                     
+          return true;
+        }
+      }
+      return false;
+    }
+    const onCopySuccess = function(e) {
+      // button target
+      const button = e.trigger;
+      // don't keep focus
+      button.blur();
+      // flash "checked"
+      button.classList.add('code-copy-button-checked');
+      var currentTitle = button.getAttribute("title");
+      button.setAttribute("title", "Скопировано");
+      let tooltip;
+      if (window.bootstrap) {
+        button.setAttribute("data-bs-toggle", "tooltip");
+        button.setAttribute("data-bs-placement", "left");
+        button.setAttribute("data-bs-title", "Скопировано");
+        tooltip = new bootstrap.Tooltip(button, 
+          { trigger: "manual", 
+            customClass: "code-copy-button-tooltip",
+            offset: [0, -8]});
+        tooltip.show();    
+      }
+      setTimeout(function() {
+        if (tooltip) {
+          tooltip.hide();
+          button.removeAttribute("data-bs-title");
+          button.removeAttribute("data-bs-toggle");
+          button.removeAttribute("data-bs-placement");
+        }
+        button.setAttribute("title", currentTitle);
+        button.classList.remove('code-copy-button-checked');
+      }, 1000);
+      // clear code selection
+      e.clearSelection();
+    }
+    const getTextToCopy = function(trigger) {
+      const outerScaffold = trigger.parentElement.cloneNode(true);
+      const codeEl = outerScaffold.querySelector('code');
+      for (const childEl of codeEl.children) {
+        if (isCodeAnnotation(childEl)) {
+          childEl.remove();
+        }
+      }
+      return codeEl.innerText;
+    }
+    const clipboard = new window.ClipboardJS('.code-copy-button:not([data-in-quarto-modal])', {
+      text: getTextToCopy
+    });
+    clipboard.on('success', onCopySuccess);
+    if (window.document.getElementById('quarto-embedded-source-code-modal')) {
+      const clipboardModal = new window.ClipboardJS('.code-copy-button[data-in-quarto-modal]', {
+        text: getTextToCopy,
+        container: window.document.getElementById('quarto-embedded-source-code-modal')
+      });
+      clipboardModal.on('success', onCopySuccess);
+    }
+      var localhostRegex = new RegExp(/^(?:http|https):\/\/localhost\:?[0-9]*\//);
+      var mailtoRegex = new RegExp(/^mailto:/);
+        var filterRegex = new RegExp('/' + window.location.host + '/');
+      var isInternal = (href) => {
+          return filterRegex.test(href) || localhostRegex.test(href) || mailtoRegex.test(href);
+      }
+      // Inspect non-navigation links and adorn them if external
+     var links = window.document.querySelectorAll('a[href]:not(.nav-link):not(.navbar-brand):not(.toc-action):not(.sidebar-link):not(.sidebar-item-toggle):not(.pagination-link):not(.no-external):not([aria-hidden]):not(.dropdown-item):not(.quarto-navigation-tool):not(.about-link)');
+      for (var i=0; i<links.length; i++) {
+        const link = links[i];
+        if (!isInternal(link.href)) {
+          // undo the damage that might have been done by quarto-nav.js in the case of
+          // links that we want to consider external
+          if (link.dataset.originalHref !== undefined) {
+            link.href = link.dataset.originalHref;
+          }
+        }
+      }
+    function tippyHover(el, contentFn, onTriggerFn, onUntriggerFn) {
+      const config = {
+        allowHTML: true,
+        maxWidth: 500,
+        delay: 100,
+        arrow: false,
+        appendTo: function(el) {
+            return el.parentElement;
+        },
+        interactive: true,
+        interactiveBorder: 10,
+        theme: 'quarto',
+        placement: 'bottom-start',
+      };
+      if (contentFn) {
+        config.content = contentFn;
+      }
+      if (onTriggerFn) {
+        config.onTrigger = onTriggerFn;
+      }
+      if (onUntriggerFn) {
+        config.onUntrigger = onUntriggerFn;
+      }
+      window.tippy(el, config); 
+    }
+    const noterefs = window.document.querySelectorAll('a[role="doc-noteref"]');
+    for (var i=0; i<noterefs.length; i++) {
+      const ref = noterefs[i];
+      tippyHover(ref, function() {
+        // use id or data attribute instead here
+        let href = ref.getAttribute('data-footnote-href') || ref.getAttribute('href');
+        try { href = new URL(href).hash; } catch {}
+        const id = href.replace(/^#\/?/, "");
+        const note = window.document.getElementById(id);
+        if (note) {
+          return note.innerHTML;
+        } else {
+          return "";
+        }
+      });
+    }
+    const xrefs = window.document.querySelectorAll('a.quarto-xref');
+    const processXRef = (id, note) => {
+      // Strip column container classes
+      const stripColumnClz = (el) => {
+        el.classList.remove("page-full", "page-columns");
+        if (el.children) {
+          for (const child of el.children) {
+            stripColumnClz(child);
+          }
+        }
+      }
+      stripColumnClz(note)
+      if (id === null || id.startsWith('sec-')) {
+        // Special case sections, only their first couple elements
+        const container = document.createElement("div");
+        if (note.children && note.children.length > 2) {
+          container.appendChild(note.children[0].cloneNode(true));
+          for (let i = 1; i < note.children.length; i++) {
+            const child = note.children[i];
+            if (child.tagName === "P" && child.innerText === "") {
+              continue;
+            } else {
+              container.appendChild(child.cloneNode(true));
+              break;
+            }
+          }
+          if (window.Quarto?.typesetMath) {
+            window.Quarto.typesetMath(container);
+          }
+          return container.innerHTML
+        } else {
+          if (window.Quarto?.typesetMath) {
+            window.Quarto.typesetMath(note);
+          }
+          return note.innerHTML;
+        }
+      } else {
+        // Remove any anchor links if they are present
+        const anchorLink = note.querySelector('a.anchorjs-link');
+        if (anchorLink) {
+          anchorLink.remove();
+        }
+        if (window.Quarto?.typesetMath) {
+          window.Quarto.typesetMath(note);
+        }
+        if (note.classList.contains("callout")) {
+          return note.outerHTML;
+        } else {
+          return note.innerHTML;
+        }
+      }
+    }
+    for (var i=0; i<xrefs.length; i++) {
+      const xref = xrefs[i];
+      tippyHover(xref, undefined, function(instance) {
+        instance.disable();
+        let url = xref.getAttribute('href');
+        let hash = undefined; 
+        if (url.startsWith('#')) {
+          hash = url;
+        } else {
+          try { hash = new URL(url).hash; } catch {}
+        }
+        if (hash) {
+          const id = hash.replace(/^#\/?/, "");
+          const note = window.document.getElementById(id);
+          if (note !== null) {
+            try {
+              const html = processXRef(id, note.cloneNode(true));
+              instance.setContent(html);
+            } finally {
+              instance.enable();
+              instance.show();
+            }
+          } else {
+            // See if we can fetch this
+            fetch(url.split('#')[0])
+            .then(res => res.text())
+            .then(html => {
+              const parser = new DOMParser();
+              const htmlDoc = parser.parseFromString(html, "text/html");
+              const note = htmlDoc.getElementById(id);
+              if (note !== null) {
+                const html = processXRef(id, note);
+                instance.setContent(html);
+              } 
+            }).finally(() => {
+              instance.enable();
+              instance.show();
+            });
+          }
+        } else {
+          // See if we can fetch a full url (with no hash to target)
+          // This is a special case and we should probably do some content thinning / targeting
+          fetch(url)
+          .then(res => res.text())
+          .then(html => {
+            const parser = new DOMParser();
+            const htmlDoc = parser.parseFromString(html, "text/html");
+            const note = htmlDoc.querySelector('main.content');
+            if (note !== null) {
+              // This should only happen for chapter cross references
+              // (since there is no id in the URL)
+              // remove the first header
+              if (note.children.length > 0 && note.children[0].tagName === "HEADER") {
+                note.children[0].remove();
+              }
+              const html = processXRef(null, note);
+              instance.setContent(html);
+            } 
+          }).finally(() => {
+            instance.enable();
+            instance.show();
+          });
+        }
+      }, function(instance) {
+      });
+    }
+        let selectedAnnoteEl;
+        const selectorForAnnotation = ( cell, annotation) => {
+          let cellAttr = 'data-code-cell="' + cell + '"';
+          let lineAttr = 'data-code-annotation="' +  annotation + '"';
+          const selector = 'span[' + cellAttr + '][' + lineAttr + ']';
+          return selector;
+        }
+        const selectCodeLines = (annoteEl) => {
+          const doc = window.document;
+          const targetCell = annoteEl.getAttribute("data-target-cell");
+          const targetAnnotation = annoteEl.getAttribute("data-target-annotation");
+          const annoteSpan = window.document.querySelector(selectorForAnnotation(targetCell, targetAnnotation));
+          const lines = annoteSpan.getAttribute("data-code-lines").split(",");
+          const lineIds = lines.map((line) => {
+            return targetCell + "-" + line;
+          })
+          let top = null;
+          let height = null;
+          let parent = null;
+          if (lineIds.length > 0) {
+              //compute the position of the single el (top and bottom and make a div)
+              const el = window.document.getElementById(lineIds[0]);
+              top = el.offsetTop;
+              height = el.offsetHeight;
+              parent = el.parentElement.parentElement;
+            if (lineIds.length > 1) {
+              const lastEl = window.document.getElementById(lineIds[lineIds.length - 1]);
+              const bottom = lastEl.offsetTop + lastEl.offsetHeight;
+              height = bottom - top;
+            }
+            if (top !== null && height !== null && parent !== null) {
+              // cook up a div (if necessary) and position it 
+              let div = window.document.getElementById("code-annotation-line-highlight");
+              if (div === null) {
+                div = window.document.createElement("div");
+                div.setAttribute("id", "code-annotation-line-highlight");
+                div.style.position = 'absolute';
+                parent.appendChild(div);
+              }
+              div.style.top = top - 2 + "px";
+              div.style.height = height + 4 + "px";
+              div.style.left = 0;
+              let gutterDiv = window.document.getElementById("code-annotation-line-highlight-gutter");
+              if (gutterDiv === null) {
+                gutterDiv = window.document.createElement("div");
+                gutterDiv.setAttribute("id", "code-annotation-line-highlight-gutter");
+                gutterDiv.style.position = 'absolute';
+                const codeCell = window.document.getElementById(targetCell);
+                const gutter = codeCell.querySelector('.code-annotation-gutter');
+                gutter.appendChild(gutterDiv);
+              }
+              gutterDiv.style.top = top - 2 + "px";
+              gutterDiv.style.height = height + 4 + "px";
+            }
+            selectedAnnoteEl = annoteEl;
+          }
+        };
+        const unselectCodeLines = () => {
+          const elementsIds = ["code-annotation-line-highlight", "code-annotation-line-highlight-gutter"];
+          elementsIds.forEach((elId) => {
+            const div = window.document.getElementById(elId);
+            if (div) {
+              div.remove();
+            }
+          });
+          selectedAnnoteEl = undefined;
+        };
+          // Handle positioning of the toggle
+      window.addEventListener(
+        "resize",
+        throttle(() => {
+          elRect = undefined;
+          if (selectedAnnoteEl) {
+            selectCodeLines(selectedAnnoteEl);
+          }
+        }, 10)
+      );
+      function throttle(fn, ms) {
+      let throttle = false;
+      let timer;
+        return (...args) => {
+          if(!throttle) { // first call gets through
+              fn.apply(this, args);
+              throttle = true;
+          } else { // all the others get throttled
+              if(timer) clearTimeout(timer); // cancel #2
+              timer = setTimeout(() => {
+                fn.apply(this, args);
+                timer = throttle = false;
+              }, ms);
+          }
+        };
+      }
+        // Attach click handler to the DT
+        const annoteDls = window.document.querySelectorAll('dt[data-target-cell]');
+        for (const annoteDlNode of annoteDls) {
+          annoteDlNode.addEventListener('click', (event) => {
+            const clickedEl = event.target;
+            if (clickedEl !== selectedAnnoteEl) {
+              unselectCodeLines();
+              const activeEl = window.document.querySelector('dt[data-target-cell].code-annotation-active');
+              if (activeEl) {
+                activeEl.classList.remove('code-annotation-active');
+              }
+              selectCodeLines(clickedEl);
+              clickedEl.classList.add('code-annotation-active');
+            } else {
+              // Unselect the line
+              unselectCodeLines();
+              clickedEl.classList.remove('code-annotation-active');
+            }
+          });
+        }
+    const findCites = (el) => {
+      const parentEl = el.parentElement;
+      if (parentEl) {
+        const cites = parentEl.dataset.cites;
+        if (cites) {
+          return {
+            el,
+            cites: cites.split(' ')
+          };
+        } else {
+          return findCites(el.parentElement)
+        }
+      } else {
+        return undefined;
+      }
+    };
+    var bibliorefs = window.document.querySelectorAll('a[role="doc-biblioref"]');
+    for (var i=0; i<bibliorefs.length; i++) {
+      const ref = bibliorefs[i];
+      const citeInfo = findCites(ref);
+      if (citeInfo) {
+        tippyHover(citeInfo.el, function() {
+          var popup = window.document.createElement('div');
+          citeInfo.cites.forEach(function(cite) {
+            var citeDiv = window.document.createElement('div');
+            citeDiv.classList.add('hanging-indent');
+            citeDiv.classList.add('csl-entry');
+            var biblioDiv = window.document.getElementById('ref-' + cite);
+            if (biblioDiv) {
+              citeDiv.innerHTML = biblioDiv.innerHTML;
+            }
+            popup.appendChild(citeDiv);
+          });
+          return popup.innerHTML;
+        });
+      }
+    }
+  });
+  </script>
+  <script type="application/javascript">
+  window.quartoScrollableRegionsLabels = {"code":"Прокручиваемый код","output":"Прокручиваемый вывод"};
+  </script>
+<nav class="page-navigation" aria-label="Страница">
+  <div class="nav-page nav-page-previous">
+      <a href="./git-exchange.html" class="pagination-link" aria-label="Обмен репозиториями">
+        <i class="bi bi-arrow-left-short"></i> <span class="nav-page-text"><span class="chapter-number">7</span>&nbsp; <span class="chapter-title">Обмен репозиториями</span></span>
+      </a>          
+  </div>
+  <div class="nav-page nav-page-next">
+      <a href="./sources.html" class="pagination-link" aria-label="Источники">
+        <span class="nav-page-text"><span class="chapter-number">9</span>&nbsp; <span class="chapter-title">Источники</span></span> <i class="bi bi-arrow-right-short"></i>
+      </a>
+  </div>
+</nav>
+</div> <!-- /content -->
+
+
+
+
+
+<script data-qrc-navigation>// Опубликованные цели сохраняют штатные ID Quarto. Обработчик раскрывает
+// существующее представление документа, не вводя учебных ролей и новых ID.
+(() => {
+  if (new URL(location.href).searchParams.has("print-pdf")) return;
+  let navigation = 0;
+
+  function hashId(url) {
+    try { return decodeURIComponent(url.hash.replace(/^#\/?/, "")); }
+    catch { return ""; } // Некорректный фрагмент внешней ссылки не должен нарушать работу страницы.
+  }
+
+  function ancestors(target) {
+    const nodes = [];
+    for (let node = target; node; node = node.parentElement) nodes.push(node);
+    return nodes.reverse();
+  }
+
+  function openDisclosures(nodes, scroll) {
+    for (const node of nodes) {
+      if (node.matches("details")) node.open = true;
+      if (!node.matches(".collapse:not(.show)")) continue;
+
+      // Bootstrap управляет анимацией и состоянием переключателя.
+      // В темах без Bootstrap блок раскрывается напрямую; details работает штатно.
+      const Collapse = window.bootstrap?.Collapse;
+      if (Collapse) {
+        node.addEventListener("shown.bs.collapse", scroll, { once: true });
+        Collapse.getOrCreateInstance(node, { toggle: false }).show();
+      } else {
+        node.classList.add("show");
+        if (!node.id) continue;
+        for (const trigger of document.querySelectorAll("[aria-controls]")) {
+          if (!trigger.getAttribute("aria-controls").split(/\s+/).includes(node.id)) continue;
+          trigger.setAttribute("aria-expanded", "true");
+          trigger.classList.remove("collapsed");
+        }
+      }
+    }
+  }
+
+  function revealTarget(id) {
+    const target = id && document.getElementById(id);
+    if (!target) return;
+    const current = ++navigation;
+    const scroll = () => requestAnimationFrame(() => {
+      // Завершение анимации не должно возвращать прокрутку после нового перехода.
+      if (current === navigation) target.scrollIntoView({ block: "nearest" });
+    });
+    const nodes = ancestors(target);
+    const section = target.closest("section.slide");
+    const reveal = window.Reveal;
+    if (section && target !== section && reveal?.isReady()) {
+      const position = reveal.getIndices(section);
+      reveal.slide(position.h, position.v);
+      // У вложенных фрагментов могут различаться индексы. Показываем
+      // все фрагменты вокруг цели; нулевой индекс также допустим.
+      const indices = nodes.filter(node => node.matches(".fragment[data-fragment-index]"))
+        .map(node => Number(node.getAttribute("data-fragment-index")))
+        .filter(Number.isFinite);
+      if (indices.length) reveal.navigateFragment(Math.max(...indices));
+    }
+    openDisclosures(nodes, scroll);
+    scroll();
+  }
+
+  function initialTarget() {
+    const url = new URL(location.href);
+    revealTarget(url.searchParams.get("qrc-target") || hashId(url));
+  }
+
+  function ready() {
+    if (window.Reveal && !window.Reveal.isReady()) window.Reveal.on("ready", initialTarget);
+    else initialTarget();
+  }
+  if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", ready, { once: true });
+  else ready();
+
+  // qrc-target обрабатывается только при входе на страницу. Повторное применение
+  // при смене фрагмента URL возвращало бы преподавателя к цели после перехода вперёд.
+  window.addEventListener("hashchange", () => revealTarget(hashId(new URL(location.href))));
+  document.addEventListener("click", event => {
+    if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey || event.defaultPrevented) return;
+    const link = event.target.closest?.("a[href]");
+    if (!link || link.hasAttribute("download") || (link.target && link.target !== "_self")) return;
+    const url = new URL(link.href, location.href);
+    if (url.origin !== location.origin || url.pathname !== location.pathname || url.search !== location.search) return;
+    // Повторный переход по тому же фрагменту URL не вызывает hashchange.
+    // Раскрываем цель после штатной навигации и обработчика Revealjs.
+    queueMicrotask(() => revealTarget(hashId(url)));
+  }, true);
+})();
+</script>
+</body></html>

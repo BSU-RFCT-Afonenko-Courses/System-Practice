@@ -1,0 +1,907 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="ru" xml:lang="ru"><head>
+
+<meta charset="utf-8">
+<meta name="generator" content="quarto-1.11.6">
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+
+
+<title>6&nbsp; Ветвление истории – System Practice — теория</title>
+<style>
+/* Default styles provided by pandoc.
+** See https://pandoc.org/MANUAL.html#variables-for-html for config info.
+*/
+span.smallcaps{font-variant: small-caps;}
+div.columns{display: flex; gap: 1.5em;}
+div.column{flex: auto;}
+@media screen {
+div.columns{gap: min(4vw, 1.5em);}
+div.column{overflow-x: auto;}
+}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+ul.task-list li input[type="checkbox"] {
+  width: 0.8em;
+  margin: 0 0.8em 0.2em -1em; /* quarto-specific, see https://github.com/quarto-dev/quarto-cli/issues/4556 */ 
+  vertical-align: middle;
+}
+/* CSS for citations */
+div.csl-bib-body { }
+div.csl-entry {
+  clear: both;
+  margin-bottom: 0em;
+}
+.hanging-indent div.csl-entry {
+  margin-left:2em;
+  text-indent:-2em;
+}
+div.csl-left-margin {
+  min-width:2em;
+  float:left;
+}
+div.csl-right-inline {
+  margin-left:2em;
+  padding-left:1em;
+}
+div.csl-indent {
+  margin-left: 2em;
+}</style>
+
+
+<script src="site_libs/quarto-nav/quarto-nav.js"></script>
+<script src="site_libs/quarto-nav/headroom.min.js"></script>
+<script src="site_libs/clipboard/clipboard.min.js"></script>
+<script src="site_libs/quarto-search/autocomplete.umd.js"></script>
+<script src="site_libs/quarto-search/fuse.min.js"></script>
+<script src="site_libs/quarto-search/quarto-search.js"></script>
+<meta name="quarto:offset" content="./">
+<link href="./git-exchange.html" rel="next">
+<link href="./git-state.html" rel="prev">
+<script src="site_libs/quarto-html/quarto.js" type="module"></script>
+<script src="site_libs/quarto-html/tabsets/tabsets.js" type="module"></script>
+<script src="site_libs/quarto-html/scrollable-regions/scrollable-regions.js" type="module"></script>
+<script src="site_libs/quarto-html/popper.min.js"></script>
+<script src="site_libs/quarto-html/tippy.umd.min.js"></script>
+<script src="site_libs/quarto-html/anchor.min.js"></script>
+<link href="site_libs/quarto-html/tippy.css" rel="stylesheet">
+<link href="site_libs/quarto-html/quarto-syntax-highlighting-35fc0813589bbfbfa0b8ec974497eeb2.css" rel="stylesheet" id="quarto-text-highlighting-styles">
+<script src="site_libs/bootstrap/bootstrap.min.js"></script>
+<link href="site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
+<link href="site_libs/bootstrap/bootstrap-b3f6ff2dc823300d2c5fa49387c7b369.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
+<script src="site_libs/quarto-contrib/course-presentation-0.1.0/disclosure.js" data-course-runtime-asset="disclosure.js" data-course-runtime-provider="course-presentation"></script>
+<script src="site_libs/quarto-contrib/course-presentation-0.1.0/presentation.js" data-course-runtime-asset="presentation.js" data-course-runtime-provider="course-presentation"></script>
+<link href="site_libs/quarto-contrib/course-presentation-0.1.0/presentation.css" rel="stylesheet" data-course-runtime-asset="presentation.css" data-course-runtime-provider="course-presentation">
+
+<style>.task-items li:has(.course-assignment-omitted):not(:has(a)){display:none}</style>
+<script id="quarto-search-options" type="application/json">{
+  "location": "sidebar",
+  "copy-button": false,
+  "collapse-after": 3,
+  "panel-placement": "start",
+  "type": "textbox",
+  "limit": 50,
+  "keyboard-shortcut": [
+    "f",
+    "/",
+    "s"
+  ],
+  "show-item-context": false,
+  "language": {
+    "search-no-results-text": "Поиск не дал результатов",
+    "search-matching-documents-text": "Результаты поиска",
+    "search-copy-link-title": "Скопировать ссылку",
+    "search-hide-matches-text": "Скрыть дополнительные результаты",
+    "search-more-match-text": "дополнительный результат в этом документе",
+    "search-more-matches-text": "дополнительных результата(-ов) в этом документе",
+    "search-clear-button-title": "Очистить",
+    "search-text-placeholder": "",
+    "search-detached-cancel-button-title": "Отменить",
+    "search-submit-button-title": "Найти",
+    "search-label": "Поиск"
+  }
+}</script>
+<style>
+/* Узкие страницы книг сохраняют ширину; широкая таблица прокручивается внутри. */
+@media screen and (max-width: 767.98px) {
+  main.content a,
+  main.content :not(pre) > code {
+    overflow-wrap: anywhere;
+  }
+  main.content :not(pre) > code {
+    white-space: pre-wrap;
+  }
+  main.content table.table {
+    display: block;
+    max-width: 100%;
+    overflow-x: auto;
+  }
+}
+</style>
+
+
+</head>
+
+<body class="nav-sidebar floating quarto-light"><a id="quarto-skip-link" class="visually-hidden-focusable" href="#quarto-document-content">Skip to main content</a>
+
+<div id="quarto-search-results"></div>
+  <header id="quarto-header" class="headroom fixed-top">
+  <nav class="quarto-secondary-nav" aria-label="Панель инструментов">
+    <div class="container-fluid d-flex">
+      <button type="button" class="quarto-btn-toggle btn" data-bs-toggle="collapse" role="button" data-bs-target=".quarto-sidebar-collapse-item" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Переключить боковую панель навигации" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">
+        <i class="bi bi-layout-text-sidebar-reverse"></i>
+      </button>
+        <nav class="quarto-page-breadcrumbs" aria-label="Путь"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="./git-branches.html"><span class="chapter-number">6</span>&nbsp; <span class="chapter-title">Ветвление истории</span></a></li></ol></nav>
+        <a class="flex-grow-1" data-bs-toggle="collapse" data-bs-target=".quarto-sidebar-collapse-item" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">      
+        </a>
+      <button type="button" class="btn quarto-search-button" aria-label="Поиск" onclick="window.quartoOpenSearch();">
+        <i class="bi bi-search"></i>
+      </button>
+    </div>
+  </nav>
+</header>
+<!-- content -->
+<div id="quarto-content" class="quarto-container page-columns page-rows-contents page-layout-article">
+<!-- sidebar -->
+  <nav id="quarto-sidebar" class="sidebar collapse collapse-horizontal quarto-sidebar-collapse-item sidebar-navigation floating overflow-auto" aria-label="Сайт">
+    <div class="pt-lg-2 mt-2 text-left sidebar-header">
+    <div class="sidebar-title mb-0 py-0">
+      <a href="./">System Practice — теория</a> 
+        <div class="sidebar-tools-main">
+    <a href="./../index.html#sec-system-practice" title="Портал курса" class="quarto-navigation-tool px-1" aria-label="Портал курса"><i class="bi bi-house"></i></a>
+</div>
+    </div>
+      </div>
+        <div class="mt-2 flex-shrink-0 align-items-center">
+        <div class="sidebar-search">
+        <div id="quarto-search" class="" title="Поиск"></div>
+        </div>
+        </div>
+    <div class="sidebar-menu-container"> 
+    <ul class="list-unstyled mt-1">
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./index.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">1</span>&nbsp; <span class="chapter-title">Теория</span></span></a>
+  </div>
+</li>
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./work-environment.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">2</span>&nbsp; <span class="chapter-title">Рабочая среда</span></span></a>
+  </div>
+</li>
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./text-streams.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">3</span>&nbsp; <span class="chapter-title">Текстовые потоки</span></span></a>
+  </div>
+</li>
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./object-pipeline.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">4</span>&nbsp; <span class="chapter-title">Объектный конвейер</span></span></a>
+  </div>
+</li>
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./git-state.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">5</span>&nbsp; <span class="chapter-title">Состояние репозитория</span></span></a>
+  </div>
+</li>
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./git-branches.html" class="sidebar-item-text sidebar-link active">
+ <span class="menu-text"><span class="chapter-number">6</span>&nbsp; <span class="chapter-title">Ветвление истории</span></span></a>
+  </div>
+</li>
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./git-exchange.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">7</span>&nbsp; <span class="chapter-title">Обмен репозиториями</span></span></a>
+  </div>
+</li>
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./project-maintenance.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">8</span>&nbsp; <span class="chapter-title">Сопровождение проекта</span></span></a>
+  </div>
+</li>
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./sources.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">9</span>&nbsp; <span class="chapter-title">Источники</span></span></a>
+  </div>
+</li>
+    </ul>
+    </div>
+</nav>
+<div id="quarto-sidebar-glass" class="quarto-sidebar-collapse-item" data-bs-toggle="collapse" data-bs-target=".quarto-sidebar-collapse-item"></div>
+<!-- margin-sidebar -->
+    <div id="quarto-margin-sidebar" class="sidebar margin-sidebar">
+        <nav id="TOC" role="doc-toc" aria-labelledby="toc-title" class="toc-active">
+    <h2 id="toc-title">Содержание</h2>
+   
+  <ul>
+  <li><a href="#sec-git-branch-data" id="toc-sec-git-branch-data" class="nav-link active" data-scroll-target="#sec-git-branch-data"><span class="header-section-number">6.1</span> Родители коммита</a></li>
+  <li><a href="#sec-git-switch" id="toc-sec-git-switch" class="nav-link" data-scroll-target="#sec-git-switch"><span class="header-section-number">6.2</span> Создание ветки</a></li>
+  <li><a href="#переключение-снимка" id="toc-переключение-снимка" class="nav-link" data-scroll-target="#переключение-снимка"><span class="header-section-number">6.3</span> Переключение снимка</a></li>
+  <li><a href="#sec-git-fast-forward" id="toc-sec-git-fast-forward" class="nav-link" data-scroll-target="#sec-git-fast-forward"><span class="header-section-number">6.4</span> Продвижение fast-forward</a></li>
+  <li><a href="#sec-git-merge" id="toc-sec-git-merge" class="nav-link" data-scroll-target="#sec-git-merge"><span class="header-section-number">6.5</span> Расхождение линий</a></li>
+  <li><a href="#трёхстороннее-слияние" id="toc-трёхстороннее-слияние" class="nav-link" data-scroll-target="#трёхстороннее-слияние"><span class="header-section-number">6.6</span> Трёхстороннее слияние</a></li>
+  <li><a href="#sec-git-conflict" id="toc-sec-git-conflict" class="nav-link" data-scroll-target="#sec-git-conflict"><span class="header-section-number">6.7</span> Разрешение конфликта</a></li>
+  <li><a href="#проверка-интеграции" id="toc-проверка-интеграции" class="nav-link" data-scroll-target="#проверка-интеграции"><span class="header-section-number">6.8</span> Проверка интеграции</a></li>
+  </ul>
+</nav>
+    </div>
+<!-- main -->
+<main class="content" id="quarto-document-content" tabindex="-1">
+
+<header id="title-block-header" class="quarto-title-block default">
+<div class="quarto-title">
+<h1 class="title"><span id="sec-git-branches" class="quarto-section-identifier"><span class="chapter-number">6</span>&nbsp; <span class="chapter-title">Ветвление истории</span></span></h1>
+</div>
+
+
+
+<div class="quarto-title-meta">
+
+    
+  
+    
+  </div>
+  
+
+
+</header>
+
+
+<p>Темы главы: родительские связи; ветка; HEAD; создание линии разработки; переключение; fast-forward; общий предок; коммит слияния; конфликт; проверка результата интеграции.</p>
+<section id="sec-git-branch-data" class="level2" data-number="6.1">
+<h2 data-number="6.1" class="anchored" data-anchor-id="sec-git-branch-data"><span class="header-section-number">6.1</span> Родители коммита</h2>
+<p>В проекте <code>latency-demo</code> уже сохранены исходный порог 10 ms в A и уточнение до 12 ms в B. Рабочий эксперимент был отменён восстановлением из индекса; рабочее дерево и индекс совпадают с B. Это итог <a data-qrc-custom="true" data-qrc-ref="system-practice-theory:sec-git-state" data-qrc-style="default" class="qrc-link" href="git-state.html#sec-git-state">подготовки снимка</a>.</p>
+<pre class="text"><code>HEAD ──&gt; main ──&gt; B ──&gt; A
+
+B: 12 ms; родитель B — A</code></pre>
+<p>Стрелка между коммитами идёт от потомка к его <strong>родителю</strong> — коммиту, который записан непосредственным предшественником. <strong>Предок</strong> достижим последовательным переходом по родителям. Например, в цепочке C → B → A коммит B — непосредственный родитель C; коммит A — предок C.</p>
+<p>Связи родителей входят в данные коммита. Имена веток хранятся отдельно и могут перемещаться к новым коммитам. Для чтения истории:</p>
+<pre class="console"><code>git --no-pager log --graph --oneline --decorate --all</code></pre>
+<p><code>--graph</code> рисует соединения, <code>--all</code> начинает обход от всех ссылок, <code>--decorate</code> подписывает текущие имена. Соседние строки вывода могут располагаться по-разному; родительство устанавливается по соединениям. <span class="citation" data-cites="bib-chacon-straub-progit"><a href="sources.html#ref-bib-chacon-straub-progit" role="doc-biblioref">[1, сс. 66–82]</a></span></p>
+</section>
+<section id="sec-git-switch" class="level2" data-number="6.2">
+<h2 data-number="6.2" class="anchored" data-anchor-id="sec-git-switch"><span class="header-section-number">6.2</span> Создание ветки</h2>
+<p>Описание проекта дополнится сведениями о происхождении данных. Создайте для этого отдельную линию с именем <code>source-note</code>:</p>
+<pre class="console"><code>git branch source-note
+git branch --list</code></pre>
+<pre class="text"><code>HEAD ──&gt; main ────────┐
+                     v
+                     B ──&gt; A
+                     ^
+         source-note ┘</code></pre>
+<p><code>branch source-note</code> создаёт ещё одну ссылку на B. Содержимое файлов и текущая ветка сохраняются. Выберите новую ветку:</p>
+<pre class="console"><code>git switch source-note</code></pre>
+<p><code>HEAD</code> указывает на <code>source-note</code>. Обе ветки пока выбирают B, поэтому файлы сохранили прежнее содержимое. Добавьте в конец README.md отдельную строку:</p>
+<pre class="text"><code>Источник: учебные измерения двух датчиков.</code></pre>
+<pre class="console"><code>git add -- README.md
+git --no-pager diff --staged
+git commit -m "Указать происхождение измерений"</code></pre>
+<pre class="text"><code>HEAD ──&gt; source-note ──&gt; C ──&gt; B ──&gt; A
+                             ^
+                      main ──┘</code></pre>
+<p>C содержит дополненное описание и прежние criteria.txt/measurements.tsv. Его родитель — B. Продвинулась текущая ветка <code>source-note</code>; <code>main</code> продолжает выбирать B.</p>
+</section>
+<section id="переключение-снимка" class="level2" data-number="6.3">
+<h2 data-number="6.3" class="anchored" data-anchor-id="переключение-снимка"><span class="header-section-number">6.3</span> Переключение снимка</h2>
+<pre class="console"><code>git switch main</code></pre>
+<p><code>HEAD</code> снова указывает на <code>main</code>. При чистом рабочем состоянии Git обновляет индекс и файлы по выбранному снимку B. Строка происхождения исчезнет из рабочего README.md; она сохранена в C, доступном через <code>source-note</code>. Порог в обоих снимках равен 12 ms.</p>
+<pre class="text"><code>HEAD ──&gt; main ──&gt; B ──&gt; A
+                 ^
+source-note ──&gt; C┘</code></pre>
+<p>Совместимые незакоммиченные изменения могут переходить при переключении вместе с рабочим деревом. Когда переключение затёрло бы их, Git отказывается выполнять действие. Перед сменой линии проверяйте status и сохраняйте законченные изменения. <a href="https://git-scm.com/docs/git-switch">Руководство switch</a>.</p>
+</section>
+<section id="sec-git-fast-forward" class="level2" data-number="6.4">
+<h2 data-number="6.4" class="anchored" data-anchor-id="sec-git-fast-forward"><span class="header-section-number">6.4</span> Продвижение fast-forward</h2>
+<p>Описание из <code>source-note</code> готово к включению в основную линию:</p>
+<pre class="console"><code>git merge --ff-only source-note</code></pre>
+<p>Вершина main/B является предком C. Для включения C достаточно переместить <code>main</code> к уже существующему коммиту. Такое продвижение называется <strong>fast-forward</strong>.</p>
+<pre class="text"><code>HEAD ──&gt; main ────────┐
+                     v
+                     C ──&gt; B ──&gt; A
+                     ^
+         source-note ┘</code></pre>
+<p>Нового коммита эта операция не создала. Индекс и рабочие файлы обновились до C; строка происхождения снова присутствует в README.md. Для fast-forward подходит и более длинный путь по родителям: исходная вершина должна быть предком новой.</p>
+<p><code>--ff-only</code> допускает продвижение по существующей истории. Если указанная линия уже целиком включена в текущую историю, Git сообщит <code>Already up to date</code>. При расхождении линий этот режим завершится отказом, сохранив их вершины. <a href="https://git-scm.com/docs/git-merge">Руководство merge</a>.</p>
+</section>
+<section id="sec-git-merge" class="level2" data-number="6.5">
+<h2 data-number="6.5" class="anchored" data-anchor-id="sec-git-merge"><span class="header-section-number">6.5</span> Расхождение линий</h2>
+<p>Два требования к критерию отчёта появились независимо:</p>
+<ul>
+<li>порог нужно увеличить с 12 до 20 ms;</li>
+<li>порог в документе нужно выражать в секундах.</li>
+</ul>
+<p>Создайте ветку второго изменения от C:</p>
+<pre class="console"><code>git switch -c seconds</code></pre>
+<p><code>switch -c</code> создаёт ветку от текущего коммита и сразу выбирает её. Замените строку criteria.txt на <code>latency_limit = 0.012 s</code>. В README.md добавьте строку <code>Порог в criteria.txt выражен в секундах.</code> Значения measurements.tsv продолжают выражаться в миллисекундах.</p>
+<pre class="console"><code>git add -- criteria.txt README.md
+git --no-pager diff --staged
+git commit -m "Выразить порог в секундах"
+git switch main</code></pre>
+<p>Коммит S создан в <code>seconds</code>. После возврата к main/C рабочий критерий снова равен 12 ms, а добавленная в S строка README.md отсутствует. Измените критерий на <code>latency_limit = 20 ms</code> и сохраните основное изменение:</p>
+<pre class="console"><code>git add -- criteria.txt
+git commit -m "Повысить порог до 20 ms"</code></pre>
+<pre class="text"><code>HEAD ──&gt; main ──&gt; T ──┐
+                     v
+                     C ──&gt; B ──&gt; A
+                     ^
+       seconds ──&gt; S ┘
+
+C: 12 ms     T: 20 ms     S: 0.012 s</code></pre>
+<p>T и S имеют общего родителя C. Из T нельзя перейти по родителям к S, из S — к T. Для соединения линий требуется новый результат, содержащий решение для обоих изменений.</p>
+</section>
+<section id="трёхстороннее-слияние" class="level2" data-number="6.6">
+<h2 data-number="6.6" class="anchored" data-anchor-id="трёхстороннее-слияние"><span class="header-section-number">6.6</span> Трёхстороннее слияние</h2>
+<p><strong>Слияние</strong> использует общее исходное состояние и изменения каждой из двух линий. В этом опыте сравниваются C, T и S. Изменение README.md есть только на стороне S, поэтому оно может войти в результат автоматически. Строка criteria.txt изменена на обеих сторонах.</p>
+<p>Находясь в main/T с чистым рабочим деревом, выполните:</p>
+<pre class="console"><code>git merge seconds
+git status</code></pre>
+<p>Git остановит слияние на конфликте criteria.txt. <strong>Конфликт слияния</strong> означает, что автоматическое соединение изменений требует решения человека. В рабочем файле появятся варианты:</p>
+<pre class="text"><code>&lt;&lt;&lt;&lt;&lt;&lt;&lt; HEAD
+latency_limit = 20 ms
+=======
+latency_limit = 0.012 s
+&gt;&gt;&gt;&gt;&gt;&gt;&gt; seconds</code></pre>
+<p>Первая часть принадлежит текущей линии main, вторая — присоединяемой <code>seconds</code>. До разрешения <code>HEAD</code> и main остаются на T. Ссылка <code>MERGE_HEAD</code> указывает на S, который присоединяется. Для конфликтного файла индекс хранит исходную версию и версии обеих сторон; подготовить обычный снимок этого файла предстоит после выбора результата. <a href="https://git-scm.com/docs/git-merge#_how_conflicts_are_presented">Представление конфликта</a>.</p>
+</section>
+<section id="sec-git-conflict" class="level2" data-number="6.7">
+<h2 data-number="6.7" class="anchored" data-anchor-id="sec-git-conflict"><span class="header-section-number">6.7</span> Разрешение конфликта</h2>
+<p>Новый порог — 20 ms, а выбранная единица записи — секунда. Поскольку 1000 ms = 1 s, совместное выполнение требований даёт <code>0.020 s</code>. Замените весь конфликтный блок одной строкой:</p>
+<pre class="text"><code>latency_limit = 0.020 s</code></pre>
+<p>Простое сохранение первой стороны потеряло бы новую единицу; сохранение второй оставило бы прежнюю величину порога. Решение получается из назначения изменений и соотношения единиц. Удаление маркеров завершается проверкой значения, единицы и согласованного описания в README.md.</p>
+<pre class="console"><code>git add -- criteria.txt
+git --no-pager diff --staged
+git commit -m "Согласовать порог"
+git status --short</code></pre>
+<p><code>add</code> отмечает выбранное содержимое конфликтного файла как подготовленное. При незавершённом слиянии commit сохраняет также второго родителя. Вместо последнего commit можно вызвать <code>git merge --continue</code> и ввести сообщение в редакторе.</p>
+<pre class="text"><code>HEAD ──&gt; main ──&gt; M ──&gt; T ──┐
+                 │         v
+                 │         C ──&gt; B ──&gt; A
+                 v         ^
+     seconds ──&gt; S ────────┘
+
+M: 0.020 s; родители M — T и S</code></pre>
+<p>main переместилась на M, <code>seconds</code> осталась на S. Оба исходных изменения достижимы из M по родительским связям. В README.md сохранена строка о секундах; измерения по-прежнему имеют свою указанную единицу ms. Рабочее дерево и индекс совпадают со снимком M.</p>
+</section>
+<section id="проверка-интеграции" class="level2" data-number="6.8">
+<h2 data-number="6.8" class="anchored" data-anchor-id="проверка-интеграции"><span class="header-section-number">6.8</span> Проверка интеграции</h2>
+<pre class="console"><code>git --no-pager log --graph --oneline --decorate --all
+git --no-pager show --no-patch --format=raw HEAD
+git show 'HEAD:criteria.txt'
+git status</code></pre>
+<p>У <code>show --format=raw</code> поля <code>parent</code> называют непосредственных родителей коммита. В M их два: T и S. Отдельно проверяется содержимое снимка: наличие родительских связей сохраняет происхождение, а выбранные файлы устанавливают результат разрешения.</p>
+<p>При необходимости отказаться от незавершённого слияния служит <code>git merge --abort</code>. В описанном опыте слияние начиналось с чистого состояния, поэтому можно восстановить его исходные файлы и индекс. Незакоммиченные правки, существовавшие до merge и продолженные во время него, осложняют восстановление; законченные изменения сохраняют до начала интеграции. <a href="https://git-scm.com/docs/git-merge">Руководство merge</a>.</p>
+<p>После интеграции историю можно передать в другой репозиторий. Для этого используются <a data-qrc-custom="true" data-qrc-ref="system-practice-theory:sec-git-exchange" data-qrc-style="default" class="qrc-link" href="git-exchange.html#sec-git-exchange">удалённые адреса и операции обмена</a>.</p>
+
+
+
+<div id="refs" class="references csl-bib-body" data-entry-spacing="0" role="list" style="display: none">
+<div id="ref-bib-chacon-straub-progit" class="csl-entry" role="listitem">
+<div class="csl-left-margin">[1] </div><div class="csl-right-inline">S. Chacon и B. Straub, <em>Pro Git</em>, 2-я изд. 2026.</div>
+</div>
+</div>
+</section>
+
+</main> <!-- /main -->
+<script id="quarto-html-after-body" type="application/javascript">
+  window.document.addEventListener("DOMContentLoaded", function (event) {
+    const icon = "";
+    const anchorJS = new window.AnchorJS();
+    anchorJS.options = {
+      placement: 'right',
+      icon: icon
+    };
+    anchorJS.add('.anchored');
+    const isCodeAnnotation = (el) => {
+      for (const clz of el.classList) {
+        if (clz.startsWith('code-annotation-')) {                     
+          return true;
+        }
+      }
+      return false;
+    }
+    const onCopySuccess = function(e) {
+      // button target
+      const button = e.trigger;
+      // don't keep focus
+      button.blur();
+      // flash "checked"
+      button.classList.add('code-copy-button-checked');
+      var currentTitle = button.getAttribute("title");
+      button.setAttribute("title", "Скопировано");
+      let tooltip;
+      if (window.bootstrap) {
+        button.setAttribute("data-bs-toggle", "tooltip");
+        button.setAttribute("data-bs-placement", "left");
+        button.setAttribute("data-bs-title", "Скопировано");
+        tooltip = new bootstrap.Tooltip(button, 
+          { trigger: "manual", 
+            customClass: "code-copy-button-tooltip",
+            offset: [0, -8]});
+        tooltip.show();    
+      }
+      setTimeout(function() {
+        if (tooltip) {
+          tooltip.hide();
+          button.removeAttribute("data-bs-title");
+          button.removeAttribute("data-bs-toggle");
+          button.removeAttribute("data-bs-placement");
+        }
+        button.setAttribute("title", currentTitle);
+        button.classList.remove('code-copy-button-checked');
+      }, 1000);
+      // clear code selection
+      e.clearSelection();
+    }
+    const getTextToCopy = function(trigger) {
+      const outerScaffold = trigger.parentElement.cloneNode(true);
+      const codeEl = outerScaffold.querySelector('code');
+      for (const childEl of codeEl.children) {
+        if (isCodeAnnotation(childEl)) {
+          childEl.remove();
+        }
+      }
+      return codeEl.innerText;
+    }
+    const clipboard = new window.ClipboardJS('.code-copy-button:not([data-in-quarto-modal])', {
+      text: getTextToCopy
+    });
+    clipboard.on('success', onCopySuccess);
+    if (window.document.getElementById('quarto-embedded-source-code-modal')) {
+      const clipboardModal = new window.ClipboardJS('.code-copy-button[data-in-quarto-modal]', {
+        text: getTextToCopy,
+        container: window.document.getElementById('quarto-embedded-source-code-modal')
+      });
+      clipboardModal.on('success', onCopySuccess);
+    }
+      var localhostRegex = new RegExp(/^(?:http|https):\/\/localhost\:?[0-9]*\//);
+      var mailtoRegex = new RegExp(/^mailto:/);
+        var filterRegex = new RegExp('/' + window.location.host + '/');
+      var isInternal = (href) => {
+          return filterRegex.test(href) || localhostRegex.test(href) || mailtoRegex.test(href);
+      }
+      // Inspect non-navigation links and adorn them if external
+     var links = window.document.querySelectorAll('a[href]:not(.nav-link):not(.navbar-brand):not(.toc-action):not(.sidebar-link):not(.sidebar-item-toggle):not(.pagination-link):not(.no-external):not([aria-hidden]):not(.dropdown-item):not(.quarto-navigation-tool):not(.about-link)');
+      for (var i=0; i<links.length; i++) {
+        const link = links[i];
+        if (!isInternal(link.href)) {
+          // undo the damage that might have been done by quarto-nav.js in the case of
+          // links that we want to consider external
+          if (link.dataset.originalHref !== undefined) {
+            link.href = link.dataset.originalHref;
+          }
+        }
+      }
+    function tippyHover(el, contentFn, onTriggerFn, onUntriggerFn) {
+      const config = {
+        allowHTML: true,
+        maxWidth: 500,
+        delay: 100,
+        arrow: false,
+        appendTo: function(el) {
+            return el.parentElement;
+        },
+        interactive: true,
+        interactiveBorder: 10,
+        theme: 'quarto',
+        placement: 'bottom-start',
+      };
+      if (contentFn) {
+        config.content = contentFn;
+      }
+      if (onTriggerFn) {
+        config.onTrigger = onTriggerFn;
+      }
+      if (onUntriggerFn) {
+        config.onUntrigger = onUntriggerFn;
+      }
+      window.tippy(el, config); 
+    }
+    const noterefs = window.document.querySelectorAll('a[role="doc-noteref"]');
+    for (var i=0; i<noterefs.length; i++) {
+      const ref = noterefs[i];
+      tippyHover(ref, function() {
+        // use id or data attribute instead here
+        let href = ref.getAttribute('data-footnote-href') || ref.getAttribute('href');
+        try { href = new URL(href).hash; } catch {}
+        const id = href.replace(/^#\/?/, "");
+        const note = window.document.getElementById(id);
+        if (note) {
+          return note.innerHTML;
+        } else {
+          return "";
+        }
+      });
+    }
+    const xrefs = window.document.querySelectorAll('a.quarto-xref');
+    const processXRef = (id, note) => {
+      // Strip column container classes
+      const stripColumnClz = (el) => {
+        el.classList.remove("page-full", "page-columns");
+        if (el.children) {
+          for (const child of el.children) {
+            stripColumnClz(child);
+          }
+        }
+      }
+      stripColumnClz(note)
+      if (id === null || id.startsWith('sec-')) {
+        // Special case sections, only their first couple elements
+        const container = document.createElement("div");
+        if (note.children && note.children.length > 2) {
+          container.appendChild(note.children[0].cloneNode(true));
+          for (let i = 1; i < note.children.length; i++) {
+            const child = note.children[i];
+            if (child.tagName === "P" && child.innerText === "") {
+              continue;
+            } else {
+              container.appendChild(child.cloneNode(true));
+              break;
+            }
+          }
+          if (window.Quarto?.typesetMath) {
+            window.Quarto.typesetMath(container);
+          }
+          return container.innerHTML
+        } else {
+          if (window.Quarto?.typesetMath) {
+            window.Quarto.typesetMath(note);
+          }
+          return note.innerHTML;
+        }
+      } else {
+        // Remove any anchor links if they are present
+        const anchorLink = note.querySelector('a.anchorjs-link');
+        if (anchorLink) {
+          anchorLink.remove();
+        }
+        if (window.Quarto?.typesetMath) {
+          window.Quarto.typesetMath(note);
+        }
+        if (note.classList.contains("callout")) {
+          return note.outerHTML;
+        } else {
+          return note.innerHTML;
+        }
+      }
+    }
+    for (var i=0; i<xrefs.length; i++) {
+      const xref = xrefs[i];
+      tippyHover(xref, undefined, function(instance) {
+        instance.disable();
+        let url = xref.getAttribute('href');
+        let hash = undefined; 
+        if (url.startsWith('#')) {
+          hash = url;
+        } else {
+          try { hash = new URL(url).hash; } catch {}
+        }
+        if (hash) {
+          const id = hash.replace(/^#\/?/, "");
+          const note = window.document.getElementById(id);
+          if (note !== null) {
+            try {
+              const html = processXRef(id, note.cloneNode(true));
+              instance.setContent(html);
+            } finally {
+              instance.enable();
+              instance.show();
+            }
+          } else {
+            // See if we can fetch this
+            fetch(url.split('#')[0])
+            .then(res => res.text())
+            .then(html => {
+              const parser = new DOMParser();
+              const htmlDoc = parser.parseFromString(html, "text/html");
+              const note = htmlDoc.getElementById(id);
+              if (note !== null) {
+                const html = processXRef(id, note);
+                instance.setContent(html);
+              } 
+            }).finally(() => {
+              instance.enable();
+              instance.show();
+            });
+          }
+        } else {
+          // See if we can fetch a full url (with no hash to target)
+          // This is a special case and we should probably do some content thinning / targeting
+          fetch(url)
+          .then(res => res.text())
+          .then(html => {
+            const parser = new DOMParser();
+            const htmlDoc = parser.parseFromString(html, "text/html");
+            const note = htmlDoc.querySelector('main.content');
+            if (note !== null) {
+              // This should only happen for chapter cross references
+              // (since there is no id in the URL)
+              // remove the first header
+              if (note.children.length > 0 && note.children[0].tagName === "HEADER") {
+                note.children[0].remove();
+              }
+              const html = processXRef(null, note);
+              instance.setContent(html);
+            } 
+          }).finally(() => {
+            instance.enable();
+            instance.show();
+          });
+        }
+      }, function(instance) {
+      });
+    }
+        let selectedAnnoteEl;
+        const selectorForAnnotation = ( cell, annotation) => {
+          let cellAttr = 'data-code-cell="' + cell + '"';
+          let lineAttr = 'data-code-annotation="' +  annotation + '"';
+          const selector = 'span[' + cellAttr + '][' + lineAttr + ']';
+          return selector;
+        }
+        const selectCodeLines = (annoteEl) => {
+          const doc = window.document;
+          const targetCell = annoteEl.getAttribute("data-target-cell");
+          const targetAnnotation = annoteEl.getAttribute("data-target-annotation");
+          const annoteSpan = window.document.querySelector(selectorForAnnotation(targetCell, targetAnnotation));
+          const lines = annoteSpan.getAttribute("data-code-lines").split(",");
+          const lineIds = lines.map((line) => {
+            return targetCell + "-" + line;
+          })
+          let top = null;
+          let height = null;
+          let parent = null;
+          if (lineIds.length > 0) {
+              //compute the position of the single el (top and bottom and make a div)
+              const el = window.document.getElementById(lineIds[0]);
+              top = el.offsetTop;
+              height = el.offsetHeight;
+              parent = el.parentElement.parentElement;
+            if (lineIds.length > 1) {
+              const lastEl = window.document.getElementById(lineIds[lineIds.length - 1]);
+              const bottom = lastEl.offsetTop + lastEl.offsetHeight;
+              height = bottom - top;
+            }
+            if (top !== null && height !== null && parent !== null) {
+              // cook up a div (if necessary) and position it 
+              let div = window.document.getElementById("code-annotation-line-highlight");
+              if (div === null) {
+                div = window.document.createElement("div");
+                div.setAttribute("id", "code-annotation-line-highlight");
+                div.style.position = 'absolute';
+                parent.appendChild(div);
+              }
+              div.style.top = top - 2 + "px";
+              div.style.height = height + 4 + "px";
+              div.style.left = 0;
+              let gutterDiv = window.document.getElementById("code-annotation-line-highlight-gutter");
+              if (gutterDiv === null) {
+                gutterDiv = window.document.createElement("div");
+                gutterDiv.setAttribute("id", "code-annotation-line-highlight-gutter");
+                gutterDiv.style.position = 'absolute';
+                const codeCell = window.document.getElementById(targetCell);
+                const gutter = codeCell.querySelector('.code-annotation-gutter');
+                gutter.appendChild(gutterDiv);
+              }
+              gutterDiv.style.top = top - 2 + "px";
+              gutterDiv.style.height = height + 4 + "px";
+            }
+            selectedAnnoteEl = annoteEl;
+          }
+        };
+        const unselectCodeLines = () => {
+          const elementsIds = ["code-annotation-line-highlight", "code-annotation-line-highlight-gutter"];
+          elementsIds.forEach((elId) => {
+            const div = window.document.getElementById(elId);
+            if (div) {
+              div.remove();
+            }
+          });
+          selectedAnnoteEl = undefined;
+        };
+          // Handle positioning of the toggle
+      window.addEventListener(
+        "resize",
+        throttle(() => {
+          elRect = undefined;
+          if (selectedAnnoteEl) {
+            selectCodeLines(selectedAnnoteEl);
+          }
+        }, 10)
+      );
+      function throttle(fn, ms) {
+      let throttle = false;
+      let timer;
+        return (...args) => {
+          if(!throttle) { // first call gets through
+              fn.apply(this, args);
+              throttle = true;
+          } else { // all the others get throttled
+              if(timer) clearTimeout(timer); // cancel #2
+              timer = setTimeout(() => {
+                fn.apply(this, args);
+                timer = throttle = false;
+              }, ms);
+          }
+        };
+      }
+        // Attach click handler to the DT
+        const annoteDls = window.document.querySelectorAll('dt[data-target-cell]');
+        for (const annoteDlNode of annoteDls) {
+          annoteDlNode.addEventListener('click', (event) => {
+            const clickedEl = event.target;
+            if (clickedEl !== selectedAnnoteEl) {
+              unselectCodeLines();
+              const activeEl = window.document.querySelector('dt[data-target-cell].code-annotation-active');
+              if (activeEl) {
+                activeEl.classList.remove('code-annotation-active');
+              }
+              selectCodeLines(clickedEl);
+              clickedEl.classList.add('code-annotation-active');
+            } else {
+              // Unselect the line
+              unselectCodeLines();
+              clickedEl.classList.remove('code-annotation-active');
+            }
+          });
+        }
+    const findCites = (el) => {
+      const parentEl = el.parentElement;
+      if (parentEl) {
+        const cites = parentEl.dataset.cites;
+        if (cites) {
+          return {
+            el,
+            cites: cites.split(' ')
+          };
+        } else {
+          return findCites(el.parentElement)
+        }
+      } else {
+        return undefined;
+      }
+    };
+    var bibliorefs = window.document.querySelectorAll('a[role="doc-biblioref"]');
+    for (var i=0; i<bibliorefs.length; i++) {
+      const ref = bibliorefs[i];
+      const citeInfo = findCites(ref);
+      if (citeInfo) {
+        tippyHover(citeInfo.el, function() {
+          var popup = window.document.createElement('div');
+          citeInfo.cites.forEach(function(cite) {
+            var citeDiv = window.document.createElement('div');
+            citeDiv.classList.add('hanging-indent');
+            citeDiv.classList.add('csl-entry');
+            var biblioDiv = window.document.getElementById('ref-' + cite);
+            if (biblioDiv) {
+              citeDiv.innerHTML = biblioDiv.innerHTML;
+            }
+            popup.appendChild(citeDiv);
+          });
+          return popup.innerHTML;
+        });
+      }
+    }
+  });
+  </script>
+  <script type="application/javascript">
+  window.quartoScrollableRegionsLabels = {"code":"Прокручиваемый код","output":"Прокручиваемый вывод"};
+  </script>
+<nav class="page-navigation" aria-label="Страница">
+  <div class="nav-page nav-page-previous">
+      <a href="./git-state.html" class="pagination-link" aria-label="Состояние репозитория">
+        <i class="bi bi-arrow-left-short"></i> <span class="nav-page-text"><span class="chapter-number">5</span>&nbsp; <span class="chapter-title">Состояние репозитория</span></span>
+      </a>          
+  </div>
+  <div class="nav-page nav-page-next">
+      <a href="./git-exchange.html" class="pagination-link" aria-label="Обмен репозиториями">
+        <span class="nav-page-text"><span class="chapter-number">7</span>&nbsp; <span class="chapter-title">Обмен репозиториями</span></span> <i class="bi bi-arrow-right-short"></i>
+      </a>
+  </div>
+</nav>
+</div> <!-- /content -->
+
+
+
+
+
+<script data-qrc-navigation>// Опубликованные цели сохраняют штатные ID Quarto. Обработчик раскрывает
+// существующее представление документа, не вводя учебных ролей и новых ID.
+(() => {
+  if (new URL(location.href).searchParams.has("print-pdf")) return;
+  let navigation = 0;
+
+  function hashId(url) {
+    try { return decodeURIComponent(url.hash.replace(/^#\/?/, "")); }
+    catch { return ""; } // Некорректный фрагмент внешней ссылки не должен нарушать работу страницы.
+  }
+
+  function ancestors(target) {
+    const nodes = [];
+    for (let node = target; node; node = node.parentElement) nodes.push(node);
+    return nodes.reverse();
+  }
+
+  function openDisclosures(nodes, scroll) {
+    for (const node of nodes) {
+      if (node.matches("details")) node.open = true;
+      if (!node.matches(".collapse:not(.show)")) continue;
+
+      // Bootstrap управляет анимацией и состоянием переключателя.
+      // В темах без Bootstrap блок раскрывается напрямую; details работает штатно.
+      const Collapse = window.bootstrap?.Collapse;
+      if (Collapse) {
+        node.addEventListener("shown.bs.collapse", scroll, { once: true });
+        Collapse.getOrCreateInstance(node, { toggle: false }).show();
+      } else {
+        node.classList.add("show");
+        if (!node.id) continue;
+        for (const trigger of document.querySelectorAll("[aria-controls]")) {
+          if (!trigger.getAttribute("aria-controls").split(/\s+/).includes(node.id)) continue;
+          trigger.setAttribute("aria-expanded", "true");
+          trigger.classList.remove("collapsed");
+        }
+      }
+    }
+  }
+
+  function revealTarget(id) {
+    const target = id && document.getElementById(id);
+    if (!target) return;
+    const current = ++navigation;
+    const scroll = () => requestAnimationFrame(() => {
+      // Завершение анимации не должно возвращать прокрутку после нового перехода.
+      if (current === navigation) target.scrollIntoView({ block: "nearest" });
+    });
+    const nodes = ancestors(target);
+    const section = target.closest("section.slide");
+    const reveal = window.Reveal;
+    if (section && target !== section && reveal?.isReady()) {
+      const position = reveal.getIndices(section);
+      reveal.slide(position.h, position.v);
+      // У вложенных фрагментов могут различаться индексы. Показываем
+      // все фрагменты вокруг цели; нулевой индекс также допустим.
+      const indices = nodes.filter(node => node.matches(".fragment[data-fragment-index]"))
+        .map(node => Number(node.getAttribute("data-fragment-index")))
+        .filter(Number.isFinite);
+      if (indices.length) reveal.navigateFragment(Math.max(...indices));
+    }
+    openDisclosures(nodes, scroll);
+    scroll();
+  }
+
+  function initialTarget() {
+    const url = new URL(location.href);
+    revealTarget(url.searchParams.get("qrc-target") || hashId(url));
+  }
+
+  function ready() {
+    if (window.Reveal && !window.Reveal.isReady()) window.Reveal.on("ready", initialTarget);
+    else initialTarget();
+  }
+  if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", ready, { once: true });
+  else ready();
+
+  // qrc-target обрабатывается только при входе на страницу. Повторное применение
+  // при смене фрагмента URL возвращало бы преподавателя к цели после перехода вперёд.
+  window.addEventListener("hashchange", () => revealTarget(hashId(new URL(location.href))));
+  document.addEventListener("click", event => {
+    if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey || event.defaultPrevented) return;
+    const link = event.target.closest?.("a[href]");
+    if (!link || link.hasAttribute("download") || (link.target && link.target !== "_self")) return;
+    const url = new URL(link.href, location.href);
+    if (url.origin !== location.origin || url.pathname !== location.pathname || url.search !== location.search) return;
+    // Повторный переход по тому же фрагменту URL не вызывает hashchange.
+    // Раскрываем цель после штатной навигации и обработчика Revealjs.
+    queueMicrotask(() => revealTarget(hashId(url)));
+  }, true);
+})();
+</script>
+</body></html>

@@ -1,0 +1,18 @@
+/* Широкая предметная карта прокручивается в собственной области. */
+.course-map {
+  max-width: 100%;
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  outline-offset: 3px;
+}
+.course-map table { min-width: 54rem; }
+.course-map th, .course-map td {
+  overflow-wrap: normal;
+  word-break: normal;
+  hyphens: none;
+}
+.course-map a {
+  overflow-wrap: normal;
+  word-break: normal !important;
+  hyphens: none;
+}

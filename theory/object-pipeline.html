@@ -1,0 +1,1060 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="ru" xml:lang="ru"><head>
+
+<meta charset="utf-8">
+<meta name="generator" content="quarto-1.11.6">
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+
+
+<title>4&nbsp; Объектный конвейер – System Practice — теория</title>
+<style>
+/* Default styles provided by pandoc.
+** See https://pandoc.org/MANUAL.html#variables-for-html for config info.
+*/
+span.smallcaps{font-variant: small-caps;}
+div.columns{display: flex; gap: 1.5em;}
+div.column{flex: auto;}
+@media screen {
+div.columns{gap: min(4vw, 1.5em);}
+div.column{overflow-x: auto;}
+}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+ul.task-list li input[type="checkbox"] {
+  width: 0.8em;
+  margin: 0 0.8em 0.2em -1em; /* quarto-specific, see https://github.com/quarto-dev/quarto-cli/issues/4556 */ 
+  vertical-align: middle;
+}
+/* CSS for syntax highlighting */
+html { -webkit-text-size-adjust: 100%; }
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+  { counter-reset: source-line 0; }
+pre.numberSource code > span
+  { position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+  { content: counter(source-line);
+    position: relative; left: -1em; text-align: right; vertical-align: baseline;
+    border: none; display: inline-block;
+    -webkit-touch-callout: none; -webkit-user-select: none;
+    -khtml-user-select: none; -moz-user-select: none;
+    -ms-user-select: none; user-select: none;
+    padding: 0 4px; width: 4em;
+  }
+pre.numberSource { margin-left: 3em;  padding-left: 4px; }
+div.sourceCode
+  {   }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
+/* CSS for citations */
+div.csl-bib-body { }
+div.csl-entry {
+  clear: both;
+  margin-bottom: 0em;
+}
+.hanging-indent div.csl-entry {
+  margin-left:2em;
+  text-indent:-2em;
+}
+div.csl-left-margin {
+  min-width:2em;
+  float:left;
+}
+div.csl-right-inline {
+  margin-left:2em;
+  padding-left:1em;
+}
+div.csl-indent {
+  margin-left: 2em;
+}</style>
+
+
+<script src="site_libs/quarto-nav/quarto-nav.js"></script>
+<script src="site_libs/quarto-nav/headroom.min.js"></script>
+<script src="site_libs/clipboard/clipboard.min.js"></script>
+<script src="site_libs/quarto-search/autocomplete.umd.js"></script>
+<script src="site_libs/quarto-search/fuse.min.js"></script>
+<script src="site_libs/quarto-search/quarto-search.js"></script>
+<meta name="quarto:offset" content="./">
+<link href="./git-state.html" rel="next">
+<link href="./text-streams.html" rel="prev">
+<script src="site_libs/quarto-html/quarto.js" type="module"></script>
+<script src="site_libs/quarto-html/tabsets/tabsets.js" type="module"></script>
+<script src="site_libs/quarto-html/scrollable-regions/scrollable-regions.js" type="module"></script>
+<script src="site_libs/quarto-html/popper.min.js"></script>
+<script src="site_libs/quarto-html/tippy.umd.min.js"></script>
+<script src="site_libs/quarto-html/anchor.min.js"></script>
+<link href="site_libs/quarto-html/tippy.css" rel="stylesheet">
+<link href="site_libs/quarto-html/quarto-syntax-highlighting-35fc0813589bbfbfa0b8ec974497eeb2.css" rel="stylesheet" id="quarto-text-highlighting-styles">
+<script src="site_libs/bootstrap/bootstrap.min.js"></script>
+<link href="site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
+<link href="site_libs/bootstrap/bootstrap-b3f6ff2dc823300d2c5fa49387c7b369.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
+<script src="site_libs/quarto-contrib/course-presentation-0.1.0/disclosure.js" data-course-runtime-asset="disclosure.js" data-course-runtime-provider="course-presentation"></script>
+<script src="site_libs/quarto-contrib/course-presentation-0.1.0/presentation.js" data-course-runtime-asset="presentation.js" data-course-runtime-provider="course-presentation"></script>
+<link href="site_libs/quarto-contrib/course-presentation-0.1.0/presentation.css" rel="stylesheet" data-course-runtime-asset="presentation.css" data-course-runtime-provider="course-presentation">
+
+<style>.task-items li:has(.course-assignment-omitted):not(:has(a)){display:none}</style>
+<script id="quarto-search-options" type="application/json">{
+  "location": "sidebar",
+  "copy-button": false,
+  "collapse-after": 3,
+  "panel-placement": "start",
+  "type": "textbox",
+  "limit": 50,
+  "keyboard-shortcut": [
+    "f",
+    "/",
+    "s"
+  ],
+  "show-item-context": false,
+  "language": {
+    "search-no-results-text": "Поиск не дал результатов",
+    "search-matching-documents-text": "Результаты поиска",
+    "search-copy-link-title": "Скопировать ссылку",
+    "search-hide-matches-text": "Скрыть дополнительные результаты",
+    "search-more-match-text": "дополнительный результат в этом документе",
+    "search-more-matches-text": "дополнительных результата(-ов) в этом документе",
+    "search-clear-button-title": "Очистить",
+    "search-text-placeholder": "",
+    "search-detached-cancel-button-title": "Отменить",
+    "search-submit-button-title": "Найти",
+    "search-label": "Поиск"
+  }
+}</script>
+<style>
+/* Узкие страницы книг сохраняют ширину; широкая таблица прокручивается внутри. */
+@media screen and (max-width: 767.98px) {
+  main.content a,
+  main.content :not(pre) > code {
+    overflow-wrap: anywhere;
+  }
+  main.content :not(pre) > code {
+    white-space: pre-wrap;
+  }
+  main.content table.table {
+    display: block;
+    max-width: 100%;
+    overflow-x: auto;
+  }
+}
+</style>
+
+
+</head>
+
+<body class="nav-sidebar floating quarto-light"><a id="quarto-skip-link" class="visually-hidden-focusable" href="#quarto-document-content">Skip to main content</a>
+
+<div id="quarto-search-results"></div>
+  <header id="quarto-header" class="headroom fixed-top">
+  <nav class="quarto-secondary-nav" aria-label="Панель инструментов">
+    <div class="container-fluid d-flex">
+      <button type="button" class="quarto-btn-toggle btn" data-bs-toggle="collapse" role="button" data-bs-target=".quarto-sidebar-collapse-item" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Переключить боковую панель навигации" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">
+        <i class="bi bi-layout-text-sidebar-reverse"></i>
+      </button>
+        <nav class="quarto-page-breadcrumbs" aria-label="Путь"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="./object-pipeline.html"><span class="chapter-number">4</span>&nbsp; <span class="chapter-title">Объектный конвейер</span></a></li></ol></nav>
+        <a class="flex-grow-1" data-bs-toggle="collapse" data-bs-target=".quarto-sidebar-collapse-item" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">      
+        </a>
+      <button type="button" class="btn quarto-search-button" aria-label="Поиск" onclick="window.quartoOpenSearch();">
+        <i class="bi bi-search"></i>
+      </button>
+    </div>
+  </nav>
+</header>
+<!-- content -->
+<div id="quarto-content" class="quarto-container page-columns page-rows-contents page-layout-article">
+<!-- sidebar -->
+  <nav id="quarto-sidebar" class="sidebar collapse collapse-horizontal quarto-sidebar-collapse-item sidebar-navigation floating overflow-auto" aria-label="Сайт">
+    <div class="pt-lg-2 mt-2 text-left sidebar-header">
+    <div class="sidebar-title mb-0 py-0">
+      <a href="./">System Practice — теория</a> 
+        <div class="sidebar-tools-main">
+    <a href="./../index.html#sec-system-practice" title="Портал курса" class="quarto-navigation-tool px-1" aria-label="Портал курса"><i class="bi bi-house"></i></a>
+</div>
+    </div>
+      </div>
+        <div class="mt-2 flex-shrink-0 align-items-center">
+        <div class="sidebar-search">
+        <div id="quarto-search" class="" title="Поиск"></div>
+        </div>
+        </div>
+    <div class="sidebar-menu-container"> 
+    <ul class="list-unstyled mt-1">
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./index.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">1</span>&nbsp; <span class="chapter-title">Теория</span></span></a>
+  </div>
+</li>
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./work-environment.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">2</span>&nbsp; <span class="chapter-title">Рабочая среда</span></span></a>
+  </div>
+</li>
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./text-streams.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">3</span>&nbsp; <span class="chapter-title">Текстовые потоки</span></span></a>
+  </div>
+</li>
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./object-pipeline.html" class="sidebar-item-text sidebar-link active">
+ <span class="menu-text"><span class="chapter-number">4</span>&nbsp; <span class="chapter-title">Объектный конвейер</span></span></a>
+  </div>
+</li>
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./git-state.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">5</span>&nbsp; <span class="chapter-title">Состояние репозитория</span></span></a>
+  </div>
+</li>
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./git-branches.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">6</span>&nbsp; <span class="chapter-title">Ветвление истории</span></span></a>
+  </div>
+</li>
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./git-exchange.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">7</span>&nbsp; <span class="chapter-title">Обмен репозиториями</span></span></a>
+  </div>
+</li>
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./project-maintenance.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">8</span>&nbsp; <span class="chapter-title">Сопровождение проекта</span></span></a>
+  </div>
+</li>
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./sources.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">9</span>&nbsp; <span class="chapter-title">Источники</span></span></a>
+  </div>
+</li>
+    </ul>
+    </div>
+</nav>
+<div id="quarto-sidebar-glass" class="quarto-sidebar-collapse-item" data-bs-toggle="collapse" data-bs-target=".quarto-sidebar-collapse-item"></div>
+<!-- margin-sidebar -->
+    <div id="quarto-margin-sidebar" class="sidebar margin-sidebar">
+        <nav id="TOC" role="doc-toc" aria-labelledby="toc-title" class="toc-active">
+    <h2 id="toc-title">Содержание</h2>
+   
+  <ul>
+  <li><a href="#sec-pipeline-object" id="toc-sec-pipeline-object" class="nav-link active" data-scroll-target="#sec-pipeline-object"><span class="header-section-number">4.1</span> Свойства объекта</a></li>
+  <li><a href="#sec-object-records" id="toc-sec-object-records" class="nav-link" data-scroll-target="#sec-object-records"><span class="header-section-number">4.2</span> Ведомость наблюдений</a></li>
+  <li><a href="#sec-object-pipeline-input" id="toc-sec-object-pipeline-input" class="nav-link" data-scroll-target="#sec-object-pipeline-input"><span class="header-section-number">4.3</span> Отбор объектов</a></li>
+  <li><a href="#sec-numeric-property" id="toc-sec-numeric-property" class="nav-link" data-scroll-target="#sec-numeric-property"><span class="header-section-number">4.4</span> Числовое значение</a></li>
+  <li><a href="#sec-object-order" id="toc-sec-object-order" class="nav-link" data-scroll-target="#sec-object-order"><span class="header-section-number">4.5</span> Порядок записей</a></li>
+  <li><a href="#sec-object-serialization" id="toc-sec-object-serialization" class="nav-link" data-scroll-target="#sec-object-serialization"><span class="header-section-number">4.6</span> Сохранение CSV</a></li>
+  <li><a href="#sec-object-formatting" id="toc-sec-object-formatting" class="nav-link" data-scroll-target="#sec-object-formatting"><span class="header-section-number">4.7</span> Представление на экране</a></li>
+  <li><a href="#sec-monad-design" id="toc-sec-monad-design" class="nav-link" data-scroll-target="#sec-monad-design"><span class="header-section-number">4.8</span> Замысел объектной оболочки</a></li>
+  <li><a href="#sec-object-errors" id="toc-sec-object-errors" class="nav-link" data-scroll-target="#sec-object-errors"><span class="header-section-number">4.9</span> Пустая выборка</a></li>
+  <li><a href="#sec-object-diagnostics" id="toc-sec-object-diagnostics" class="nav-link" data-scroll-target="#sec-object-diagnostics"><span class="header-section-number">4.10</span> Диагностика команды</a></li>
+  <li><a href="#sec-powershell-processing-script" id="toc-sec-powershell-processing-script" class="nav-link" data-scroll-target="#sec-powershell-processing-script"><span class="header-section-number">4.11</span> Сценарий обработки</a></li>
+  <li><a href="#sec-data-function" id="toc-sec-data-function" class="nav-link" data-scroll-target="#sec-data-function"><span class="header-section-number">4.12</span> Функция</a></li>
+  <li><a href="#sec-object-result-comparison" id="toc-sec-object-result-comparison" class="nav-link" data-scroll-target="#sec-object-result-comparison"><span class="header-section-number">4.13</span> Сопоставление результатов</a></li>
+  </ul>
+</nav>
+    </div>
+<!-- main -->
+<main class="content" id="quarto-document-content" tabindex="-1">
+
+<header id="title-block-header" class="quarto-title-block default">
+<div class="quarto-title">
+<h1 class="title"><span id="sec-object-pipeline" class="quarto-section-identifier"><span class="chapter-number">4</span>&nbsp; <span class="chapter-title">Объектный конвейер</span></span></h1>
+</div>
+
+
+
+<div class="quarto-title-meta">
+
+    
+  
+    
+  </div>
+  
+
+
+</header>
+
+
+<p>Объекты PowerShell. Импорт CSV. Отбор, сортировка, проекция. Сериализация. Экранное представление. Замысел Monad. Диагностика команды. Параметры сценария. Область выполнения. Функции. Сопоставление результатов.</p>
+<p>Список файлов, ведомость наблюдений и результат расчёта состоят из значений, которые можно передать следующей команде. PowerShell сохраняет у передаваемого значения его тип и доступные свойства. Команды отбора, сортировки и записи используют эти сведения для своего действия.</p>
+<section id="sec-pipeline-object" class="level2" data-number="4.1">
+<h2 data-number="4.1" class="anchored" data-anchor-id="sec-pipeline-object"><span class="header-section-number">4.1</span> Свойства объекта</h2>
+<p>В знакомом каталоге <code>lab</code> файл <code>reports/selected.txt</code> содержит <code>north</code> с завершающим LF. Получим сведения об этом файле в PowerShell 7:</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb1"><pre class="sourceCode powershell code-with-copy"><code class="sourceCode powershell"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="va">$file</span> <span class="op">=</span> <span class="fu">Get-Item</span> <span class="op">-</span>LiteralPath <span class="op">.</span>\reports\selected<span class="op">.</span><span class="fu">txt</span></span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="va">$file</span><span class="op">.</span><span class="fu">Name</span></span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a><span class="va">$file</span><span class="op">.</span><span class="fu">Length</span></span></code></pre></div><button title="Скопировать текст" class="code-copy-button"><i class="bi"></i></button></div>
+<p>Два обращения к свойствам дают <code>selected.txt</code> и <code>6</code>. Шесть байтов — пять латинских букв в UTF-8 и один байт перевода строки LF. <code>Get-Item</code> возвращает объект файла типа <code>System.IO.FileInfo</code>. Переменная <code>$file</code> хранит полученное значение; <code>=</code> выполняет присваивание. Точка в <code>$file.Name</code> выбирает свойство по имени. <span class="citation" data-cites="bib-powershell-get-item"><a href="sources.html#ref-bib-powershell-get-item" role="doc-biblioref">[9]</a></span></p>
+<p><strong>Объект</strong> — значение определённого типа, у которого доступны данные и операции. <strong>Свойство</strong> — именованная часть доступных данных объекта. <strong>Метод</strong> — операция, которую можно вызвать у объекта. <strong>Тип</strong> определяет устройство значения и допустимые операции. Строка хранит последовательность символов, целое число участвует в арифметике и числовом сравнении. У объекта файла <code>Name</code> имеет строковое значение, <code>Length</code> — целочисленное. <span class="citation" data-cites="bib-jones-powershell-intro"><a href="sources.html#ref-bib-jones-powershell-intro" role="doc-biblioref">[1, сс. 61–68]</a></span></p>
+<p>Для исследования объекта служит <code>Get-Member</code>:</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb2"><pre class="sourceCode powershell code-with-copy"><code class="sourceCode powershell"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="va">$file</span> <span class="op">|</span> <span class="fu">Get-Member</span></span></code></pre></div><button title="Скопировать текст" class="code-copy-button"><i class="bi"></i></button></div>
+<p>Знак <code>|</code> образует <strong>конвейер</strong>: результат команды или выражения слева передаётся команде справа. <code>Get-Member</code> принимает объект и описывает его тип, свойства и методы. Видимая в терминале таблица — представление этих сведений. Передаваемый объект сохраняет данные, доступные по именам. <span class="citation" data-cites="bib-powershell-get-member bib-powershell-pipelines"><a href="sources.html#ref-bib-powershell-pipelines" role="doc-biblioref">[5]</a>, <a href="sources.html#ref-bib-powershell-get-member" role="doc-biblioref">[10]</a></span></p>
+</section>
+<section id="sec-object-records" class="level2" data-number="4.2">
+<h2 data-number="4.2" class="anchored" data-anchor-id="sec-object-records"><span class="header-section-number">4.2</span> Ведомость наблюдений</h2>
+<p>Лаборатория считает частицы в пробах. В ведомость записаны код пробы, число частиц и решение проверки качества. Значение <code>keep</code> допускает наблюдение в сводку; <code>skip</code> исключает его. Для сравнения пригодных наблюдений нужна сводка по возрастанию числа частиц. При равенстве чисел порядок задаётся кодом пробы.</p>
+<p>Распакуйте <a href="materials/data-processing-demo.zip">демонстрационный набор</a> и откройте полученный каталог <code>flowlab</code> в терминале. Для нового выполнения используйте свежую распаковку. Входы и образцы результата находятся в <code>inputs</code> и <code>expected</code>; каталог <code>results</code> создаётся для ваших выходных файлов. Все следующие относительные пути отсчитываются от <code>flowlab</code>.</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb3"><pre class="sourceCode powershell code-with-copy"><code class="sourceCode powershell"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="fu">New-Item</span> <span class="op">-</span>ItemType Directory <span class="op">-</span>Path results</span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a><span class="fu">Get-Content</span> <span class="op">-</span>LiteralPath inputs<span class="op">/</span>readings<span class="op">.</span><span class="fu">csv</span></span></code></pre></div><button title="Скопировать текст" class="code-copy-button"><i class="bi"></i></button></div>
+<pre class="csv"><code>Code,Units,State
+S11,12,keep
+S03,4,skip
+S07,2,keep
+S02,12,keep</code></pre>
+<p><strong>CSV</strong> — текстовый формат таблицы с разделителем полей и правилами кавычек. Здесь разделителем служит запятая, первая строка задаёт имена столбцов. <code>Code</code> — код пробы, <code>Units</code> — число частиц, <code>State</code> — решение проверки. В этих данных внутри полей нет запятых, кавычек, пробелов и переводов строки. Коды уникальны: заглавная латинская буква и две цифры. Числа — целые от 0 до 999 без ведущих нулей, кроме самого <code>0</code>. Файл имеет кодировку UTF-8 без BOM и окончания строк LF.</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb5"><pre class="sourceCode powershell code-with-copy"><code class="sourceCode powershell"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="va">$raw</span> <span class="op">=</span> <span class="fu">Import-Csv</span> <span class="op">-</span>LiteralPath inputs<span class="op">/</span>readings<span class="op">.</span><span class="fu">csv</span> <span class="op">-</span>Encoding utf8</span>
+<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a><span class="va">$raw</span> <span class="op">|</span> <span class="fu">Get-Member</span></span></code></pre></div><button title="Скопировать текст" class="code-copy-button"><i class="bi"></i></button></div>
+<p><code>Import-Csv</code> создаёт по объекту на запись. Имена свойств берутся из заголовка; значения свойств получаются строками. <code>$raw</code> хранит четыре объекта. В описаниях <code>Code</code>, <code>Units</code>, <code>State</code> у <code>Get-Member</code> указан строковый тип. Запись цифрами <code>12</code> в файле сама по себе не назначает свойству целочисленный тип. <span class="citation" data-cites="bib-powershell-import-csv"><a href="sources.html#ref-bib-powershell-import-csv" role="doc-biblioref">[11]</a></span></p>
+</section>
+<section id="sec-object-pipeline-input" class="level2" data-number="4.3">
+<h2 data-number="4.3" class="anchored" data-anchor-id="sec-object-pipeline-input"><span class="header-section-number">4.3</span> Отбор объектов</h2>
+<p>При передаче <code>$raw</code> через конвейер PowerShell перечисляет четыре объекта коллекции по одному. Команда справа должна поддерживать такой вход; это свойство её параметров описано в справке. <span class="citation" data-cites="bib-powershell-pipelines"><a href="sources.html#ref-bib-powershell-pipelines" role="doc-biblioref">[5]</a></span></p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb6"><pre class="sourceCode powershell code-with-copy"><code class="sourceCode powershell"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="va">$raw</span> <span class="op">|</span> <span class="fu">Where-Object</span> <span class="op">{</span> <span class="va">$_</span><span class="op">.</span><span class="fu">State</span> <span class="op">-ceq</span> <span class="st">'keep'</span> <span class="op">}</span></span></code></pre></div><button title="Скопировать текст" class="code-copy-button"><i class="bi"></i></button></div>
+<p><code>Where-Object</code> проверяет условие для каждого полученного объекта. Фигурные скобки задают <strong>блок сценария</strong> — фрагмент выражений и команд. В этом блоке <code>$_</code> обозначает текущий объект; <code>.State</code> выбирает его свойство. Оператор <code>-ceq</code> проверяет равенство строк с учётом регистра. Для данного скалярного свойства результат сравнения — истина или ложь. Истина пропускает объект дальше, ложь исключает его. <span class="citation" data-cites="bib-jones-powershell-intro"><a href="sources.html#ref-bib-jones-powershell-intro" role="doc-biblioref">[1, сс. 99–105]</a></span></p>
+<table class="caption-top table">
+<thead>
+<tr class="header">
+<th>Code</th>
+<th>State</th>
+<th>Условие</th>
+<th>Выход отбора</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>S11</td>
+<td>keep</td>
+<td>Истина</td>
+<td>S11</td>
+</tr>
+<tr class="even">
+<td>S03</td>
+<td>skip</td>
+<td>Ложь</td>
+<td>—</td>
+</tr>
+<tr class="odd">
+<td>S07</td>
+<td>keep</td>
+<td>Истина</td>
+<td>S07</td>
+</tr>
+<tr class="even">
+<td>S02</td>
+<td>keep</td>
+<td>Истина</td>
+<td>S02</td>
+</tr>
+</tbody>
+</table>
+<p>У трёх прошедших объектов сохраняются все исходные свойства. Отбор изменяет состав записей, сохраняя их относительный порядок.</p>
+</section>
+<section id="sec-numeric-property" class="level2" data-number="4.4">
+<h2 data-number="4.4" class="anchored" data-anchor-id="sec-numeric-property"><span class="header-section-number">4.4</span> Числовое значение</h2>
+<p>Для сравнения количества частиц преобразуем <code>Units</code> в целое число:</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb7"><pre class="sourceCode powershell code-with-copy"><code class="sourceCode powershell"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a><span class="va">$readings</span> <span class="op">=</span> <span class="va">$raw</span> <span class="op">|</span> <span class="fu">ForEach-Object</span> <span class="op">{</span></span>
+<span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a>    <span class="op">[</span>pscustomobject<span class="op">]</span>@<span class="op">{</span></span>
+<span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a>        Code <span class="op">=</span> <span class="va">$_</span><span class="op">.</span><span class="fu">Code</span></span>
+<span id="cb7-4"><a href="#cb7-4" aria-hidden="true" tabindex="-1"></a>        Units <span class="op">=</span> <span class="op">[</span><span class="dt">int</span><span class="op">]</span><span class="va">$_</span><span class="op">.</span><span class="fu">Units</span></span>
+<span id="cb7-5"><a href="#cb7-5" aria-hidden="true" tabindex="-1"></a>        State <span class="op">=</span> <span class="va">$_</span><span class="op">.</span><span class="fu">State</span></span>
+<span id="cb7-6"><a href="#cb7-6" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span></span>
+<span id="cb7-7"><a href="#cb7-7" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span>
+<span id="cb7-8"><a href="#cb7-8" aria-hidden="true" tabindex="-1"></a><span class="va">$readings</span> <span class="op">|</span> <span class="fu">Get-Member</span></span></code></pre></div><button title="Скопировать текст" class="code-copy-button"><i class="bi"></i></button></div>
+<p><code>ForEach-Object</code> исполняет блок для каждого объекта. Запись <code>@{ ... }</code> связывает имена со значениями; <code>[pscustomobject]</code> создаёт объект с такими свойствами. <code>[int]</code> преобразует десятичную строку в целое число. Созданный объект становится результатом блока. В каждом выполнении блока здесь получается одна новая запись. <span class="citation" data-cites="bib-petty-powershell-scripting"><a href="sources.html#ref-bib-petty-powershell-scripting" role="doc-biblioref">[14, сс. 141–147]</a></span></p>
+<p>Тип <code>Units</code> теперь обозначен как <code>int</code>. Числа сравниваются по величине: <code>2 &lt; 12</code>. При посимвольном сравнении строк <code>'12'</code> и <code>'2'</code> первыми сравниваются символы <code>1</code> и <code>2</code>, поэтому порядок этих двух записей иной. Преобразование опирается на заданную область корректных целых чисел.</p>
+</section>
+<section id="sec-object-order" class="level2" data-number="4.5">
+<h2 data-number="4.5" class="anchored" data-anchor-id="sec-object-order"><span class="header-section-number">4.5</span> Порядок записей</h2>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb8"><pre class="sourceCode powershell code-with-copy"><code class="sourceCode powershell"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a><span class="va">$selected</span> <span class="op">=</span> <span class="va">$readings</span> <span class="op">|</span></span>
+<span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a>    <span class="fu">Where-Object</span> <span class="op">{</span> <span class="va">$_</span><span class="op">.</span><span class="fu">State</span> <span class="op">-ceq</span> <span class="st">'keep'</span> <span class="op">}</span> <span class="op">|</span></span>
+<span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a>    <span class="fu">Sort-Object</span> <span class="op">-</span>Property Units<span class="op">,</span> Code <span class="op">-</span>Culture en-US <span class="op">|</span></span>
+<span id="cb8-4"><a href="#cb8-4" aria-hidden="true" tabindex="-1"></a>    <span class="fu">Select-Object</span> <span class="op">-</span>Property Code<span class="op">,</span> Units</span>
+<span id="cb8-5"><a href="#cb8-5" aria-hidden="true" tabindex="-1"></a><span class="va">$selected</span></span></code></pre></div><button title="Скопировать текст" class="code-copy-button"><i class="bi"></i></button></div>
+<p><code>Sort-Object</code> сначала сравнивает <code>Units</code>, при равенстве — <code>Code</code>. По умолчанию порядок возрастающий. <code>-Culture en-US</code> задаёт правила строкового сравнения; для этих кодов получается порядок букв A–Z и цифр 0–9. S02 и S11 имеют одинаковое количество частиц, поэтому их относительный порядок определяется кодом. <span class="citation" data-cites="bib-powershell-sort-object"><a href="sources.html#ref-bib-powershell-sort-object" role="doc-biblioref">[12]</a></span></p>
+<p><code>Select-Object -Property Code, Units</code> создаёт записи с двумя указанными свойствами. Выбор части полей называется <strong>проекцией</strong>. Свойство <code>State</code> уже использовано при отборе и в готовой сводке отсутствует.</p>
+<pre class="text"><code>Code Units
+---- -----
+S07      2
+S02     12
+S11     12</code></pre>
+<p>Между первыми стадиями передаются объекты с тремя свойствами; после проекции — с двумя. Поэлементный отбор может выдавать результат по мере чтения. Для окончательной сортировки <code>Sort-Object</code> сначала получает весь набор.</p>
+</section>
+<section id="sec-object-serialization" class="level2" data-number="4.6">
+<h2 data-number="4.6" class="anchored" data-anchor-id="sec-object-serialization"><span class="header-section-number">4.6</span> Сохранение CSV</h2>
+<p><strong>Сериализация</strong> переводит данные в формат хранения или передачи. <code>Export-Csv</code> записывает имена и значения свойств в текстовый файл:</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb10"><pre class="sourceCode powershell code-with-copy"><code class="sourceCode powershell"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a><span class="va">$selected</span> <span class="op">|</span> <span class="fu">Export-Csv</span> <span class="op">-</span>LiteralPath results<span class="op">/</span>selected<span class="op">.</span><span class="fu">csv</span> <span class="op">-</span>Encoding utf8NoBOM</span>
+<span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a><span class="fu">Get-Content</span> <span class="op">-</span>LiteralPath results<span class="op">/</span>selected<span class="op">.</span><span class="fu">csv</span></span></code></pre></div><button title="Скопировать текст" class="code-copy-button"><i class="bi"></i></button></div>
+<pre class="csv"><code>"Code","Units"
+"S07","2"
+"S02","12"
+"S11","12"</code></pre>
+<p><code>utf8NoBOM</code> задаёт UTF-8 без начальной метки BOM. Кавычки оформляют CSV-поля. При повторном импорте они разбираются по правилам формата, а свойства снова получают строковые значения. Числовой тип нужен на том этапе новой обработки, где требуется числовая операция. Повторный <code>Export-Csv</code> по тому же пути заменяет прежнее содержимое. <span class="citation" data-cites="bib-powershell-import-csv bib-powershell-export-csv"><a href="sources.html#ref-bib-powershell-export-csv" role="doc-biblioref">[8]</a>, <a href="sources.html#ref-bib-powershell-import-csv" role="doc-biblioref">[11]</a></span></p>
+</section>
+<section id="sec-object-formatting" class="level2" data-number="4.7">
+<h2 data-number="4.7" class="anchored" data-anchor-id="sec-object-formatting"><span class="header-section-number">4.7</span> Представление на экране</h2>
+<p>Для просмотра выбранных свойств в виде таблицы служит <code>Format-Table</code>:</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb12"><pre class="sourceCode powershell code-with-copy"><code class="sourceCode powershell"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a><span class="va">$selected</span> <span class="op">|</span> <span class="fu">Format-Table</span> <span class="op">-</span>Property Code<span class="op">,</span> Units</span></code></pre></div><button title="Скопировать текст" class="code-copy-button"><i class="bi"></i></button></div>
+<p>Команда создаёт объекты с инструкциями оформления: какие столбцы показать и как расположить их на экране. Выводящий механизм PowerShell рисует таблицу по этим инструкциям. При передаче результата <code>Format-Table</code> в <code>Export-Csv</code> экспорт получит служебные свойства оформления. Его заголовок будет содержать, например, <code>ClassId2e4f51ef21dd47e99d3c952918aff9cd</code>.</p>
+<pre class="text"><code>объекты наблюдений → Select-Object → Export-Csv → файл Code,Units
+объекты наблюдений → Format-Table → вывод таблицы в терминал</code></pre>
+<p>Назначение конечного потребителя определяет форму результата. Свойства наблюдения сохраняются до <code>Export-Csv</code>; форматирование выполняется на ветви экранного просмотра. <span class="citation" data-cites="bib-powershell-export-csv"><a href="sources.html#ref-bib-powershell-export-csv" role="doc-biblioref">[8]</a>, пример 7</span></p>
+</section>
+<section id="sec-monad-design" class="level2" data-number="4.8">
+<h2 data-number="4.8" class="anchored" data-anchor-id="sec-monad-design"><span class="header-section-number">4.8</span> Замысел объектной оболочки</h2>
+<p>В манифесте Monad 2002 года Jeffrey Snover описал среду автоматизации, в которой инструменты передают структурированные объекты и обращаются к данным по именам свойств. Общий механизм оболочки должен был поддержать композицию инструментов администрирования. Этот замысел объясняет выбор объектной передачи в истории PowerShell. <span class="citation" data-cites="bib-monad-manifesto bib-monad-origin"><a href="sources.html#ref-bib-monad-origin" role="doc-biblioref">[2]</a>, <a href="sources.html#ref-bib-monad-manifesto" role="doc-biblioref">[13, сс. 1–5]</a></span></p>
+<p>В современном конвейере командлетов тип и свойства доступны следующей команде. На границе с внешними программами PowerShell работает также с текстом и байтовыми потоками. Для внешнего stdout, перенаправленного в файл или переданного другой внешней программе, в PowerShell 7.4 появилось сохранение байтового потока. Условия такого обмена описаны отдельно в документации. <span class="citation" data-cites="bib-powershell-pipelines"><a href="sources.html#ref-bib-powershell-pipelines" role="doc-biblioref">[5]</a></span></p>
+</section>
+<section id="sec-object-errors" class="level2" data-number="4.9">
+<h2 data-number="4.9" class="anchored" data-anchor-id="sec-object-errors"><span class="header-section-number">4.9</span> Пустая выборка</h2>
+<p>В <code>inputs/no-match.csv</code> под тем же заголовком записаны S21/3/skip и S22/8/skip. Ни одно наблюдение не проходит условие <code>keep</code>:</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb14"><pre class="sourceCode powershell code-with-copy"><code class="sourceCode powershell"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a><span class="fu">Import-Csv</span> <span class="op">-</span>LiteralPath inputs<span class="op">/</span>no-match<span class="op">.</span><span class="fu">csv</span> <span class="op">-</span>Encoding utf8 <span class="op">|</span></span>
+<span id="cb14-2"><a href="#cb14-2" aria-hidden="true" tabindex="-1"></a>    <span class="fu">Where-Object</span> <span class="op">{</span> <span class="va">$_</span><span class="op">.</span><span class="fu">State</span> <span class="op">-ceq</span> <span class="st">'keep'</span> <span class="op">}</span> <span class="op">|</span></span>
+<span id="cb14-3"><a href="#cb14-3" aria-hidden="true" tabindex="-1"></a>    <span class="fu">Export-Csv</span> <span class="op">-</span>LiteralPath results<span class="op">/</span>empty<span class="op">.</span><span class="fu">csv</span> <span class="op">-</span>Encoding utf8NoBOM</span>
+<span id="cb14-4"><a href="#cb14-4" aria-hidden="true" tabindex="-1"></a><span class="op">(</span><span class="fu">Get-Item</span> <span class="op">-</span>LiteralPath results<span class="op">/</span>empty<span class="op">.</span><span class="fu">csv</span><span class="op">).</span><span class="fu">Length</span></span></code></pre></div><button title="Скопировать текст" class="code-copy-button"><i class="bi"></i></button></div>
+<p>Длина равна <code>0</code>. <code>Export-Csv</code> получил пустой вход; объекта для получения имён свойств также нет. Для сводки этого примера пустая выборка хранится файлом нулевой длины. Это результат успешно выполненного отбора.</p>
+</section>
+<section id="sec-object-diagnostics" class="level2" data-number="4.10">
+<h2 data-number="4.10" class="anchored" data-anchor-id="sec-object-diagnostics"><span class="header-section-number">4.10</span> Диагностика команды</h2>
+<p>Поток <strong>Success</strong> передаёт обычные результаты команд, в том числе объекты между стадиями конвейера. Поток <strong>Error</strong> передаёт сообщения об ошибках. Для перенаправления им соответствуют номера <code>1</code> и <code>2</code>. Прочие виды сообщений имеют собственные каналы. <span class="citation" data-cites="bib-powershell-streams"><a href="sources.html#ref-bib-powershell-streams" role="doc-biblioref">[4]</a></span></p>
+<p>Файла <code>inputs/absent.csv</code> в наборе нет.</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb15"><pre class="sourceCode powershell code-with-copy"><code class="sourceCode powershell"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true" tabindex="-1"></a><span class="fu">Get-Content</span> <span class="op">-</span>LiteralPath inputs<span class="op">/</span>absent<span class="op">.</span><span class="fu">csv</span> <span class="op">-</span>ErrorAction <span class="cf">Continue</span></span>
+<span id="cb15-2"><a href="#cb15-2" aria-hidden="true" tabindex="-1"></a><span class="st">'Команда после чтения'</span></span></code></pre></div><button title="Скопировать текст" class="code-copy-button"><i class="bi"></i></button></div>
+<p>При отсутствующем файле появляются сообщение об ошибке и затем указанная строка. <code>-ErrorAction Continue</code> разрешает продолжение после продолжаемой ошибки этого командлета. <code>-ErrorAction Stop</code> переводит такую ошибку в прерывающую, которую можно обработать через <code>try/catch</code>. Записи ошибок доступны в <code>$Error</code>; параметр <code>-ErrorVariable</code> сохраняет ошибки конкретного вызова в выбранной переменной. <span class="citation" data-cites="bib-petty-powershell-scripting bib-powershell-common-parameters"><a href="sources.html#ref-bib-powershell-common-parameters" role="doc-biblioref">[3]</a>, <a href="sources.html#ref-bib-petty-powershell-scripting" role="doc-biblioref">[14, сс. 177–181]</a></span></p>
+<p>Сообщение объясняет причину отказа. Код завершения отдельного процесса сообщает вызывающей программе его итог. Автор сценария устанавливает связь между этими двумя наблюдениями.</p>
+</section>
+<section id="sec-powershell-processing-script" class="level2" data-number="4.11">
+<h2 data-number="4.11" class="anchored" data-anchor-id="sec-powershell-processing-script"><span class="header-section-number">4.11</span> Сценарий обработки</h2>
+<p>Сохраним обработку в <code>Select-Readings.ps1</code> в корне <code>flowlab</code>. Сценарий получает два пути. Вход содержит корректные записи описанного формата; каталог выхода существует и доступен. Вход и выход различны. При отсутствующем входе сценарий сообщает его имя, завершается с кодом <code>1</code> и сохраняет прежнее состояние выходного пути.</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb16"><pre class="sourceCode powershell code-with-copy"><code class="sourceCode powershell"><span id="cb16-1"><a href="#cb16-1" aria-hidden="true" tabindex="-1"></a><span class="kw">param</span><span class="op">(</span></span>
+<span id="cb16-2"><a href="#cb16-2" aria-hidden="true" tabindex="-1"></a>    <span class="op">[</span><span class="dt">string</span><span class="op">]</span><span class="va">$InputPath</span><span class="op">,</span></span>
+<span id="cb16-3"><a href="#cb16-3" aria-hidden="true" tabindex="-1"></a>    <span class="op">[</span><span class="dt">string</span><span class="op">]</span><span class="va">$OutputPath</span></span>
+<span id="cb16-4"><a href="#cb16-4" aria-hidden="true" tabindex="-1"></a><span class="op">)</span></span>
+<span id="cb16-5"><a href="#cb16-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb16-6"><a href="#cb16-6" aria-hidden="true" tabindex="-1"></a><span class="cf">if</span> <span class="op">(-not</span> <span class="op">(</span><span class="fu">Test-Path</span> <span class="op">-</span>LiteralPath <span class="va">$InputPath</span> <span class="op">-</span>PathType Leaf<span class="op">))</span> <span class="op">{</span></span>
+<span id="cb16-7"><a href="#cb16-7" aria-hidden="true" tabindex="-1"></a>    <span class="fu">Write-Error</span> <span class="st">"Входной файл не найден: </span><span class="va">$InputPath</span><span class="st">"</span> <span class="op">-</span>ErrorAction <span class="cf">Continue</span></span>
+<span id="cb16-8"><a href="#cb16-8" aria-hidden="true" tabindex="-1"></a>    <span class="cf">exit</span> <span class="dv">1</span></span>
+<span id="cb16-9"><a href="#cb16-9" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span>
+<span id="cb16-10"><a href="#cb16-10" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb16-11"><a href="#cb16-11" aria-hidden="true" tabindex="-1"></a><span class="fu">Import-Csv</span> <span class="op">-</span>LiteralPath <span class="va">$InputPath</span> <span class="op">-</span>Encoding utf8 <span class="op">|</span></span>
+<span id="cb16-12"><a href="#cb16-12" aria-hidden="true" tabindex="-1"></a>    <span class="fu">Where-Object</span> <span class="op">{</span> <span class="va">$_</span><span class="op">.</span><span class="fu">State</span> <span class="op">-ceq</span> <span class="st">'keep'</span> <span class="op">}</span> <span class="op">|</span></span>
+<span id="cb16-13"><a href="#cb16-13" aria-hidden="true" tabindex="-1"></a>    <span class="fu">ForEach-Object</span> <span class="op">{</span></span>
+<span id="cb16-14"><a href="#cb16-14" aria-hidden="true" tabindex="-1"></a>        <span class="op">[</span>pscustomobject<span class="op">]</span>@<span class="op">{</span></span>
+<span id="cb16-15"><a href="#cb16-15" aria-hidden="true" tabindex="-1"></a>            Code <span class="op">=</span> <span class="va">$_</span><span class="op">.</span><span class="fu">Code</span></span>
+<span id="cb16-16"><a href="#cb16-16" aria-hidden="true" tabindex="-1"></a>            Units <span class="op">=</span> <span class="op">[</span><span class="dt">int</span><span class="op">]</span><span class="va">$_</span><span class="op">.</span><span class="fu">Units</span></span>
+<span id="cb16-17"><a href="#cb16-17" aria-hidden="true" tabindex="-1"></a>        <span class="op">}</span></span>
+<span id="cb16-18"><a href="#cb16-18" aria-hidden="true" tabindex="-1"></a>    <span class="op">}</span> <span class="op">|</span></span>
+<span id="cb16-19"><a href="#cb16-19" aria-hidden="true" tabindex="-1"></a>    <span class="fu">Sort-Object</span> <span class="op">-</span>Property Units<span class="op">,</span> Code <span class="op">-</span>Culture en-US <span class="op">|</span></span>
+<span id="cb16-20"><a href="#cb16-20" aria-hidden="true" tabindex="-1"></a>    <span class="fu">Export-Csv</span> <span class="op">-</span>LiteralPath <span class="va">$OutputPath</span> <span class="op">-</span>Encoding utf8NoBOM</span>
+<span id="cb16-21"><a href="#cb16-21" aria-hidden="true" tabindex="-1"></a><span class="cf">exit</span> <span class="dv">0</span></span></code></pre></div><button title="Скопировать текст" class="code-copy-button"><i class="bi"></i></button></div>
+<p><code>param</code> в начале файла объявляет параметры, <code>[string]</code> — их строковый тип. <code>Test-Path -PathType Leaf</code> проверяет наличие файла. <code>-not</code> обращает логическое значение, <code>if</code> выполняет блок при истинном условии. Двойные кавычки подставляют значение <code>$InputPath</code> в сообщение. <code>Write-Error</code> пишет в Error, <code>exit 1</code> задаёт код завершения. Проверка стоит до экспорта, поэтому отсутствующий вход сохраняет выходной путь без изменений. <span class="citation" data-cites="bib-jones-powershell-intro"><a href="sources.html#ref-bib-jones-powershell-intro" role="doc-biblioref">[1, сс. 191–195]</a></span></p>
+<p>В теле конвейера <code>ForEach-Object</code> сразу создаёт два нужных свойства; эта операция совмещает преобразование типа и проекцию. После штатной обработки <code>exit 0</code> обозначает успех, включая пустую выборку.</p>
+<p>Перед запуском в Windows выполните <a data-qrc-custom="true" data-qrc-ref="system-practice-handbook:sec-reference-script" data-qrc-style="default" class="qrc-link" href="../handbook/work-environment.html#sec-reference-script">подготовку сценария</a> для PowerShell 7. Применяются проверка действующей политики и разрешённой учебной среды, настройка <code>Process / RemoteSigned</code> при подходящих областях, проверка происхождения скачанного файла перед <code>Unblock-File</code>. Собственный файл, сохранённый локальным редактором, обычно не имеет метки интернет-загрузки.</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb17"><pre class="sourceCode powershell code-with-copy"><code class="sourceCode powershell"><span id="cb17-1"><a href="#cb17-1" aria-hidden="true" tabindex="-1"></a>pwsh <span class="op">-</span>NoProfile <span class="op">-</span>File <span class="op">.</span>\Select-Readings<span class="op">.</span><span class="fu">ps1</span> `</span>
+<span id="cb17-2"><a href="#cb17-2" aria-hidden="true" tabindex="-1"></a>    <span class="op">-</span>InputPath inputs<span class="op">/</span>readings<span class="op">.</span><span class="fu">csv</span> <span class="op">-</span>OutputPath results<span class="op">/</span>selected<span class="op">.</span><span class="fu">csv</span> `</span>
+<span id="cb17-3"><a href="#cb17-3" aria-hidden="true" tabindex="-1"></a>    <span class="dv">2</span><span class="op">&gt;</span> results<span class="op">/</span>selected<span class="op">.</span><span class="fu">err</span></span>
+<span id="cb17-4"><a href="#cb17-4" aria-hidden="true" tabindex="-1"></a><span class="va">$LASTEXITCODE</span></span></code></pre></div><button title="Скопировать текст" class="code-copy-button"><i class="bi"></i></button></div>
+<p><code>pwsh -File</code> создаёт отдельный процесс; <code>-NoProfile</code> исключает профили настройки. Относительные пути отсчитываются от <code>flowlab</code>, рабочего каталога запуска. Параметры и переменные сценария принадлежат его выполнению; после завершения дочернего процесса они исчезают вместе с ним. Значения переменных родительского сеанса сохраняются. <span class="citation" data-cites="bib-powershell-pwsh bib-powershell-scripts"><a href="sources.html#ref-bib-powershell-pwsh" role="doc-biblioref">[6]</a>, <a href="sources.html#ref-bib-powershell-scripts" role="doc-biblioref">[7]</a></span></p>
+<p><code>$LASTEXITCODE</code> показывает код этого процесса. На его границе сообщения Error попадают в stderr; <code>2&gt;</code> сохраняет их в указанный файл. Для входов <code>readings.csv</code>, <code>no-match.csv</code>, <code>absent.csv</code> получаются коды <code>0</code>, <code>0</code>, <code>1</code>. Используйте выходы <code>selected.csv</code>, <code>empty.csv</code>, <code>missing.csv</code> и журналы <code>selected.err</code>, <code>empty.err</code>, <code>missing.err</code>. Первые два журнала пусты, третий содержит путь отсутствующего входа. Изначально отсутствующий <code>missing.csv</code> после отказа также отсутствует. stdout сценария пуст: его данные записываются экспортом в файл.</p>
+</section>
+<section id="sec-data-function" class="level2" data-number="4.12">
+<h2 data-number="4.12" class="anchored" data-anchor-id="sec-data-function"><span class="header-section-number">4.12</span> Функция</h2>
+<p>Повторяющийся фрагмент можно назвать и вызывать с параметрами. Такой фрагмент называется <strong>функцией</strong>. Например, отдельное преобразование текстового количества имеет вход <code>$Text</code> и выдаёт целое число:</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb18"><pre class="sourceCode powershell code-with-copy"><code class="sourceCode powershell"><span id="cb18-1"><a href="#cb18-1" aria-hidden="true" tabindex="-1"></a><span class="kw">function</span> Convert-Units <span class="op">{</span></span>
+<span id="cb18-2"><a href="#cb18-2" aria-hidden="true" tabindex="-1"></a>    <span class="kw">param</span><span class="op">([</span><span class="dt">string</span><span class="op">]</span><span class="va">$Text</span><span class="op">)</span></span>
+<span id="cb18-3"><a href="#cb18-3" aria-hidden="true" tabindex="-1"></a>    <span class="op">[</span><span class="dt">int</span><span class="op">]</span><span class="va">$Text</span></span>
+<span id="cb18-4"><a href="#cb18-4" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span>
+<span id="cb18-5"><a href="#cb18-5" aria-hidden="true" tabindex="-1"></a>Convert-Units <span class="op">-</span>Text <span class="st">'12'</span></span></code></pre></div><button title="Скопировать текст" class="code-copy-button"><i class="bi"></i></button></div>
+<p>Результат — число <code>12</code> в Success. Выражение <code>[int]$Text</code> выдаёт число в выходной поток функции. Параметр <code>$Text</code> существует в области её вызова. Выбор функции полезен, когда одна операция повторяется в нескольких местах или получает самостоятельный интерфейс использования. <span class="citation" data-cites="bib-petty-powershell-scripting"><a href="sources.html#ref-bib-petty-powershell-scripting" role="doc-biblioref">[14, сс. 117–120]</a></span></p>
+</section>
+<section id="sec-object-result-comparison" class="level2" data-number="4.13">
+<h2 data-number="4.13" class="anchored" data-anchor-id="sec-object-result-comparison"><span class="header-section-number">4.13</span> Сопоставление результатов</h2>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb19"><pre class="sourceCode powershell code-with-copy"><code class="sourceCode powershell"><span id="cb19-1"><a href="#cb19-1" aria-hidden="true" tabindex="-1"></a><span class="fu">Import-Csv</span> <span class="op">-</span>LiteralPath results<span class="op">/</span>selected<span class="op">.</span><span class="fu">csv</span> <span class="op">-</span>Encoding utf8 <span class="op">|</span></span>
+<span id="cb19-2"><a href="#cb19-2" aria-hidden="true" tabindex="-1"></a>    <span class="fu">Format-Table</span> <span class="op">-</span>Property Code<span class="op">,</span> Units</span>
+<span id="cb19-3"><a href="#cb19-3" aria-hidden="true" tabindex="-1"></a><span class="fu">Import-Csv</span> <span class="op">-</span>LiteralPath expected<span class="op">/</span>selected<span class="op">.</span><span class="fu">csv</span> <span class="op">-</span>Encoding utf8 <span class="op">|</span></span>
+<span id="cb19-4"><a href="#cb19-4" aria-hidden="true" tabindex="-1"></a>    <span class="fu">Format-Table</span> <span class="op">-</span>Property Code<span class="op">,</span> Units</span></code></pre></div><button title="Скопировать текст" class="code-copy-button"><i class="bi"></i></button></div>
+<p>Сопоставьте число записей, значения и последовательность: S07/2, S02/12, S11/12. В редакторе проверьте также заголовок из двух полей <code>Code,Units</code>: табличный просмотр выше показывает только выбранные свойства. Допустимые CSV-кавычки и LF/CRLF могут различать байты файлов при одинаковых данных. Перестановка S02 и S11 меняет требуемый порядок.</p>
+<p>Размер <code>empty.csv</code> проверяется отдельно. Для отказа проверяются код, диагностика и отсутствие нового результата.</p>
+
+
+
+<div id="refs" class="references csl-bib-body" data-entry-spacing="0" role="list" style="display: none">
+<div id="ref-bib-jones-powershell-intro" class="csl-entry" role="listitem">
+<div class="csl-left-margin">[1] </div><div class="csl-right-inline">D. Jones, <em>Learn Windows PowerShell in a Month of Lunches</em>. Manning, 2011.</div>
+</div>
+<div id="ref-bib-monad-origin" class="csl-entry" role="listitem">
+<div class="csl-left-margin">[2] </div><div class="csl-right-inline">Microsoft, <span>«Monad Manifesto — the Origin of Windows PowerShell»</span>. Просмотрено: 20 октябрь 2026 г. [Онлайн]. Доступно на: <a href="https://devblogs.microsoft.com/powershell/monad-manifesto-the-origin-of-windows-powershell/">https://devblogs.microsoft.com/powershell/monad-manifesto-the-origin-of-windows-powershell/</a></div>
+</div>
+<div id="ref-bib-powershell-common-parameters" class="csl-entry" role="listitem">
+<div class="csl-left-margin">[3] </div><div class="csl-right-inline">Microsoft, <span>«about_CommonParameters: ErrorAction»</span>. Просмотрено: 16 октябрь 2026 г. [Онлайн]. Доступно на: <a href="https://learn.microsoft.com/en-us/powershell/module/microsoft.powershell.core/about/about_commonparameters?view=powershell-7.5">https://learn.microsoft.com/en-us/powershell/module/microsoft.powershell.core/about/about_commonparameters?view=powershell-7.5</a></div>
+</div>
+<div id="ref-bib-powershell-streams" class="csl-entry" role="listitem">
+<div class="csl-left-margin">[4] </div><div class="csl-right-inline">Microsoft, <span>«about_Output_Streams»</span>. Просмотрено: 16 октябрь 2026 г. [Онлайн]. Доступно на: <a href="https://learn.microsoft.com/en-us/powershell/module/microsoft.powershell.core/about/about_output_streams?view=powershell-7.5">https://learn.microsoft.com/en-us/powershell/module/microsoft.powershell.core/about/about_output_streams?view=powershell-7.5</a></div>
+</div>
+<div id="ref-bib-powershell-pipelines" class="csl-entry" role="listitem">
+<div class="csl-left-margin">[5] </div><div class="csl-right-inline">Microsoft, <span>«about_Pipelines»</span>. Просмотрено: 16 октябрь 2026 г. [Онлайн]. Доступно на: <a href="https://learn.microsoft.com/en-us/powershell/module/microsoft.powershell.core/about/about_pipelines?view=powershell-7.5">https://learn.microsoft.com/en-us/powershell/module/microsoft.powershell.core/about/about_pipelines?view=powershell-7.5</a></div>
+</div>
+<div id="ref-bib-powershell-pwsh" class="csl-entry" role="listitem">
+<div class="csl-left-margin">[6] </div><div class="csl-right-inline">Microsoft, <span>«about_Pwsh»</span>. Просмотрено: 20 октябрь 2026 г. [Онлайн]. Доступно на: <a href="https://learn.microsoft.com/en-us/powershell/module/microsoft.powershell.core/about/about_pwsh?view=powershell-7.6">https://learn.microsoft.com/en-us/powershell/module/microsoft.powershell.core/about/about_pwsh?view=powershell-7.6</a></div>
+</div>
+<div id="ref-bib-powershell-scripts" class="csl-entry" role="listitem">
+<div class="csl-left-margin">[7] </div><div class="csl-right-inline">Microsoft, <span>«about_Scripts — PowerShell 7.5»</span>. Просмотрено: 20 октябрь 2026 г. [Онлайн]. Доступно на: <a href="https://learn.microsoft.com/en-us/powershell/module/microsoft.powershell.core/about/about_scripts?view=powershell-7.5">https://learn.microsoft.com/en-us/powershell/module/microsoft.powershell.core/about/about_scripts?view=powershell-7.5</a></div>
+</div>
+<div id="ref-bib-powershell-export-csv" class="csl-entry" role="listitem">
+<div class="csl-left-margin">[8] </div><div class="csl-right-inline">Microsoft, <span>«Export-Csv»</span>. Просмотрено: 16 октябрь 2026 г. [Онлайн]. Доступно на: <a href="https://learn.microsoft.com/en-us/powershell/module/microsoft.powershell.utility/export-csv?view=powershell-7.5">https://learn.microsoft.com/en-us/powershell/module/microsoft.powershell.utility/export-csv?view=powershell-7.5</a></div>
+</div>
+<div id="ref-bib-powershell-get-item" class="csl-entry" role="listitem">
+<div class="csl-left-margin">[9] </div><div class="csl-right-inline">Microsoft, <span>«Get-Item — PowerShell 7.5»</span>. Просмотрено: 20 октябрь 2026 г. [Онлайн]. Доступно на: <a href="https://learn.microsoft.com/en-us/powershell/module/microsoft.powershell.management/get-item?view=powershell-7.5">https://learn.microsoft.com/en-us/powershell/module/microsoft.powershell.management/get-item?view=powershell-7.5</a></div>
+</div>
+<div id="ref-bib-powershell-get-member" class="csl-entry" role="listitem">
+<div class="csl-left-margin">[10] </div><div class="csl-right-inline">Microsoft, <span>«Get-Member — PowerShell 7.5»</span>. Просмотрено: 20 октябрь 2026 г. [Онлайн]. Доступно на: <a href="https://learn.microsoft.com/en-us/powershell/module/microsoft.powershell.utility/get-member?view=powershell-7.5">https://learn.microsoft.com/en-us/powershell/module/microsoft.powershell.utility/get-member?view=powershell-7.5</a></div>
+</div>
+<div id="ref-bib-powershell-import-csv" class="csl-entry" role="listitem">
+<div class="csl-left-margin">[11] </div><div class="csl-right-inline">Microsoft, <span>«Import-Csv»</span>. Просмотрено: 16 октябрь 2026 г. [Онлайн]. Доступно на: <a href="https://learn.microsoft.com/en-us/powershell/module/microsoft.powershell.utility/import-csv?view=powershell-7.5">https://learn.microsoft.com/en-us/powershell/module/microsoft.powershell.utility/import-csv?view=powershell-7.5</a></div>
+</div>
+<div id="ref-bib-powershell-sort-object" class="csl-entry" role="listitem">
+<div class="csl-left-margin">[12] </div><div class="csl-right-inline">Microsoft, <span>«Sort-Object»</span>. Просмотрено: 16 октябрь 2026 г. [Онлайн]. Доступно на: <a href="https://learn.microsoft.com/en-us/powershell/module/microsoft.powershell.utility/sort-object?view=powershell-7.5">https://learn.microsoft.com/en-us/powershell/module/microsoft.powershell.utility/sort-object?view=powershell-7.5</a></div>
+</div>
+<div id="ref-bib-monad-manifesto" class="csl-entry" role="listitem">
+<div class="csl-left-margin">[13] </div><div class="csl-right-inline">J. Snover, <span>«Monad Manifesto»</span>. Просмотрено: 20 октябрь 2026 г. [Онлайн]. Доступно на: <a href="https://www.jsnover.com/Docs/MonadManifesto.pdf">https://www.jsnover.com/Docs/MonadManifesto.pdf</a></div>
+</div>
+<div id="ref-bib-petty-powershell-scripting" class="csl-entry" role="listitem">
+<div class="csl-left-margin">[14] </div><div class="csl-right-inline">Д. Петти, Д. Джонс, и Д. Хикс, <em>Изучаем скриптинг PowerShell за месяц, занимаясь один час в день. Создание скриптов и инструментов</em>, 2-я изд. Санкт-Петербург: Питер, 2025.</div>
+</div>
+</div>
+</section>
+
+</main> <!-- /main -->
+<script id="quarto-html-after-body" type="application/javascript">
+  window.document.addEventListener("DOMContentLoaded", function (event) {
+    const icon = "";
+    const anchorJS = new window.AnchorJS();
+    anchorJS.options = {
+      placement: 'right',
+      icon: icon
+    };
+    anchorJS.add('.anchored');
+    const isCodeAnnotation = (el) => {
+      for (const clz of el.classList) {
+        if (clz.startsWith('code-annotation-')) {                     
+          return true;
+        }
+      }
+      return false;
+    }
+    const onCopySuccess = function(e) {
+      // button target
+      const button = e.trigger;
+      // don't keep focus
+      button.blur();
+      // flash "checked"
+      button.classList.add('code-copy-button-checked');
+      var currentTitle = button.getAttribute("title");
+      button.setAttribute("title", "Скопировано");
+      let tooltip;
+      if (window.bootstrap) {
+        button.setAttribute("data-bs-toggle", "tooltip");
+        button.setAttribute("data-bs-placement", "left");
+        button.setAttribute("data-bs-title", "Скопировано");
+        tooltip = new bootstrap.Tooltip(button, 
+          { trigger: "manual", 
+            customClass: "code-copy-button-tooltip",
+            offset: [0, -8]});
+        tooltip.show();    
+      }
+      setTimeout(function() {
+        if (tooltip) {
+          tooltip.hide();
+          button.removeAttribute("data-bs-title");
+          button.removeAttribute("data-bs-toggle");
+          button.removeAttribute("data-bs-placement");
+        }
+        button.setAttribute("title", currentTitle);
+        button.classList.remove('code-copy-button-checked');
+      }, 1000);
+      // clear code selection
+      e.clearSelection();
+    }
+    const getTextToCopy = function(trigger) {
+      const outerScaffold = trigger.parentElement.cloneNode(true);
+      const codeEl = outerScaffold.querySelector('code');
+      for (const childEl of codeEl.children) {
+        if (isCodeAnnotation(childEl)) {
+          childEl.remove();
+        }
+      }
+      return codeEl.innerText;
+    }
+    const clipboard = new window.ClipboardJS('.code-copy-button:not([data-in-quarto-modal])', {
+      text: getTextToCopy
+    });
+    clipboard.on('success', onCopySuccess);
+    if (window.document.getElementById('quarto-embedded-source-code-modal')) {
+      const clipboardModal = new window.ClipboardJS('.code-copy-button[data-in-quarto-modal]', {
+        text: getTextToCopy,
+        container: window.document.getElementById('quarto-embedded-source-code-modal')
+      });
+      clipboardModal.on('success', onCopySuccess);
+    }
+      var localhostRegex = new RegExp(/^(?:http|https):\/\/localhost\:?[0-9]*\//);
+      var mailtoRegex = new RegExp(/^mailto:/);
+        var filterRegex = new RegExp('/' + window.location.host + '/');
+      var isInternal = (href) => {
+          return filterRegex.test(href) || localhostRegex.test(href) || mailtoRegex.test(href);
+      }
+      // Inspect non-navigation links and adorn them if external
+     var links = window.document.querySelectorAll('a[href]:not(.nav-link):not(.navbar-brand):not(.toc-action):not(.sidebar-link):not(.sidebar-item-toggle):not(.pagination-link):not(.no-external):not([aria-hidden]):not(.dropdown-item):not(.quarto-navigation-tool):not(.about-link)');
+      for (var i=0; i<links.length; i++) {
+        const link = links[i];
+        if (!isInternal(link.href)) {
+          // undo the damage that might have been done by quarto-nav.js in the case of
+          // links that we want to consider external
+          if (link.dataset.originalHref !== undefined) {
+            link.href = link.dataset.originalHref;
+          }
+        }
+      }
+    function tippyHover(el, contentFn, onTriggerFn, onUntriggerFn) {
+      const config = {
+        allowHTML: true,
+        maxWidth: 500,
+        delay: 100,
+        arrow: false,
+        appendTo: function(el) {
+            return el.parentElement;
+        },
+        interactive: true,
+        interactiveBorder: 10,
+        theme: 'quarto',
+        placement: 'bottom-start',
+      };
+      if (contentFn) {
+        config.content = contentFn;
+      }
+      if (onTriggerFn) {
+        config.onTrigger = onTriggerFn;
+      }
+      if (onUntriggerFn) {
+        config.onUntrigger = onUntriggerFn;
+      }
+      window.tippy(el, config); 
+    }
+    const noterefs = window.document.querySelectorAll('a[role="doc-noteref"]');
+    for (var i=0; i<noterefs.length; i++) {
+      const ref = noterefs[i];
+      tippyHover(ref, function() {
+        // use id or data attribute instead here
+        let href = ref.getAttribute('data-footnote-href') || ref.getAttribute('href');
+        try { href = new URL(href).hash; } catch {}
+        const id = href.replace(/^#\/?/, "");
+        const note = window.document.getElementById(id);
+        if (note) {
+          return note.innerHTML;
+        } else {
+          return "";
+        }
+      });
+    }
+    const xrefs = window.document.querySelectorAll('a.quarto-xref');
+    const processXRef = (id, note) => {
+      // Strip column container classes
+      const stripColumnClz = (el) => {
+        el.classList.remove("page-full", "page-columns");
+        if (el.children) {
+          for (const child of el.children) {
+            stripColumnClz(child);
+          }
+        }
+      }
+      stripColumnClz(note)
+      if (id === null || id.startsWith('sec-')) {
+        // Special case sections, only their first couple elements
+        const container = document.createElement("div");
+        if (note.children && note.children.length > 2) {
+          container.appendChild(note.children[0].cloneNode(true));
+          for (let i = 1; i < note.children.length; i++) {
+            const child = note.children[i];
+            if (child.tagName === "P" && child.innerText === "") {
+              continue;
+            } else {
+              container.appendChild(child.cloneNode(true));
+              break;
+            }
+          }
+          if (window.Quarto?.typesetMath) {
+            window.Quarto.typesetMath(container);
+          }
+          return container.innerHTML
+        } else {
+          if (window.Quarto?.typesetMath) {
+            window.Quarto.typesetMath(note);
+          }
+          return note.innerHTML;
+        }
+      } else {
+        // Remove any anchor links if they are present
+        const anchorLink = note.querySelector('a.anchorjs-link');
+        if (anchorLink) {
+          anchorLink.remove();
+        }
+        if (window.Quarto?.typesetMath) {
+          window.Quarto.typesetMath(note);
+        }
+        if (note.classList.contains("callout")) {
+          return note.outerHTML;
+        } else {
+          return note.innerHTML;
+        }
+      }
+    }
+    for (var i=0; i<xrefs.length; i++) {
+      const xref = xrefs[i];
+      tippyHover(xref, undefined, function(instance) {
+        instance.disable();
+        let url = xref.getAttribute('href');
+        let hash = undefined; 
+        if (url.startsWith('#')) {
+          hash = url;
+        } else {
+          try { hash = new URL(url).hash; } catch {}
+        }
+        if (hash) {
+          const id = hash.replace(/^#\/?/, "");
+          const note = window.document.getElementById(id);
+          if (note !== null) {
+            try {
+              const html = processXRef(id, note.cloneNode(true));
+              instance.setContent(html);
+            } finally {
+              instance.enable();
+              instance.show();
+            }
+          } else {
+            // See if we can fetch this
+            fetch(url.split('#')[0])
+            .then(res => res.text())
+            .then(html => {
+              const parser = new DOMParser();
+              const htmlDoc = parser.parseFromString(html, "text/html");
+              const note = htmlDoc.getElementById(id);
+              if (note !== null) {
+                const html = processXRef(id, note);
+                instance.setContent(html);
+              } 
+            }).finally(() => {
+              instance.enable();
+              instance.show();
+            });
+          }
+        } else {
+          // See if we can fetch a full url (with no hash to target)
+          // This is a special case and we should probably do some content thinning / targeting
+          fetch(url)
+          .then(res => res.text())
+          .then(html => {
+            const parser = new DOMParser();
+            const htmlDoc = parser.parseFromString(html, "text/html");
+            const note = htmlDoc.querySelector('main.content');
+            if (note !== null) {
+              // This should only happen for chapter cross references
+              // (since there is no id in the URL)
+              // remove the first header
+              if (note.children.length > 0 && note.children[0].tagName === "HEADER") {
+                note.children[0].remove();
+              }
+              const html = processXRef(null, note);
+              instance.setContent(html);
+            } 
+          }).finally(() => {
+            instance.enable();
+            instance.show();
+          });
+        }
+      }, function(instance) {
+      });
+    }
+        let selectedAnnoteEl;
+        const selectorForAnnotation = ( cell, annotation) => {
+          let cellAttr = 'data-code-cell="' + cell + '"';
+          let lineAttr = 'data-code-annotation="' +  annotation + '"';
+          const selector = 'span[' + cellAttr + '][' + lineAttr + ']';
+          return selector;
+        }
+        const selectCodeLines = (annoteEl) => {
+          const doc = window.document;
+          const targetCell = annoteEl.getAttribute("data-target-cell");
+          const targetAnnotation = annoteEl.getAttribute("data-target-annotation");
+          const annoteSpan = window.document.querySelector(selectorForAnnotation(targetCell, targetAnnotation));
+          const lines = annoteSpan.getAttribute("data-code-lines").split(",");
+          const lineIds = lines.map((line) => {
+            return targetCell + "-" + line;
+          })
+          let top = null;
+          let height = null;
+          let parent = null;
+          if (lineIds.length > 0) {
+              //compute the position of the single el (top and bottom and make a div)
+              const el = window.document.getElementById(lineIds[0]);
+              top = el.offsetTop;
+              height = el.offsetHeight;
+              parent = el.parentElement.parentElement;
+            if (lineIds.length > 1) {
+              const lastEl = window.document.getElementById(lineIds[lineIds.length - 1]);
+              const bottom = lastEl.offsetTop + lastEl.offsetHeight;
+              height = bottom - top;
+            }
+            if (top !== null && height !== null && parent !== null) {
+              // cook up a div (if necessary) and position it 
+              let div = window.document.getElementById("code-annotation-line-highlight");
+              if (div === null) {
+                div = window.document.createElement("div");
+                div.setAttribute("id", "code-annotation-line-highlight");
+                div.style.position = 'absolute';
+                parent.appendChild(div);
+              }
+              div.style.top = top - 2 + "px";
+              div.style.height = height + 4 + "px";
+              div.style.left = 0;
+              let gutterDiv = window.document.getElementById("code-annotation-line-highlight-gutter");
+              if (gutterDiv === null) {
+                gutterDiv = window.document.createElement("div");
+                gutterDiv.setAttribute("id", "code-annotation-line-highlight-gutter");
+                gutterDiv.style.position = 'absolute';
+                const codeCell = window.document.getElementById(targetCell);
+                const gutter = codeCell.querySelector('.code-annotation-gutter');
+                gutter.appendChild(gutterDiv);
+              }
+              gutterDiv.style.top = top - 2 + "px";
+              gutterDiv.style.height = height + 4 + "px";
+            }
+            selectedAnnoteEl = annoteEl;
+          }
+        };
+        const unselectCodeLines = () => {
+          const elementsIds = ["code-annotation-line-highlight", "code-annotation-line-highlight-gutter"];
+          elementsIds.forEach((elId) => {
+            const div = window.document.getElementById(elId);
+            if (div) {
+              div.remove();
+            }
+          });
+          selectedAnnoteEl = undefined;
+        };
+          // Handle positioning of the toggle
+      window.addEventListener(
+        "resize",
+        throttle(() => {
+          elRect = undefined;
+          if (selectedAnnoteEl) {
+            selectCodeLines(selectedAnnoteEl);
+          }
+        }, 10)
+      );
+      function throttle(fn, ms) {
+      let throttle = false;
+      let timer;
+        return (...args) => {
+          if(!throttle) { // first call gets through
+              fn.apply(this, args);
+              throttle = true;
+          } else { // all the others get throttled
+              if(timer) clearTimeout(timer); // cancel #2
+              timer = setTimeout(() => {
+                fn.apply(this, args);
+                timer = throttle = false;
+              }, ms);
+          }
+        };
+      }
+        // Attach click handler to the DT
+        const annoteDls = window.document.querySelectorAll('dt[data-target-cell]');
+        for (const annoteDlNode of annoteDls) {
+          annoteDlNode.addEventListener('click', (event) => {
+            const clickedEl = event.target;
+            if (clickedEl !== selectedAnnoteEl) {
+              unselectCodeLines();
+              const activeEl = window.document.querySelector('dt[data-target-cell].code-annotation-active');
+              if (activeEl) {
+                activeEl.classList.remove('code-annotation-active');
+              }
+              selectCodeLines(clickedEl);
+              clickedEl.classList.add('code-annotation-active');
+            } else {
+              // Unselect the line
+              unselectCodeLines();
+              clickedEl.classList.remove('code-annotation-active');
+            }
+          });
+        }
+    const findCites = (el) => {
+      const parentEl = el.parentElement;
+      if (parentEl) {
+        const cites = parentEl.dataset.cites;
+        if (cites) {
+          return {
+            el,
+            cites: cites.split(' ')
+          };
+        } else {
+          return findCites(el.parentElement)
+        }
+      } else {
+        return undefined;
+      }
+    };
+    var bibliorefs = window.document.querySelectorAll('a[role="doc-biblioref"]');
+    for (var i=0; i<bibliorefs.length; i++) {
+      const ref = bibliorefs[i];
+      const citeInfo = findCites(ref);
+      if (citeInfo) {
+        tippyHover(citeInfo.el, function() {
+          var popup = window.document.createElement('div');
+          citeInfo.cites.forEach(function(cite) {
+            var citeDiv = window.document.createElement('div');
+            citeDiv.classList.add('hanging-indent');
+            citeDiv.classList.add('csl-entry');
+            var biblioDiv = window.document.getElementById('ref-' + cite);
+            if (biblioDiv) {
+              citeDiv.innerHTML = biblioDiv.innerHTML;
+            }
+            popup.appendChild(citeDiv);
+          });
+          return popup.innerHTML;
+        });
+      }
+    }
+  });
+  </script>
+  <script type="application/javascript">
+  window.quartoScrollableRegionsLabels = {"code":"Прокручиваемый код","output":"Прокручиваемый вывод"};
+  </script>
+<nav class="page-navigation" aria-label="Страница">
+  <div class="nav-page nav-page-previous">
+      <a href="./text-streams.html" class="pagination-link" aria-label="Текстовые потоки">
+        <i class="bi bi-arrow-left-short"></i> <span class="nav-page-text"><span class="chapter-number">3</span>&nbsp; <span class="chapter-title">Текстовые потоки</span></span>
+      </a>          
+  </div>
+  <div class="nav-page nav-page-next">
+      <a href="./git-state.html" class="pagination-link" aria-label="Состояние репозитория">
+        <span class="nav-page-text"><span class="chapter-number">5</span>&nbsp; <span class="chapter-title">Состояние репозитория</span></span> <i class="bi bi-arrow-right-short"></i>
+      </a>
+  </div>
+</nav>
+</div> <!-- /content -->
+
+
+
+
+
+<script data-qrc-navigation>// Опубликованные цели сохраняют штатные ID Quarto. Обработчик раскрывает
+// существующее представление документа, не вводя учебных ролей и новых ID.
+(() => {
+  if (new URL(location.href).searchParams.has("print-pdf")) return;
+  let navigation = 0;
+
+  function hashId(url) {
+    try { return decodeURIComponent(url.hash.replace(/^#\/?/, "")); }
+    catch { return ""; } // Некорректный фрагмент внешней ссылки не должен нарушать работу страницы.
+  }
+
+  function ancestors(target) {
+    const nodes = [];
+    for (let node = target; node; node = node.parentElement) nodes.push(node);
+    return nodes.reverse();
+  }
+
+  function openDisclosures(nodes, scroll) {
+    for (const node of nodes) {
+      if (node.matches("details")) node.open = true;
+      if (!node.matches(".collapse:not(.show)")) continue;
+
+      // Bootstrap управляет анимацией и состоянием переключателя.
+      // В темах без Bootstrap блок раскрывается напрямую; details работает штатно.
+      const Collapse = window.bootstrap?.Collapse;
+      if (Collapse) {
+        node.addEventListener("shown.bs.collapse", scroll, { once: true });
+        Collapse.getOrCreateInstance(node, { toggle: false }).show();
+      } else {
+        node.classList.add("show");
+        if (!node.id) continue;
+        for (const trigger of document.querySelectorAll("[aria-controls]")) {
+          if (!trigger.getAttribute("aria-controls").split(/\s+/).includes(node.id)) continue;
+          trigger.setAttribute("aria-expanded", "true");
+          trigger.classList.remove("collapsed");
+        }
+      }
+    }
+  }
+
+  function revealTarget(id) {
+    const target = id && document.getElementById(id);
+    if (!target) return;
+    const current = ++navigation;
+    const scroll = () => requestAnimationFrame(() => {
+      // Завершение анимации не должно возвращать прокрутку после нового перехода.
+      if (current === navigation) target.scrollIntoView({ block: "nearest" });
+    });
+    const nodes = ancestors(target);
+    const section = target.closest("section.slide");
+    const reveal = window.Reveal;
+    if (section && target !== section && reveal?.isReady()) {
+      const position = reveal.getIndices(section);
+      reveal.slide(position.h, position.v);
+      // У вложенных фрагментов могут различаться индексы. Показываем
+      // все фрагменты вокруг цели; нулевой индекс также допустим.
+      const indices = nodes.filter(node => node.matches(".fragment[data-fragment-index]"))
+        .map(node => Number(node.getAttribute("data-fragment-index")))
+        .filter(Number.isFinite);
+      if (indices.length) reveal.navigateFragment(Math.max(...indices));
+    }
+    openDisclosures(nodes, scroll);
+    scroll();
+  }
+
+  function initialTarget() {
+    const url = new URL(location.href);
+    revealTarget(url.searchParams.get("qrc-target") || hashId(url));
+  }
+
+  function ready() {
+    if (window.Reveal && !window.Reveal.isReady()) window.Reveal.on("ready", initialTarget);
+    else initialTarget();
+  }
+  if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", ready, { once: true });
+  else ready();
+
+  // qrc-target обрабатывается только при входе на страницу. Повторное применение
+  // при смене фрагмента URL возвращало бы преподавателя к цели после перехода вперёд.
+  window.addEventListener("hashchange", () => revealTarget(hashId(new URL(location.href))));
+  document.addEventListener("click", event => {
+    if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey || event.defaultPrevented) return;
+    const link = event.target.closest?.("a[href]");
+    if (!link || link.hasAttribute("download") || (link.target && link.target !== "_self")) return;
+    const url = new URL(link.href, location.href);
+    if (url.origin !== location.origin || url.pathname !== location.pathname || url.search !== location.search) return;
+    // Повторный переход по тому же фрагменту URL не вызывает hashchange.
+    // Раскрываем цель после штатной навигации и обработчика Revealjs.
+    queueMicrotask(() => revealTarget(hashId(url)));
+  }, true);
+})();
+</script>
+</body></html>

@@ -1,33 +1,22 @@
 {
   "schema": "quarto-reference-catalog",
   "generator": {
-    "quarto": "1.11.5"
+    "quarto": "1.11.6"
   },
   "targets": {
-    "handbook:sec-editor": {
-      "namespace": "handbook",
-      "id": "sec-editor",
-      "page": "editor.html",
-      "fragment": "sec-editor",
-      "labelHtml": "<span>Глава 4</span>",
-      "numberHtml": "<span>4</span>",
-      "label": "Глава 4",
-      "number": "4",
-      "title": "Редактор и терминал"
-    },
-    "handbook:sec-git": {
-      "namespace": "handbook",
-      "id": "sec-git",
-      "page": "git.html",
-      "fragment": "sec-git",
+    "system-practice-handbook:sec-data-processing-reference": {
+      "namespace": "system-practice-handbook",
+      "id": "sec-data-processing-reference",
+      "page": "data-processing.html",
+      "fragment": "sec-data-processing-reference",
       "labelHtml": "<span>Глава 3</span>",
       "numberHtml": "<span>3</span>",
       "label": "Глава 3",
       "number": "3",
-      "title": "Git: сравнение, история, ветвление и архивы"
+      "title": "Обработка данных"
     },
-    "handbook:sec-handbook": {
-      "namespace": "handbook",
+    "system-practice-handbook:sec-handbook": {
+      "namespace": "system-practice-handbook",
       "id": "sec-handbook",
       "page": "index.html",
       "fragment": "sec-handbook",
@@ -37,16 +26,456 @@
       "number": "",
       "title": "Справочник"
     },
-    "handbook:sec-shells": {
-      "namespace": "handbook",
-      "id": "sec-shells",
-      "page": "shells.html",
-      "fragment": "sec-shells",
+    "system-practice-handbook:sec-handbook-sources": {
+      "namespace": "system-practice-handbook",
+      "id": "sec-handbook-sources",
+      "page": "sources.html",
+      "fragment": "sec-handbook-sources",
+      "labelHtml": "<span>Глава 6</span>",
+      "numberHtml": "<span>6</span>",
+      "label": "Глава 6",
+      "number": "6",
+      "title": "Источники"
+    },
+    "system-practice-handbook:sec-maintenance-reference": {
+      "namespace": "system-practice-handbook",
+      "id": "sec-maintenance-reference",
+      "page": "project-maintenance.html",
+      "fragment": "sec-maintenance-reference",
+      "labelHtml": "<span>Глава 5</span>",
+      "numberHtml": "<span>5</span>",
+      "label": "Глава 5",
+      "number": "5",
+      "title": "Сопровождение проекта"
+    },
+    "system-practice-handbook:sec-reference-copy-move": {
+      "namespace": "system-practice-handbook",
+      "id": "sec-reference-copy-move",
+      "page": "work-environment.html",
+      "fragment": "sec-reference-copy-move",
+      "labelHtml": "Файловые операции",
+      "numberHtml": "",
+      "label": "Файловые операции",
+      "number": "",
+      "title": "Файловые операции"
+    },
+    "system-practice-handbook:sec-reference-data-channels": {
+      "namespace": "system-practice-handbook",
+      "id": "sec-reference-data-channels",
+      "page": "data-processing.html",
+      "fragment": "sec-reference-data-channels",
+      "labelHtml": "Передача данных",
+      "numberHtml": "",
+      "label": "Передача данных",
+      "number": "",
+      "title": "Передача данных"
+    },
+    "system-practice-handbook:sec-reference-data-comparison": {
+      "namespace": "system-practice-handbook",
+      "id": "sec-reference-data-comparison",
+      "page": "data-processing.html",
+      "fragment": "sec-reference-data-comparison",
+      "labelHtml": "Сопоставление результата",
+      "numberHtml": "",
+      "label": "Сопоставление результата",
+      "number": "",
+      "title": "Сопоставление результата"
+    },
+    "system-practice-handbook:sec-reference-data-export": {
+      "namespace": "system-practice-handbook",
+      "id": "sec-reference-data-export",
+      "page": "data-processing.html",
+      "fragment": "sec-reference-data-export",
+      "labelHtml": "Экспорт CSV",
+      "numberHtml": "",
+      "label": "Экспорт CSV",
+      "number": "",
+      "title": "Экспорт CSV"
+    },
+    "system-practice-handbook:sec-reference-data-scripts": {
+      "namespace": "system-practice-handbook",
+      "id": "sec-reference-data-scripts",
+      "page": "data-processing.html",
+      "fragment": "sec-reference-data-scripts",
+      "labelHtml": "Запуск сценария",
+      "numberHtml": "",
+      "label": "Запуск сценария",
+      "number": "",
+      "title": "Запуск сценария"
+    },
+    "system-practice-handbook:sec-reference-data-status": {
+      "namespace": "system-practice-handbook",
+      "id": "sec-reference-data-status",
+      "page": "data-processing.html",
+      "fragment": "sec-reference-data-status",
+      "labelHtml": "Коды завершения",
+      "numberHtml": "",
+      "label": "Коды завершения",
+      "number": "",
+      "title": "Коды завершения"
+    },
+    "system-practice-handbook:sec-reference-editor": {
+      "namespace": "system-practice-handbook",
+      "id": "sec-reference-editor",
+      "page": "work-environment.html",
+      "fragment": "sec-reference-editor",
+      "labelHtml": "Сохранение текста",
+      "numberHtml": "",
+      "label": "Сохранение текста",
+      "number": "",
+      "title": "Сохранение текста"
+    },
+    "system-practice-handbook:sec-reference-git-account": {
+      "namespace": "system-practice-handbook",
+      "id": "sec-reference-git-account",
+      "page": "version-control.html",
+      "fragment": "sec-reference-git-account",
+      "labelHtml": "Подготовка аккаунта",
+      "numberHtml": "",
+      "label": "Подготовка аккаунта",
+      "number": "",
+      "title": "Подготовка аккаунта"
+    },
+    "system-practice-handbook:sec-reference-git-branches": {
+      "namespace": "system-practice-handbook",
+      "id": "sec-reference-git-branches",
+      "page": "version-control.html",
+      "fragment": "sec-reference-git-branches",
+      "labelHtml": "Ветки",
+      "numberHtml": "",
+      "label": "Ветки",
+      "number": "",
+      "title": "Ветки"
+    },
+    "system-practice-handbook:sec-reference-git-commit": {
+      "namespace": "system-practice-handbook",
+      "id": "sec-reference-git-commit",
+      "page": "version-control.html",
+      "fragment": "sec-reference-git-commit",
+      "labelHtml": "Сохранение снимка",
+      "numberHtml": "",
+      "label": "Сохранение снимка",
+      "number": "",
+      "title": "Сохранение снимка"
+    },
+    "system-practice-handbook:sec-reference-git-history": {
+      "namespace": "system-practice-handbook",
+      "id": "sec-reference-git-history",
+      "page": "version-control.html",
+      "fragment": "sec-reference-git-history",
+      "labelHtml": "Чтение истории",
+      "numberHtml": "",
+      "label": "Чтение истории",
+      "number": "",
+      "title": "Чтение истории"
+    },
+    "system-practice-handbook:sec-reference-git-init": {
+      "namespace": "system-practice-handbook",
+      "id": "sec-reference-git-init",
+      "page": "version-control.html",
+      "fragment": "sec-reference-git-init",
+      "labelHtml": "Начальная настройка",
+      "numberHtml": "",
+      "label": "Начальная настройка",
+      "number": "",
+      "title": "Начальная настройка"
+    },
+    "system-practice-handbook:sec-reference-git-merge": {
+      "namespace": "system-practice-handbook",
+      "id": "sec-reference-git-merge",
+      "page": "version-control.html",
+      "fragment": "sec-reference-git-merge",
+      "labelHtml": "Слияние",
+      "numberHtml": "",
+      "label": "Слияние",
+      "number": "",
+      "title": "Слияние"
+    },
+    "system-practice-handbook:sec-reference-git-package": {
+      "namespace": "system-practice-handbook",
+      "id": "sec-reference-git-package",
+      "page": "version-control.html",
+      "fragment": "sec-reference-git-package",
+      "labelHtml": "Упаковка результата",
+      "numberHtml": "",
+      "label": "Упаковка результата",
+      "number": "",
+      "title": "Упаковка результата"
+    },
+    "system-practice-handbook:sec-reference-git-remote": {
+      "namespace": "system-practice-handbook",
+      "id": "sec-reference-git-remote",
+      "page": "version-control.html",
+      "fragment": "sec-reference-git-remote",
+      "labelHtml": "Удалённые репозитории",
+      "numberHtml": "",
+      "label": "Удалённые репозитории",
+      "number": "",
+      "title": "Удалённые репозитории"
+    },
+    "system-practice-handbook:sec-reference-git-restore": {
+      "namespace": "system-practice-handbook",
+      "id": "sec-reference-git-restore",
+      "page": "version-control.html",
+      "fragment": "sec-reference-git-restore",
+      "labelHtml": "Восстановление содержимого",
+      "numberHtml": "",
+      "label": "Восстановление содержимого",
+      "number": "",
+      "title": "Восстановление содержимого"
+    },
+    "system-practice-handbook:sec-reference-git-ssh": {
+      "namespace": "system-practice-handbook",
+      "id": "sec-reference-git-ssh",
+      "page": "version-control.html",
+      "fragment": "sec-reference-git-ssh",
+      "labelHtml": "Windows OpenSSH",
+      "numberHtml": "",
+      "label": "Windows OpenSSH",
+      "number": "",
+      "title": "Windows OpenSSH"
+    },
+    "system-practice-handbook:sec-reference-git-ssh-fish": {
+      "namespace": "system-practice-handbook",
+      "id": "sec-reference-git-ssh-fish",
+      "page": "version-control.html",
+      "fragment": "sec-reference-git-ssh-fish",
+      "labelHtml": "Ключ в fish/Linux",
+      "numberHtml": "",
+      "label": "Ключ в fish/Linux",
+      "number": "",
+      "title": "Ключ в fish/Linux"
+    },
+    "system-practice-handbook:sec-reference-git-ssh-test": {
+      "namespace": "system-practice-handbook",
+      "id": "sec-reference-git-ssh-test",
+      "page": "version-control.html",
+      "fragment": "sec-reference-git-ssh-test",
+      "labelHtml": "Проверка доступа",
+      "numberHtml": "",
+      "label": "Проверка доступа",
+      "number": "",
+      "title": "Проверка доступа"
+    },
+    "system-practice-handbook:sec-reference-git-state": {
+      "namespace": "system-practice-handbook",
+      "id": "sec-reference-git-state",
+      "page": "version-control.html",
+      "fragment": "sec-reference-git-state",
+      "labelHtml": "Наблюдение состояния",
+      "numberHtml": "",
+      "label": "Наблюдение состояния",
+      "number": "",
+      "title": "Наблюдение состояния"
+    },
+    "system-practice-handbook:sec-reference-help": {
+      "namespace": "system-practice-handbook",
+      "id": "sec-reference-help",
+      "page": "work-environment.html",
+      "fragment": "sec-reference-help",
+      "labelHtml": "Справка",
+      "numberHtml": "",
+      "label": "Справка",
+      "number": "",
+      "title": "Справка"
+    },
+    "system-practice-handbook:sec-reference-location": {
+      "namespace": "system-practice-handbook",
+      "id": "sec-reference-location",
+      "page": "work-environment.html",
+      "fragment": "sec-reference-location",
+      "labelHtml": "Рабочий каталог",
+      "numberHtml": "",
+      "label": "Рабочий каталог",
+      "number": "",
+      "title": "Рабочий каталог"
+    },
+    "system-practice-handbook:sec-reference-maintenance-check": {
+      "namespace": "system-practice-handbook",
+      "id": "sec-reference-maintenance-check",
+      "page": "project-maintenance.html",
+      "fragment": "sec-reference-maintenance-check",
+      "labelHtml": "Проверка патча выпуска",
+      "numberHtml": "",
+      "label": "Проверка патча выпуска",
+      "number": "",
+      "title": "Проверка патча выпуска"
+    },
+    "system-practice-handbook:sec-reference-maintenance-conflict": {
+      "namespace": "system-practice-handbook",
+      "id": "sec-reference-maintenance-conflict",
+      "page": "project-maintenance.html",
+      "fragment": "sec-reference-maintenance-conflict",
+      "labelHtml": "Разрешение конфликта",
+      "numberHtml": "",
+      "label": "Разрешение конфликта",
+      "number": "",
+      "title": "Разрешение конфликта"
+    },
+    "system-practice-handbook:sec-reference-maintenance-package": {
+      "namespace": "system-practice-handbook",
+      "id": "sec-reference-maintenance-package",
+      "page": "project-maintenance.html",
+      "fragment": "sec-reference-maintenance-package",
+      "labelHtml": "Упаковка проекта",
+      "numberHtml": "",
+      "label": "Упаковка проекта",
+      "number": "",
+      "title": "Упаковка проекта"
+    },
+    "system-practice-handbook:sec-reference-maintenance-patch": {
+      "namespace": "system-practice-handbook",
+      "id": "sec-reference-maintenance-patch",
+      "page": "project-maintenance.html",
+      "fragment": "sec-reference-maintenance-patch",
+      "labelHtml": "Выбор базы патча",
+      "numberHtml": "",
+      "label": "Выбор базы патча",
+      "number": "",
+      "title": "Выбор базы патча"
+    },
+    "system-practice-handbook:sec-reference-maintenance-release": {
+      "namespace": "system-practice-handbook",
+      "id": "sec-reference-maintenance-release",
+      "page": "project-maintenance.html",
+      "fragment": "sec-reference-maintenance-release",
+      "labelHtml": "Материалы выпуска",
+      "numberHtml": "",
+      "label": "Материалы выпуска",
+      "number": "",
+      "title": "Материалы выпуска"
+    },
+    "system-practice-handbook:sec-reference-maintenance-remote": {
+      "namespace": "system-practice-handbook",
+      "id": "sec-reference-maintenance-remote",
+      "page": "project-maintenance.html",
+      "fragment": "sec-reference-maintenance-remote",
+      "labelHtml": "Получение истории",
+      "numberHtml": "",
+      "label": "Получение истории",
+      "number": "",
+      "title": "Получение истории"
+    },
+    "system-practice-handbook:sec-reference-maintenance-tag": {
+      "namespace": "system-practice-handbook",
+      "id": "sec-reference-maintenance-tag",
+      "page": "project-maintenance.html",
+      "fragment": "sec-reference-maintenance-tag",
+      "labelHtml": "Аннотированный тег",
+      "numberHtml": "",
+      "label": "Аннотированный тег",
+      "number": "",
+      "title": "Аннотированный тег"
+    },
+    "system-practice-handbook:sec-reference-maintenance-worktree": {
+      "namespace": "system-practice-handbook",
+      "id": "sec-reference-maintenance-worktree",
+      "page": "project-maintenance.html",
+      "fragment": "sec-reference-maintenance-worktree",
+      "labelHtml": "Связанное рабочее дерево",
+      "numberHtml": "",
+      "label": "Связанное рабочее дерево",
+      "number": "",
+      "title": "Связанное рабочее дерево"
+    },
+    "system-practice-handbook:sec-reference-object-inspection": {
+      "namespace": "system-practice-handbook",
+      "id": "sec-reference-object-inspection",
+      "page": "data-processing.html",
+      "fragment": "sec-reference-object-inspection",
+      "labelHtml": "Исследование объекта",
+      "numberHtml": "",
+      "label": "Исследование объекта",
+      "number": "",
+      "title": "Исследование объекта"
+    },
+    "system-practice-handbook:sec-reference-object-selection": {
+      "namespace": "system-practice-handbook",
+      "id": "sec-reference-object-selection",
+      "page": "data-processing.html",
+      "fragment": "sec-reference-object-selection",
+      "labelHtml": "Сортировка объектов",
+      "numberHtml": "",
+      "label": "Сортировка объектов",
+      "number": "",
+      "title": "Сортировка объектов"
+    },
+    "system-practice-handbook:sec-reference-quoting": {
+      "namespace": "system-practice-handbook",
+      "id": "sec-reference-quoting",
+      "page": "work-environment.html",
+      "fragment": "sec-reference-quoting",
+      "labelHtml": "Файловый шаблон",
+      "numberHtml": "",
+      "label": "Файловый шаблон",
+      "number": "",
+      "title": "Файловый шаблон"
+    },
+    "system-practice-handbook:sec-reference-read-create": {
+      "namespace": "system-practice-handbook",
+      "id": "sec-reference-read-create",
+      "page": "work-environment.html",
+      "fragment": "sec-reference-read-create",
+      "labelHtml": "Чтение файла",
+      "numberHtml": "",
+      "label": "Чтение файла",
+      "number": "",
+      "title": "Чтение файла"
+    },
+    "system-practice-handbook:sec-reference-remove": {
+      "namespace": "system-practice-handbook",
+      "id": "sec-reference-remove",
+      "page": "work-environment.html",
+      "fragment": "sec-reference-remove",
+      "labelHtml": "Удаление",
+      "numberHtml": "",
+      "label": "Удаление",
+      "number": "",
+      "title": "Удаление"
+    },
+    "system-practice-handbook:sec-reference-script": {
+      "namespace": "system-practice-handbook",
+      "id": "sec-reference-script",
+      "page": "work-environment.html",
+      "fragment": "sec-reference-script",
+      "labelHtml": "Запуск сценария",
+      "numberHtml": "",
+      "label": "Запуск сценария",
+      "number": "",
+      "title": "Запуск сценария"
+    },
+    "system-practice-handbook:sec-reference-text-selection": {
+      "namespace": "system-practice-handbook",
+      "id": "sec-reference-text-selection",
+      "page": "data-processing.html",
+      "fragment": "sec-reference-text-selection",
+      "labelHtml": "Текстовый отбор",
+      "numberHtml": "",
+      "label": "Текстовый отбор",
+      "number": "",
+      "title": "Текстовый отбор"
+    },
+    "system-practice-handbook:sec-version-control-reference": {
+      "namespace": "system-practice-handbook",
+      "id": "sec-version-control-reference",
+      "page": "version-control.html",
+      "fragment": "sec-version-control-reference",
+      "labelHtml": "<span>Глава 4</span>",
+      "numberHtml": "<span>4</span>",
+      "label": "Глава 4",
+      "number": "4",
+      "title": "Управление версиями"
+    },
+    "system-practice-handbook:sec-work-environment-reference": {
+      "namespace": "system-practice-handbook",
+      "id": "sec-work-environment-reference",
+      "page": "work-environment.html",
+      "fragment": "sec-work-environment-reference",
       "labelHtml": "<span>Глава 2</span>",
       "numberHtml": "<span>2</span>",
       "label": "Глава 2",
       "number": "2",
-      "title": "Оболочки, файлы и потоки"
+      "title": "Рабочая среда"
     }
   }
 }

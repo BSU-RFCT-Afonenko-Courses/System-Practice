@@ -1,0 +1,67 @@
+{
+  "schema": "quarto-reference-catalog",
+  "generator": {
+    "quarto": "1.11.6"
+  },
+  "targets": {
+    "system-practice-lectures:sec-lecture-command-interface": {
+      "namespace": "system-practice-lectures",
+      "id": "sec-lecture-command-interface",
+      "page": "command-interface.html",
+      "fragment": "sec-lecture-command-interface",
+      "slide": "sec-lecture-command-interface",
+      "labelHtml": "Файл в каталоге",
+      "numberHtml": "",
+      "label": "Файл в каталоге",
+      "number": "",
+      "title": "Файл в каталоге"
+    },
+    "system-practice-lectures:sec-lecture-git-integration": {
+      "namespace": "system-practice-lectures",
+      "id": "sec-lecture-git-integration",
+      "page": "version-control.html",
+      "fragment": "sec-lecture-git-integration",
+      "slide": "sec-lecture-git-integration",
+      "labelHtml": "Включение полученного изменения",
+      "numberHtml": "",
+      "label": "Включение полученного изменения",
+      "number": "",
+      "title": "Включение полученного изменения"
+    },
+    "system-practice-lectures:sec-lecture-version-control": {
+      "namespace": "system-practice-lectures",
+      "id": "sec-lecture-version-control",
+      "page": "version-control.html",
+      "fragment": "sec-lecture-version-control",
+      "slide": "sec-lecture-version-control",
+      "labelHtml": "История проекта",
+      "numberHtml": "",
+      "label": "История проекта",
+      "number": "",
+      "title": "История проекта"
+    },
+    "system-practice-lectures:sec-lecture-work-environment": {
+      "namespace": "system-practice-lectures",
+      "id": "sec-lecture-work-environment",
+      "page": "command-interface.html",
+      "fragment": "sec-lecture-work-environment",
+      "slide": "sec-lecture-work-environment",
+      "labelHtml": "Запись команды",
+      "numberHtml": "",
+      "label": "Запись команды",
+      "number": "",
+      "title": "Запись команды"
+    },
+    "system-practice-lectures:sec-lectures": {
+      "namespace": "system-practice-lectures",
+      "id": "sec-lectures",
+      "page": "index.html",
+      "fragment": "sec-lectures",
+      "labelHtml": "Лекции",
+      "numberHtml": "",
+      "label": "Лекции",
+      "number": "",
+      "title": "Лекции"
+    }
+  }
+}

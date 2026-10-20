@@ -1,52 +1,67 @@
 {
   "schema": "quarto-reference-catalog",
   "generator": {
-    "quarto": "1.11.5"
+    "quarto": "1.11.6"
   },
   "targets": {
-    "practice:sec-practice": {
-      "namespace": "practice",
+    "system-practice-practice:sec-data-processing-intro": {
+      "namespace": "system-practice-practice",
+      "id": "sec-data-processing-intro",
+      "page": "data-processing.html",
+      "fragment": "sec-data-processing-intro",
+      "slide": "sec-data-processing-intro",
+      "labelHtml": "Знакомая ведомость",
+      "numberHtml": "",
+      "label": "Знакомая ведомость",
+      "number": "",
+      "title": "Знакомая ведомость"
+    },
+    "system-practice-practice:sec-maintenance-intro": {
+      "namespace": "system-practice-practice",
+      "id": "sec-maintenance-intro",
+      "page": "project-maintenance.html",
+      "fragment": "sec-maintenance-intro",
+      "slide": "sec-maintenance-intro",
+      "labelHtml": "Подготовка выпуска",
+      "numberHtml": "",
+      "label": "Подготовка выпуска",
+      "number": "",
+      "title": "Подготовка выпуска"
+    },
+    "system-practice-practice:sec-practice": {
+      "namespace": "system-practice-practice",
       "id": "sec-practice",
       "page": "index.html",
       "fragment": "sec-practice",
-      "labelHtml": "Занятия",
+      "labelHtml": "Введения к практическим работам",
       "numberHtml": "",
-      "label": "Занятия",
+      "label": "Введения к практическим работам",
       "number": "",
-      "title": "Занятия"
+      "title": "Введения к практическим работам"
     },
-    "practice:sec-session-01": {
-      "namespace": "practice",
-      "id": "sec-session-01",
-      "page": "01.html",
-      "fragment": "sec-session-01",
-      "labelHtml": "Занятие 1: Командная строка, файлы и первый репозиторий",
+    "system-practice-practice:sec-version-control-intro": {
+      "namespace": "system-practice-practice",
+      "id": "sec-version-control-intro",
+      "page": "version-control.html",
+      "fragment": "sec-version-control-intro",
+      "slide": "sec-version-control-intro",
+      "labelHtml": "Состояния проекта",
       "numberHtml": "",
-      "label": "Занятие 1: Командная строка, файлы и первый репозиторий",
+      "label": "Состояния проекта",
       "number": "",
-      "title": "Занятие 1: Командная строка, файлы и первый репозиторий"
+      "title": "Состояния проекта"
     },
-    "practice:sec-session-02": {
-      "namespace": "practice",
-      "id": "sec-session-02",
-      "page": "02.html",
-      "fragment": "sec-session-02",
-      "labelHtml": "Занятие 2: Отмена, ветвление, патчи и архивирование",
+    "system-practice-practice:sec-work-environment-intro": {
+      "namespace": "system-practice-practice",
+      "id": "sec-work-environment-intro",
+      "page": "work-environment.html",
+      "fragment": "sec-work-environment-intro",
+      "slide": "sec-work-environment-intro",
+      "labelHtml": "Каталог наблюдений",
       "numberHtml": "",
-      "label": "Занятие 2: Отмена, ветвление, патчи и архивирование",
+      "label": "Каталог наблюдений",
       "number": "",
-      "title": "Занятие 2: Отмена, ветвление, патчи и архивирование"
-    },
-    "practice:sec-session-02-project": {
-      "namespace": "practice",
-      "id": "sec-session-02-project",
-      "page": "02-project.html",
-      "fragment": "sec-session-02-project",
-      "labelHtml": "Занятие 2: проектная замена",
-      "numberHtml": "",
-      "label": "Занятие 2: проектная замена",
-      "number": "",
-      "title": "Занятие 2: проектная замена"
+      "title": "Каталог наблюдений"
     }
   }
 }
