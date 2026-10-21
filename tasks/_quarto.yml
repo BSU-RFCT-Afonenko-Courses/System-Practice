@@ -78,3 +78,6 @@ prairielearn:
       method: manual
     submission:
       mode: upload
+  assessment-defaults:
+    assignment:
+      mode: assessment-id
