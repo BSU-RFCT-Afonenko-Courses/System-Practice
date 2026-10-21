@@ -11,13 +11,13 @@ default-exercise-project-check: false
 
 # Сопровождение проекта {#sec-project-maintenance-task}
 
-::: {#exr-project-maintenance-release target="prairielearn" project="/projects/project-maintenance/release" prairielearn-grading="manual" prairielearn-submission="upload"}
+::: {#exr-project-maintenance-release target="prairielearn" project="/projects/project-maintenance/release" prairielearn-grading="manual" prairielearn-submission="upload" difficulty="advanced"}
+
+## Подготовка выпуска
 
 {{< project-download exr-project-maintenance-release kind="conditions" text="Скачать условие для локального просмотра" >}}
 
 {{< project-download exr-project-maintenance-release kind="starter" text="Скачать стартовый комплект" >}}
-
-## Подготовка выпуска
 
 Добровольный проект продолжает три обязательные лабораторные.
 Подготовьте выпуск небольшого проекта отчёта: получите поступившую

@@ -22,10 +22,11 @@ assessment:
 - @exr-data-processing-two-result-pipeline
 :::
 
-:::: {#exr-data-processing-two-result-pipeline target="prairielearn" project="/projects/data-processing/two-result-pipeline" prairielearn-grading="manual" prairielearn-submission="upload"}
+:::: {#exr-data-processing-two-result-pipeline target="prairielearn" project="/projects/data-processing/two-result-pipeline" prairielearn-grading="manual" prairielearn-submission="upload" difficulty="intermediate"}
+
+## Две выборки наблюдений
 
 {{< project-download exr-data-processing-two-result-pipeline kind="conditions" text="Скачать условие для локального просмотра" >}}
-## Две выборки наблюдений
 
 Лаборатория хранит результаты подсчёта частиц в пробах. Проверка качества
 помечает пригодные наблюдения `keep`, исключённые — `skip`.

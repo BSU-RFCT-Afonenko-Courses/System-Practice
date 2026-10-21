@@ -1,3 +1,5 @@
+exercise-bank: true
+default-exercise-statement-visibility: open
 project:
   type: book
   output-dir: _output

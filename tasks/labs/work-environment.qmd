@@ -37,10 +37,11 @@ assessment:
 - @exr-work-environment-launch-counter
 :::
 
-:::: {#exr-work-environment-file-state target="prairielearn" project="/projects/work-environment/file-state" prairielearn-grading="manual" prairielearn-submission="upload"}
+:::: {#exr-work-environment-file-state target="prairielearn" project="/projects/work-environment/file-state" prairielearn-grading="manual" prairielearn-submission="upload" difficulty="introductory"}
+
+## Каталог измерений станции
 
 {{< project-download exr-work-environment-file-state kind="conditions" text="Скачать условие для локального просмотра" >}}
-## Каталог измерений станции
 
 Станция передала два файла измерений и рабочие записи. Подготовьте
 каталог результатов: текущие измерения должны быть доступны под
@@ -162,10 +163,11 @@ result/
 
 ::::
 
-:::: {#exr-work-environment-launch-counter target="prairielearn" project="/projects/work-environment/launch-counter" prairielearn-grading="manual" prairielearn-submission="upload"}
+:::: {#exr-work-environment-launch-counter target="prairielearn" project="/projects/work-environment/launch-counter" prairielearn-grading="manual" prairielearn-submission="upload" difficulty="introductory"}
+
+## Запуск счётчика строк
 
 {{< project-download exr-work-environment-launch-counter kind="conditions" text="Скачать условие для локального просмотра" >}}
-## Запуск счётчика строк
 
 Получите отчёт о числе строк утренних измерений готовым инструментом
 проекта. Выберите один маршрут: PowerShell 7/Windows либо fish/Linux.
