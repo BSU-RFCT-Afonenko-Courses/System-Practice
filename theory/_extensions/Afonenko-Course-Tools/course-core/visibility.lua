@@ -275,7 +275,7 @@ function M.defer_native_assignments(doc)
   return __perfWalk13(doc,{Span=function(span)
     local member=span.attributes['data-course-assignment-id']
     if not member then return end
-    quarto.doc.include_text('after-body','<!--course-assignment-pending:'..member..':start--><div hidden inert>'..pandoc.write(pandoc.Pandoc({pandoc.Plain(span.content)}),'html')..'</div><!--course-assignment-pending:'..member..':end-->')
+    quarto.doc.include_text('after-body','<div hidden inert><!--course-assignment-pending:'..member..':start-->'..pandoc.write(pandoc.Pandoc({pandoc.Plain(span.content)}),'html')..'<!--course-assignment-pending:'..member..':end--></div>')
     return pandoc.RawInline('html','<!--course-assignment:'..member..':start--><template></template><!--course-assignment:'..member..':end-->')
   end,Div=function(div)
     if not div.classes:includes('task-items') then return end
@@ -287,7 +287,7 @@ function M.defer_native_assignments(doc)
           if member and last and last.t=='RawBlock' and last.text=='</template><!--course-assignment:'..member..':end-->' then
             local native=pandoc.List()
             for i=2,#item-1 do native:insert(item[i]) end
-            quarto.doc.include_text('after-body','<!--course-assignment-pending:'..member..':start--><div hidden inert>'..pandoc.write(pandoc.Pandoc(native),'html')..'</div><!--course-assignment-pending:'..member..':end-->')
+            quarto.doc.include_text('after-body','<div hidden inert><!--course-assignment-pending:'..member..':start-->'..pandoc.write(pandoc.Pandoc(native),'html')..'<!--course-assignment-pending:'..member..':end--></div>')
             list.content[index]=pandoc.List({pandoc.RawBlock('html','<!--course-assignment:'..member..':start--><template></template><!--course-assignment:'..member..':end-->')})
           end
         end

@@ -11,7 +11,7 @@ export async function command(executable: string, args: string[], cwd: string, e
     error.name = "ExternalToolFailure";
     throw Object.assign(error, { tool: executable, exitCode: undefined, stdout: "", stderr: "" });
   }
-  const stdout = new TextDecoder().decode(result.stdout), stderr = new TextDecoder().decode(result.stderr);
+  const stdout = new TextDecoder("utf-8", { fatal: true, ignoreBOM: true }).decode(result.stdout), stderr = new TextDecoder().decode(result.stderr);
   if (!result.success) {
     const error = new Error(`${executable} ${args[0] ?? ""}: внешний инструмент завершился с кодом ${result.code}\n${stdout}${stderr}`, { cause: result });
     error.name = "ExternalToolFailure";

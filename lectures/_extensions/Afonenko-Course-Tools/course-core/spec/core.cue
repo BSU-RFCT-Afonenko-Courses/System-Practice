@@ -20,11 +20,12 @@ import "list"
 #Assignment: {stage?: #Stage, requirement: "required" | "optional", workMode: #WorkMode}
 #Slot: {
   id: string
-  selection: "fixed" | "random"
+  selection: "fixed" | "random" | "choice"
   candidates: [...string & =~"^exr-[a-z0-9][a-z0-9-]*$"] & list.UniqueItems
   assignment: #Assignment
+  if selection == "choice" {assignment:requirement:"required"}
   if selection == "fixed" {id: candidates[0], candidates: list.MinItems(1) & list.MaxItems(1)}
-  if selection == "random" {id: =~"^alt-[a-z0-9][a-z0-9-]*$", candidates: list.MinItems(2)}
+  if selection == "random" || selection == "choice" {id: =~"^alt-[a-z0-9][a-z0-9-]*$", candidates: list.MinItems(2)}
 }
 #Declaration: {id: string & =~"^exr-[a-z0-9][a-z0-9-]*$", source: string & !="", difficulty: #Difficulty, time?: int & >0, statementVisibility: #StatementVisibility, purpose?: #ExercisePurpose, hasSolution: bool, hasPublicSolution: bool}
 #Composition: {
@@ -119,10 +120,13 @@ import "list"
 #SourceProfile: {mode:"implementation"|"student-tests",root:string & !="",include:[...string] & list.MinItems(1)}
 #VerificationExpectation: {"student-compilation"?:"success"|"failure",job?:"complete"|"failure","required-tests"?:"all-pass",classification?:string,"failed-tests"?:{"at-least"?:int & >=0,exactly?:int & >=0},"executed-tests"?:{"at-least"?:int & >=0,exactly?:int & >=0},"test-ids"?:[...string],score?:{"less-than"?:number & >=0,"at-least"?:number & >=0,exactly?:number & >=0}}
 #Scoring: {mode:"weighted"} | {mode:"all-pass"} | {mode:"contract-groups",groups:[...{id:string & !="",weight:number & >0,tests:[...string] & list.MinItems(1)}] & list.MinItems(1)} | {mode:"threshold",basis:"score"|"passed-tests",value:number & >=0}
+#PublicCase: {id:string & !="",name:string & !="",test:string & !="",input?:string,state?:string,action?:string,expected:string} & ({input:string}|{state:string}|{action:string})
 #ResolvedProjectCheck: CHECK={
  profile:string & !="",runtime:string & !="",sourceProfile:#SourceProfile,"source-profile":string & !="",tests:[...string]
  java?:{release:int & >0,encoding?:string & !="","compiler-options"?:[...string]}
  limits?:{"outer-seconds"?:number & >0,"compile-seconds"?:number & >0,"run-seconds"?:number & >0,networking?:false,"max-output-bytes"?:int & >0}
+ feedback?:{requirement:string & !="","what-check":string & !=""}
+ "public-cases"?:[...#PublicCase] & list.MaxItems(32)
  scoring:#Scoring
  references?:[...{name:string & !="",root:string & !="",optional:bool}]
  "verification-tests"?:[...string],"contract-cases"?:string & !=""
@@ -138,7 +142,8 @@ import "list"
 }
 #AdditionalJavaSources: {archive:string & =~"^[A-Za-z0-9][A-Za-z0-9_-]{0,100}\\.zip$","max-files":int & >=1 & <=128,"max-file-bytes":int & >=1 & <=1048576,"max-total-bytes":int & >=1 & <=4194304,"max-archive-bytes":int & >=1 & <=2097152}
 #ApiPrecheck: {files:[...string & !=""] & list.MinItems(1),entry:string & =~"^[A-Za-z_$][A-Za-z0-9_$]*(\\.[A-Za-z_$][A-Za-z0-9_$]*)*$"}
-#ProjectFact: {exerciseId:string, source:string, projectRoot:string & !="", bankMember:bool, purpose?:#ExercisePurpose, statementVisibility:#StatementVisibility, artifactPolicy:{student?:"starter"|"full",full:"full",conditions:bool},check?:#ResolvedProjectCheck}
+#ProjectMaterialization: {commonFiles:[...{source:string & !="",target:string & !="",audience:"student"|"grading"}],includeGit?:bool}
+#ProjectFact: {exerciseId:string, source:string, projectRoot:string & !="", bankMember:bool, purpose?:#ExercisePurpose, statementVisibility:#StatementVisibility, artifactPolicy:{student?:"starter"|"full",full:"full",conditions:bool},check?:#ResolvedProjectCheck,materialization?:#ProjectMaterialization}
 #TopicFact: {source:string,semester?:string,categories:[...string]}
 #Course: {
   projects?: [...#ProjectFact]
