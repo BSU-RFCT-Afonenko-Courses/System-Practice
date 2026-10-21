@@ -14,6 +14,10 @@ prairielearn:
 assessment:
   kind: lab
   prairielearn:
+    max-points: 100
+    attempts: 1
+    pass:
+      at-least: 1
     auto-points: 0
     manual-points: 100
 ---
@@ -26,6 +30,8 @@ assessment:
 :::
 
 :::: {#exr-data-processing-two-result-pipeline target="prairielearn" project="/projects/data-processing/two-result-pipeline" prairielearn-grading="manual" prairielearn-submission="upload"}
+
+{{< project-download exr-data-processing-two-result-pipeline kind="conditions" text="Скачать условие для локального просмотра" >}}
 ## Две выборки наблюдений
 
 Лаборатория хранит результаты подсчёта частиц в пробах. Проверка качества

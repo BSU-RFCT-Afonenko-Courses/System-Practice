@@ -29,6 +29,10 @@ prairielearn:
 assessment:
   kind: lab
   prairielearn:
+    max-points: 100
+    attempts: 1
+    pass:
+      at-least: 2
     auto-points: 0
     manual-points: 50
 ---
@@ -42,6 +46,8 @@ assessment:
 :::
 
 :::: {#exr-work-environment-file-state target="prairielearn" project="/projects/work-environment/file-state" prairielearn-grading="manual" prairielearn-submission="upload"}
+
+{{< project-download exr-work-environment-file-state kind="conditions" text="Скачать условие для локального просмотра" >}}
 ## Каталог измерений станции
 
 Станция передала два файла измерений и рабочие записи. Подготовьте
@@ -165,6 +171,8 @@ result/
 ::::
 
 :::: {#exr-work-environment-launch-counter target="prairielearn" project="/projects/work-environment/launch-counter" prairielearn-grading="manual" prairielearn-submission="upload"}
+
+{{< project-download exr-work-environment-launch-counter kind="conditions" text="Скачать условие для локального просмотра" >}}
 ## Запуск счётчика строк
 
 Получите отчёт о числе строк утренних измерений готовым инструментом

@@ -21,6 +21,10 @@ prairielearn:
 
 ::: {#exr-project-maintenance-release target="prairielearn" project="/projects/project-maintenance/release" prairielearn-grading="manual" prairielearn-submission="upload"}
 
+{{< project-download exr-project-maintenance-release kind="conditions" text="Скачать условие для локального просмотра" >}}
+
+{{< project-download exr-project-maintenance-release kind="starter" text="Скачать стартовый комплект" >}}
+
 ## Подготовка выпуска
 
 Добровольный проект продолжает три обязательные лабораторные.

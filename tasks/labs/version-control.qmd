@@ -18,6 +18,10 @@ prairielearn:
 assessment:
   kind: lab
   prairielearn:
+    max-points: 100
+    attempts: 1
+    pass:
+      at-least: 2
     auto-points: 0
     manual-points: 50
 ---
@@ -31,6 +35,8 @@ assessment:
 :::
 
 :::: {#exr-version-control-local-history target="prairielearn" project="/projects/version-control/local-history" prairielearn-grading="manual" prairielearn-submission="upload"}
+
+{{< project-download exr-version-control-local-history kind="conditions" text="Скачать условие для локального просмотра" >}}
 ## Слияние изменений порога
 
 Создайте историю проекта измерений с двумя самостоятельными изменениями.
@@ -185,6 +191,8 @@ A, B, F, D — обозначения для объяснения, одноим�
 ::::
 
 :::: {#exr-version-control-github-ssh target="prairielearn" project="/projects/version-control/github-ssh" prairielearn-grading="manual" prairielearn-submission="upload"}
+
+{{< project-download exr-version-control-github-ssh kind="conditions" text="Скачать условие для локального просмотра" >}}
 ## Обмен историей через GitHub
 
 Отправьте выбранную локальную историю в собственный репозиторий GitHub
@@ -353,6 +361,10 @@ verification и explanation.md. Сохраните оба каталога `.git
 ::::
 
 ::: {#exr-version-control-restore-selected-state target="prairielearn" project="/projects/version-control/restore-selected-state" prairielearn-grading="manual" prairielearn-submission="upload"}
+
+{{< project-download exr-version-control-restore-selected-state kind="conditions" text="Скачать условие для локального просмотра" >}}
+
+{{< project-download exr-version-control-restore-selected-state kind="starter" text="Скачать стартовый комплект" >}}
 
 ## Выбор состояния для восстановления
 
