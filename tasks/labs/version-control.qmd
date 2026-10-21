@@ -1,10 +1,13 @@
 ---
 project-materialization:
   projects:
-    exr-version-control-local-history: {}
+    exr-version-control-local-history:
+      common-files: []
     exr-version-control-github-ssh:
+      common-files: []
       include-git: true
     exr-version-control-restore-selected-state:
+      common-files: []
       include-git: true
 default-exercise-project-check: false
 prairielearn:

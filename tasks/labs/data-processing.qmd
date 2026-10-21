@@ -1,7 +1,8 @@
 ---
 project-materialization:
   projects:
-    exr-data-processing-two-result-pipeline: {}
+    exr-data-processing-two-result-pipeline:
+      common-files: []
 default-exercise-project-check: false
 prairielearn:
   question-defaults:
