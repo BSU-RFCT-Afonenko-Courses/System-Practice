@@ -1,0 +1,6 @@
+B03|10|keep
+B01|2|keep
+B06|9|skip
+B02|10|keep
+B05|0|keep
+B04|20|skip

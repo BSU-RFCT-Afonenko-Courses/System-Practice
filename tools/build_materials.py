@@ -60,6 +60,14 @@ def build(root, write=False, project="work-environment"):
         raise ValueError('Недопустимое имя проекта материалов')
     directory = f'tasks/projects/{project}'
     data = json.loads(target(root, directory + '/materials.json').read_text())
+    if project == 'work-environment':
+        for archive, prefix in [('practice/materials/work-environment-demo.zip', 'lab'),
+                                ('tasks/materials/work-environment-start.zip', 'survey')]:
+            for script in ['count.fish', 'count.ps1']:
+                member = prefix + '/tools/' + script
+                if member in data[archive]:
+                    raise ValueError('Повторный источник общего счётчика: ' + member)
+                data[archive][member] = target(root, 'tasks/common/work-environment/' + script).read_bytes()
     index = target(root, directory + '/materials-hashes.json')
     previous = json.loads(index.read_text()) if index.exists() else {}
     planned = {}
