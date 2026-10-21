@@ -7,14 +7,6 @@ project-materialization:
         target: student/project-maintenance-start.zip
         audience: student
 default-exercise-project-check: false
-prairielearn:
-  question-defaults:
-    grading:
-      method: manual
-    submission:
-      mode: upload
-      file-patterns:
-      - '*'
 ---
 
 # Сопровождение проекта {#sec-project-maintenance-task}

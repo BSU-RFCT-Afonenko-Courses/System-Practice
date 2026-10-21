@@ -4,14 +4,6 @@ project-materialization:
     exr-data-processing-two-result-pipeline:
       common-files: []
 default-exercise-project-check: false
-prairielearn:
-  question-defaults:
-    grading:
-      method: manual
-    submission:
-      mode: upload
-      file-patterns:
-      - '*'
 assessment:
   kind: lab
   prairielearn:

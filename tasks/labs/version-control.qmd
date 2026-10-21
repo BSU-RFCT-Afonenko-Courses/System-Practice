@@ -10,14 +10,6 @@ project-materialization:
       common-files: []
       include-git: true
 default-exercise-project-check: false
-prairielearn:
-  question-defaults:
-    grading:
-      method: manual
-    submission:
-      mode: upload
-      file-patterns:
-      - '*'
 assessment:
   kind: lab
   prairielearn:
