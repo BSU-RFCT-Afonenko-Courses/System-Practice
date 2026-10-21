@@ -1,6 +1,6 @@
 # Происхождение технической поставки System Practice
 
-## Актуальная поставка расширений8.0.0/8.0.0/3.2.0
+## Актуальная поставка расширений 8.0.0/8.0.0/3.2.0
 
 Три согласованных расширения установлены из фактических опубликованных
 immutable Releases. Теги, exact commits и sourceZip закреплены в
@@ -23,11 +23,11 @@ python3 tools/materialize-providers.py --providers-root /absolute/release-checko
 python3 tools/materialize-providers.py --check
 ```
 
-Core/Presentation/Navigation сохраняют18 областей. Exporter и Download
+Core/Presentation/Navigation сохраняют 18 областей. Exporter и Download
 добавлены только в `tasks`; установка файлов сама по себе не меняет
-filters или конфигурацию курса. Site5.1.0 и QRC3.1.0 не обновляются.
+filters или конфигурацию курса. Site 5.1.0 и QRC 3.1.0 не обновляются.
 
-Exporter8 использует delivery v3 с Core8; прежний delivery v2 reader
+Exporter 8 использует delivery v3 с Core 8; прежний delivery v2 reader
 не объявляется совместимым. Body package остаётся v2. Эти опубликованные
 расширения не обновляют Platform/Gateway, сервисные OCI pins или production.
 Готовность учебных исходников, capture, архивов, экспорта, импорта и
