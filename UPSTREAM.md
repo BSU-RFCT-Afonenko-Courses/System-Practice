@@ -1,5 +1,43 @@
 # Происхождение технической поставки System Practice
 
+## Актуальная поставка расширений 8.0.0/8.0.0/3.2.0
+
+Три согласованных расширения установлены из фактических опубликованных
+immutable Releases. Теги, exact commits и sourceZip закреплены в
+`providers.json`; области установки и хеши генерирует штатный
+`tools/materialize-providers.py`. Активные candidate blocks не используются.
+
+| Владелец | Выпуск | Коммит |
+| --- | --- | --- |
+| Afonenko-Course-Tools/quarto-course | v8.0.0 | `5ee77e0e64d24c03ff6f3d384a890d69aa13f267` |
+| Afonenko-Course-Tools/quarto-project-publish | v5.1.0 | `62f8c4a01a5fd9af11f5f66abba2bb48c2ef2631` |
+| Afonenko-Course-Tools/quarto-reference-catalog | v3.1.0 | `3df2110e9f525f03f3ecb4926b5d55718e955c4c` |
+| Afonenko-Course-Tools/quarto-course-prairielearn | v8.0.0 | `66f5401d20febf9dea3c873373186c64c781039d` |
+| Afonenko-Course-Tools/quarto-project-download | v3.2.0 | `2dd97d8ce28c4ad514e869fe86d25dbc19f79def` |
+
+Site и QRC сохраняют прежние версии и байты этого курса. Все пакеты
+восстанавливаются существующей командой, без локального изменения реализации:
+
+```sh
+python3 tools/materialize-providers.py --providers-root /absolute/release-checkouts --write
+python3 tools/materialize-providers.py --check
+```
+
+Core/Presentation/Navigation сохраняют 18 областей. Exporter и Download
+добавлены только в `tasks`; установка файлов сама по себе не меняет
+filters или конфигурацию курса. Site 5.1.0 и QRC 3.1.0 не обновляются.
+
+Exporter 8 использует delivery v3 с Core 8; прежний delivery v2 reader
+не объявляется совместимым. Body package остаётся v2. Эти опубликованные
+расширения не обновляют Platform/Gateway, сервисные OCI pins или production.
+Готовность учебных исходников, capture, архивов, экспорта, импорта и
+студенческого/преподавательского интерфейса подтверждается отдельно.
+
+## История прежней статической поставки
+
+Следующие сведения относятся к прежнему выпуску и его фактическим проверкам.
+Они сохранены как история и не описывают новую готовность курса.
+
 Техническая статическая поставка от 17 октября 2026 года сохраняет учебные
 исходники принятого `b4ba287aa83213013a94e0add3bb6c5dcf068029`.
 Core candidate `c8b2fe868cf805301fb6ebeba6587f8c96197369` заменён настоящим

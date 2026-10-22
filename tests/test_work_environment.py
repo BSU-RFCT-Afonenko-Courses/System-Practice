@@ -25,10 +25,9 @@ class WorkEnvironmentTests(unittest.TestCase):
             'survey/result/line-count.txt': b'lines=2\n',
             'survey/explanation.md': 'fish 4; ../../source/morning log.txt; пояснение пути и выбора параметра.\n'.encode(),
         }
-        materials = json.loads((Path(__file__).resolve().parents[1] / 'tasks/projects/work-environment/materials.json').read_text())
-        start = materials['tasks/materials/work-environment-start.zip']
+        common = Path(__file__).resolve().parents[1] / 'tasks/common/work-environment'
         for name in ['survey/tools/count.ps1', 'survey/tools/count.fish']:
-            self.valid[name] = start[name].encode('utf-8')
+            self.valid[name] = (common / Path(name).name).read_bytes()
 
     def check(self, files):
         with zipfile.ZipFile(self.zip, 'w') as archive:

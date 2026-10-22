@@ -12,6 +12,8 @@ CONTRACT = PROJECT / 'expected.json'
 def check_archive(path):
     expected = json.loads(CONTRACT.read_text())
     supplied = json.loads((PROJECT / 'materials.json').read_text())['tasks/materials/work-environment-start.zip']
+    for script in ['count.ps1', 'count.fish']:
+        supplied['survey/tools/' + script] = (PROJECT.parents[1] / 'common/work-environment' / script).read_bytes().decode('utf-8')
     exact_files = expected['exactFiles'] | {name: supplied[expected['root'] + '/' + name]
                                            for name in expected['suppliedFiles']}
     errors = []

@@ -15,8 +15,6 @@ CHECKS.md и входной guide.patch по README из N. Starter `maintenance
 python3 tools/build_maintenance_materials.py --write
 python3 tools/build_maintenance_materials.py --check
 python3 tools/materialize_public_materials.py --write
-python3 tools/check_project_maintenance.py submission.zip --output receipt.json
-python3 tools/check_project_maintenance.py submission.tar.gz --output receipt.json
 ```
 
 Снимки/объекты, refs, индекс и архивные метаданные детерминированы.

@@ -33,7 +33,7 @@ function M.current_run(root)
   local pointer=io.open(root .. "/_generated/course-spec/active-native-run.json","r")
   if pointer then
     run=pandoc.json.decode(pointer:read("*a"));pointer:close()
-    assert(run.schema=="course-native-run-pointer-v1" and comparison(run.projectRoot)==comparison(root), diagnostics.format("NATIVE.RUN_POINTER_INVALID", "Указатель текущей сборки не соответствует проекту", {field="native-run"}))
+    assert(run.schema=="course-native-run-pointer-v2" and comparison(run.projectRoot)==comparison(root), diagnostics.format("NATIVE.RUN_POINTER_INVALID", "Указатель текущей сборки не соответствует проекту", {field="native-run"}))
     local prefix=root.."/_generated/course-spec/native-runs/"
     local directory=comparison(run.directory);prefix=comparison(prefix)
     assert(type(directory)=="string" and directory:sub(1,#prefix)==prefix and directory:sub(#prefix+1):match('^[%w%-]+$'), diagnostics.format("NATIVE.RUN_DIRECTORY_INVALID", "Каталог запуска должен принадлежать служебной области проекта", {field="native-run"}))
@@ -61,6 +61,45 @@ function M.current_run(root)
     for name,_ in pairs(run.configurationHashes) do if not seen[name] then return nil end end
   end
   return run
+end
+-- Каноническую declaration разрешает только совпавшая stock effective metadata.
+local module_file=debug.getinfo(1,'S').source:sub(2)
+local function plain(value)
+  if type(value)~='table' then return value end
+  local kind=pandoc.utils.type(value)
+  if kind=='Inlines' or kind=='MetaInlines' or kind=='Blocks' or kind=='MetaBlocks' then return pandoc.utils.stringify(value) end
+  local result={}
+  for key,item in pairs(value) do result[key]=plain(item) end
+  return result
+end
+local function same(a,b)
+  if type(a)~=type(b) then return false end
+  if type(a)~='table' then return a==b end
+  for k,v in pairs(a) do if not same(v,b[k]) then return false end end
+  for k,_ in pairs(b) do if a[k]==nil then return false end end
+  return true
+end
+function M.bound_materialization(doc)
+  local root=assert(quarto.project.directory,'Требуется native owner')
+  local run=M.current_run(root)
+  if not run then
+    assert(doc.meta['project-materialization']==nil,diagnostics.format('NATIVE.COMMON_PATH_BINDING_INVALID','Common capture требует текущий private witness',{field='project-materialization'}))
+    return nil
+  end
+  local ref=run.commonPathBinding
+  assert(type(ref)=='table' and ref.file=='common-files-path-binding.json' and type(ref.sha1)=='string' and type(ref.sha256)=='string',diagnostics.format('NATIVE.COMMON_PATH_BINDING_INVALID','Отсутствует witness ref',{field='native-run'}))
+  local file=assert(io.open(run.directory..'/'..ref.file,'rb'))
+  local bytes=file:read('*a');file:close()
+  assert(pandoc.utils.sha1(bytes)==ref.sha1,diagnostics.format('NATIVE.COMMON_PATH_BINDING_INVALID','Witness SHA1 изменён',{field='native-run'}))
+  -- Штатный Quarto/Deno проверяет regular files, symlinks компонентов,
+  -- SHA256 и source/config/common hashes, без платформенного readlink.
+  local entry=pandoc.path.join({pandoc.path.directory(module_file),'entrypoints/common-path-binding.ts'})
+  local raw=pandoc.pipe(os.getenv('QUARTO') or 'quarto',{'run',entry,'--','--root',root,'--source',source(root),'--format',FORMAT},'')
+  local proof=pandoc.json.decode(raw)
+  if proof.effectiveDeclarations==pandoc.json.null then proof.effectiveDeclarations=nil end
+  if proof.canonicalDeclarations==pandoc.json.null then proof.canonicalDeclarations=nil end
+  assert(proof.source==source(root) and proof.format==FORMAT and same(plain(doc.meta['project-materialization']),proof.effectiveDeclarations),diagnostics.format('NATIVE.COMMON_PATH_BINDING_INVALID','Effective materialization не совпадает с current witness',{field='project-materialization'}))
+  return require('./projects').materialization({['project-materialization']=proof.canonicalDeclarations})
 end
 function M.write(value)
   local root = assert(quarto.project.directory, "Требуется проект Quarto")

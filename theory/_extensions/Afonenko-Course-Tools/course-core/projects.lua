@@ -6,7 +6,7 @@ local M={}
 local countShape={['at-least']='integer',exactly='integer'}
 local expectationShape={['student-compilation']=true,job=true,['required-tests']=true,classification=true,['failed-tests']=countShape,['executed-tests']=countShape,['test-ids']='array',score={['less-than']='number',['at-least']='number',exactly='number'}}
 local checkShape={['source-profile']=true,runtime=true,java={release=true,encoding=true,['compiler-options']='array'},limits={['outer-seconds']=true,['compile-seconds']=true,['run-seconds']=true,networking=true,['max-output-bytes']=true},
- scoring={mode=true,groups='array',basis=true,value=true},references='array',tests='array',['verification-tests']='array',['contract-cases']=true,
+ feedback={requirement=true,['what-check']=true},['public-cases']='array',scoring={mode=true,groups='array',basis=true,value=true},references='array',tests='array',['verification-tests']='array',['contract-cases']=true,
  ['verification-expectations']={reference=expectationShape,starter=expectationShape},
  discovery={['min-executed']=true,['allow-skipped']=true},variants={correct='array',mutants='array'},
  ['additional-java-sources']={archive=true,['max-files']='integer',['max-file-bytes']='integer',['max-total-bytes']='integer',['max-archive-bytes']='integer'},
@@ -29,6 +29,7 @@ local function decode(value,shape,path)
    local list=pandoc.List()
    for _,entry in ipairs(item) do
     if key=='references' then list:insert(decode(entry,{name=true,root=true,optional=true},path..'.references'))
+    elseif key=='public-cases' then list:insert(decode(entry,{id=true,name=true,test=true,input=true,state=true,action=true,expected=true},path..'.public-cases'))
     elseif key=='groups' then list:insert(decode(entry,{id=true,weight=true,tests='array'},path..'.groups'))
     else list:insert(scalar(entry)) end
    end
@@ -98,6 +99,20 @@ function M.resolve(config,name,id)
  if result.limits and result.limits.networking~=nil and result.limits.networking~=false then fail('limits.networking','Network must be false',id) end
  if result.discovery and result.discovery['allow-skipped']~=nil and type(result.discovery['allow-skipped'])~='boolean' then fail('discovery.allow-skipped','Требуется boolean',id) end
  if result.discovery and result.discovery['min-executed'] then result.discovery['min-executed']=tonumber(result.discovery['min-executed']);if not result.discovery['min-executed'] or result.discovery['min-executed']<1 or result.discovery['min-executed']%1~=0 then fail('discovery.min-executed','Требуется положительный integer',id) end end
+ local feedback=result.feedback
+ if feedback then
+  if not feedback.requirement or not feedback['what-check'] then fail('feedback','Требуются requirement и what-check',id) end
+  for _,value in pairs(feedback) do if type(value)~='string' or value=='' or #value>8192 then fail('feedback','Требуется явный публичный текст',id) end end
+ end
+ local publicIds={}
+ if result['public-cases'] then
+  if #result['public-cases']>32 then fail('public-cases','Слишком много публичных сценариев',id) end
+  for _,case in ipairs(result['public-cases']) do
+   if not case.name or not case.name:match('%S') or #case.name>256 or not case.id or case.id=='' or not case.test or case.test=='' or case.expected==nil or not (case.input or case.state or case.action) or publicIds[case.id] then fail('public-cases','Требуются distinct id/test/expected и input/state/action',id) end
+   publicIds[case.id]=true
+   for _,value in pairs(case) do if type(value)~='string' or #value>8192 then fail('public-cases','Требуется непустой текст ограниченной длины',id) end end
+  end
+ end
  local extras=result['additional-java-sources']
  if extras then
   if source.mode~='implementation' or result.runtime~='java25-junit-v1' then fail('additional-java-sources','Дополнительные Java sources требуют Java implementation',id) end
@@ -116,8 +131,41 @@ function M.resolve(config,name,id)
  end
  return result
 end
-function M.collect(doc,facts)
+-- Keep all effective owner declarations: a key may belong to another QMD.
+function M.materialization(meta)
+ local raw=meta['project-materialization'];if raw==nil then return nil end
+ local declarations={}
+ for key,_ in pairs(raw) do if key~='projects' then fail('project-materialization.'..key,'Неизвестное поле materialization') end end
+ if type(raw.projects)~='table' then fail('project-materialization.projects','Требуется словарь проектов') end
+ local function safe(value,field)
+  path(value,field)
+  if value:find('[%z*?%[%]{}:]') or value:find('//',1,true) or value:sub(-1)=='/' then fail(field,'Требуется явный относительный путь файла') end
+  for segment in value:gmatch('[^/]+') do if segment=='.git' then fail(field,'Служебный .git недопустим в mapping') end end
+ end
+ for id,entry in pairs(raw.projects) do
+  local field='project-materialization.projects.'..id
+  if type(entry)~='table' then fail(field,'Требуется словарь') end
+  for key,_ in pairs(entry) do if key~='common-files' and key~='include-git' then fail(field..'.'..key,'Неизвестное поле materialization') end end
+  if type(entry['common-files'])~='table' then fail(field..'.common-files','Требуется список common-files') end
+  for key,_ in pairs(entry['common-files']) do if type(key)~='number' or key%1~=0 or key<1 or key>#entry['common-files'] then fail(field..'.common-files','Требуется список common-files') end end
+  if entry['include-git']~=nil and type(entry['include-git'])~='boolean' then fail(field..'.include-git','Требуется boolean') end
+  local files=pandoc.List();local targets={}
+  for _,item in ipairs(entry['common-files']) do
+   local file=decode(item,{source=true,target=true,audience=true},field..'.common-files')
+   safe(file.source,field..'.source');safe(file.target,field..'.target')
+   if file.audience~='student' and file.audience~='grading' then fail(field..'.audience','Неизвестная аудитория') end
+   if file.audience=='student' and not file.target:match('^student/.+') then fail(field..'.target','Публичный target должен находиться в student/') end
+   if file.audience=='grading' and file.target:match('^student/') then fail(field..'.target','Grading-only target не может находиться в student/') end
+   if targets[file.target] then fail(field..'.target','Повторный target') end;targets[file.target]=true
+   files:insert(file)
+  end
+  declarations[id]={commonFiles=files,includeGit=entry['include-git']}
+ end
+ return declarations
+end
+function M.collect(doc,facts,bound)
  local config=M.configuration(doc.meta)
+ local materialization=bound or M.materialization(doc.meta) or {}
  local result=pandoc.List()
  for _,fact in pairs(facts) do
   if fact.project then
@@ -126,7 +174,7 @@ function M.collect(doc,facts)
    local statement=fact.statementVisibility or 'open'
    local open=statement=='open'
    result:insert({exerciseId=fact.id,source=fact.source,projectRoot=project,bankMember=fact.banked,purpose=fact.purpose,
-    statementVisibility=statement,artifactPolicy={student=open and (fact.purpose=='demonstration' and 'full' or 'starter') or nil,full='full',conditions=open},check=check})
+    statementVisibility=statement,artifactPolicy={student=open and (fact.purpose=='demonstration' and 'full' or 'starter') or nil,full='full',conditions=open},check=check,materialization=materialization[fact.id]})
   end
  end
  table.sort(result,function(a,b)return a.exerciseId<b.exerciseId end)

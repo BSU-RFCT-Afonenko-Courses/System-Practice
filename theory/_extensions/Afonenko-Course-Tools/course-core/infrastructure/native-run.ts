@@ -13,8 +13,10 @@ import {
   normalizeResourceFacts,
   validateCapturedResources,
 } from "./resources.ts";
+import {produceCommonPathBinding,readCommonPathBinding,validateCapturedCommon,stable} from "./common-path-binding.ts";
+import {validateCompletedExportScope} from './native-export-retirement.ts';
 export interface NativeRunPointer {
-  schema: "course-native-run-pointer-v1";
+  schema: "course-native-run-pointer-v2";
   directory: string;
   projectRoot: string;
   profiles: string[];
@@ -22,6 +24,8 @@ export interface NativeRunPointer {
   initialInputFiles?: string[];
   renderAll: boolean;
   configurationHashes: Record<string,string|false>;
+  commonPathBinding: {file:"common-files-path-binding.json";sha1:string;sha256:string};
+  commonPathRetirement?: {profile:string;file:string;sha1:string;sha256:string};
 }
 export interface NativeRun {
   schema: "course-native-run-v1";
@@ -62,15 +66,17 @@ async function configurationHashes(root:string,activeProfiles:string[]):Promise<
 }
 async function pointer(root: string): Promise<NativeRunPointer> {
   const p = await read(join(base(root), "active-native-run.json"));
-  if (p.schema !== "course-native-run-pointer-v1" || p.projectRoot !== root) {
+  if (p.schema !== "course-native-run-pointer-v2" || p.projectRoot !== root) {
     throw diagnostic("NATIVE.RUN_POINTER_INVALID", "Указатель текущей native-сборки некорректен", {source: root, field: "native-run"});
   }
+  if(Object.keys(p).some(k=>!['schema','directory','projectRoot','profiles','outputDirectory','initialInputFiles','renderAll','configurationHashes','commonPathBinding','commonPathRetirement'].includes(k))||!Array.isArray(p.profiles)||p.profiles.some((x:unknown)=>typeof x!=='string'||!/^[-a-zA-Z0-9_]+$/.test(x))||typeof p.renderAll!=='boolean')throw diagnostic('NATIVE.RUN_POINTER_INVALID','Некорректная private pointer schema',{source:root,field:'native-run'});
   child(join(base(root), "native-runs"), p.directory);
   await contained(root, p.directory);
   const current=Array.isArray(p.profiles)?await configurationHashes(root,p.profiles):{};
   if(!Array.isArray(p.profiles) || !p.configurationHashes || Object.keys(current).length!==Object.keys(p.configurationHashes).length || Object.entries(current).some(([name,hash])=>p.configurationHashes[name]!==hash)) {
     throw diagnostic("NATIVE.RUN_NOT_CURRENT","Нативная конфигурация изменилась после начала запуска",{source:root,field:"native-run"});
   }
+  await readCommonPathBinding(p);
   return p;
 }
 async function list(root: string, key: string) {
@@ -100,7 +106,7 @@ export async function beginNativeRun(
   await Deno.mkdir(base(root), { recursive: true });
   await contained(root, base(root));
   for (
-    const name of ["native-run.json", "course.json", "course-candidate.json"]
+    const name of ["active-native-run.json", "native-run.json", "course.json", "course-candidate.json"]
   ) {
     const path = join(base(root), name);
     if (await exists(path)) await Deno.remove(path);
@@ -112,8 +118,8 @@ export async function beginNativeRun(
   const directory = join(runs, crypto.randomUUID());
   await Deno.mkdir(join(directory, "documents"), { recursive: true });
   await Deno.mkdir(join(directory, "adapters"));
-  const p: NativeRunPointer = {
-    schema: "course-native-run-pointer-v1",
+  const p = {
+    schema: "course-native-run-pointer-v2",
     projectRoot: root,
     directory,
     profiles: profiles(),
@@ -121,7 +127,8 @@ export async function beginNativeRun(
     initialInputFiles: await list(root, "QUARTO_PROJECT_INPUT_FILES"),
     renderAll: Deno.env.get("QUARTO_PROJECT_RENDER_ALL") === "1",
     configurationHashes:await configurationHashes(root,profiles()),
-  };
+  } as NativeRunPointer;
+  p.commonPathBinding=await produceCommonPathBinding(p);
   await Deno.writeTextFile(
     join(base(root), "active-native-run.json"),
     JSON.stringify(p),
@@ -306,9 +313,13 @@ export async function saveNativeRun(run:NativeRun,persistDocuments=false){
     await Deno.mkdir(directory,{recursive:true});
     await Deno.writeTextFile(join(directory,filename),encoded);
   }
+  const witness=await readCommonPathBinding(p);await validateCapturedCommon(run,witness);
   const serialized=JSON.stringify({...run,directory:p.directory,adapters:run.adapters.map(a=>({...a,fragments:[...a.fragments.values()]}))});
   await Deno.writeTextFile(join(p.directory,"native-run.json"),serialized);
   await Deno.writeTextFile(join(base(root),"native-run.json"),serialized);
+  if(witness.forcedWriter){try{await validateCompletedExportScope(p,witness)}catch(e){
+   for(const file of [join(p.directory,'native-run.json'),join(base(root),'native-run.json')]){try{if(await Deno.readTextFile(file)===serialized)await Deno.remove(file)}catch{}}throw e;
+  }}
 }
 /** Rebind only the exporter-owned temporary profile's planned removal. */
 export async function prepareNativeExportCleanup(projectRoot:string,profile:string){
@@ -319,6 +330,10 @@ export async function prepareNativeExportCleanup(projectRoot:string,profile:stri
   }
   const name="_quarto-"+profile+".yml";
   if(!(name in p.configurationHashes))throw diagnostic("NATIVE.RUN_NOT_CURRENT","Временный профиль отсутствует в текущем запуске",{source:root,field:"native-run"});
+  const witness=await readCommonPathBinding(p),owned=witness.temporaryExportProfile;
+  if(!owned||owned.profile!==profile||owned.file!==name||owned.sha1!==p.configurationHashes[name])throw diagnostic("NATIVE.RUN_NOT_CURRENT","Профиль не принадлежит generated export текущего запуска",{source:root,field:"native-run"});
+  await validateCompletedExportScope(p,witness);
+  p.commonPathRetirement=owned;
   p.configurationHashes[name]=false;
   await Deno.writeTextFile(join(base(root),"active-native-run.json"),JSON.stringify(p));
 }
@@ -343,11 +358,28 @@ export async function loadNativeRun(
     expectation.outputDirectory &&
       resolve(root, expectation.outputDirectory) !== run.outputDirectory
   ) throw diagnostic("NATIVE.EXPECTATION_MISMATCH", "Native-сборка не соответствует выбранному профилю, представлению или каталогу", {source: root, field: "native-run"});
+  const witness=await readCommonPathBinding(p);await validateCapturedCommon(run,witness);
+  if(witness.forcedWriter)await validateCompletedExportScope(p,witness);
   run.adapters = run.adapters.map((a: any) => ({
     ...a,
     fragments: new Map(a.fragments.map((f: AdapterFragment) => [f.source, f])),
   }));
   return run;
+}
+
+/** Внутренний мост Lua, связанный с текущим pointer, без caller override. */
+export async function commonPathDocument(root:string,source:string,format:string){
+ root=await Deno.realPath(root);const p=await pointer(root),w=await readCommonPathBinding(p);
+ const rows=w.documents.filter(d=>d.source===source&&d.format===format);
+ if(rows.length!==1)throw diagnostic('NATIVE.COMMON_PATH_BINDING_INVALID','Неизвестный source/format текущего witness',{source,field:'native-run'});
+ return rows[0];
+}
+/** Произвольный retained NativeRun не разрешает materialization общих файлов. */
+export async function assertCommonPathRun(run:NativeRun){
+ const root=await Deno.realPath(run.projectRoot),p=await pointer(root),w=await readCommonPathBinding(p);
+ const current=await read(join(p.directory,'native-run.json'));
+ if(current.projectRoot!==run.projectRoot||current.outputDirectory!==run.outputDirectory||current.renderAll!==run.renderAll||stable(current.profiles)!==stable(run.profiles)||stable(current.documents)!==stable(run.documents)||stable(current.inputFiles)!==stable(run.inputFiles)||stable(current.outputFiles)!==stable(run.outputFiles))throw diagnostic('NATIVE.RUN_NOT_CURRENT','NativeRun не совпадает с текущим captured proof',{source:root,field:'native-run'});
+ await validateCapturedCommon(run,w);if(w.forcedWriter)await validateCompletedExportScope(p,w);return w;
 }
 
 // @ts-expect-error JS допускает замену function binding; сигнатура публичного API сохраняется.

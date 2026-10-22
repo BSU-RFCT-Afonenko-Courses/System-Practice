@@ -1,12 +1,29 @@
 {
-  "status": "Core 7.2.0 установлен из опубликованного v7.2.0; активных локальных patches нет",
+  "status": "Core8.0.0, PrairieLearn Exporter8.0.0 и Download3.2.0 установлены из опубликованных immutable Releases; активных локальных patches нет",
   "patches": [],
   "reproduction": "python3 tools/materialize-providers.py --providers-root /absolute/release-checkouts --write; затем --check",
   "historicalLocal16": null,
   "release": {
     "repository": "Afonenko-Course-Tools/quarto-course",
-    "tag": "v7.2.0",
-    "commit": "aebf6f4580c0bd5e9468498e840221619fc69e5f",
-    "url": "https://github.com/Afonenko-Course-Tools/quarto-course/releases/tag/v7.2.0"
-  }
+    "tag": "v8.0.0",
+    "commit": "5ee77e0e64d24c03ff6f3d384a890d69aa13f267",
+    "url": "https://github.com/Afonenko-Course-Tools/quarto-course/releases/tag/v8.0.0"
+  },
+  "releases": [
+    {
+      "repository": "Afonenko-Course-Tools/quarto-course",
+      "tag": "v8.0.0",
+      "commit": "5ee77e0e64d24c03ff6f3d384a890d69aa13f267"
+    },
+    {
+      "repository": "Afonenko-Course-Tools/quarto-course-prairielearn",
+      "tag": "v8.0.0",
+      "commit": "66f5401d20febf9dea3c873373186c64c781039d"
+    },
+    {
+      "repository": "Afonenko-Course-Tools/quarto-project-download",
+      "tag": "v3.2.0",
+      "commit": "2dd97d8ce28c4ad514e869fe86d25dbc19f79def"
+    }
+  ]
 }

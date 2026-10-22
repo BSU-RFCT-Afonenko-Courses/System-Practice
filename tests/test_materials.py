@@ -20,6 +20,10 @@ class MaterialsTests(unittest.TestCase):
         self.data = self.root / 'tasks/projects/work-environment/materials.json'
         self.data.parent.mkdir(parents=True)
         shutil.copyfile(SOURCE, self.data)
+        common = self.root / 'tasks/common/work-environment'
+        common.mkdir(parents=True)
+        for script in ['count.fish', 'count.ps1']:
+            shutil.copyfile(SOURCE.parents[2] / 'common/work-environment' / script, common / script)
 
     def test_missing_check_does_not_write(self):
         with self.assertRaises(ValueError):
