@@ -2,7 +2,7 @@
 import {dirname,join,relative,resolve} from 'stdlib/path';
 import {diagnostic} from '../domain/diagnostics.ts';
 import {command,quartoExecutable} from './process.ts';
-import {metadataBytes} from './metadata-closure.ts';
+import {metadataBytes,freshOwnerData,type FreshOwnerFrame} from './metadata-closure.ts';
 import {assertRetiredRegularDocument,verifiedRetirement,type RetiredRegularContext,type ExportRetirement} from './native-export-retirement.ts';
 const fail=(s:string):never=>{throw diagnostic('NATIVE.COMMON_PATH_BINDING_INVALID',s,{field:'project-materialization'})};
 const stable=(v:unknown):string=>JSON.stringify(v,(_k,x)=>x&&typeof x==='object'&&!Array.isArray(x)?Object.fromEntries(Object.entries(x).sort(([a],[b])=>a.localeCompare(b))):x);
@@ -52,3 +52,30 @@ export async function inspectSources(root:string,sources:string[],profiles:strin
  return {identities:{schema:'course-native-source-identities-v1',sources:records} as SourceIdentities,inspections,sourceHashes};
 }
 export function sameSourceMetadata(physical:any,lexical:any){if(stable(physical.metadata)!==stable(lexical.metadata))fail('Physical/lexical raw metadata не совпадают')}
+
+/** Actual raw records: owner rows для regular inputs; direct stdout для исключений. */
+export type CurrentSourceEvidence={identities:SourceIdentities;information:Record<string,any>;directInspections:Record<string,any>;sourceHashes:Record<string,string>;quartoVersion:string};
+export async function inspectCurrentSources(root:string,sources:string[],profiles:string[],expected:SourceIdentities,frame:FreshOwnerFrame,retirement:ExportRetirement|undefined,proof:{originals:{physical:Record<string,any>;lexical:Record<string,any>};retiredContext?:RetiredRegularContext;before:()=>Promise<unknown>}):Promise<CurrentSourceEvidence>{
+ const native=freshOwnerData(frame,root,profiles),information:Record<string,any>={},directInspections:Record<string,any>={},sourceHashes:Record<string,string>={},records:SourceIdentity[]=[];
+ if(!keys(expected,['schema','sources'])||expected.schema!=='course-native-source-identities-v1'||!Array.isArray(expected.sources)||expected.sources.length!==sources.length||new Set(sources).size!==sources.length)fail('Нет exact current source identities');
+ for(const [i,source] of sources.entries()){
+  const old=expected.sources[i];if(!keys(old,['source','physicalPath','linkTarget','nativeOwner','physicalInspectionHash'])||old.source!==source||old.nativeOwner!==root||typeof old.physicalPath!=='string'||!(old.linkTarget===null||typeof old.linkTarget==='string'&&!!old.linkTarget)||!/^[a-f0-9]{64}$/.test(old.physicalInspectionHash))fail('Некорректная current source identity');
+  await proof.before();const before=await sourceFile(root,source);
+  if(before.physicalPath!==old.physicalPath||before.linkTarget!==old.linkTarget)fail('Source identity устарела: '+source);
+  const row=native.fileInformation[source],regular=old.linkTarget===null&&old.physicalPath===resolve(root,source)&&native.files.input.includes(old.physicalPath)&&row!==undefined;
+  if(regular){
+   if(!row||!row.metadata||typeof row.metadata!=='object'||Array.isArray(row.metadata)||!Array.isArray(row.includeMap))fail('Нет actual owner raw source record');
+   const physical=proof.originals.physical[source],lexical=proof.originals.lexical[source];
+   if(!physical||!lexical||physical.quarto?.version!==native.quarto?.version||lexical.quarto?.version!==native.quarto?.version)fail('Quarto original/current identity изменена');
+   const a=sourceMetadata(physical,old.physicalPath),b=sourceMetadata(lexical,resolve(root,source));sameSourceMetadata(a,row);sameSourceMetadata(b,row);
+   if(stable(a.includeMap)!==stable(row.includeMap)||stable(b.includeMap)!==stable(row.includeMap))fail('Original/current includeMap изменён');
+   information[source]=row;records.push(old);sourceHashes[source]=await hash(before.bytes);
+  }else{
+   const direct=await inspectSources(root,[source],profiles,{schema:expected.schema,sources:[old]},retirement,{originals:proof.originals.physical,retiredContext:proof.retiredContext,before:proof.before});
+   const doc=direct.inspections[source];directInspections[source]=doc;information[source]=sourceMetadata(doc,old.physicalPath);records.push(direct.identities.sources[0]);sourceHashes[source]=direct.sourceHashes[source];
+  }
+  await proof.before();const after=await sourceFile(root,source);
+  if(before.physicalPath!==after.physicalPath||before.linkTarget!==after.linkTarget||await hash(before.bytes)!==await hash(after.bytes))fail('Source drift во время current owner inspection');
+ }
+ return {identities:{schema:expected.schema,sources:records},information,directInspections,sourceHashes,quartoVersion:native.quarto?.version};
+}

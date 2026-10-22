@@ -3,10 +3,10 @@
   "packages": {
     "course-core": {
       "repository": "Afonenko-Course-Tools/quarto-course",
-      "commit": "5ee77e0e64d24c03ff6f3d384a890d69aa13f267",
-      "tag": "v8.0.0",
-      "version": "8.0.0",
-      "sourceZip": "https://github.com/Afonenko-Course-Tools/quarto-course/archive/refs/tags/v8.0.0.zip",
+      "commit": "2e749ae08da9f1ca24e6058b8f80b40905714162",
+      "tag": "v8.2.0",
+      "version": "8.2.0",
+      "sourceZip": "https://github.com/Afonenko-Course-Tools/quarto-course/archive/refs/tags/v8.2.0.zip",
       "provider": "core",
       "scopes": [
         ".",
@@ -18,7 +18,7 @@
       ],
       "files": {
         "_extension.yml": {
-          "sha256": "ae532c660bdb12f3c736adb2b4ab7a950ccb884232f79fea1cd5f5426142db99",
+          "sha256": "87e74cc45bd16f706717572c9f4ee713f7fa7437aef19c02dd398d5c60393c2d",
           "size": 211,
           "mode": 420
         },
@@ -123,8 +123,8 @@
           "mode": 420
         },
         "domain/model.ts": {
-          "sha256": "d71653a4321531d8adc26e7fe9bdcb45431d90b98587c7edf5078b2099b4b1b1",
-          "size": 5551,
+          "sha256": "709f789ef089c5e69aa8ac653d455a039baf90414d24a7ca5b107fa3c9a1ce5c",
+          "size": 5664,
           "mode": 420
         },
         "domain/project-materialization.ts": {
@@ -213,8 +213,8 @@
           "mode": 420
         },
         "infrastructure/common-path-binding.ts": {
-          "sha256": "083891e94cd037eb3a7db94046ef645b5fc82c53ce7ac2a2215710c5081214e0",
-          "size": 30644,
+          "sha256": "1cd8941f8ae0ce11b5c51e1712793a8f2008b8f7f813a18b7b11a425f0a98a0f",
+          "size": 33025,
           "mode": 420
         },
         "infrastructure/files.ts": {
@@ -228,8 +228,8 @@
           "mode": 420
         },
         "infrastructure/metadata-closure.ts": {
-          "sha256": "45afc765539a81cc8217ece971dae126da8b1bf92d00786253ff059e04262166",
-          "size": 21502,
+          "sha256": "dc18dd22bd67b2d82a64c15d111fbf2e861a07309f2b4265dc731165806daf12",
+          "size": 23191,
           "mode": 420
         },
         "infrastructure/native-export-retirement.ts": {
@@ -238,8 +238,8 @@
           "mode": 420
         },
         "infrastructure/native-run.ts": {
-          "sha256": "dac74d75e6638ba813003d706878748c14c5e94891c5c27988da80f3f9ecb3ce",
-          "size": 21708,
+          "sha256": "95140fc3466f4b134465ce473484a68d9f3ee923885a415b1b4b68232196a026",
+          "size": 21912,
           "mode": 420
         },
         "infrastructure/owned-export-profile.ts": {
@@ -258,8 +258,8 @@
           "mode": 420
         },
         "infrastructure/source-identities.ts": {
-          "sha256": "dae6848ee16a600d870aae1185a565f43d2117cd1b9d154a8fd1c55909eb583c",
-          "size": 6388,
+          "sha256": "7950d3d54c94473e38336bb1dc898359243960d27c450684c19d4057e1120fe3",
+          "size": 10042,
           "mode": 420
         },
         "infrastructure/validate.ts": {
@@ -313,8 +313,8 @@
           "mode": 420
         },
         "project-checks/collect.ts": {
-          "sha256": "7bbc5285d38eff909f46cc1037fcf3d2fc85cf58f2a773e1786786db48a5892b",
-          "size": 11205,
+          "sha256": "eae41fd97d0725e4d389707ae0564476a5b91facf9d7e6bb1c3f22d987ebeabe",
+          "size": 12120,
           "mode": 420
         },
         "project-checks/manifest.cue": {
@@ -323,13 +323,13 @@
           "mode": 420
         },
         "projects.lua": {
-          "sha256": "bd443656870bd77b82b1d69e665b22ffd80a67b60752131494d856a27ceae54d",
-          "size": 15117,
+          "sha256": "99594c86f538765d189f34673ffc2937f5461f47bb7cd82a84dbccb720e6d8a7",
+          "size": 16328,
           "mode": 420
         },
         "spec/core.cue": {
-          "sha256": "5f347f33dd350b766d0aee99cc00a68f6a083925780b381ade9c67b569a23e16",
-          "size": 10230,
+          "sha256": "b2a4978ef6134cb3ebffe3c268a4d6981b242761ddb6c2b5b2e007a52d02d1be",
+          "size": 10664,
           "mode": 420
         },
         "visibility.lua": {
@@ -343,14 +343,14 @@
           "mode": 420
         }
       },
-      "extensionTree": "e87af795103359ebcf16e636785f5e70ade2d259"
+      "extensionTree": "475f950fa25556644bf40d3bd6cf03e61aa06785"
     },
     "course-presentation": {
       "repository": "Afonenko-Course-Tools/quarto-course",
-      "commit": "5ee77e0e64d24c03ff6f3d384a890d69aa13f267",
-      "tag": "v8.0.0",
-      "version": "8.0.0",
-      "sourceZip": "https://github.com/Afonenko-Course-Tools/quarto-course/archive/refs/tags/v8.0.0.zip",
+      "commit": "2e749ae08da9f1ca24e6058b8f80b40905714162",
+      "tag": "v8.2.0",
+      "version": "8.2.0",
+      "sourceZip": "https://github.com/Afonenko-Course-Tools/quarto-course/archive/refs/tags/v8.2.0.zip",
       "provider": "core",
       "scopes": [
         ".",
@@ -362,7 +362,7 @@
       ],
       "files": {
         "_extension.yml": {
-          "sha256": "b2fc6931e16de304e847340206288203fb9f56105ee14e6f517935b313d232d7",
+          "sha256": "4eb810ac695c2c77dfbbbc0c243890544f37b77ebe28393afdfafb0d6ffcc3a3",
           "size": 178,
           "mode": 420
         },
@@ -427,14 +427,14 @@
           "mode": 420
         }
       },
-      "extensionTree": "63a93a81714c680289c889edc268e4922488e158"
+      "extensionTree": "9bb9f8fe18a13e5659b49b41b5d0038f857002b6"
     },
     "course-navigation": {
       "repository": "Afonenko-Course-Tools/quarto-course",
-      "commit": "5ee77e0e64d24c03ff6f3d384a890d69aa13f267",
-      "tag": "v8.0.0",
-      "version": "8.0.0",
-      "sourceZip": "https://github.com/Afonenko-Course-Tools/quarto-course/archive/refs/tags/v8.0.0.zip",
+      "commit": "2e749ae08da9f1ca24e6058b8f80b40905714162",
+      "tag": "v8.2.0",
+      "version": "8.2.0",
+      "sourceZip": "https://github.com/Afonenko-Course-Tools/quarto-course/archive/refs/tags/v8.2.0.zip",
       "provider": "core",
       "scopes": [
         ".",
@@ -446,12 +446,12 @@
       ],
       "files": {
         "README.md": {
-          "sha256": "c64c4734222a9e16ad450d3374d95adba409925a9756fbc2f7d8280a98e5925e",
-          "size": 8414,
+          "sha256": "3b805ed9d3c8bd7e4d7d495ec5cf38de0269b69a564868272643ffe12e006f23",
+          "size": 8424,
           "mode": 420
         },
         "_extension.yml": {
-          "sha256": "a695bd563f114e558a83bc809789b722611562088a4301ac0d119fe6776bf796",
+          "sha256": "5c09f759799290800dde6ef7373ce26e6fa5311bf9b04f2f62c99db8b8dbafae",
           "size": 252,
           "mode": 420
         },
@@ -506,7 +506,7 @@
           "mode": 420
         }
       },
-      "extensionTree": "67123df7fc4b2521b6cf8cae62baeb488b6ff329"
+      "extensionTree": "e0132b7e29702a73fc95092ea1f881d49beec190"
     },
     "course-site": {
       "repository": "Afonenko-Course-Tools/quarto-project-publish",
@@ -1063,17 +1063,17 @@
     },
     "course-prairielearn": {
       "repository": "Afonenko-Course-Tools/quarto-course-prairielearn",
-      "commit": "66f5401d20febf9dea3c873373186c64c781039d",
-      "tag": "v8.0.0",
-      "version": "8.0.0",
-      "sourceZip": "https://github.com/Afonenko-Course-Tools/quarto-course-prairielearn/archive/refs/tags/v8.0.0.zip",
+      "commit": "316cf4d2c21b2d1022f69b84892742ac59eec4a2",
+      "tag": "v8.2.0",
+      "version": "8.2.0",
+      "sourceZip": "https://github.com/Afonenko-Course-Tools/quarto-course-prairielearn/archive/refs/tags/v8.2.0.zip",
       "provider": "prairielearn",
       "scopes": [
         "tasks"
       ],
       "files": {
         "_extension.yml": {
-          "sha256": "d4571b2ec184c004b63ccdd5ea55ba0d7332a94b41a3c0f36aee5dc6c3e01963",
+          "sha256": "203d7760bbc84ae98efad5ec7d61257dd41f180f6632b9a8ed6c8a344ed32962",
           "size": 517,
           "mode": 420
         },
@@ -1093,13 +1093,13 @@
           "mode": 420
         },
         "application/export-course.ts": {
-          "sha256": "81a5680c2248c7288849bc319efcaccb0f35af231a46bc17d67d7b079f69f84a",
-          "size": 20397,
+          "sha256": "6ffaadf04f765868fc3cf3d3763b08b2e185661d1631a9946d13abc255c7333d",
+          "size": 23735,
           "mode": 420
         },
         "application/export.ts": {
-          "sha256": "411c4203e26250af73300e72ea5369d5b2d8b380d16509b45851895cad79fed6",
-          "size": 29974,
+          "sha256": "255d877b9967b90543b03882b595f3d10e3a3b418b583e684198aaf38b053c26",
+          "size": 30427,
           "mode": 420
         },
         "application/grading-descriptor.ts": {
@@ -1110,6 +1110,11 @@
         "application/grading-policy.ts": {
           "sha256": "911df450c2e1bd560da2a34142dbb0c1cbe0502c92dc07136491d6248f5ff4ef",
           "size": 7172,
+          "mode": 420
+        },
+        "application/java-build.ts": {
+          "sha256": "269cfb1e219680100b4f4b3ad26e774f37a3d7bdd731933f730a4e5791e4489e",
+          "size": 1403,
           "mode": 420
         },
         "application/materialized-student.ts": {
@@ -1128,8 +1133,8 @@
           "mode": 420
         },
         "application/runtime-descriptor.ts": {
-          "sha256": "0d25f73a628fc397fed8329cd32b72a6d9148aed932ff13d8dcb1c62b0c59c92",
-          "size": 5043,
+          "sha256": "a7ecec067c45c35e475c40c1cef1c7e6fde25c179ba243fa8b857ab4531ddd12",
+          "size": 5264,
           "mode": 420
         },
         "application/slots.ts": {
@@ -1138,8 +1143,8 @@
           "mode": 420
         },
         "application/source-selection.ts": {
-          "sha256": "818e204b4b84b08fdc252738799367139241eca98e07de68d9b3a6809c3a0c95",
-          "size": 5249,
+          "sha256": "6623fad55070e52d3d7429d12eafa530f9562b2485509ca659f5b2f32c82da65",
+          "size": 5337,
           "mode": 420
         },
         "application/verification-inventory.ts": {
@@ -1153,7 +1158,7 @@
           "mode": 420
         },
         "contract.json": {
-          "sha256": "5354f0094fb259f1b10788cd86bee587b903c23e14b4d59758e92300c95a24b2",
+          "sha256": "67e979fa3f2aed4be2b73011bc0b65293b342ff869ce74cf9113aa22c9f598cc",
           "size": 373,
           "mode": 420
         },
@@ -1188,8 +1193,8 @@
           "mode": 420
         },
         "native.lua": {
-          "sha256": "66926879e8f00a2ff34766802d52329f3d4ddb5346a20619b2ad5eacbddd13e6",
-          "size": 7682,
+          "sha256": "ab47e3447f0ac4c109f4e7cf571520c6297b7fc26b95008fd5aa3eb006c2255f",
+          "size": 7716,
           "mode": 420
         },
         "observability/bridge.lua": {
@@ -1253,7 +1258,7 @@
           "mode": 420
         }
       },
-      "extensionTree": "88c6fe4139c58acae0fd60d27ef3045bb7276162"
+      "extensionTree": "f6a0057e200259412152fc04706c28272b999753"
     },
     "project-download": {
       "repository": "Afonenko-Course-Tools/quarto-project-download",

@@ -133,13 +133,17 @@ import "list"
  "verification-expectations"?:{reference?:#VerificationExpectation,starter?:#VerificationExpectation}
  discovery?:{"min-executed"?:int & >0,"allow-skipped"?:bool}
  variants?:{correct:[...string] & list.MinItems(1),mutants:[...string] & list.MinItems(1)}
+ "java-build"?:#JavaBuild
+ if runtime == "java25-gradle-junit-v1" {"java-build":#JavaBuild,sourceProfile:mode:"implementation"}
+ if CHECK["java-build"] != _|_ {runtime:"java25-gradle-junit-v1",sourceProfile:mode:"implementation"}
  "additional-java-sources"?:#AdditionalJavaSources
- if CHECK["additional-java-sources"] != _|_ {runtime:"java25-junit-v1",sourceProfile:mode:"implementation"}
+ if CHECK["additional-java-sources"] != _|_ {runtime:"java25-junit-v1"|"java25-gradle-junit-v1",sourceProfile:mode:"implementation"}
  "api-precheck"?:#ApiPrecheck
  "verification-api-precheck"?:#ApiPrecheck
- if CHECK["api-precheck"] != _|_ {runtime:"java25-junit-v1",sourceProfile:mode:"implementation"}
- if CHECK["verification-api-precheck"] != _|_ {runtime:"java25-junit-v1",sourceProfile:mode:"implementation"}
+ if CHECK["api-precheck"] != _|_ {runtime:"java25-junit-v1"|"java25-gradle-junit-v1",sourceProfile:mode:"implementation"}
+ if CHECK["verification-api-precheck"] != _|_ {runtime:"java25-junit-v1"|"java25-gradle-junit-v1",sourceProfile:mode:"implementation"}
 }
+#JavaBuild: {kind:"gradle-jar-v1","main-class":#ApiPrecheck.entry,artifact:string & =~"^[A-Za-z0-9][A-Za-z0-9_-]{0,100}\\.jar$"}
 #AdditionalJavaSources: {archive:string & =~"^[A-Za-z0-9][A-Za-z0-9_-]{0,100}\\.zip$","max-files":int & >=1 & <=128,"max-file-bytes":int & >=1 & <=1048576,"max-total-bytes":int & >=1 & <=4194304,"max-archive-bytes":int & >=1 & <=2097152}
 #ApiPrecheck: {files:[...string & !=""] & list.MinItems(1),entry:string & =~"^[A-Za-z_$][A-Za-z0-9_$]*(\\.[A-Za-z_$][A-Za-z0-9_$]*)*$"}
 #ProjectMaterialization: {commonFiles:[...{source:string & !="",target:string & !="",audience:"student"|"grading"}],includeGit?:bool}

@@ -3,8 +3,8 @@ import {basename,dirname,fromFileUrl,join,relative,resolve} from 'stdlib/path';
 import {diagnostic} from '../domain/diagnostics.ts';
 import {command,quartoExecutable} from './process.ts';
 import type {NativeRun,NativeRunPointer} from './native-run.ts';
-import {collectMetadataClosure,validateMetadataClosure,closureInputs,configIdentities,commonKey,metadataBytes,type MetadataClosure,type MetadataInputs,nativeExtensionRoots} from './metadata-closure.ts';
-import {inspectSources,sourceFile,sourceMetadata,sameSourceMetadata,type SourceIdentities} from './source-identities.ts';
+import {collectMetadataClosure,validateMetadataClosure,closureInputs,configIdentities,commonKey,metadataBytes,type MetadataClosure,type MetadataInputs,nativeExtensionRoots,withFreshOwnerFrame,freshOwnerData} from './metadata-closure.ts';
+import {inspectSources,inspectCurrentSources,sourceFile,sourceMetadata,sameSourceMetadata,type SourceIdentities} from './source-identities.ts';
 import {captureOwnedProfile,assertProducerProfileCurrent,readOwnedProfileEvidence,assertOwnedProfileCurrent} from './owned-export-profile.ts';
 import {storeInspection,checkInspectionStore,inspectionRefs,originalInspections} from './inspection-preimages.ts';
 import {completedExportRetirement,prepareRetiredRegularContext,checkRetiredRegularContext,validateCompletedExportScope} from './native-export-retirement.ts';
@@ -102,7 +102,12 @@ async function currentInputs(root:string,w:CommonPathWitness,p:NativeRunPointer)
   const expect=retired&&name===retired.file?false:hash;
   const bytes=await regular(root,name,true);if((bytes?await digest(bytes):false)!==expect)fail('Proof устарел: '+name);
  }
- for(const [name,hash] of Object.entries(w.sourceHashes)){const bytes=w.inputFiles.includes(name)?(await sourceFile(root,name)).bytes:await regular(root,name,true);if(!bytes||await digest(bytes)!==hash)fail('Source proof устарел: '+name)}
+ for(const [name,hash] of Object.entries(w.sourceHashes)){
+  let bytes:Uint8Array|undefined;
+  if(w.inputFiles.includes(name)){const live=await sourceFile(root,name),old=w.sourceIdentities.sources.find(x=>x.source===name);if(!old||live.physicalPath!==old.physicalPath||live.linkTarget!==old.linkTarget)fail('Source identity устарела: '+name);bytes=live.bytes}else bytes=await regular(root,name,true);
+  if(!bytes||await digest(bytes)!==hash)fail('Source proof устарел: '+name)
+ }
+ for(const origin of w.metadataClosure.origins){const expect=p.commonPathRetirement&&origin.path===join(root,p.commonPathRetirement.file)?false:origin.sha256;const bytes=await metadataBytes(origin.path);if((bytes?await digest(bytes):false)!==expect)fail('Metadata origin устарел: '+origin.path)}
 }
 export async function produceCommonPathBinding(p:NativeRunPointer){
  const root=p.projectRoot,before=await inventory(root,p.outputDirectory);
@@ -204,6 +209,16 @@ async function validateOriginalInspections(w:CommonPathWitness){
  }
  return original;
 }
+// Snapshot только внутри вызова: точный invoked tool/cwd/env, без persisted cache.
+async function invocationIdentity(root:string){
+ const requested=quartoExecutable(),environment=stable(Deno.env.toObject());let path:string|undefined;
+ if(requested.includes('/')||requested.includes('\\'))path=resolve(root,requested);
+ else for(const dir of (Deno.env.get('PATH')||'').split(Deno.build.os==='windows'?';':':')){const candidate=resolve(root,dir||'.',requested);try{if((await Deno.stat(candidate)).isFile){path=candidate;break}}catch(e){if(!(e instanceof Deno.errors.NotFound))throw e}}
+ if(!path)fail('Не разрешён stock executable');
+ const lexical=await Deno.lstat(path!),physical=await Deno.realPath(path!),info=await Deno.lstat(physical);
+ if(!info.isFile||info.isSymlink)fail('Stock executable не regular');
+ return stable({requested,path,physical,link:lexical.isSymlink?await Deno.readLink(path!):null,identity:{dev:info.dev,ino:info.ino,mode:info.mode,size:info.size,mtime:info.mtime?.getTime(),ctime:info.ctime?.getTime()},hash:await digest(await Deno.readFile(physical)),environment:await digest(new TextEncoder().encode(environment)),cwd:Deno.cwd(),profiles:Deno.env.get('QUARTO_PROFILE')});
+}
 export async function readCommonPathBinding(p:NativeRunPointer):Promise<CommonPathWitness>{
  const ref=p.commonPathBinding;if(!ref||Object.keys(ref).sort().join(',')!=='file,sha1,sha256'||ref.file!=='common-files-path-binding.json')fail('Отсутствует private witness ref');
  const bytes=await regular(p.directory,ref.file);if(!bytes||await digest(bytes)!==ref.sha256||await digest(bytes,'SHA-1')!==ref.sha1)fail('Witness bytes/hash изменены');
@@ -220,12 +235,24 @@ export async function readCommonPathBinding(p:NativeRunPointer):Promise<CommonPa
  const configNames=['_quarto.yml','_quarto.yaml',...p.profiles.flatMap(x=>['_quarto-'+x+'.yml','_quarto-'+x+'.yaml'])];
  for(const source of w.inputFiles){let dir=dirname(source);while(true){for(const name of ['_metadata.yml','_metadata.yaml',...(dir==='.'?[]:['_quarto.yml','_quarto.yaml'])])configNames.push(dir==='.'?name:dir+'/'+name);if(dir==='.')break;dir=dirname(dir)}}
  const originals=await validateOriginalInspections(w);
- const retirement=await completedExportRetirement(p,w),check=async()=>{await checkInspectionStore(p.directory,inspectionRefs(w));await assertOwnedProfileCurrent(p,w,retirement);await currentInputs(p.projectRoot,w,p)};await check();
+ const pointerPath=join(p.projectRoot,'_generated/course-spec/active-native-run.json'),pointerBytes=await Deno.readTextFile(pointerPath),pointerValue=stable(p);
+ if(stable(JSON.parse(pointerBytes))!==pointerValue)fail('Current pointer не совпадает с requested run');
+ const invocation=await invocationIdentity(p.projectRoot),retirement=await completedExportRetirement(p,w),check=async()=>{
+  if(stable(p)!==pointerValue||await Deno.readTextFile(pointerPath)!==pointerBytes)fail('Current pointer/run изменён во время проверки');
+  const current=await regular(p.directory,ref.file);if(!current||await digest(current)!==ref.sha256||await digest(current,'SHA-1')!==ref.sha1)fail('Witness изменён во время проверки');
+  if(await invocationIdentity(p.projectRoot)!==invocation)fail('Stock tool/environment/cwd/profile изменён во время проверки');
+  await checkInspectionStore(p.directory,inspectionRefs(w));await assertOwnedProfileCurrent(p,w,retirement);await currentInputs(p.projectRoot,w,p)
+ };await check();
  const retiredContext=retirement?await prepareRetiredRegularContext(p,w,originals,retirement,check):undefined;
  const active=w.profiles.filter(x=>!p.commonPathRetirement||'_quarto-'+x+'.yml'!==p.commonPathRetirement.file);
- const sources=await inspectSources(p.projectRoot,w.inputFiles,active,w.sourceIdentities,retirement,{originals:originals.physical,retiredContext,before:check});
- for(const name of w.inputFiles){if(sources.inspections[name].quarto?.version!==w.quartoVersion)fail('Quarto source identity изменена');if(sources.sourceHashes[name]!==w.sourceHashes[name])fail('Source bytes устарели: '+name)}
- const closure=await validateMetadataClosure(p.projectRoot,w.profiles,w.documents,Object.keys(em.files),em.roots,w.metadataClosure,section,w.sourceIdentities,sources.inspections,retirement,{check,retiredContext,owner:native=>{if(stable(section(native.config?.['project-materialization']))!==stable(w.canonicalOwnerDeclarations))fail('Live canonical owner изменён')}});
+ const side=()=>withFreshOwnerFrame(p.projectRoot,active,check,async frame=>{
+  const native=freshOwnerData(frame,p.projectRoot,active);if(native.quarto?.version!==w.quartoVersion)fail('Quarto source identity изменена');
+  const sources=await inspectCurrentSources(p.projectRoot,w.inputFiles,active,w.sourceIdentities,frame,retirement,{originals,retiredContext,before:check});
+  for(const name of w.inputFiles)if(sources.sourceHashes[name]!==w.sourceHashes[name])fail('Source bytes устарели: '+name);
+  const closure=await validateMetadataClosure(p.projectRoot,w.profiles,w.documents,Object.keys(em.files),em.roots,w.metadataClosure,section,w.sourceIdentities,sources,frame,retirement,{check,retiredContext,owner:owner=>{if(stable(section(owner.config?.['project-materialization']))!==stable(w.canonicalOwnerDeclarations))fail('Live canonical owner изменён')}});
+  await check();return {sources,closure};
+ });
+ const {sources,closure}=await side();
  const expectedConfig=closureInputs(p.projectRoot,closure);
  if(stable(expectedConfig)!==stable(w.configurationInputs)||configNames.some(n=>!Object.hasOwn(expectedConfig,n)))fail('Неполный config/absence closure');
  if(closure.noCommon&&(w.canonicalOwnerDeclarations!==null||w.documents.some(d=>d.rawDeclarations!==null||d.canonicalDeclarations!==null||d.effectiveDeclarations!==null)||Object.keys(w.commonSourceHashes).length))fail('No-common proof содержит materialization');
@@ -244,9 +271,8 @@ export async function readCommonPathBinding(p:NativeRunPointer):Promise<CommonPa
  }
  if(commonNames.size!==Object.keys(w.commonSourceHashes).length||[...commonNames].some(n=>!Object.hasOwn(w.commonSourceHashes,n)))fail('Неполный canonical common source inventory');
  if(w.temporaryExportProfile){const t=w.temporaryExportProfile;if(Object.keys(t).sort().join(',')!=='file,profile,sha1,sha256'||!/^course-export-[0-9a-f-]{36}$/.test(t.profile)||t.profile!==p.profiles[0]||t.file!=='_quarto-'+t.profile+'.yml'||t.sha256!==w.configurationInputs[t.file]||!/^[a-f0-9]{40}$/.test(t.sha1))fail('Некорректный generated profile identity')}
- const finalSources=await inspectSources(p.projectRoot,w.inputFiles,active,w.sourceIdentities,retirement,{originals:originals.physical,retiredContext,before:check});if(stable(finalSources.sourceHashes)!==stable(sources.sourceHashes))fail('Source drift во время currentness');
- const finalClosure=await collectMetadataClosure({root:p.projectRoot,profiles:w.profiles,projectMetadata:originals.owner.config,sourceIdentities:w.sourceIdentities,documents:w.documents,nativeConfigFiles:w.metadataClosure.nativeConfigFiles,extensionFiles:Object.keys(em.files),includeMaps:Object.fromEntries(w.inputFiles.map(s=>[s,originals.owner.fileInformation[s].includeMap])),validateCanonical:section},retirement,w.metadataClosure);
- if(stable(finalClosure)!==stable(w.metadataClosure))fail('Metadata closure drift после final source inspect');
+ const final=await side();if(stable(final.sources.sourceHashes)!==stable(sources.sourceHashes)||stable(final.sources.identities)!==stable(sources.identities))fail('Source drift во время currentness');
+ if(stable(final.closure)!==stable(w.metadataClosure))fail('Metadata closure drift после final owner inspect');
  if(retiredContext)await checkRetiredRegularContext(retiredContext,check);await currentInputs(p.projectRoot,w,p);await validateOriginalInspections(w);await check();if(retirement)await validateCompletedExportScope(p,w);return w;
 }
 export async function validateCapturedCommon(run:NativeRun,w:CommonPathWitness){

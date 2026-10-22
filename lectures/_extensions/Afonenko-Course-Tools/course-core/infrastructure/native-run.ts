@@ -64,7 +64,7 @@ async function configurationHashes(root:string,activeProfiles:string[]):Promise<
   }
   return hashes;
 }
-async function pointer(root: string): Promise<NativeRunPointer> {
+async function validatedPointer(root: string): Promise<{pointer:NativeRunPointer;witness:Awaited<ReturnType<typeof readCommonPathBinding>>}> {
   const p = await read(join(base(root), "active-native-run.json"));
   if (p.schema !== "course-native-run-pointer-v2" || p.projectRoot !== root) {
     throw diagnostic("NATIVE.RUN_POINTER_INVALID", "Указатель текущей native-сборки некорректен", {source: root, field: "native-run"});
@@ -76,9 +76,10 @@ async function pointer(root: string): Promise<NativeRunPointer> {
   if(!Array.isArray(p.profiles) || !p.configurationHashes || Object.keys(current).length!==Object.keys(p.configurationHashes).length || Object.entries(current).some(([name,hash])=>p.configurationHashes[name]!==hash)) {
     throw diagnostic("NATIVE.RUN_NOT_CURRENT","Нативная конфигурация изменилась после начала запуска",{source:root,field:"native-run"});
   }
-  await readCommonPathBinding(p);
-  return p;
+  const witness=await readCommonPathBinding(p);
+  return {pointer:p,witness};
 }
+async function pointer(root:string):Promise<NativeRunPointer>{return (await validatedPointer(root)).pointer}
 async function list(root: string, key: string) {
   const mode = Deno.env.get(
     key.replace("QUARTO_PROJECT_", "QUARTO_USE_FILE_FOR_PROJECT_"),
@@ -369,7 +370,7 @@ export async function loadNativeRun(
 
 /** Внутренний мост Lua, связанный с текущим pointer, без caller override. */
 export async function commonPathDocument(root:string,source:string,format:string){
- root=await Deno.realPath(root);const p=await pointer(root),w=await readCommonPathBinding(p);
+ root=await Deno.realPath(root);const {witness:w}=await validatedPointer(root);
  const rows=w.documents.filter(d=>d.source===source&&d.format===format);
  if(rows.length!==1)throw diagnostic('NATIVE.COMMON_PATH_BINDING_INVALID','Неизвестный source/format текущего witness',{source,field:'native-run'});
  return rows[0];

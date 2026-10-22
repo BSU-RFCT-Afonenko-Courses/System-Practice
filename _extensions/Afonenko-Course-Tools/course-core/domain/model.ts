@@ -34,10 +34,11 @@ export interface Pedagogy {
 export type Extracted<T> = Omit<T, "body" | "gradingNotes" | "source" | "extensions"> & { bodyJson: string; gradingNotesJson?: string[] };
 export interface TopicFact { source: string; semester?: string; categories: string[] }
 export interface SourceProfile {mode:"implementation"|"student-tests";root:string;include:string[]}
+export interface JavaBuild {kind:"gradle-jar-v1"; "main-class":string; artifact:string}
 export interface AdditionalJavaSources {archive:string; "max-files":number; "max-file-bytes":number; "max-total-bytes":number; "max-archive-bytes":number}
 export interface ApiPrecheck {files:string[];entry:string}
 export interface PublicCase {id:string;name:string;test:string;input?:string;state?:string;action?:string;expected:string}
-export interface ResolvedProjectCheck {feedback?:{requirement:string;"what-check":string};"public-cases"?:PublicCase[];profile:string; runtime:string; sourceProfile:SourceProfile; "source-profile":string; tests:string[]; "additional-java-sources"?:AdditionalJavaSources; "api-precheck"?:ApiPrecheck; "verification-api-precheck"?:ApiPrecheck; references?:{name:string;root:string;optional:boolean}[]; [key:string]: unknown}
+export interface ResolvedProjectCheck {feedback?:{requirement:string;"what-check":string};"public-cases"?:PublicCase[];profile:string; runtime:string; sourceProfile:SourceProfile; "source-profile":string; tests:string[]; "java-build"?:JavaBuild; "additional-java-sources"?:AdditionalJavaSources; "api-precheck"?:ApiPrecheck; "verification-api-precheck"?:ApiPrecheck; references?:{name:string;root:string;optional:boolean}[]; [key:string]: unknown}
 export interface ProjectMaterialization {commonFiles:{source:string;target:string;audience:'student'|'grading'}[];includeGit?:boolean}
 export interface ProjectFact {exerciseId:string;source:string;projectRoot:string;bankMember:boolean;purpose?:ExercisePurpose;statementVisibility:StatementVisibility;artifactPolicy:{student?:"starter"|"full";full:"full";conditions:boolean};check?:ResolvedProjectCheck;materialization?:ProjectMaterialization}
 export interface Fragment {

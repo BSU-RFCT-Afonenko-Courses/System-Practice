@@ -2,7 +2,7 @@
 import {basename,dirname,join,relative,resolve,parse} from 'stdlib/path';
 import {diagnostic} from '../domain/diagnostics.ts';
 import {quartoExecutable,command} from './process.ts';
-import type {SourceIdentities} from './source-identities.ts';
+import type {SourceIdentities,CurrentSourceEvidence} from './source-identities.ts';
 import {assertRetiredRegularDocument,assertUnlistedFallback,verifiedRetirement,type RetiredRegularContext,type ExportRetirement} from './native-export-retirement.ts';
 const fail=(s:string):never=>{throw diagnostic('NATIVE.COMMON_PATH_BINDING_INVALID',s,{field:'project-materialization'})};
 const stable=(v:unknown):string=>JSON.stringify(v,(_k,x)=>x&&typeof x==='object'&&!Array.isArray(x)?Object.fromEntries(Object.entries(x).sort(([a],[b])=>a.localeCompare(b))):x);
@@ -14,6 +14,22 @@ type Origin={path:string;context:Context;kind:Kind;sha256:string|false;nativeMet
 type Edge={from:string;to:string;context:Context;kind:EdgeKind};
 export interface MetadataClosure {schema:'course-native-metadata-closure-v1';nativeConfigFiles:{owner:string[];documents:Record<string,string[]>};origins:Origin[];dependencies:Edge[];noCommon:boolean}
 export type MetadataDocument={source:string;format:string};
+// Внутренний capability живёт лишь в callback одного реального stock owner вызова.
+const ownerFrames=new WeakMap<object,{root:string;profiles:string[];native:any}>();
+export type FreshOwnerFrame=object & {readonly __freshOwnerFrame:never};
+function freezeNative(value:any):any{if(value&&typeof value==='object'){for(const child of Object.values(value))freezeNative(child);Object.freeze(value)}return value}
+export function freshOwnerData(frame:FreshOwnerFrame,root:string,profiles:string[]){
+ const value=ownerFrames.get(frame);if(!value||value.root!==root||stable(value.profiles)!==stable(profiles))fail('Чужой/завершённый current owner frame');return value!.native;
+}
+export async function withFreshOwnerFrame<T>(root:string,profiles:string[],check:()=>Promise<unknown>,use:(frame:FreshOwnerFrame)=>Promise<T>):Promise<T>{
+ await check();const args=profiles.length?['--profile',profiles.join(',')]:[];
+ const native=JSON.parse(await command(quartoExecutable(),['inspect',root,...args],root,{QUARTO_PROFILE:profiles.join(',')}));await check();
+ if(native.dir!==root||await Deno.realPath(native.dir)!==root||!native.fileInformation||typeof native.fileInformation!=='object'||Array.isArray(native.fileInformation)||!Array.isArray(native.files?.input)||native.files.input.some((p:any)=>typeof p!=='string'||resolve(root,p)!==p)||new Set(native.files.input).size!==native.files.input.length)fail('Не установлен current native owner/input inventory');
+ configIdentities(root,native.files.config);
+ const frame=Object.freeze({}) as FreshOwnerFrame;ownerFrames.set(frame,{root,profiles:[...profiles],native:freezeNative(native)});
+ try{return await use(frame)}finally{ownerFrames.delete(frame)}
+}
+
 export type MetadataInputs={root:string;profiles:string[];projectMetadata:any;sourceIdentities:SourceIdentities;documents:MetadataDocument[];nativeConfigFiles:MetadataClosure['nativeConfigFiles'];extensionFiles:string[];includeMaps:Record<string,{source:string;target:string}[]>;validateCanonical:(value:unknown)=>unknown};
 const keys=(v:any,names:string[])=>!!v&&typeof v==='object'&&!Array.isArray(v)&&Object.keys(v).sort().join(',')===names.sort().join(',');
 export function nativeExtensionRoots(root:string,extensions:any[]){
@@ -173,7 +189,7 @@ export function closureInputs(root:string,c:MetadataClosure){
  const result:Record<string,string|false>={};for(const o of c.origins){const name=relative(root,o.path).replaceAll('\\','/');if(name&&!name.startsWith('../')&&!name.startsWith('/')&&!/^[A-Za-z]:/.test(name)&&!['qmd','include-metadata','extension-metadata'].includes(o.kind)){if(Object.hasOwn(result,name)&&result[name]!==o.sha256)fail('Несогласованный hash metadata origin');result[name]=o.sha256}}
  return result;
 }
-export async function validateMetadataClosure(root:string,profiles:string[],documents:MetadataDocument[],extensionFiles:string[],extensionRoots:string[],value:MetadataClosure,validateCanonical:MetadataInputs['validateCanonical'],sourceIdentities:SourceIdentities,physicalInspections:Record<string,any>,retired?:ExportRetirement,proof?:{retiredContext?:RetiredRegularContext;check:()=>Promise<unknown>;owner:(native:any)=>void}){
+export async function validateMetadataClosure(root:string,profiles:string[],documents:MetadataDocument[],extensionFiles:string[],extensionRoots:string[],value:MetadataClosure,validateCanonical:MetadataInputs['validateCanonical'],sourceIdentities:SourceIdentities,sourceEvidence:CurrentSourceEvidence,frame:FreshOwnerFrame,retired?:ExportRetirement,proof?:{retiredContext?:RetiredRegularContext;check:()=>Promise<unknown>;owner:(native:any)=>void}){
  if(retired!==undefined&&!verifiedRetirement(retired))fail('Нет validated completed retirement');
  const c=value;
  if(!keys(c,['schema','nativeConfigFiles','origins','dependencies','noCommon'])||c.schema!=='course-native-metadata-closure-v1'||typeof c.noCommon!=='boolean'||!keys(c.nativeConfigFiles,['owner','documents'])||!Array.isArray(c.origins)||!Array.isArray(c.dependencies)||!c.nativeConfigFiles.documents||typeof c.nativeConfigFiles.documents!=='object')fail('Нет закрытого metadataClosure');
@@ -186,10 +202,10 @@ export async function validateMetadataClosure(root:string,profiles:string[],docu
  for(const e of c.dependencies)if(!keys(e,['from','to','context','kind'])||typeof e.from!=='string'||typeof e.to!=='string'||physical(root,e.from)!==e.from||physical(root,e.to)!==e.to||!validContext(e.context)||!['native-config','metadata-file','directory','include','extension'].includes(e.kind))fail('Некорректный metadata dependency edge');
  // Stock inventory подтверждает union; receipt paths сами не являются provenance.
  const active=profiles.filter(p=>!retired||'_quarto-'+p+'.yml'!==retired.file),args=active.length?['--profile',active.join(',')]:[];
- await proof?.check();const native=JSON.parse(await command(quartoExecutable(),['inspect',root,...args],root,{QUARTO_PROFILE:active.join(',')}));await proof?.check();
+ await proof?.check();const native=freshOwnerData(frame,root,active);await proof?.check();
  if(native.dir!==root||!native.fileInformation)fail('Не установлен current metadata owner');proof?.owner(native);
  if(stable(nativeExtensionRoots(root,native.extensions??[]))!==stable(extensionRoots))fail('Native extension roots не соответствуют current stock inventory');
- if(native.quarto?.version!==Object.values(physicalInspections)[0]?.quarto?.version)fail('Quarto metadata identity изменена');
+ if(native.quarto?.version!==sourceEvidence.quartoVersion)fail('Quarto metadata identity изменена');
  const retiredPath=retired?join(root,retired.file):undefined;
  if(retiredPath&&(!c.nativeConfigFiles.owner.includes(retiredPath)||Object.values(c.nativeConfigFiles.documents).some(files=>!files.includes(retiredPath))))fail('Нет одного original retired config origin');
  const expected=c.nativeConfigFiles.owner.filter(p=>p!==retiredPath);
@@ -209,9 +225,9 @@ export async function validateMetadataClosure(root:string,profiles:string[],docu
   }
   if(!information||!Array.isArray(information.includeMap))fail('Отсутствует native include metadata inventory');
   const identity=sourceIdentities.sources.find(x=>x.source===source);if(!identity)fail('Нет source identity');
-  const raw=physicalInspections[source]?.fileInformation?.[identity!.physicalPath];if(!raw||stable(raw.metadata)!==stable(information.metadata))fail('Physical/lexical raw metadata изменены');
+  const raw=sourceEvidence.information[source];if(!raw||stable(raw.metadata)!==stable(information.metadata))fail('Physical/lexical raw metadata изменены');
   if(!native.files.input.includes(join(root,source))&&!verifiedRetirement(retired))fail('Source вне current native inventory');
-  const physical=physicalInspections[source];if(retired&&!Object.hasOwn(physical.project?.files??{},'config')){if(physical.project?.dir===root)assertUnlistedFallback(physical,identity!.physicalPath,native,retired,source);else await assertRetiredRegularDocument(physical,identity!.physicalPath,identity!,source,proof?.retiredContext)}
+  const physical=sourceEvidence.directInspections[source];if(physical&&retired&&!Object.hasOwn(physical.project?.files??{},'config')){if(physical.project?.dir===root)assertUnlistedFallback(physical,identity!.physicalPath,native,retired,source);else await assertRetiredRegularDocument(physical,identity!.physicalPath,identity!,source,proof?.retiredContext)}
   includes[source]=information.includeMap;
  }
  const actual=await collectMetadataClosure({root,profiles,projectMetadata:native.config,sourceIdentities,documents,nativeConfigFiles:c.nativeConfigFiles,extensionFiles,includeMaps:includes,validateCanonical},retired,c);
