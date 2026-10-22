@@ -57,6 +57,8 @@ book:
   - labs/data-processing.qmd
   - labs/version-control.qmd
   - optional/project-maintenance.qmd
+  - delivery/units/sec-unit-version-control-restore-selected-state.qmd
+  - delivery/units/sec-unit-project-maintenance-release.qmd
   search: true
   page-navigation: true
   sidebar:
@@ -74,14 +76,36 @@ project-download:
   course-model: true
 
 prairielearn:
+  delivery:
+    book: tasks
+    course:
+      name: SYSTEM-PRACTICE
+      title: System Practice
+      timezone: Europe/Minsk
+      topics:
+      - name: Shell
+        color: blue2
+        description: Файлы и потоки
+    instances:
+      pilot:
+        title: Пилот System Practice
+        self-enrollment: false
+        publishing:
+          start-date: '1970-01-01T00:00:00Z'
+          end-date: '9999-12-31T00:00:00Z'
+        works:
+        - sec-lab-work-environment
+        - sec-lab-data-processing
+        - sec-lab-version-control
+        - sec-unit-version-control-restore-selected-state
+        - sec-unit-project-maintenance-release
   question-defaults:
+    topic: Shell
     single-variant: true
     grading:
       method: manual
     submission:
       mode: upload
-      file-patterns:
-      - '*'
   assessment-defaults:
     assignment:
       mode: assessment-id

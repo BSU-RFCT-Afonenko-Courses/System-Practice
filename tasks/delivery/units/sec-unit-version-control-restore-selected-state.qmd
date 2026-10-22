@@ -1,0 +1,20 @@
+---
+assessment:
+  id: sec-unit-version-control-restore-selected-state
+  kind: lab
+  prairielearn:
+    max-points: 100
+    attempts: 1
+    pass:
+      at-least: 1
+    auto-points: 0
+    manual-points: 100
+---
+
+# Выбор состояния для восстановления {#sec-unit-version-control-restore-selected-state}
+
+Добровольная работа. Результат учитывается отдельно от обязательных лабораторных.
+
+::: {.task-items requirement="required"}
+- @exr-version-control-restore-selected-state
+:::
