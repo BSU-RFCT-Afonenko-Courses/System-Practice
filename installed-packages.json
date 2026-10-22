@@ -3,10 +3,10 @@
   "packages": {
     "course-core": {
       "repository": "Afonenko-Course-Tools/quarto-course",
-      "commit": "2e749ae08da9f1ca24e6058b8f80b40905714162",
-      "tag": "v8.2.0",
-      "version": "8.2.0",
-      "sourceZip": "https://github.com/Afonenko-Course-Tools/quarto-course/archive/refs/tags/v8.2.0.zip",
+      "commit": "2850ea28bbf09ac49731d9675fa7f65efcce9c55",
+      "tag": "v8.2.1",
+      "version": "8.2.1",
+      "sourceZip": "https://github.com/Afonenko-Course-Tools/quarto-course/archive/refs/tags/v8.2.1.zip",
       "provider": "core",
       "scopes": [
         ".",
@@ -18,7 +18,7 @@
       ],
       "files": {
         "_extension.yml": {
-          "sha256": "87e74cc45bd16f706717572c9f4ee713f7fa7437aef19c02dd398d5c60393c2d",
+          "sha256": "e7eb1ce6228239269b758c5433409319c4838d88021aff799a606ca43bb91da4",
           "size": 211,
           "mode": 420
         },
@@ -213,8 +213,8 @@
           "mode": 420
         },
         "infrastructure/common-path-binding.ts": {
-          "sha256": "1cd8941f8ae0ce11b5c51e1712793a8f2008b8f7f813a18b7b11a425f0a98a0f",
-          "size": 33025,
+          "sha256": "32cfb6ed0d4a21aaf944427735f547393fbeb65342885c593cc7fa25be5209da",
+          "size": 35349,
           "mode": 420
         },
         "infrastructure/files.ts": {
@@ -223,8 +223,8 @@
           "mode": 420
         },
         "infrastructure/inspection-preimages.ts": {
-          "sha256": "fd4ff3f800428b8c3b0ee00f1313167a55526654f7c22689630de8881ab399f1",
-          "size": 7604,
+          "sha256": "1952ec6a528900239574bc7857228306a218202eda2277fdaa4b4a375491ca0f",
+          "size": 11375,
           "mode": 420
         },
         "infrastructure/metadata-closure.ts": {
@@ -238,13 +238,13 @@
           "mode": 420
         },
         "infrastructure/native-run.ts": {
-          "sha256": "95140fc3466f4b134465ce473484a68d9f3ee923885a415b1b4b68232196a026",
-          "size": 21912,
+          "sha256": "a8bd368d21f9c795ef9d5463ba68979e4ff0980769d6ecbb2afef22c3e9cf6f9",
+          "size": 21988,
           "mode": 420
         },
         "infrastructure/owned-export-profile.ts": {
-          "sha256": "32ae43f98ad8723e708d867ca552f6bb5a54bbefde0c9dd85b997ee2fea776c6",
-          "size": 9589,
+          "sha256": "310af108795351013ca2fdc0089f6f4e2a29927394bf378a466d005c2c1ab476",
+          "size": 10583,
           "mode": 420
         },
         "infrastructure/process.ts": {
@@ -343,14 +343,14 @@
           "mode": 420
         }
       },
-      "extensionTree": "475f950fa25556644bf40d3bd6cf03e61aa06785"
+      "extensionTree": "e0cab5a48165b4b2d7ab3b1c6c69fb132edc46ce"
     },
     "course-presentation": {
       "repository": "Afonenko-Course-Tools/quarto-course",
-      "commit": "2e749ae08da9f1ca24e6058b8f80b40905714162",
-      "tag": "v8.2.0",
-      "version": "8.2.0",
-      "sourceZip": "https://github.com/Afonenko-Course-Tools/quarto-course/archive/refs/tags/v8.2.0.zip",
+      "commit": "2850ea28bbf09ac49731d9675fa7f65efcce9c55",
+      "tag": "v8.2.1",
+      "version": "8.2.1",
+      "sourceZip": "https://github.com/Afonenko-Course-Tools/quarto-course/archive/refs/tags/v8.2.1.zip",
       "provider": "core",
       "scopes": [
         ".",
@@ -362,7 +362,7 @@
       ],
       "files": {
         "_extension.yml": {
-          "sha256": "4eb810ac695c2c77dfbbbc0c243890544f37b77ebe28393afdfafb0d6ffcc3a3",
+          "sha256": "2e8b4a4cb9373ba9d43a54d62d8aee8a745faba0dae75f311daeb1c86efbd23b",
           "size": 178,
           "mode": 420
         },
@@ -427,14 +427,14 @@
           "mode": 420
         }
       },
-      "extensionTree": "9bb9f8fe18a13e5659b49b41b5d0038f857002b6"
+      "extensionTree": "f9eb427592bceead1580f2c375da270ba6e919c9"
     },
     "course-navigation": {
       "repository": "Afonenko-Course-Tools/quarto-course",
-      "commit": "2e749ae08da9f1ca24e6058b8f80b40905714162",
-      "tag": "v8.2.0",
-      "version": "8.2.0",
-      "sourceZip": "https://github.com/Afonenko-Course-Tools/quarto-course/archive/refs/tags/v8.2.0.zip",
+      "commit": "2850ea28bbf09ac49731d9675fa7f65efcce9c55",
+      "tag": "v8.2.1",
+      "version": "8.2.1",
+      "sourceZip": "https://github.com/Afonenko-Course-Tools/quarto-course/archive/refs/tags/v8.2.1.zip",
       "provider": "core",
       "scopes": [
         ".",
@@ -451,7 +451,7 @@
           "mode": 420
         },
         "_extension.yml": {
-          "sha256": "5c09f759799290800dde6ef7373ce26e6fa5311bf9b04f2f62c99db8b8dbafae",
+          "sha256": "e0b8ed6d921763651c881a16d050b63ad9f7c76663d7d2255a1f08d4e31fa4e8",
           "size": 252,
           "mode": 420
         },
@@ -506,7 +506,7 @@
           "mode": 420
         }
       },
-      "extensionTree": "e0132b7e29702a73fc95092ea1f881d49beec190"
+      "extensionTree": "a8ef1a36609884725810861dfc86bf8571a5baa1"
     },
     "course-site": {
       "repository": "Afonenko-Course-Tools/quarto-project-publish",

@@ -1,7 +1,7 @@
 /** Exact stock stdout, scoped only to one private native run. */
 import {join,resolve} from 'stdlib/path';
 import {diagnostic} from '../domain/diagnostics.ts';
-import {readOwnedProfileEvidence} from './owned-export-profile.ts';
+import {readOwnedProfileEvidenceInPhase} from './owned-export-profile.ts';
 import type {CommonPathWitness} from './common-path-binding.ts';
 const fail=(s:string):never=>{throw diagnostic('NATIVE.COMMON_PATH_BINDING_INVALID',s,{field:'project-materialization'})};
 const hash=async(b:Uint8Array)=>Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256',new Uint8Array(b).buffer)),x=>x.toString(16).padStart(2,'0')).join('');
@@ -31,6 +31,39 @@ export async function storeInspection(root:string,text:string,refs:Set<string>){
  else {await Deno.writeFile(path,bytes,{createNew:true,mode:0o600});refs.add(h)}
  await checkInspectionStore(root,refs);return h;
 }
+// Только callback lifetime: capability не сериализуется и не хранит live cache.
+function freeze<T>(value:T):T{if(value&&typeof value==='object'){for(const child of Object.values(value))freeze(child);Object.freeze(value)}return value}
+export type InspectionSnapshot=Readonly<{readonly inspectionPhase:unique symbol}>;
+type SnapshotState={root:string;refs:string;binding:object;identity:string;all:Record<string,any>};
+const snapshots=new WeakMap<object,SnapshotState>(),phaseOwners=new WeakSet<object>(),writers=new Set<string>();
+export async function withInspectionSnapshot<T>(root:string,refs:ReadonlySet<string>,binding:object,use:(phase:InspectionSnapshot)=>Promise<T>):Promise<T>{
+ if(phaseOwners.has(binding))fail('Reentrant inspection phase');phaseOwners.add(binding);
+ const phase=Object.freeze({}) as InspectionSnapshot;
+ try{const identity=stable(binding),referenceIdentity=stable([...refs].sort()),all=freeze(await checkInspectionStore(root,refs));
+  if(stable(binding)!==identity||stable([...refs].sort())!==referenceIdentity)fail('Inspection binding/refs изменены во время snapshot');
+  snapshots.set(phase,{root,refs:referenceIdentity,binding,identity,all});return await use(phase);
+ }finally{snapshots.delete(phase);phaseOwners.delete(binding)}
+}
+export function inspectionSnapshotData(phase:InspectionSnapshot,root:string,refs:ReadonlySet<string>,binding:object){
+ const state=snapshots.get(phase);if(!state||state.root!==root||state.refs!==stable([...refs].sort())||state.binding!==binding||state.identity!==stable(binding))fail('Foreign/expired inspection phase');return state!.all;
+}
+/** Append-only writer: каждое новое stdout читается/проверяется один раз, старые — на фазовой границе. */
+export async function withInspectionWriter<T>(root:string,use:(writer:{append:(text:string)=>Promise<string>;snapshot:()=>Promise<Record<string,any>>})=>Promise<T>):Promise<T>{
+ if(writers.has(root))fail('Reentrant inspection writer');writers.add(root);let active=true,writing=false;const refs=new Set<string>();
+ const current=()=>{if(!active||!writers.has(root)||writing)fail('Expired/reentrant inspection writer')};
+ const writer=Object.freeze({
+  append:async(text:string)=>{current();writing=true;try{
+   const bytes=new TextEncoder().encode(text),h=await hash(bytes);await rootDirectory(root);
+   const top=join(root,'inspections'),dir=join(top,'sha256');if(!refs.size){await Deno.mkdir(top,{mode:0o700});await Deno.mkdir(dir,{mode:0o700})}
+   await directory(top);await directory(dir);const path=join(dir,h+'.json');
+   if(!refs.has(h))await Deno.writeFile(path,bytes,{createNew:true,mode:0o600});
+   const info=await Deno.lstat(path);if(!info.isFile||info.isSymlink||await Deno.realPath(path)!==path||info.mode!==null&&(info.mode&0o7777)!==0o600)fail('Append original type/mode');
+   const actual=await Deno.readFile(path);if(actual.length!==bytes.length||actual.some((b,i)=>b!==bytes[i])||await hash(actual)!==h)fail('Append original bytes/collision');
+   const value=JSON.parse(new TextDecoder('utf-8',{fatal:true,ignoreBOM:true}).decode(actual));if(!value||typeof value!=='object'||Array.isArray(value))fail('Append не original inspection');refs.add(h);return h;
+  }finally{writing=false}},
+  snapshot:async()=>{current();writing=true;try{return freeze(await checkInspectionStore(root,refs))}finally{writing=false}}
+ });try{return await use(writer)}finally{active=false;writers.delete(root)}
+}
 export function inspectionRefs(w:CommonPathWitness){
  const sources=w.inputFiles,rows=w.sourceIdentities?.sources;
  if(new Set(sources).size!==sources.length||!Array.isArray(rows)||rows.length!==sources.length||stable(rows.map(r=>r.source))!==stable(sources)||stable(Object.keys(w.documentInspectionHashes).sort())!==stable([...sources].sort()))fail('Неполный original inspection scope');
@@ -38,8 +71,11 @@ export function inspectionRefs(w:CommonPathWitness){
 }
 /** Cross-role bindings use original stock shape, never an arbitrary JSON preimage. */
 export async function originalInspections(w:CommonPathWitness){
- const owned=await readOwnedProfileEvidence(w);
- const all=await checkInspectionStore(w.runDirectory,inspectionRefs(w)),owner=all[w.ownerInspectionHash],physical:Record<string,any>={},lexical:Record<string,any>={};
+ return await withInspectionSnapshot(w.runDirectory,inspectionRefs(w),w,phase=>originalInspectionsInPhase(w,phase));
+}
+export async function originalInspectionsInPhase(w:CommonPathWitness,phase:InspectionSnapshot){
+ const all=inspectionSnapshotData(phase,w.runDirectory,inspectionRefs(w),w),owner=all[w.ownerInspectionHash],physical:Record<string,any>={},lexical:Record<string,any>={};
+ const owned=await readOwnedProfileEvidenceInPhase(w,phase);
  const object=(v:any)=>!!v&&typeof v==='object'&&!Array.isArray(v);
  const keys=(v:any,names:string[])=>object(v)&&Object.keys(v).sort().join(',')===names.sort().join(',');
  const formats=(v:any)=>object(v)&&Object.keys(v).length>0&&Object.values(v).every((f:any)=>object(f)&&object(f.identifier)&&typeof f.identifier['target-format']==='string'&&!!f.identifier['target-format']&&typeof f.identifier['base-format']==='string'&&!!f.identifier['base-format']&&object(f.metadata));
@@ -55,5 +91,5 @@ export async function originalInspections(w:CommonPathWitness){
   const a=raw(p,row.physicalPath),b=raw(d,path),c=owner.fileInformation[row.source];if(stable(a.metadata)!==stable(b.metadata)||stable(b.metadata)!==stable(c.metadata)||stable(b.includeMap)!==stable(c.includeMap))fail('Original raw role mismatch');
   if(stable((owned?['json']:Object.keys(d.formats)).map(f=>['pdf','beamer'].includes(f)?'latex':f).sort())!==stable(w.documents.filter(v=>v.source===row.source).map(v=>v.format).sort()))fail('Original lexical format scope mismatch');
  }
- return {owner,physical,lexical};
+ return freeze({owner,physical,lexical});
 }

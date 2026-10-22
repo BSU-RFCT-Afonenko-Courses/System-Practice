@@ -2,7 +2,7 @@
 import {basename,dirname,fromFileUrl,join,relative,resolve} from 'stdlib/path';
 import {diagnostic} from '../domain/diagnostics.ts';
 import {metadataBytes} from './metadata-closure.ts';
-import {checkInspectionStore,inspectionRefs} from './inspection-preimages.ts';
+import {checkInspectionStore,inspectionRefs,withInspectionSnapshot,inspectionSnapshotData,type InspectionSnapshot} from './inspection-preimages.ts';
 import {verifiedRetirement,type ExportRetirement} from './native-export-retirement.ts';
 import type {CommonPathWitness} from './common-path-binding.ts';
 import type {NativeRunPointer} from './native-run.ts';
@@ -41,7 +41,12 @@ function producerHooks(value:any){const extension=dirname(dirname(fromFileUrl(im
 /** Nonrecursive original owner frame; full original-role validation follows in the caller. */
 export async function readOwnedProfileEvidence(w:CommonPathWitness){
  const evidence=await readOwnedSlot(w);if(!evidence)return;
- const all=await checkInspectionStore(w.runDirectory,inspectionRefs(w)),owner=all[w.ownerInspectionHash];
+ return await withInspectionSnapshot(w.runDirectory,inspectionRefs(w),w,phase=>readOwnedProfileEvidenceInPhase(w,phase));
+}
+/** Внутренний original owner уже проверен в конечной inspection-фазе. Raw slot всегда читается заново. */
+export async function readOwnedProfileEvidenceInPhase(w:CommonPathWitness,phase:InspectionSnapshot){
+ const owner=inspectionSnapshotData(phase,w.runDirectory,inspectionRefs(w),w)[w.ownerInspectionHash];
+ const evidence=await readOwnedSlot(w);if(!evidence)return;
  if(owner.dir!==w.projectRoot||owner.quarto?.version!==w.quartoVersion||!owner.config||!Array.isArray(owner.files?.config)||stable(owner.files.config)!==stable(w.metadataClosure.nativeConfigFiles.owner)||!Array.isArray(owner.files?.input)||w.inputFiles.some(s=>!owner.files.input.includes(resolve(w.projectRoot,s)))||owner.config.course?.id!==evidence.value.course.id||owner.config.course?.view!=='full'||owner.config['course-export-context']!==true)fail('Owned original owner frame mismatch');
  const project=owner.config.project;
  if(!project||stable(project['pre-render'])!==stable([evidence.value.project['pre-render']])||stable(project['post-render'])!==stable([evidence.value.project['post-render']]))fail('Owned original singleton hook pair mismatch');
@@ -55,12 +60,18 @@ export async function assertProducerProfileCurrent(p:NativeRunPointer,w:Context)
  await readOwnedSlot(w);
 }
 export async function assertOwnedProfileCurrent(p:NativeRunPointer,w:CommonPathWitness,retirement?:ExportRetirement){
- const evidence=await readOwnedProfileEvidence(w);if(!evidence){if(p.commonPathRetirement)fail('Retirement без owned writer');return}
+ return await assertOwnedProfileCurrentUsing(p,w,()=>readOwnedProfileEvidence(w),retirement);
+}
+export async function assertOwnedProfileCurrentInPhase(p:NativeRunPointer,w:CommonPathWitness,phase:InspectionSnapshot,retirement?:ExportRetirement){
+ return await assertOwnedProfileCurrentUsing(p,w,()=>readOwnedProfileEvidenceInPhase(w,phase),retirement);
+}
+async function assertOwnedProfileCurrentUsing(p:NativeRunPointer,w:CommonPathWitness,read:()=>ReturnType<typeof readOwnedProfileEvidence>,retirement?:ExportRetirement){
+ const evidence=await read();if(!evidence){if(p.commonPathRetirement)fail('Retirement без owned writer');return}
  if(p.projectRoot!==w.projectRoot||p.directory!==w.runDirectory||p.outputDirectory!==w.outputDirectory||stable(p.profiles)!==stable(w.profiles))fail('Чужой owned profile pointer');
  const t=w.temporaryExportProfile!,active=await metadataBytes(join(w.projectRoot,t.file));
  if(retirement!==undefined){if(!verifiedRetirement(retirement)||retirement.root!==w.projectRoot||retirement.file!==t.file||retirement.sha256!==t.sha256||stable(p.commonPathRetirement)!==stable(t)||p.configurationHashes[t.file]!==false||active)fail('Нет exact completed retirement owned profile')}
  else if(p.commonPathRetirement||p.configurationHashes[t.file]!==t.sha1||!active||active.length!==evidence.bytes.length||active.some((b,i)=>b!==evidence.bytes[i]))fail('Active owned profile не равен original bytes');
- await readOwnedProfileEvidence(w);
+ await read();
 }
 export async function captureOwnedProfile(p:NativeRunPointer,selected:string[]){
  const context:Context={projectRoot:p.projectRoot,runDirectory:p.directory,profiles:p.profiles,outputDirectory:p.outputDirectory,inputFiles:selected,configurationInputs:{}};

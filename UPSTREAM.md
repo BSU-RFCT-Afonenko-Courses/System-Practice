@@ -1,6 +1,6 @@
 # Происхождение технической поставки System Practice
 
-## Актуальная поставка расширений 8.2.0/8.2.0/3.2.0
+## Актуальная поставка расширений 8.2.1/8.2.0/3.2.0
 
 Три согласованных расширения установлены из фактических опубликованных
 immutable Releases. Теги, exact commits и sourceZip закреплены в
@@ -9,7 +9,7 @@ immutable Releases. Теги, exact commits и sourceZip закреплены в
 
 | Владелец | Выпуск | Коммит |
 | --- | --- | --- |
-| Afonenko-Course-Tools/quarto-course | v8.2.0 | `2e749ae08da9f1ca24e6058b8f80b40905714162` |
+| Afonenko-Course-Tools/quarto-course | v8.2.1 | `2850ea28bbf09ac49731d9675fa7f65efcce9c55` |
 | Afonenko-Course-Tools/quarto-project-publish | v5.1.0 | `62f8c4a01a5fd9af11f5f66abba2bb48c2ef2631` |
 | Afonenko-Course-Tools/quarto-reference-catalog | v3.1.0 | `3df2110e9f525f03f3ecb4926b5d55718e955c4c` |
 | Afonenko-Course-Tools/quarto-course-prairielearn | v8.2.0 | `316cf4d2c21b2d1022f69b84892742ac59eec4a2` |

@@ -13,7 +13,7 @@ import {
   normalizeResourceFacts,
   validateCapturedResources,
 } from "./resources.ts";
-import {produceCommonPathBinding,readCommonPathBinding,validateCapturedCommon,stable} from "./common-path-binding.ts";
+import {produceCommonPathBinding,assertProducedCommonPathBinding,readCommonPathBinding,validateCapturedCommon,stable} from "./common-path-binding.ts";
 import {validateCompletedExportScope} from './native-export-retirement.ts';
 export interface NativeRunPointer {
   schema: "course-native-run-pointer-v2";
@@ -130,6 +130,7 @@ export async function beginNativeRun(
     configurationHashes:await configurationHashes(root,profiles()),
   } as NativeRunPointer;
   p.commonPathBinding=await produceCommonPathBinding(p);
+  await assertProducedCommonPathBinding(p);
   await Deno.writeTextFile(
     join(base(root), "active-native-run.json"),
     JSON.stringify(p),
