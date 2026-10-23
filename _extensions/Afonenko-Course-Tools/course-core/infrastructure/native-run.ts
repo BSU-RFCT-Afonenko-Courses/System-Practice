@@ -14,9 +14,12 @@ import {
   validateCapturedResources,
 } from "./resources.ts";
 import {produceCommonPathBinding,assertProducedCommonPathBinding,readCommonPathBinding,validateCapturedCommon,stable} from "./common-path-binding.ts";
+import {discoverOwnedConfigOverlay,readOverlayContext,assertOverlayCurrent,assertOverlayFinalOutputs} from './owned-config-overlay.ts';
+import {overlayReference,restorationReference,type OwnedConfigOverlay,type RestorationReference} from './owned-config-proof.ts';
 import {validateCompletedExportScope} from './native-export-retirement.ts';
 export interface NativeRunPointer {
-  schema: "course-native-run-pointer-v2";
+  schema: "course-native-run-pointer-v2"|"course-native-run-pointer-v3";
+  ownedConfigOverlay?:OwnedConfigOverlay;overlayState?:"active"|"restored";ownedConfigRestoration?:RestorationReference;
   directory: string;
   projectRoot: string;
   profiles: string[];
@@ -66,14 +69,16 @@ async function configurationHashes(root:string,activeProfiles:string[]):Promise<
 }
 async function validatedPointer(root: string): Promise<{pointer:NativeRunPointer;witness:Awaited<ReturnType<typeof readCommonPathBinding>>}> {
   const p = await read(join(base(root), "active-native-run.json"));
-  if (p.schema !== "course-native-run-pointer-v2" || p.projectRoot !== root) {
+  if (!["course-native-run-pointer-v2","course-native-run-pointer-v3"].includes(p.schema) || p.projectRoot !== root) {
     throw diagnostic("NATIVE.RUN_POINTER_INVALID", "Указатель текущей native-сборки некорректен", {source: root, field: "native-run"});
   }
-  if(Object.keys(p).some(k=>!['schema','directory','projectRoot','profiles','outputDirectory','initialInputFiles','renderAll','configurationHashes','commonPathBinding','commonPathRetirement'].includes(k))||!Array.isArray(p.profiles)||p.profiles.some((x:unknown)=>typeof x!=='string'||!/^[-a-zA-Z0-9_]+$/.test(x))||typeof p.renderAll!=='boolean')throw diagnostic('NATIVE.RUN_POINTER_INVALID','Некорректная private pointer schema',{source:root,field:'native-run'});
+  if(Object.keys(p).some(k=>!['schema','directory','projectRoot','profiles','outputDirectory','initialInputFiles','renderAll','configurationHashes','commonPathBinding','commonPathRetirement',...(p.schema==='course-native-run-pointer-v3'?['ownedConfigOverlay','overlayState','ownedConfigRestoration']:[])].includes(k))||!Array.isArray(p.profiles)||p.profiles.some((x:unknown)=>typeof x!=='string'||!/^[-a-zA-Z0-9_]+$/.test(x))||typeof p.renderAll!=='boolean')throw diagnostic('NATIVE.RUN_POINTER_INVALID','Некорректная private pointer schema',{source:root,field:'native-run'});
   child(join(base(root), "native-runs"), p.directory);
   await contained(root, p.directory);
-  const current=Array.isArray(p.profiles)?await configurationHashes(root,p.profiles):{};
-  if(!Array.isArray(p.profiles) || !p.configurationHashes || Object.keys(current).length!==Object.keys(p.configurationHashes).length || Object.entries(current).some(([name,hash])=>p.configurationHashes[name]!==hash)) {
+  const current=Array.isArray(p.profiles)?await configurationHashes(root,p.profiles):{};let expected=p.configurationHashes;
+  if(p.schema==='course-native-run-pointer-v3'){overlayReference(p.ownedConfigOverlay);if(p.commonPathRetirement||!['active','restored'].includes(p.overlayState))throw diagnostic('NATIVE.RUN_POINTER_INVALID','Нет closed overlay state',{source:root,field:'native-run'});const ctx=await readOverlayContext(p);if(p.configurationHashes[ctx.base.file]!==ctx.execution.hashes.sha1||p.configurationHashes[ctx.profile.file]!==ctx.profile.hashes.sha1)throw diagnostic('NATIVE.RUN_POINTER_INVALID','Overlay config hash pair mismatch',{source:root,field:'native-run'});if(p.overlayState==='restored'){restorationReference(p.ownedConfigRestoration);expected={...p.configurationHashes,[ctx.base.file]:ctx.base.hashes.sha1,[ctx.profile.file]:false}}else if(p.ownedConfigRestoration!==undefined)throw diagnostic('NATIVE.RUN_POINTER_INVALID','Active restoration ref forbidden',{source:root,field:'native-run'})}
+
+  if(!Array.isArray(p.profiles) || !p.configurationHashes || Object.keys(current).length!==Object.keys(expected).length || Object.entries(current).some(([name,hash])=>expected[name]!==hash)) {
     throw diagnostic("NATIVE.RUN_NOT_CURRENT","Нативная конфигурация изменилась после начала запуска",{source:root,field:"native-run"});
   }
   const witness=await readCommonPathBinding(p);
@@ -106,6 +111,7 @@ export async function beginNativeRun(
   if (outputDirectory !== root) child(root, outputDirectory);
   await Deno.mkdir(base(root), { recursive: true });
   await contained(root, base(root));
+  const overlay=await discoverOwnedConfigOverlay(root,profiles(),outputDirectory);
   for (
     const name of ["active-native-run.json", "native-run.json", "course.json", "course-candidate.json"]
   ) {
@@ -116,11 +122,12 @@ export async function beginNativeRun(
   await Deno.mkdir(runs, { recursive: true });
   await contained(root, runs);
   if (await exists(outputDirectory)) await contained(root, outputDirectory);
-  const directory = join(runs, crypto.randomUUID());
+  const directory = overlay?.directory??join(runs, crypto.randomUUID());
   await Deno.mkdir(join(directory, "documents"), { recursive: true });
   await Deno.mkdir(join(directory, "adapters"));
   const p = {
-    schema: "course-native-run-pointer-v2",
+    schema: overlay?"course-native-run-pointer-v3":"course-native-run-pointer-v2",
+    ...(overlay?{ownedConfigOverlay:overlay.ownedConfigOverlay,overlayState:"active" as const}:{}),
     projectRoot: root,
     directory,
     profiles: profiles(),
@@ -133,7 +140,7 @@ export async function beginNativeRun(
   await assertProducedCommonPathBinding(p);
   await Deno.writeTextFile(
     join(base(root), "active-native-run.json"),
-    JSON.stringify(p),
+    JSON.stringify(p),{mode:0o600},
   );
   return p;
 }
@@ -153,6 +160,7 @@ export async function finishNativeRun(projectRoot: string): Promise<NativeRun> {
       throw diagnostic("NATIVE.OUTPUT_NOT_FILE", "Выходной путь не является файлом: " + path, {source: root, field: "native-run"});
     }
   }
+  await assertOverlayFinalOutputs(p,outputFiles);
   const documents: DocumentResult[] = [];
   const intermediateOutputs = new Map<string, string>();
   for await (const e of Deno.readDir(join(p.directory, "documents"))) {
@@ -315,10 +323,11 @@ export async function saveNativeRun(run:NativeRun,persistDocuments=false){
     await Deno.mkdir(directory,{recursive:true});
     await Deno.writeTextFile(join(directory,filename),encoded);
   }
+  await assertOverlayFinalOutputs(p,run.outputFiles);
   const witness=await readCommonPathBinding(p);await validateCapturedCommon(run,witness);
   const serialized=JSON.stringify({...run,directory:p.directory,adapters:run.adapters.map(a=>({...a,fragments:[...a.fragments.values()]}))});
-  await Deno.writeTextFile(join(p.directory,"native-run.json"),serialized);
-  await Deno.writeTextFile(join(base(root),"native-run.json"),serialized);
+  await Deno.writeTextFile(join(p.directory,"native-run.json"),serialized,p.schema==='course-native-run-pointer-v3'?{mode:0o600}:{});
+  await Deno.writeTextFile(join(base(root),"native-run.json"),serialized,p.schema==='course-native-run-pointer-v3'?{mode:0o600}:{});
   if(witness.forcedWriter){try{await validateCompletedExportScope(p,witness)}catch(e){
    for(const file of [join(p.directory,'native-run.json'),join(base(root),'native-run.json')]){try{if(await Deno.readTextFile(file)===serialized)await Deno.remove(file)}catch{}}throw e;
   }}
@@ -362,6 +371,7 @@ export async function loadNativeRun(
   ) throw diagnostic("NATIVE.EXPECTATION_MISMATCH", "Native-сборка не соответствует выбранному профилю, представлению или каталогу", {source: root, field: "native-run"});
   const witness=await readCommonPathBinding(p);await validateCapturedCommon(run,witness);
   if(witness.forcedWriter)await validateCompletedExportScope(p,witness);
+  delete run.ownedConfigRestoration;
   run.adapters = run.adapters.map((a: any) => ({
     ...a,
     fragments: new Map(a.fragments.map((f: AdapterFragment) => [f.source, f])),
@@ -396,3 +406,30 @@ saveNativeRun=__metrics.wrapAsync({id:"course-core.infrastructure.native-run.sav
 prepareNativeExportCleanup=__metrics.wrapAsync({id:"course-core.infrastructure.native-run.prepareNativeExportCleanup",kind:"io"},prepareNativeExportCleanup);
 // @ts-expect-error JS допускает замену function binding; сигнатура публичного API сохраняется.
 loadNativeRun=__metrics.wrapAsync({id:"course-core.infrastructure.native-run.loadNativeRun",kind:"io"},loadNativeRun);
+
+/** Producer-only completed execution → restored descriptor transition. No legacy token. */
+export async function prepareOverlayNativeCleanup(projectRoot:string,profile:string){
+ const root=await Deno.realPath(projectRoot),p=await pointer(root);
+ if(p.schema!=='course-native-run-pointer-v3'||p.overlayState!=='active'||p.profiles.length!==1||p.profiles[0]!==profile)throw diagnostic('NATIVE.RUN_NOT_CURRENT','Нет active owned overlay',{source:root,field:'native-run'});
+ const witness=await readCommonPathBinding(p),ctx=await readOverlayContext(p);await validateCompletedExportScope(p,witness);
+ const pointerPath=join(base(root),'active-native-run.json'),pointerBytes=await Deno.readTextFile(pointerPath),paths=[join(p.directory,'native-run.json'),join(base(root),'native-run.json')],before=await Promise.all(paths.map(path=>Deno.readTextFile(path)));
+ if(before[0]!==before[1])throw diagnostic('NATIVE.RUN_NOT_CURRENT','Completed copies расходятся',{source:root,field:'native-run'});
+ let used=false;
+ return async(restored:Awaited<ReturnType<Awaited<ReturnType<typeof import('./owned-config-overlay.ts')['startOwnedConfigOverlay']>>['restore']>>)=>{
+  if(used)throw diagnostic('NATIVE.RUN_NOT_CURRENT','Restoration capability уже использована',{source:root,field:'native-run'});used=true;
+  if(stable(restored.ctx)!==stable(ctx)||stable(restored.ref)!==stable(p.ownedConfigOverlay)||await Deno.readTextFile(pointerPath)!==pointerBytes||(await Promise.all(paths.map(path=>Deno.readTextFile(path)))).some((b,i)=>b!==before[i]))throw diagnostic('NATIVE.RUN_NOT_CURRENT','Execution/source proof изменён до завершения',{source:root,field:'native-run'});
+  await restored.transaction.retire(join(p.directory,'owned-export-source-config.raw'));await restored.transaction.verifyRetired();
+  const {validateRestorationRecord}=await import('./owned-config-proof.ts');
+  const record=validateRestorationRecord({schema:'course-owned-export-restored-entry-v1',projectRoot:root,runDirectory:p.directory,file:ctx.base.file,sourceContext:overlayReference(p.ownedConfigOverlay).sourceContext,sourceConfig:ctx.base.hashes,executionConfig:ctx.execution.hashes,originalEntry:ctx.base.originalEntry,restoredEntry:restored.restoredEntry},{projectRoot:root,runDirectory:p.directory,file:ctx.base.file,sourceContext:overlayReference(p.ownedConfigOverlay).sourceContext,sourceConfig:ctx.base.hashes,executionConfig:ctx.execution.hashes,originalEntry:ctx.base.originalEntry});
+  const {validateRestoredSourceBeforeCommit}=await import('./owned-config-overlay.ts');await validateRestoredSourceBeforeCommit(p,ctx,record.restoredEntry);
+  const bytes=new TextEncoder().encode(JSON.stringify(record)),hex=async(alg:string)=>Array.from(new Uint8Array(await crypto.subtle.digest(alg,bytes)),b=>b.toString(16).padStart(2,'0')).join('');
+  const ref={file:'owned-export-restored-entry.json' as const,sha1:await hex('SHA-1'),sha256:await hex('SHA-256')};
+  await Deno.writeFile(join(p.directory,ref.file),bytes,{createNew:true,mode:0o600});
+  await restored.transaction.verifyRetired();
+  if(await Deno.readTextFile(pointerPath)!==pointerBytes||(await Promise.all(paths.map(path=>Deno.readTextFile(path)))).some((b,i)=>b!==before[i]))throw diagnostic('NATIVE.RUN_NOT_CURRENT','Execution proof изменён перед final commit',{source:root,field:'native-run'});
+  const completed=JSON.parse(before[0]);completed.ownedConfigRestoration=ref;const encoded=JSON.stringify(completed);
+  for(const path of paths)await Deno.writeTextFile(path,encoded,{mode:0o600});
+  const final:NativeRunPointer={...p,overlayState:'restored',ownedConfigRestoration:ref};await Deno.writeTextFile(pointerPath,JSON.stringify(final),{mode:0o600});
+  await restored.transaction.verifyRetired();await assertOverlayCurrent(final,ctx);const finalWitness=await readCommonPathBinding(final);await validateCompletedExportScope(final,finalWitness);
+ };
+}

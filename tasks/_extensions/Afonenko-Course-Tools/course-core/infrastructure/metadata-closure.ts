@@ -1,6 +1,8 @@
 /** Закрытый native metadata inventory. Значения и merge остаются у Quarto. */
 import {basename,dirname,join,relative,resolve,parse} from 'stdlib/path';
 import {diagnostic} from '../domain/diagnostics.ts';
+import {validatedOverlayReplayInputs} from './owned-config-overlay.ts';
+import type {NativeRunPointer} from './native-run.ts';
 import {quartoExecutable,command} from './process.ts';
 import type {SourceIdentities,CurrentSourceEvidence} from './source-identities.ts';
 import {assertRetiredRegularDocument,assertUnlistedFallback,verifiedRetirement,type RetiredRegularContext,type ExportRetirement} from './native-export-retirement.ts';
@@ -63,16 +65,16 @@ export async function metadataBytes(path:string):Promise<Uint8Array|undefined>{
 }
 // Кэш ограничен процессом и точными bytes; hashes всегда перечитываются.
 const rawCache=new Map<string,any>();
-async function rawNative(path:string,bytes:Uint8Array,qmd:boolean){
+async function rawNative(path:string,bytes:Uint8Array,qmd:boolean,retainedPath?:string){
  const before=await hash(bytes),key=path+'\0'+before+'\0'+qmd;
  if(rawCache.has(key))return rawCache.get(key);
- const args=['pandoc','--from','markdown','--to','json',...(qmd?[path]:['--metadata-file',path])];
+ const args=['pandoc','--from','markdown','--to','json',...(qmd?[path]:['--metadata-file',retainedPath??path])];
  const r=await new Deno.Command(quartoExecutable(),{args,cwd:dirname(path),stdin:'null',stdout:'piped',stderr:'piped'}).output();
  const error=new TextDecoder().decode(r.stderr);
  if(!r.success||error.trim())fail('Native raw metadata extraction отказал: '+path+'\n'+error);
  let v;try{v=JSON.parse(new TextDecoder().decode(r.stdout))}catch{fail('Не получен native metadata AST: '+path)}
  if(!v.meta||typeof v.meta!=='object'||Array.isArray(v.meta))fail('Отсутствует native metadata map: '+path);
- const after=await metadataBytes(path);if(!after||await hash(after)!==before)fail('Metadata drift во время raw extraction: '+path);
+ const after=await metadataBytes(retainedPath??path);if(!after||await hash(after)!==before)fail('Metadata drift во время raw extraction: '+path);
  rawCache.set(key,v.meta);return v.meta;
 }
 function plain(value:any):any{
@@ -105,7 +107,16 @@ export function configIdentities(root:string,files:any):string[]{
  if(!Array.isArray(files)||files.some(f=>typeof f!=='string'))fail('Нет native config inventory');
  const paths=files.map((f:string)=>physical(root,f));if(new Set(paths).size!==paths.length)fail('Повторный native config origin');return paths;
 }
-export async function collectMetadataClosure(input:MetadataInputs,retired?:{file:string;sha256:string},prior?:MetadataClosure):Promise<MetadataClosure>{
+export type OverlayMetadataReplay=object & {readonly __overlayMetadataReplay:never};
+const overlayMetadataReplays=new WeakMap<object,{root:string;entries:Awaited<ReturnType<typeof validatedOverlayReplayInputs>>;check:()=>Promise<unknown>}>();
+/** Only exact restored-v3 base/profile retained inputs; no caller file/map override. */
+export async function withOverlayMetadataReplay<T>(p:NativeRunPointer,check:()=>Promise<unknown>,use:(token:OverlayMetadataReplay)=>Promise<T>):Promise<T>{
+ const entries=await validatedOverlayReplayInputs(p),token=Object.freeze({}) as OverlayMetadataReplay;
+ overlayMetadataReplays.set(token,{root:p.projectRoot,entries,check});try{await check();return await use(token)}finally{overlayMetadataReplays.delete(token)}
+}
+export async function collectMetadataClosure(input:MetadataInputs,retired?:{file:string;sha256:string},prior?:MetadataClosure,overlayReplay?:OverlayMetadataReplay):Promise<MetadataClosure>{
+ const replay=overlayReplay&&overlayMetadataReplays.get(overlayReplay);if(overlayReplay&&(!replay||replay.root!==input.root||retired))fail('Чужой/expired overlay metadata replay');
+
  const {root,profiles,documents,nativeConfigFiles,extensionFiles,includeMaps}=input;
  const origins=new Map<string,Origin>(),edges=new Map<string,Edge>(),profileRefs=new Map<string,string[]>();let noCommon=true;
  const ctx=(source:string|null,format:string|null,declaredBy:string|null):Context=>({source,format,declaredBy});
@@ -114,14 +125,14 @@ export async function collectMetadataClosure(input:MetadataInputs,retired?:{file
  const configs=new Set([...nativeConfigFiles.owner,...Object.values(nativeConfigFiles.documents).flat()]);
  const add=async(path:string,context:Context,kind:Kind,supported=false)=>{
   path=physical(root,path);const key=stable({path,context});if(origins.has(key))return;
-  const bytes=await metadataBytes(path);
+  const replayEntry=replay?.entries[path];await replay?.check();const bytes=await metadataBytes(replayEntry?.retainedPath??path);if(replayEntry&&(!bytes||await hash(bytes)!==replayEntry.sha256))fail('Retained execution metadata bytes changed');
   if(retired&&path===join(root,retired.file)){
    if(bytes)fail('Retired profile появился снова');
    const old=prior?.origins.find(o=>stable({path:o.path,context:o.context})===key);
    if(!old||old.sha256!==retired.sha256)fail('Нет исходного metadata proof owned profile');origins.set(key,old!);return;
   }
   if(!bytes){origins.set(key,{path,context,kind,sha256:false,nativeMetadataHash:false,commonPresence:'absent'});return}
-  const meta=await rawNative(path,bytes,kind==='qmd'||kind==='include-metadata');
+  const meta=await rawNative(path,bytes,kind==='qmd'||kind==='include-metadata',replayEntry?.retainedPath);await replay?.check();
   const has=commonKey(meta);if(has){
    if(!supported||nestedCommon(meta)||!Object.hasOwn(meta,'project-materialization'))fail('Неподтверждённый common metadata origin: '+path);
    // Не допускаем null/пустой/overridden raw declaration под effective null.
@@ -182,7 +193,7 @@ export async function collectMetadataClosure(input:MetadataInputs,retired?:{file
  for(const path of configs){
   if(![...origins.values()].some(o=>o.path===path))fail('Native config origin без raw extraction: '+path);
  }
- for(const o of origins.values()){const bytes=await metadataBytes(o.path),expected=retired&&o.path===join(root,retired.file)?false:o.sha256;if((bytes?await hash(bytes):false)!==expected)fail('Metadata drift после native extraction: '+o.path)}
+ for(const o of origins.values()){const bytes=await metadataBytes(o.path),expected=replay?.entries[o.path]?.liveSha256??(retired&&o.path===join(root,retired.file)?false:o.sha256);if((bytes?await hash(bytes):false)!==expected)fail('Metadata drift после native extraction: '+o.path)}
  const c:MetadataClosure={schema:'course-native-metadata-closure-v1',nativeConfigFiles,origins:[...origins.values()],dependencies:[...edges.values()],noCommon};return normalize(c);
 }
 export function closureInputs(root:string,c:MetadataClosure){

@@ -48,8 +48,8 @@ export function inspectionSnapshotData(phase:InspectionSnapshot,root:string,refs
  const state=snapshots.get(phase);if(!state||state.root!==root||state.refs!==stable([...refs].sort())||state.binding!==binding||state.identity!==stable(binding))fail('Foreign/expired inspection phase');return state!.all;
 }
 /** Append-only writer: каждое новое stdout читается/проверяется один раз, старые — на фазовой границе. */
-export async function withInspectionWriter<T>(root:string,use:(writer:{append:(text:string)=>Promise<string>;snapshot:()=>Promise<Record<string,any>>})=>Promise<T>):Promise<T>{
- if(writers.has(root))fail('Reentrant inspection writer');writers.add(root);let active=true,writing=false;const refs=new Set<string>();
+export async function withInspectionWriter<T>(root:string,use:(writer:{append:(text:string)=>Promise<string>;snapshot:()=>Promise<Record<string,any>>})=>Promise<T>,initialRefs:ReadonlySet<string>=new Set()):Promise<T>{
+ if(writers.has(root))fail('Reentrant inspection writer');writers.add(root);let active=true,writing=false;const refs=new Set<string>(initialRefs);
  const current=()=>{if(!active||!writers.has(root)||writing)fail('Expired/reentrant inspection writer')};
  const writer=Object.freeze({
   append:async(text:string)=>{current();writing=true;try{
@@ -62,12 +62,13 @@ export async function withInspectionWriter<T>(root:string,use:(writer:{append:(t
    const value=JSON.parse(new TextDecoder('utf-8',{fatal:true,ignoreBOM:true}).decode(actual));if(!value||typeof value!=='object'||Array.isArray(value))fail('Append не original inspection');refs.add(h);return h;
   }finally{writing=false}},
   snapshot:async()=>{current();writing=true;try{return freeze(await checkInspectionStore(root,refs))}finally{writing=false}}
- });try{return await use(writer)}finally{active=false;writers.delete(root)}
+ });try{if(refs.size)await checkInspectionStore(root,refs);return await use(writer)}finally{active=false;writers.delete(root)}
 }
 export function inspectionRefs(w:CommonPathWitness){
  const sources=w.inputFiles,rows=w.sourceIdentities?.sources;
  if(new Set(sources).size!==sources.length||!Array.isArray(rows)||rows.length!==sources.length||stable(rows.map(r=>r.source))!==stable(sources)||stable(Object.keys(w.documentInspectionHashes).sort())!==stable([...sources].sort()))fail('Неполный original inspection scope');
- const refs=[w.ownerInspectionHash,...Object.values(w.documentInspectionHashes),...rows.map(r=>r.physicalInspectionHash)];if(refs.some(h=>!hex(h)))fail('Некорректный original inspection hash');return new Set(refs);
+ const extra=w.sourceInspectionRefs??[];if(w.schema==='course-common-files-path-binding-v1'&&(w.ownedConfigOverlay!==undefined||w.sourceInspectionRefs!==undefined)||w.schema==='course-common-files-path-binding-v2'&&(!w.ownedConfigOverlay||!Array.isArray(extra)||!extra.length||new Set(extra).size!==extra.length))fail('Нет closed explicit source-role refset');
+ const refs=[w.ownerInspectionHash,...Object.values(w.documentInspectionHashes),...rows.map(r=>r.physicalInspectionHash),...extra];if(refs.some(h=>!hex(h)))fail('Некорректный original inspection hash');return new Set(refs);
 }
 /** Cross-role bindings use original stock shape, never an arbitrary JSON preimage. */
 export async function originalInspections(w:CommonPathWitness){

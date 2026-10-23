@@ -4,7 +4,7 @@
     "core": {
       "repository": "Afonenko-Course-Tools/quarto-course",
       "checkout": "quarto-course",
-      "commit": "2850ea28bbf09ac49731d9675fa7f65efcce9c55",
+      "commit": "7c9388cb4d982caf66657ea8f96c09243d64a147",
       "packages": {
         "course-core": [
           ".",
@@ -31,22 +31,22 @@
           "handbook"
         ]
       },
-      "version": "8.2.1",
-      "tag": "v8.2.1",
-      "sourceZip": "https://github.com/Afonenko-Course-Tools/quarto-course/archive/refs/tags/v8.2.1.zip"
+      "version": "8.2.2",
+      "tag": "v8.2.2",
+      "sourceZip": "https://github.com/Afonenko-Course-Tools/quarto-course/archive/refs/tags/v8.2.2.zip"
     },
     "site": {
       "repository": "Afonenko-Course-Tools/quarto-project-publish",
       "checkout": "quarto-project-publish",
-      "commit": "62f8c4a01a5fd9af11f5f66abba2bb48c2ef2631",
+      "commit": "359e55786ca1d35e98b791a1362193e7bfbbd9b4",
       "packages": {
         "course-site": [
           "."
         ]
       },
-      "version": "5.1.0",
-      "tag": "v5.1.0",
-      "sourceZip": "https://github.com/Afonenko-Course-Tools/quarto-project-publish/archive/refs/tags/v5.1.0.zip"
+      "version": "5.1.2",
+      "tag": "v5.1.2",
+      "sourceZip": "https://github.com/Afonenko-Course-Tools/quarto-project-publish/archive/refs/tags/v5.1.2.zip"
     },
     "qrc": {
       "repository": "Afonenko-Course-Tools/quarto-reference-catalog",
@@ -74,10 +74,10 @@
           "tasks"
         ]
       },
-      "version": "8.2.0",
-      "tag": "v8.2.0",
-      "commit": "316cf4d2c21b2d1022f69b84892742ac59eec4a2",
-      "sourceZip": "https://github.com/Afonenko-Course-Tools/quarto-course-prairielearn/archive/refs/tags/v8.2.0.zip"
+      "version": "8.2.1",
+      "tag": "v8.2.1",
+      "commit": "b1aa5373d62da1e3fc1aaa5f0c21cb21aad903c8",
+      "sourceZip": "https://github.com/Afonenko-Course-Tools/quarto-course-prairielearn/archive/refs/tags/v8.2.1.zip"
     },
     "download": {
       "repository": "Afonenko-Course-Tools/quarto-project-download",
