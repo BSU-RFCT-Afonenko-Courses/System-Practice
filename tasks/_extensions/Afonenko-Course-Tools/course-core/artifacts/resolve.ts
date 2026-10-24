@@ -1,7 +1,7 @@
 import {createMetrics as __createMetrics} from "../observability/bridge.ts";
 const __metrics=__createMetrics("course-core");
 import {resolve,relative,join,dirname} from 'stdlib/path';
-import type {NativeRun} from '../infrastructure/native-run.ts';
+import {withLoadedNativeRun,withNativeRunProof,nativeRunSiteUrl,type NativeRun,type NativeRunExpectation} from '../infrastructure/native-run.ts';
 import {diagnostic} from '../domain/diagnostics.ts';
 import {evaluateResources,projectedResourceUses} from '../infrastructure/resources.ts';
 import {command,quartoExecutable} from '../infrastructure/process.ts';
@@ -36,7 +36,27 @@ async function writeHtml(ast:any,cwd:string){
  const input=child.stdin.getWriter();await input.write(new TextEncoder().encode(JSON.stringify(ast)));await input.close();
  const result=await child.output();if(!result.success)throw diagnostic('ARTIFACT.WRITER_FAILED',new TextDecoder().decode(result.stderr));return new TextDecoder().decode(result.stdout);
 }
+function freezeBatchRun(value:any):any{
+ if(value&&typeof value==='object'&&!Object.isFrozen(value)){
+  if(value instanceof Map){for(const child of value.values())freezeBatchRun(child);const reject=()=>{throw diagnostic('NATIVE.RUN_NOT_CURRENT','Batch NativeRun is immutable')};for(const name of ['set','delete','clear'])Object.defineProperty(value,name,{value:reject})}
+  else for(const child of Object.values(value))freezeBatchRun(child);
+  Object.freeze(value);
+ }return value;
+}
+export async function withNativeArtifactBatch<T>(root:string,expectation:NativeRunExpectation,use:(batch:Readonly<{run:NativeRun;resolveArtifact:(request:ArtifactRequest)=>Promise<ResolvedArtifact>}>)=>Promise<T>):Promise<T>{
+ return await withLoadedNativeRun(root,expectation,async run=>{
+  freezeBatchRun(run);let active=true,busy=false,pending:Promise<ResolvedArtifact>|undefined;
+  const batch=Object.freeze({run,resolveArtifact:async(request:ArtifactRequest)=>{
+   if(!active||busy)throw diagnostic('NATIVE.RUN_NOT_CURRENT','Expired/reentrant native artifact batch');busy=true;
+   try{pending=resolveArtifact(run,Object.freeze({...request}));return await pending}finally{busy=false;pending=undefined}
+  }});
+  try{const result=await use(batch);if(busy)throw diagnostic('NATIVE.RUN_NOT_CURRENT','Pending artifact request at batch exit');return result}finally{active=false;if(pending)await pending.catch(()=>{})}
+ });
+}
 export async function resolveArtifact(run:NativeRun,request:ArtifactRequest):Promise<ResolvedArtifact>{
+ return await withNativeRunProof(run,()=>resolveArtifactUsing(run,request));
+}
+async function resolveArtifactUsing(run:NativeRun,request:ArtifactRequest):Promise<ResolvedArtifact>{
  if(run.schema!=='course-native-run-v1'||!run.documents.length)throw diagnostic('ARTIFACT.TRUSTED_RUN_REQUIRED','Требуется текущий NativeRun');
  const doc=run.documents.find(d=>d.source===request.source);
  const fact=bindArtifactProjectMaterializations(run).find(p=>p.exerciseId===request.exerciseId&&p.source===request.source);
@@ -88,7 +108,7 @@ export async function resolveArtifact(run:NativeRun,request:ArtifactRequest):Pro
   if(/^(?:[a-z][a-z0-9+.-]*:|\/\/|#)/i.test(href))continue;
   if(/\.qmd(?:[?#]|$)/.test(href))throw diagnostic('ARTIFACT.SOURCE_LINK_FORBIDDEN','Conditions не должны ссылаться на source QMD');
   if(/\.html(?:[?#]|$)/.test(href)){
-   siteUrl??=JSON.parse(await command(quartoExecutable(),['inspect',run.projectRoot],run.projectRoot)).config.website?.['site-url'];
+   siteUrl??=await nativeRunSiteUrl(run);
    if(!siteUrl)throw diagnostic('ARTIFACT.SITE_URL_REQUIRED','Для междокументной ссылки conditions требуется website.site-url');
    node.c[2][0]=new URL(href,new URL(dirname(doc.document.output)+'/',siteUrl.endsWith('/')?siteUrl:siteUrl+'/')).href;
   }else throw diagnostic('ARTIFACT.RESOURCE_UNRESOLVED','Conditions содержит неупакованный local href/src: '+href);

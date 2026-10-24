@@ -4,7 +4,7 @@
     "core": {
       "repository": "Afonenko-Course-Tools/quarto-course",
       "checkout": "quarto-course",
-      "commit": "7c9388cb4d982caf66657ea8f96c09243d64a147",
+      "commit": "7d8a472a0fe4f05b5543fb856336a6d15278ef3a",
       "packages": {
         "course-core": [
           ".",
@@ -31,9 +31,9 @@
           "handbook"
         ]
       },
-      "version": "8.2.2",
-      "tag": "v8.2.2",
-      "sourceZip": "https://github.com/Afonenko-Course-Tools/quarto-course/archive/refs/tags/v8.2.2.zip"
+      "version": "8.2.4",
+      "tag": "v8.2.4",
+      "sourceZip": "https://github.com/Afonenko-Course-Tools/quarto-course/archive/refs/tags/v8.2.4.zip"
     },
     "site": {
       "repository": "Afonenko-Course-Tools/quarto-project-publish",

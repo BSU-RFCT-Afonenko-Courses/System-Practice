@@ -34,18 +34,51 @@ export async function storeInspection(root:string,text:string,refs:Set<string>){
 // Только callback lifetime: capability не сериализуется и не хранит live cache.
 function freeze<T>(value:T):T{if(value&&typeof value==='object'){for(const child of Object.values(value))freeze(child);Object.freeze(value)}return value}
 export type InspectionSnapshot=Readonly<{readonly inspectionPhase:unique symbol}>;
-type SnapshotState={root:string;refs:string;binding:object;identity:string;all:Record<string,any>};
+// Сам binding — только конечный JSON data graph; admission не выполняет getters/toJSON.
+function admitBinding(binding:object):Readonly<{value:object}>{
+ try{
+  const states=new WeakMap<object,number>();
+  type Frame={value:object;exit?:boolean;prototype?:object|null;properties?:[string,unknown][]};
+  const stack:Frame[]=[{value:binding}];
+  while(stack.length){
+   const frame=stack.pop()!,value=frame.value;
+   if(frame.exit){
+    Object.freeze(value);
+    if(Object.getPrototypeOf(value)!==frame.prototype||!Object.isFrozen(value))fail('Inspection binding freeze/prototype отказал');
+    const keys=Reflect.ownKeys(value);if(keys.length!==frame.properties!.length)fail('Inspection binding descriptors изменены');
+    for(const [key,expected] of frame.properties!){const d=Object.getOwnPropertyDescriptor(value,key);if(!d||!Object.hasOwn(d,'value')||d.value!==expected||d.writable||d.configurable||d.enumerable!==(frame.prototype===Array.prototype&&key==='length'?false:true))fail('Inspection binding data изменены')}
+    states.set(value,2);continue;
+   }
+   if(states.get(value)===1)fail('Cycle в inspection binding');if(states.get(value)===2)continue;
+   const array=Array.isArray(value),prototype=Object.getPrototypeOf(value);
+   if(array?prototype!==Array.prototype:prototype!==Object.prototype&&prototype!==null)fail('Inspection binding не plain JSON');
+   const keys=Reflect.ownKeys(value),properties:[string,unknown][]=[],children:object[]=[];
+   let length=0;if(array){const d=Object.getOwnPropertyDescriptor(value,'length');if(!d||!Object.hasOwn(d,'value')||!Number.isSafeInteger(d.value)||d.value<0)fail('Inspection array length');length=d!.value;if(keys.length!==length+1)fail('Inspection array не dense')}
+   for(const key of keys){
+    if(typeof key!=='string')fail('Symbol key в inspection binding');const d=Object.getOwnPropertyDescriptor(value,key!);
+    if(!d||!Object.hasOwn(d,'value')||!(array&&key==='length')&&(!d.enumerable||array&&(!/^(0|[1-9][0-9]*)$/.test(key as string)||Number(key!)>=length))||array&&key==='length'&&d.enumerable)fail('Inspection binding не JSON data property');
+    const child=d!.value;properties.push([key as string,child]);
+    if(child!==null&&typeof child==='object')children.push(child);
+    else if(!(child===null||typeof child==='string'||typeof child==='boolean'||typeof child==='number'&&Number.isFinite(child)))fail('Non-JSON value в inspection binding');
+   }
+   states.set(value,1);stack.push({value,exit:true,prototype,properties});for(let i=children.length-1;i>=0;i--)stack.push({value:children[i]});
+  }
+  return Object.freeze({value:binding});
+ }catch{return fail('Inspection binding admission отказал')}
+}
+type SnapshotState={root:string;refs:string;binding:Readonly<{value:object}>;all:Record<string,any>;originals?:{owner:any;physical:Record<string,any>;lexical:Record<string,any>}};
 const snapshots=new WeakMap<object,SnapshotState>(),phaseOwners=new WeakSet<object>(),writers=new Set<string>();
 export async function withInspectionSnapshot<T>(root:string,refs:ReadonlySet<string>,binding:object,use:(phase:InspectionSnapshot)=>Promise<T>):Promise<T>{
+ if(binding===null||typeof binding!=='object')fail('Inspection binding root не object');
  if(phaseOwners.has(binding))fail('Reentrant inspection phase');phaseOwners.add(binding);
  const phase=Object.freeze({}) as InspectionSnapshot;
- try{const identity=stable(binding),referenceIdentity=stable([...refs].sort()),all=freeze(await checkInspectionStore(root,refs));
-  if(stable(binding)!==identity||stable([...refs].sort())!==referenceIdentity)fail('Inspection binding/refs изменены во время snapshot');
-  snapshots.set(phase,{root,refs:referenceIdentity,binding,identity,all});return await use(phase);
+ try{const admitted=admitBinding(binding),referenceIdentity=stable([...refs].sort()),all=freeze(await checkInspectionStore(root,refs));
+  if(stable([...refs].sort())!==referenceIdentity)fail('Inspection refs изменены во время snapshot');
+  snapshots.set(phase,{root,refs:referenceIdentity,binding:admitted,all});return await use(phase);
  }finally{snapshots.delete(phase);phaseOwners.delete(binding)}
 }
 export function inspectionSnapshotData(phase:InspectionSnapshot,root:string,refs:ReadonlySet<string>,binding:object){
- const state=snapshots.get(phase);if(!state||state.root!==root||state.refs!==stable([...refs].sort())||state.binding!==binding||state.identity!==stable(binding))fail('Foreign/expired inspection phase');return state!.all;
+ const state=snapshots.get(phase);if(!state||state.root!==root||state.refs!==stable([...refs].sort())||state.binding.value!==binding)fail('Foreign/expired inspection phase');return state!.all;
 }
 /** Append-only writer: каждое новое stdout читается/проверяется один раз, старые — на фазовой границе. */
 export async function withInspectionWriter<T>(root:string,use:(writer:{append:(text:string)=>Promise<string>;snapshot:()=>Promise<Record<string,any>>})=>Promise<T>,initialRefs:ReadonlySet<string>=new Set()):Promise<T>{
@@ -75,7 +108,7 @@ export async function originalInspections(w:CommonPathWitness){
  return await withInspectionSnapshot(w.runDirectory,inspectionRefs(w),w,phase=>originalInspectionsInPhase(w,phase));
 }
 export async function originalInspectionsInPhase(w:CommonPathWitness,phase:InspectionSnapshot){
- const all=inspectionSnapshotData(phase,w.runDirectory,inspectionRefs(w),w),owner=all[w.ownerInspectionHash],physical:Record<string,any>={},lexical:Record<string,any>={};
+ const all=inspectionSnapshotData(phase,w.runDirectory,inspectionRefs(w),w),state=snapshots.get(phase)!;if(state.originals)return state.originals;const owner=all[w.ownerInspectionHash],physical:Record<string,any>={},lexical:Record<string,any>={};
  const owned=await readOwnedProfileEvidenceInPhase(w,phase);
  const object=(v:any)=>!!v&&typeof v==='object'&&!Array.isArray(v);
  const keys=(v:any,names:string[])=>object(v)&&Object.keys(v).sort().join(',')===names.sort().join(',');
@@ -92,5 +125,5 @@ export async function originalInspectionsInPhase(w:CommonPathWitness,phase:Inspe
   const a=raw(p,row.physicalPath),b=raw(d,path),c=owner.fileInformation[row.source];if(stable(a.metadata)!==stable(b.metadata)||stable(b.metadata)!==stable(c.metadata)||stable(b.includeMap)!==stable(c.includeMap))fail('Original raw role mismatch');
   if(stable((owned?['json']:Object.keys(d.formats)).map(f=>['pdf','beamer'].includes(f)?'latex':f).sort())!==stable(w.documents.filter(v=>v.source===row.source).map(v=>v.format).sort()))fail('Original lexical format scope mismatch');
  }
- return freeze({owner,physical,lexical});
+ return state.originals=Object.freeze({owner,physical:Object.freeze(physical),lexical:Object.freeze(lexical)});
 }

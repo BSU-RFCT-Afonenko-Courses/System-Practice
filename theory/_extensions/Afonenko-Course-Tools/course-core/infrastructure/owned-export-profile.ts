@@ -47,10 +47,11 @@ export async function readOwnedProfileEvidence(w:CommonPathWitness){
  const evidence=await readOwnedSlot(w);if(!evidence)return;
  return await withInspectionSnapshot(w.runDirectory,inspectionRefs(w),w,phase=>readOwnedProfileEvidenceInPhase(w,phase));
 }
-/** Внутренний original owner уже проверен в конечной inspection-фазе. Raw slot всегда читается заново. */
+const admittedProfiles=new WeakMap<InspectionSnapshot,Promise<Awaited<ReturnType<typeof readOwnedSlot>>>>();
+/** Внутренний original owner уже проверен в конечной inspection-фазе. Raw slot принимается один раз; assertOwnedProfileCurrentInPhase перечитывает его на boundary. */
 export async function readOwnedProfileEvidenceInPhase(w:CommonPathWitness,phase:InspectionSnapshot){
  const owner=inspectionSnapshotData(phase,w.runDirectory,inspectionRefs(w),w)[w.ownerInspectionHash];
- const evidence=await readOwnedSlot(w);if(!evidence)return;
+ let admitted=admittedProfiles.get(phase);if(!admitted){admitted=readOwnedSlot(w);admittedProfiles.set(phase,admitted)}const evidence=await admitted;if(!evidence)return;
  if(owner.dir!==w.projectRoot||owner.quarto?.version!==w.quartoVersion||!owner.config||!Array.isArray(owner.files?.config)||stable(owner.files.config)!==stable(w.metadataClosure.nativeConfigFiles.owner)||!Array.isArray(owner.files?.input)||w.inputFiles.some(s=>!owner.files.input.includes(resolve(w.projectRoot,s)))||owner.config.course?.id!==evidence.value.course.id||owner.config.course?.view!=='full'||owner.config['course-export-context']!==true)fail('Owned original owner frame mismatch');
  const project=owner.config.project;
  if(!project||stable(project['pre-render'])!==stable([evidence.value.project['pre-render']])||stable(project['post-render'])!==stable([evidence.value.project['post-render']]))fail('Owned original singleton hook pair mismatch');
@@ -67,7 +68,7 @@ export async function assertOwnedProfileCurrent(p:NativeRunPointer,w:CommonPathW
  return await assertOwnedProfileCurrentUsing(p,w,()=>readOwnedProfileEvidence(w),retirement);
 }
 export async function assertOwnedProfileCurrentInPhase(p:NativeRunPointer,w:CommonPathWitness,phase:InspectionSnapshot,retirement?:ExportRetirement){
- return await assertOwnedProfileCurrentUsing(p,w,()=>readOwnedProfileEvidenceInPhase(w,phase),retirement);
+ inspectionSnapshotData(phase,w.runDirectory,inspectionRefs(w),w);return await assertOwnedProfileCurrentUsing(p,w,()=>readOwnedSlot(w),retirement);
 }
 async function assertOwnedProfileCurrentUsing(p:NativeRunPointer,w:CommonPathWitness,read:()=>ReturnType<typeof readOwnedProfileEvidence>,retirement?:ExportRetirement){
  const evidence=await read();if(!evidence){if(p.commonPathRetirement)fail('Retirement без owned writer');return}

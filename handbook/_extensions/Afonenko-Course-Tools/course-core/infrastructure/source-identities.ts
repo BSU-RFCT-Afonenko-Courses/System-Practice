@@ -2,7 +2,7 @@
 import {dirname,join,relative,resolve} from 'stdlib/path';
 import {diagnostic} from '../domain/diagnostics.ts';
 import {command,quartoExecutable} from './process.ts';
-import {metadataBytes,freshOwnerData,type FreshOwnerFrame} from './metadata-closure.ts';
+import {metadataBytes,freshOwnerData,inspectFreshDocument,type FreshOwnerFrame} from './metadata-closure.ts';
 import {assertRetiredRegularDocument,verifiedRetirement,type RetiredRegularContext,type ExportRetirement} from './native-export-retirement.ts';
 const fail=(s:string):never=>{throw diagnostic('NATIVE.COMMON_PATH_BINDING_INVALID',s,{field:'project-materialization'})};
 const stable=(v:unknown):string=>JSON.stringify(v,(_k,x)=>x&&typeof x==='object'&&!Array.isArray(x)?Object.fromEntries(Object.entries(x).sort(([a],[b])=>a.localeCompare(b))):x);
@@ -28,7 +28,7 @@ export function sourceMetadata(doc:any,path:string,source?:string){
  const info=doc.fileInformation?.[path]??(source?doc.fileInformation?.[source]:undefined);
  if(!info||!info.metadata||typeof info.metadata!=='object'||!Array.isArray(info.includeMap))fail('Нет raw input metadata: '+path);return info;
 }
-export async function inspectSources(root:string,sources:string[],profiles:string[],expected?:SourceIdentities,retirement?:ExportRetirement,proof?:{retiredContext?:RetiredRegularContext;originals?:Record<string,any>;before?:()=>Promise<unknown>;capture?:(text:string)=>Promise<unknown>}){
+export async function inspectSources(root:string,sources:string[],profiles:string[],expected?:SourceIdentities,retirement?:ExportRetirement,proof?:{retiredContext?:RetiredRegularContext;originals?:Record<string,any>;before?:()=>Promise<unknown>;capture?:(text:string)=>Promise<unknown>;frame?:FreshOwnerFrame}){
  if(retirement!==undefined&&!verifiedRetirement(retirement))fail('Не доказан retirement capability');
  if(new Set(sources).size!==sources.length)fail('Повторный lexical input');
  if(expected!==undefined&&(!keys(expected,['schema','sources'])||expected.schema!=='course-native-source-identities-v1'||!Array.isArray(expected.sources)||expected.sources.length!==sources.length))fail('Нет закрытого sourceIdentities');
@@ -38,7 +38,7 @@ export async function inspectSources(root:string,sources:string[],profiles:strin
   if(expected!==undefined&&(!keys(old,['source','physicalPath','linkTarget','nativeOwner','physicalInspectionHash'])||old.source!==source||typeof old.physicalPath!=='string'||!(old.linkTarget===null||typeof old.linkTarget==='string'&&!!old.linkTarget)||old.nativeOwner!==root||typeof old.physicalInspectionHash!=='string'||!/^[a-f0-9]{64}$/.test(old.physicalInspectionHash)))fail('Некорректная source identity');
   await proof?.before?.();
   const before=await sourceFile(root,source),args=profiles.length?['--profile',profiles.join(',')]:[];
-  const text=await command(quartoExecutable(),['inspect',before.physicalPath,...args],root,{QUARTO_PROFILE:profiles.join(',')}),doc=JSON.parse(text);
+  const text=proof?.frame?await inspectFreshDocument(proof.frame,root,profiles,before.physicalPath,proof.before??(async()=>{})):await command(quartoExecutable(),['inspect',before.physicalPath,...args],root,{QUARTO_PROFILE:profiles.join(',')}),doc=JSON.parse(text);
   if(doc.project?.dir!==root||await Deno.realPath(doc.project.dir)!==root){if(!old)fail('Чужой physical native owner: '+source);await assertRetiredRegularDocument(doc,before.physicalPath,old,source,proof?.retiredContext)}
   sourceMetadata(doc,before.physicalPath);
   if(old){const original=proof?.originals?.[source];if(!original||original.quarto?.version!==doc.quarto?.version)fail('Нет original source provenance');sameSourceMetadata(sourceMetadata(original,old.physicalPath),sourceMetadata(doc,before.physicalPath))}
@@ -71,7 +71,7 @@ export async function inspectCurrentSources(root:string,sources:string[],profile
    if(stable(a.includeMap)!==stable(row.includeMap)||stable(b.includeMap)!==stable(row.includeMap))fail('Original/current includeMap изменён');
    information[source]=row;records.push(old);sourceHashes[source]=await hash(before.bytes);
   }else{
-   const direct=await inspectSources(root,[source],profiles,{schema:expected.schema,sources:[old]},retirement,{originals:proof.originals.physical,retiredContext:proof.retiredContext,before:proof.before});
+   const direct=await inspectSources(root,[source],profiles,{schema:expected.schema,sources:[old]},retirement,{originals:proof.originals.physical,retiredContext:proof.retiredContext,before:proof.before,frame});
    const doc=direct.inspections[source];directInspections[source]=doc;information[source]=sourceMetadata(doc,old.physicalPath);records.push(direct.identities.sources[0]);sourceHashes[source]=direct.sourceHashes[source];
   }
   await proof.before();const after=await sourceFile(root,source);

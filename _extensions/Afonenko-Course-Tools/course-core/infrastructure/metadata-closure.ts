@@ -4,6 +4,7 @@ import {diagnostic} from '../domain/diagnostics.ts';
 import {validatedOverlayReplayInputs} from './owned-config-overlay.ts';
 import type {NativeRunPointer} from './native-run.ts';
 import {quartoExecutable,command} from './process.ts';
+import {withNativeRawPhase,prepareNativeQmdRaw,nativeRawMetadata,type NativeRawPhase} from './native-raw-metadata.ts';
 import type {SourceIdentities,CurrentSourceEvidence} from './source-identities.ts';
 import {assertRetiredRegularDocument,assertUnlistedFallback,verifiedRetirement,type RetiredRegularContext,type ExportRetirement} from './native-export-retirement.ts';
 const fail=(s:string):never=>{throw diagnostic('NATIVE.COMMON_PATH_BINDING_INVALID',s,{field:'project-materialization'})};
@@ -17,7 +18,7 @@ type Edge={from:string;to:string;context:Context;kind:EdgeKind};
 export interface MetadataClosure {schema:'course-native-metadata-closure-v1';nativeConfigFiles:{owner:string[];documents:Record<string,string[]>};origins:Origin[];dependencies:Edge[];noCommon:boolean}
 export type MetadataDocument={source:string;format:string};
 // Внутренний capability живёт лишь в callback одного реального stock owner вызова.
-const ownerFrames=new WeakMap<object,{root:string;profiles:string[];native:any}>();
+const ownerFrames=new WeakMap<object,{root:string;profiles:string[];native:any;documents:Map<string,string>}>();
 export type FreshOwnerFrame=object & {readonly __freshOwnerFrame:never};
 function freezeNative(value:any):any{if(value&&typeof value==='object'){for(const child of Object.values(value))freezeNative(child);Object.freeze(value)}return value}
 export function freshOwnerData(frame:FreshOwnerFrame,root:string,profiles:string[]){
@@ -28,8 +29,15 @@ export async function withFreshOwnerFrame<T>(root:string,profiles:string[],check
  const native=JSON.parse(await command(quartoExecutable(),['inspect',root,...args],root,{QUARTO_PROFILE:profiles.join(',')}));await check();
  if(native.dir!==root||await Deno.realPath(native.dir)!==root||!native.fileInformation||typeof native.fileInformation!=='object'||Array.isArray(native.fileInformation)||!Array.isArray(native.files?.input)||native.files.input.some((p:any)=>typeof p!=='string'||resolve(root,p)!==p)||new Set(native.files.input).size!==native.files.input.length)fail('Не установлен current native owner/input inventory');
  configIdentities(root,native.files.config);
- const frame=Object.freeze({}) as FreshOwnerFrame;ownerFrames.set(frame,{root,profiles:[...profiles],native:freezeNative(native)});
+ const frame=Object.freeze({}) as FreshOwnerFrame;ownerFrames.set(frame,{root,profiles:[...profiles],native:freezeNative(native),documents:new Map()});
  try{return await use(frame)}finally{ownerFrames.delete(frame)}
+}
+
+/** Actual direct exception response belongs only to this live owner side. */
+export async function inspectFreshDocument(frame:FreshOwnerFrame,root:string,profiles:string[],input:string,check:()=>Promise<unknown>):Promise<string>{
+ freshOwnerData(frame,root,profiles);await check();const state=ownerFrames.get(frame)!,args=profiles.length?['--profile',profiles.join(',')]:[],key=stable({input,root,profiles,tool:quartoExecutable(),environment:Deno.env.toObject(),cwd:Deno.cwd()}),reuse=!Deno.env.get('COURSE_PERF_MODE')||Deno.env.get('COURSE_PERF_MODE')==='off';
+ if(reuse&&state.documents.has(key)){await check();return state.documents.get(key)!}
+ const text=await command(quartoExecutable(),['inspect',input,...args],root,{QUARTO_PROFILE:profiles.join(',')});await check();freshOwnerData(frame,root,profiles);if(reuse)state.documents.set(key,text);return text;
 }
 
 export type MetadataInputs={root:string;profiles:string[];projectMetadata:any;sourceIdentities:SourceIdentities;documents:MetadataDocument[];nativeConfigFiles:MetadataClosure['nativeConfigFiles'];extensionFiles:string[];includeMaps:Record<string,{source:string;target:string}[]>;validateCanonical:(value:unknown)=>unknown};
@@ -63,20 +71,8 @@ export async function metadataBytes(path:string):Promise<Uint8Array|undefined>{
  if(!(await Deno.lstat(path)).isFile||await Deno.realPath(path)!==path)fail('Metadata origin не regular file: '+path);
  return await Deno.readFile(path);
 }
-// Кэш ограничен процессом и точными bytes; hashes всегда перечитываются.
-const rawCache=new Map<string,any>();
-async function rawNative(path:string,bytes:Uint8Array,qmd:boolean,retainedPath?:string){
- const before=await hash(bytes),key=path+'\0'+before+'\0'+qmd;
- if(rawCache.has(key))return rawCache.get(key);
- const args=['pandoc','--from','markdown','--to','json',...(qmd?[path]:['--metadata-file',retainedPath??path])];
- const r=await new Deno.Command(quartoExecutable(),{args,cwd:dirname(path),stdin:'null',stdout:'piped',stderr:'piped'}).output();
- const error=new TextDecoder().decode(r.stderr);
- if(!r.success||error.trim())fail('Native raw metadata extraction отказал: '+path+'\n'+error);
- let v;try{v=JSON.parse(new TextDecoder().decode(r.stdout))}catch{fail('Не получен native metadata AST: '+path)}
- if(!v.meta||typeof v.meta!=='object'||Array.isArray(v.meta))fail('Отсутствует native metadata map: '+path);
- const after=await metadataBytes(retainedPath??path);if(!after||await hash(after)!==before)fail('Metadata drift во время raw extraction: '+path);
- rawCache.set(key,v.meta);return v.meta;
-}
+// Raw extraction memo принадлежит только текущей закрытой операции.
+
 function plain(value:any):any{
  if(!value||typeof value!=='object'||typeof value.t!=='string')fail('Неизвестный native Meta value');
  if(value.t==='MetaMap')return Object.fromEntries(Object.entries(value.c).map(([k,v])=>[k,plain(v)]));
@@ -114,10 +110,16 @@ export async function withOverlayMetadataReplay<T>(p:NativeRunPointer,check:()=>
  const entries=await validatedOverlayReplayInputs(p),token=Object.freeze({}) as OverlayMetadataReplay;
  overlayMetadataReplays.set(token,{root:p.projectRoot,entries,check});try{await check();return await use(token)}finally{overlayMetadataReplays.delete(token)}
 }
-export async function collectMetadataClosure(input:MetadataInputs,retired?:{file:string;sha256:string},prior?:MetadataClosure,overlayReplay?:OverlayMetadataReplay):Promise<MetadataClosure>{
+export async function collectMetadataClosure(input:MetadataInputs,retired?:{file:string;sha256:string},prior?:MetadataClosure,overlayReplay?:OverlayMetadataReplay,rawPhase?:NativeRawPhase):Promise<MetadataClosure>{
+ if(!rawPhase)return await withNativeRawPhase(input.root,phase=>collectMetadataClosure(input,retired,prior,overlayReplay,phase));
  const replay=overlayReplay&&overlayMetadataReplays.get(overlayReplay);if(overlayReplay&&(!replay||replay.root!==input.root||retired))fail('Чужой/expired overlay metadata replay');
 
  const {root,profiles,documents,nativeConfigFiles,extensionFiles,includeMaps}=input;
+ const preload:{path:string;bytes:Uint8Array;kind:'qmd'|'include-metadata'}[]=[];
+ for(const source of new Set(documents.map(d=>d.source))){const identity=input.sourceIdentities.sources.find(x=>x.source===source);if(!identity)fail('Missing raw preload source identity');const bytes=await metadataBytes(identity!.physicalPath);if(bytes)preload.push({path:identity!.physicalPath,bytes,kind:'qmd'});
+  for(const inc of includeMaps[source]??[]){const lexical=physical(root,inc.source),path=physical(dirname(lexical),inc.target);if(!relative(root,path)||relative(root,path).startsWith('..'))fail('Raw preload include outside owner');const bytes=await metadataBytes(path);if(bytes)preload.push({path,bytes,kind:'include-metadata'})}
+ }
+ await prepareNativeQmdRaw(rawPhase,root,preload);
  const origins=new Map<string,Origin>(),edges=new Map<string,Edge>(),profileRefs=new Map<string,string[]>();let noCommon=true;
  const ctx=(source:string|null,format:string|null,declaredBy:string|null):Context=>({source,format,declaredBy});
  const edge=(from:string,to:string,context:Context,kind:EdgeKind)=>{const e={from,to,context,kind};edges.set(stable(e),e)};
@@ -132,7 +134,7 @@ export async function collectMetadataClosure(input:MetadataInputs,retired?:{file
    if(!old||old.sha256!==retired.sha256)fail('Нет исходного metadata proof owned profile');origins.set(key,old!);return;
   }
   if(!bytes){origins.set(key,{path,context,kind,sha256:false,nativeMetadataHash:false,commonPresence:'absent'});return}
-  const meta=await rawNative(path,bytes,kind==='qmd'||kind==='include-metadata',replayEntry?.retainedPath);await replay?.check();
+  const meta=await nativeRawMetadata(rawPhase!,root,path,bytes,kind,replayEntry?.retainedPath);await replay?.check();
   const has=commonKey(meta);if(has){
    if(!supported||nestedCommon(meta)||!Object.hasOwn(meta,'project-materialization'))fail('Неподтверждённый common metadata origin: '+path);
    // Не допускаем null/пустой/overridden raw declaration под effective null.
@@ -200,7 +202,7 @@ export function closureInputs(root:string,c:MetadataClosure){
  const result:Record<string,string|false>={};for(const o of c.origins){const name=relative(root,o.path).replaceAll('\\','/');if(name&&!name.startsWith('../')&&!name.startsWith('/')&&!/^[A-Za-z]:/.test(name)&&!['qmd','include-metadata','extension-metadata'].includes(o.kind)){if(Object.hasOwn(result,name)&&result[name]!==o.sha256)fail('Несогласованный hash metadata origin');result[name]=o.sha256}}
  return result;
 }
-export async function validateMetadataClosure(root:string,profiles:string[],documents:MetadataDocument[],extensionFiles:string[],extensionRoots:string[],value:MetadataClosure,validateCanonical:MetadataInputs['validateCanonical'],sourceIdentities:SourceIdentities,sourceEvidence:CurrentSourceEvidence,frame:FreshOwnerFrame,retired?:ExportRetirement,proof?:{retiredContext?:RetiredRegularContext;check:()=>Promise<unknown>;owner:(native:any)=>void}){
+export async function validateMetadataClosure(root:string,profiles:string[],documents:MetadataDocument[],extensionFiles:string[],extensionRoots:string[],value:MetadataClosure,validateCanonical:MetadataInputs['validateCanonical'],sourceIdentities:SourceIdentities,sourceEvidence:CurrentSourceEvidence,frame:FreshOwnerFrame,retired?:ExportRetirement,proof?:{retiredContext?:RetiredRegularContext;check:()=>Promise<unknown>;owner:(native:any)=>void;rawPhase?:NativeRawPhase}){
  if(retired!==undefined&&!verifiedRetirement(retired))fail('Нет validated completed retirement');
  const c=value;
  if(!keys(c,['schema','nativeConfigFiles','origins','dependencies','noCommon'])||c.schema!=='course-native-metadata-closure-v1'||typeof c.noCommon!=='boolean'||!keys(c.nativeConfigFiles,['owner','documents'])||!Array.isArray(c.origins)||!Array.isArray(c.dependencies)||!c.nativeConfigFiles.documents||typeof c.nativeConfigFiles.documents!=='object')fail('Нет закрытого metadataClosure');
@@ -227,7 +229,7 @@ export async function validateMetadataClosure(root:string,profiles:string[],docu
   let information=native.fileInformation[source];
   // Retired generated render scope может содержать inputs вне обычного render-list.
   if(!information){
-   await proof?.check();const doc=JSON.parse(await command(quartoExecutable(),['inspect',join(root,source),...args],root,{QUARTO_PROFILE:active.join(',')}));await proof?.check();
+   await proof?.check();const doc=JSON.parse(await inspectFreshDocument(frame,root,active,join(root,source),proof?.check??(async()=>{})));await proof?.check();
    const identity=sourceIdentities.sources.find(x=>x.source===source);if(!identity)fail('Нет source identity');
    if(doc.project?.dir!==root)await assertRetiredRegularDocument(doc,join(root,source),identity!,source,proof?.retiredContext);
    if(doc.project?.files&&Object.hasOwn(doc.project.files,'config')){if(stable(configIdentities(root,doc.project.files.config))!==stable(expected))fail('Чужой metadata config scope')}
@@ -241,7 +243,7 @@ export async function validateMetadataClosure(root:string,profiles:string[],docu
   const physical=sourceEvidence.directInspections[source];if(physical&&retired&&!Object.hasOwn(physical.project?.files??{},'config')){if(physical.project?.dir===root)assertUnlistedFallback(physical,identity!.physicalPath,native,retired,source);else await assertRetiredRegularDocument(physical,identity!.physicalPath,identity!,source,proof?.retiredContext)}
   includes[source]=information.includeMap;
  }
- const actual=await collectMetadataClosure({root,profiles,projectMetadata:native.config,sourceIdentities,documents,nativeConfigFiles:c.nativeConfigFiles,extensionFiles,includeMaps:includes,validateCanonical},retired,c);
+ const actual=await collectMetadataClosure({root,profiles,projectMetadata:native.config,sourceIdentities,documents,nativeConfigFiles:c.nativeConfigFiles,extensionFiles,includeMaps:includes,validateCanonical},retired,c,undefined,proof?.rawPhase);
  if(stable(actual)!==stable(c))fail('Metadata closure/origin/edge/hash изменён');
  return actual;
 }

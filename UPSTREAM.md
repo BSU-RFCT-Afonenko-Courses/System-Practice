@@ -1,16 +1,21 @@
 # Происхождение технической поставки SystemPractice
 
-## Актуальная опубликованная поставка 8.2.2/8.2.1/3.2.0
+## Подготовленная техническая поставка 8.2.4/8.2.1/3.2.0
 
-Core 8.2.2, Exporter 8.2.1 и Site 5.1.2 установлены из фактических
-опубликованных immutable Releases. QRC 3.1.0 и Download 3.2.0 сохранены.
+Core 8.2.4 подготовлен из точного source commit. Exporter 8.2.1 и Site 5.1.2
+сохраняют прежние опубликованные immutable Releases. QRC 3.1.0 и Download 3.2.0 сохранены.
 Точные теги, коммиты и sourceZip закреплены в `providers.json`;
 области установки и хеши генерирует штатный `tools/materialize-providers.py`.
 Активные candidate blocks не используются.
 
+Core 8.2.4 подготовлен локально для независимой линии от 8.2.2. Новые
+Performance bridge/env-контексты сюда не переносились. Тег и sourceZip в
+манифесте задают план поставки; публичный выпуск Core и итоговая фиксация
+курса ещё не подтверждены. Остальные провайдеры сохранены на прежних версиях.
+
 | Владелец | Выпуск | Коммит |
 | --- | --- | --- |
-| Afonenko-Course-Tools/quarto-course | v8.2.2 | `7c9388cb4d982caf66657ea8f96c09243d64a147` |
+| Afonenko-Course-Tools/quarto-course | v8.2.4 | `7d8a472a0fe4f05b5543fb856336a6d15278ef3a` |
 | Afonenko-Course-Tools/quarto-project-publish | v5.1.2 | `359e55786ca1d35e98b791a1362193e7bfbbd9b4` |
 | Afonenko-Course-Tools/quarto-reference-catalog | v3.1.0 | `3df2110e9f525f03f3ecb4926b5d55718e955c4c` |
 | Afonenko-Course-Tools/quarto-course-prairielearn | v8.2.1 | `b1aa5373d62da1e3fc1aaa5f0c21cb21aad903c8` |

@@ -13,7 +13,7 @@ import {
   normalizeResourceFacts,
   validateCapturedResources,
 } from "./resources.ts";
-import {produceCommonPathBinding,assertProducedCommonPathBinding,readCommonPathBinding,validateCapturedCommon,stable} from "./common-path-binding.ts";
+import {produceCommonPathBinding,assertProducedCommonPathBinding,readCommonPathBinding,withCommonPathBinding,commonBindingPhase,validateCapturedCommon,stable} from "./common-path-binding.ts";
 import {discoverOwnedConfigOverlay,readOverlayContext,assertOverlayCurrent,assertOverlayFinalOutputs} from './owned-config-overlay.ts';
 import {overlayReference,restorationReference,type OwnedConfigOverlay,type RestorationReference} from './owned-config-proof.ts';
 import {validateCompletedExportScope} from './native-export-retirement.ts';
@@ -67,7 +67,7 @@ async function configurationHashes(root:string,activeProfiles:string[]):Promise<
   }
   return hashes;
 }
-async function validatedPointer(root: string): Promise<{pointer:NativeRunPointer;witness:Awaited<ReturnType<typeof readCommonPathBinding>>}> {
+async function readPointer(root:string):Promise<NativeRunPointer>{
   const p = await read(join(base(root), "active-native-run.json"));
   if (!["course-native-run-pointer-v2","course-native-run-pointer-v3"].includes(p.schema) || p.projectRoot !== root) {
     throw diagnostic("NATIVE.RUN_POINTER_INVALID", "Указатель текущей native-сборки некорректен", {source: root, field: "native-run"});
@@ -81,10 +81,44 @@ async function validatedPointer(root: string): Promise<{pointer:NativeRunPointer
   if(!Array.isArray(p.profiles) || !p.configurationHashes || Object.keys(current).length!==Object.keys(expected).length || Object.entries(current).some(([name,hash])=>expected[name]!==hash)) {
     throw diagnostic("NATIVE.RUN_NOT_CURRENT","Нативная конфигурация изменилась после начала запуска",{source:root,field:"native-run"});
   }
-  const witness=await readCommonPathBinding(p);
-  return {pointer:p,witness};
+  return p;
 }
+type NativeOperation={pointer:NativeRunPointer;witness:Awaited<ReturnType<typeof readCommonPathBinding>>;check:()=>Promise<void>;owner:()=>any;publish:((()=>Promise<void>)[]);validate:((()=>Promise<void>)[]);completed:Map<string,{value:any;identity:string}>;captured:WeakSet<NativeRun>};
+const activeRuns=new WeakMap<NativeRun,NativeOperation>(),operationOwners=new Set<string>();
+async function withNativeOperation<T>(root:string,use:(op:NativeOperation)=>Promise<T>):Promise<T>{
+ if(operationOwners.has(root))throw diagnostic('NATIVE.RUN_NOT_CURRENT','Reentrant native operation',{source:root,field:'native-run'});
+ operationOwners.add(root);try{
+ const p=await readPointer(root),identity=stable(p),publish:(()=>Promise<void>)[]=[],validate:(()=>Promise<void>)[]=[];
+ return await withCommonPathBinding(p,async(w,check,owner)=>{
+  const guard=async()=>{await check();if(stable(await read(join(base(root),'active-native-run.json')))!==identity)throw diagnostic('NATIVE.RUN_NOT_CURRENT','Native pointer/config changed during operation',{source:root,field:'native-run'})};
+  const op:NativeOperation={pointer:p,witness:w,check:guard,owner,publish,validate,completed:new Map(),captured:new WeakSet()};await guard();const result=await use(op);await guard();validate.unshift(async()=>{for(const [path,state] of op.completed)if(stable(await read(path))!==state.identity)throw diagnostic('NATIVE.RUN_NOT_CURRENT','Completed NativeRun changed at final boundary',{source:root,field:'native-run'})});return result;
+ },async()=>{for(const commit of publish)await commit()},async()=>{for(const check of validate)await check()});
+ }finally{operationOwners.delete(root)}
+}
+async function validatedPointer(root:string){return await withNativeOperation(root,async op=>({pointer:op.pointer,witness:op.witness}))}
 async function pointer(root:string):Promise<NativeRunPointer>{return (await validatedPointer(root)).pointer}
+/** Внутреннее batch lifetime; run не переносит capability за границу callback. */
+export async function withLoadedNativeRun<T>(projectRoot:string,expectation:NativeRunExpectation,use:(run:NativeRun)=>Promise<T>):Promise<T>{
+ const root=await Deno.realPath(projectRoot);
+ return await withNativeOperation(root,async op=>{
+  const run=await loadNativeRunUsing(root,expectation,op),identity=nativeRunIdentity(run);activeRuns.set(run,op);
+  try{const result=await use(run);await op.check();if(nativeRunIdentity(run)!==identity)throw diagnostic('NATIVE.RUN_NOT_CURRENT','Batch NativeRun changed',{source:root,field:'native-run'});return result}finally{activeRuns.delete(run)}
+ });
+}
+function nativeRunIdentity(run:NativeRun){return stable({...run,adapters:run.adapters.map(a=>({...a,fragments:[...a.fragments]}))})}
+export async function withNativeRunProof<T>(run:NativeRun,use:()=>Promise<T>):Promise<T>{
+ const active=activeRuns.get(run);if(active){await assertCommonPathRunUsing(run,active);return await use()}
+ const root=await Deno.realPath(run.projectRoot);return await withNativeOperation(root,async op=>{
+  await assertCommonPathRunUsing(run,op);const identity=nativeRunIdentity(run);activeRuns.set(run,op);
+  try{const result=await use();if(nativeRunIdentity(run)!==identity)throw diagnostic('NATIVE.RUN_NOT_CURRENT','NativeRun changed in artifact operation',{source:root,field:'native-run'});return result}finally{activeRuns.delete(run)}
+ });
+}
+export async function publishNativeMaterialization(run:NativeRun,publish:()=>Promise<void>){
+ const op=activeRuns.get(run);if(!op)throw diagnostic('NATIVE.RUN_NOT_CURRENT','No active native materialization',{source:run.projectRoot,field:'native-run'});await op.check();op.publish.push(publish);
+}
+export async function nativeRunSiteUrl(run:NativeRun):Promise<string|undefined>{
+ const op=activeRuns.get(run);if(!op)throw diagnostic('NATIVE.RUN_NOT_CURRENT','Expired native artifact batch',{source:run.projectRoot,field:'native-run'});await op.check();return op.owner()?.config?.website?.['site-url'];
+}
 async function list(root: string, key: string) {
   const mode = Deno.env.get(
     key.replace("QUARTO_PROJECT_", "QUARTO_USE_FILE_FOR_PROJECT_"),
@@ -144,8 +178,8 @@ export async function beginNativeRun(
   );
   return p;
 }
-export async function finishNativeRun(projectRoot: string): Promise<NativeRun> {
-  const root = await Deno.realPath(projectRoot), p = await pointer(root);
+async function finishNativeRunUsing(root:string,op:NativeOperation):Promise<NativeRun>{
+  const p=op.pointer;
   const complete = join(base(root), "native-run.json");
   if (await exists(complete)) await Deno.remove(complete);
   if (JSON.stringify(p.profiles) !== JSON.stringify(profiles())) {
@@ -305,11 +339,25 @@ export async function finishNativeRun(projectRoot: string): Promise<NativeRun> {
     outputFiles,
     inputFiles,
   };
-  await saveNativeRun(run);
   return run;
 }
+async function completedRun<T>(projectRoot:string,use:(run:NativeRun)=>Promise<T>,persistDocuments:boolean){
+ const root=await Deno.realPath(projectRoot);
+ const result=await withNativeOperation(root,async op=>{
+  const run=await finishNativeRunUsing(root,op);activeRuns.set(run,op);
+  try{const result=await use(run);op.publish.push(await prepareNativeRunSave(run,persistDocuments,op));return {run,result}}finally{activeRuns.delete(run)}
+ });
+ return result;
+}
+export async function finishNativeRun(projectRoot:string):Promise<NativeRun>{return (await completedRun(projectRoot,async()=>{},false)).run}
+export async function withFinishedNativeRun<T>(projectRoot:string,use:(run:NativeRun)=>Promise<T>):Promise<T>{return (await completedRun(projectRoot,use,true)).result}
 export async function saveNativeRun(run:NativeRun,persistDocuments=false){
-  const root=await Deno.realPath(run.projectRoot),p=await pointer(root);
+ const active=activeRuns.get(run);
+ if(active)throw diagnostic('NATIVE.RUN_NOT_CURRENT','Native completion owns its final save',{source:run.projectRoot,field:'native-run'});
+ const root=await Deno.realPath(run.projectRoot);await withNativeOperation(root,async op=>{op.publish.push(await prepareNativeRunSave(run,persistDocuments,op))});
+}
+async function prepareNativeRunSave(run:NativeRun,persistDocuments:boolean,op:NativeOperation){
+  const root=await Deno.realPath(run.projectRoot),p=op.pointer;await op.check();
   for(const doc of persistDocuments?run.documents:[]){
     const digest=await crypto.subtle.digest("SHA-1",new TextEncoder().encode(doc.source+"\0"+doc.document.format));
     const filename=Array.from(new Uint8Array(digest)).map(b=>b.toString(16).padStart(2,"0")).join("")+".json";
@@ -324,37 +372,52 @@ export async function saveNativeRun(run:NativeRun,persistDocuments=false){
     await Deno.writeTextFile(join(directory,filename),encoded);
   }
   await assertOverlayFinalOutputs(p,run.outputFiles);
-  const witness=await readCommonPathBinding(p);await validateCapturedCommon(run,witness);
+  const witness=op.witness;await validateCapturedCommon(run,witness);
   const serialized=JSON.stringify({...run,directory:p.directory,adapters:run.adapters.map(a=>({...a,fragments:[...a.fragments.values()]}))});
+  return async()=>{
+  if(stable(await readPointer(root))!==stable(p))throw diagnostic("NATIVE.RUN_NOT_CURRENT","Pointer changed before native publication",{source:root,field:"native-run"});
   await Deno.writeTextFile(join(p.directory,"native-run.json"),serialized,p.schema==='course-native-run-pointer-v3'?{mode:0o600}:{});
   await Deno.writeTextFile(join(base(root),"native-run.json"),serialized,p.schema==='course-native-run-pointer-v3'?{mode:0o600}:{});
-  if(witness.forcedWriter){try{await validateCompletedExportScope(p,witness)}catch(e){
+  if(witness.forcedWriter){try{await validateCompletedExportScope(p,witness,commonBindingPhase(witness),true)}catch(e){
    for(const file of [join(p.directory,'native-run.json'),join(base(root),'native-run.json')]){try{if(await Deno.readTextFile(file)===serialized)await Deno.remove(file)}catch{}}throw e;
   }}
+  };
 }
 /** Rebind only the exporter-owned temporary profile's planned removal. */
 export async function prepareNativeExportCleanup(projectRoot:string,profile:string){
-  const root=await Deno.realPath(projectRoot),p=await pointer(root);
-  const run=await read(join(p.directory,"native-run.json"));
+  const root=await Deno.realPath(projectRoot);
+  const {p,owned}=await withNativeOperation(root,async op=>{
+  const p=op.pointer,run=await read(join(p.directory,"native-run.json"));
   if(run.directory!==p.directory || !run.documents?.length || !run.documents.every((doc:DocumentResult)=>doc.document.exportContext===true) || !p.profiles.includes(profile)) {
     throw diagnostic("NATIVE.RUN_NOT_CURRENT","Нельзя завершить временную конфигурацию чужого запуска",{source:root,field:"native-run"});
   }
   const name="_quarto-"+profile+".yml";
   if(!(name in p.configurationHashes))throw diagnostic("NATIVE.RUN_NOT_CURRENT","Временный профиль отсутствует в текущем запуске",{source:root,field:"native-run"});
-  const witness=await readCommonPathBinding(p),owned=witness.temporaryExportProfile;
+  const witness=op.witness,owned=witness.temporaryExportProfile;
   if(!owned||owned.profile!==profile||owned.file!==name||owned.sha1!==p.configurationHashes[name])throw diagnostic("NATIVE.RUN_NOT_CURRENT","Профиль не принадлежит generated export текущего запуска",{source:root,field:"native-run"});
-  await validateCompletedExportScope(p,witness);
+  await validateCompletedExportScope(p,witness,commonBindingPhase(witness));return {p,owned};
+  });
+  if(stable(await readPointer(root))!==stable(p))throw diagnostic("NATIVE.RUN_NOT_CURRENT","Pointer changed before retirement",{source:root,field:"native-run"});
   p.commonPathRetirement=owned;
-  p.configurationHashes[name]=false;
+  p.configurationHashes[owned.file]=false;
   await Deno.writeTextFile(join(base(root),"active-native-run.json"),JSON.stringify(p));
 }
 export async function loadNativeRun(
   projectRoot: string,
   expectation: NativeRunExpectation = {},
 ): Promise<NativeRun> {
-  const root = await Deno.realPath(projectRoot),
-    p = await pointer(root),
-    run = await read(join(base(root), "native-run.json"));
+  return await withLoadedNativeRun(projectRoot,expectation,async run=>run);
+}
+async function completedSnapshot(op:NativeOperation,path:string){
+ let state=op.completed.get(path);if(!state){const value=await read(path);state={value,identity:stable(value)};op.completed.set(path,state)}return state.value;
+}
+async function admitCapturedRun(run:NativeRun,op:NativeOperation){
+ if(op.captured.has(run))return;
+ await validateCapturedCommon(run,op.witness);if(op.witness.forcedWriter)await validateCompletedExportScope(op.pointer,op.witness,commonBindingPhase(op.witness));
+ op.captured.add(run);op.validate.unshift(async()=>{await validateCapturedCommon(run,op.witness);if(op.witness.forcedWriter)await validateCompletedExportScope(op.pointer,op.witness,commonBindingPhase(op.witness),true)});
+}
+async function loadNativeRunUsing(root:string,expectation:NativeRunExpectation,op:NativeOperation):Promise<NativeRun>{
+  const p=op.pointer,run=structuredClone(await completedSnapshot(op,join(base(root),"native-run.json")));
   if (
     run.schema !== "course-native-run-v1" || run.directory !== p.directory ||
     run.projectRoot !== root
@@ -369,14 +432,13 @@ export async function loadNativeRun(
     expectation.outputDirectory &&
       resolve(root, expectation.outputDirectory) !== run.outputDirectory
   ) throw diagnostic("NATIVE.EXPECTATION_MISMATCH", "Native-сборка не соответствует выбранному профилю, представлению или каталогу", {source: root, field: "native-run"});
-  const witness=await readCommonPathBinding(p);await validateCapturedCommon(run,witness);
-  if(witness.forcedWriter)await validateCompletedExportScope(p,witness);
+  await admitCapturedRun(run,op);
   delete run.ownedConfigRestoration;
   run.adapters = run.adapters.map((a: any) => ({
     ...a,
     fragments: new Map(a.fragments.map((f: AdapterFragment) => [f.source, f])),
   }));
-  return run;
+  await assertCommonPathRunUsing(run,op);return run;
 }
 
 /** Внутренний мост Lua, связанный с текущим pointer, без caller override. */
@@ -388,10 +450,14 @@ export async function commonPathDocument(root:string,source:string,format:string
 }
 /** Произвольный retained NativeRun не разрешает materialization общих файлов. */
 export async function assertCommonPathRun(run:NativeRun){
- const root=await Deno.realPath(run.projectRoot),p=await pointer(root),w=await readCommonPathBinding(p);
- const current=await read(join(p.directory,'native-run.json'));
+ const active=activeRuns.get(run);if(active)return await assertCommonPathRunUsing(run,active);
+ const root=await Deno.realPath(run.projectRoot);return await withNativeOperation(root,op=>assertCommonPathRunUsing(run,op));
+}
+async function assertCommonPathRunUsing(run:NativeRun,op:NativeOperation){
+ await op.check();const p=op.pointer,w=op.witness,root=run.projectRoot;if(activeRuns.get(run)===op&&op.captured.has(run))return w;
+ const current=await completedSnapshot(op,join(p.directory,'native-run.json'));
  if(current.projectRoot!==run.projectRoot||current.outputDirectory!==run.outputDirectory||current.renderAll!==run.renderAll||stable(current.profiles)!==stable(run.profiles)||stable(current.documents)!==stable(run.documents)||stable(current.inputFiles)!==stable(run.inputFiles)||stable(current.outputFiles)!==stable(run.outputFiles))throw diagnostic('NATIVE.RUN_NOT_CURRENT','NativeRun не совпадает с текущим captured proof',{source:root,field:'native-run'});
- await validateCapturedCommon(run,w);if(w.forcedWriter)await validateCompletedExportScope(p,w);return w;
+ await admitCapturedRun(run,op);await op.check();return w;
 }
 
 // @ts-expect-error JS допускает замену function binding; сигнатура публичного API сохраняется.
@@ -409,11 +475,15 @@ loadNativeRun=__metrics.wrapAsync({id:"course-core.infrastructure.native-run.loa
 
 /** Producer-only completed execution → restored descriptor transition. No legacy token. */
 export async function prepareOverlayNativeCleanup(projectRoot:string,profile:string){
- const root=await Deno.realPath(projectRoot),p=await pointer(root);
+ const root=await Deno.realPath(projectRoot);
+ const {p,ctx,pointerPath,pointerBytes,paths,before}=await withNativeOperation(root,async op=>{
+ const p=op.pointer;
  if(p.schema!=='course-native-run-pointer-v3'||p.overlayState!=='active'||p.profiles.length!==1||p.profiles[0]!==profile)throw diagnostic('NATIVE.RUN_NOT_CURRENT','Нет active owned overlay',{source:root,field:'native-run'});
- const witness=await readCommonPathBinding(p),ctx=await readOverlayContext(p);await validateCompletedExportScope(p,witness);
+ const witness=op.witness,ctx=await readOverlayContext(p);await validateCompletedExportScope(p,witness,commonBindingPhase(witness));
  const pointerPath=join(base(root),'active-native-run.json'),pointerBytes=await Deno.readTextFile(pointerPath),paths=[join(p.directory,'native-run.json'),join(base(root),'native-run.json')],before=await Promise.all(paths.map(path=>Deno.readTextFile(path)));
  if(before[0]!==before[1])throw diagnostic('NATIVE.RUN_NOT_CURRENT','Completed copies расходятся',{source:root,field:'native-run'});
+ return {p,ctx,pointerPath,pointerBytes,paths,before};
+ });
  let used=false;
  return async(restored:Awaited<ReturnType<Awaited<ReturnType<typeof import('./owned-config-overlay.ts')['startOwnedConfigOverlay']>>['restore']>>)=>{
   if(used)throw diagnostic('NATIVE.RUN_NOT_CURRENT','Restoration capability уже использована',{source:root,field:'native-run'});used=true;

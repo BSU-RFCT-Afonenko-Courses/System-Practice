@@ -1,6 +1,6 @@
 import {sourceFile} from '../infrastructure/source-identities.ts';
 import {dirname, isAbsolute, join, relative, resolve} from 'stdlib/path';
-import {assertCommonPathRun,type NativeRun} from '../infrastructure/native-run.ts';
+import {assertCommonPathRun,withNativeRunProof,publishNativeMaterialization,type NativeRun} from '../infrastructure/native-run.ts';
 import {diagnostic} from '../domain/diagnostics.ts';
 import {bindProjectMaterializations,bindArtifactProjectMaterializations} from '../domain/project-materialization.ts';
 
@@ -183,6 +183,9 @@ async function planProjects(options:PlanOptions,fullOwner:boolean){
 
 /** Full owner staging never accepts a selected-document capture. */
 export async function materializeProjects(options:MaterializeOptions):Promise<MaterializationManifest>{
+ return await withNativeRunProof(options.nativeRun,()=>materializeProjectsUsing(options));
+}
+async function materializeProjectsUsing(options:MaterializeOptions):Promise<MaterializationManifest>{
  const source=resolve(options.sourceRoot),output=resolve(options.outputRoot),teacher=options.teacherRoot===undefined?undefined:resolve(options.teacherRoot);
  if(overlaps(source,output)||teacher&&overlaps(output,teacher))fail('Пути source, output и teacher пересекаются');
  await safeParent(output);
@@ -208,7 +211,8 @@ export async function materializeProjects(options:MaterializeOptions):Promise<Ma
   }
   return manifest;
  }
- // Все источники, области и пересечения проверены до первой записи.
+ // Публикация только после B и полного original union.
+ await publishNativeMaterialization(options.nativeRun,async()=>{
  await Deno.mkdir(dirname(output),{recursive:true});
  await Deno.mkdir(output);
  try{
@@ -218,6 +222,7 @@ export async function materializeProjects(options:MaterializeOptions):Promise<Ma
   }
   await Deno.writeTextFile(join(output,'materialization.json'),JSON.stringify(manifest,null,2)+'\n',{createNew:true});
  }catch(error){await Deno.remove(output,{recursive:true});throw error}
+ });
  return manifest;
 }
 

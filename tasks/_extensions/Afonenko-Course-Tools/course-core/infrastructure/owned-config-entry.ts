@@ -22,6 +22,15 @@ export async function overlayRuntimeIdentity(){
  const file=async(path:string):Promise<RuntimeFile>=>{path=await Deno.realPath(path);const s=await Deno.lstat(path);if(!s.isFile||s.isSymlink||s.mode===null||(s.mode&0o022))fail('Небезопасная stock runtime identity');const bytes=await Deno.readFile(path);const after=await Deno.lstat(path);if(s.dev!==after.dev||s.ino!==after.ino||s.mode!==after.mode||s.size!==after.size||s.mtime?.getTime()!==after.mtime?.getTime()||s.ctime?.getTime()!==after.ctime?.getTime())fail('Runtime drift во время fingerprint');return {path,bytes:bytes.length,sha256:await hash(bytes),identity:{dev:s.dev,ino:s.ino,mode:s.mode,size:s.size,mtime:s.mtime?.getTime(),ctime:s.ctime?.getTime()}}};
  return {library:await file([...paths][0]),deno:await file(Deno.execPath()),loaderEnvironment:'absent' as const};
 }
+// Один held runtime на конечную группу read-only views; standalone reader остаётся fresh.
+const readerRuntimes=new Map<string,Awaited<ReturnType<typeof overlayRuntimeIdentity>>>();
+export async function withOverlayRuntime<T>(root:string,use:()=>Promise<T>):Promise<T>{
+ if(readerRuntimes.has(root))return await use();
+ const runtime=await overlayRuntimeIdentity();readerRuntimes.set(root,runtime);
+ try{const result=await use();if(stable(await overlayRuntimeIdentity())!==stable(runtime))fail('Overlay runtime changed at group boundary');return result}finally{readerRuntimes.delete(root)}
+}
+export async function assertOverlayRuntimeBoundary(root:string){const runtime=readerRuntimes.get(root);if(!runtime||stable(await overlayRuntimeIdentity())!==stable(runtime))fail('Overlay runtime changed at boundary')}
+async function readerRuntime(root:string){for(const [owner,runtime] of readerRuntimes)if(root===owner||root.startsWith(owner+'/'))return runtime;return await overlayRuntimeIdentity()}
 export async function beginConfigEntry(root:string,entry:'_quarto.yml'|'_quarto.yaml'){
  if(!['_quarto.yml','_quarto.yaml'].includes(entry)||resolve(root)!==root||await Deno.realPath(root)!==root)fail('Неканонический config owner');
  const runtime=await overlayRuntimeIdentity(),environment=await hash(new TextEncoder().encode(stable(Deno.env.toObject())));
@@ -119,7 +128,7 @@ export async function beginConfigEntry(root:string,entry:'_quarto.yml'|'_quarto.
 /** Read-only anchored observation for independent new-mode readers. No lease/write/repair. */
 export async function openConfigEntryView(root:string,entry:'_quarto.yml'|'_quarto.yaml'|'quarantined-source'){
  if(!(entry==='quarantined-source'?root.endsWith('/_generated/course-spec/owned-config-overlay-lease'):['_quarto.yml','_quarto.yaml'].includes(entry))||resolve(root)!==root||await Deno.realPath(root)!==root)fail('Неканонический source config reader');
- const runtime=await overlayRuntimeIdentity(),environment=await hash(new TextEncoder().encode(stable(Deno.env.toObject())));
+ const runtime=await readerRuntime(root),environment=await hash(new TextEncoder().encode(stable(Deno.env.toObject())));
  const lib=Deno.dlopen(runtime.library.path,{openat:{parameters:['i32','buffer','i32','u32'],result:'i32'},close:{parameters:['i32'],result:'i32'},statx:{parameters:['i32','buffer','i32','u32','buffer'],result:'i32'},pread:{parameters:['i32','buffer','usize','i64'],result:'isize'}} as const);
  const f=lib.symbols,fds=new Set<number>();let closed=false;
  const close=()=>{if(!closed){for(const fd of fds)f.close(fd);fds.clear();lib.close();closed=true}};
@@ -142,7 +151,7 @@ export async function openConfigEntryView(root:string,entry:'_quarto.yml'|'_quar
 /** ARCH87: bounded, held native identity for one exact source-side JSON slot. */
 export async function openNativeJsonOutput(root:string,name:string){
  if(resolve(root)!==root||!name||name.split('/').some(p=>!p||p==='.'||p==='..')||/[\\\0]/.test(name)||await Deno.realPath(root)!==root)fail('Неканонический native JSON slot');
- const runtime=await overlayRuntimeIdentity(),lib=Deno.dlopen(runtime.library.path,{openat:{parameters:['i32','buffer','i32','u32'],result:'i32'},close:{parameters:['i32'],result:'i32'},statx:{parameters:['i32','buffer','i32','u32','buffer'],result:'i32'},pread:{parameters:['i32','buffer','usize','i64'],result:'isize'}} as const),F=lib.symbols,fds:number[]=[];
+ const runtime=await readerRuntime(root),lib=Deno.dlopen(runtime.library.path,{openat:{parameters:['i32','buffer','i32','u32'],result:'i32'},close:{parameters:['i32'],result:'i32'},statx:{parameters:['i32','buffer','i32','u32','buffer'],result:'i32'},pread:{parameters:['i32','buffer','usize','i64'],result:'isize'}} as const),F=lib.symbols,fds:number[]=[];
  const close=()=>{for(const fd of fds.splice(0))F.close(fd);lib.close()};
  const info=(fd:number,path='')=>{const b=new Uint8Array(256);if(F.statx(fd,c(path),path?0x100:0x1000,0x7ff,b)!==0)fail('Native output statx отказал');return {...decodeIdentity(b),nlink:new DataView(b.buffer).getUint32(16,true)}};
  const open=(fd:number,name:string,flags:number)=>{const n=F.openat(fd,c(name),flags|NOFOLLOW|CLOEXEC,0);if(n<0)fail('Native output anchored open отказал');fds.push(n);return n};
