@@ -1098,17 +1098,17 @@
     },
     "course-prairielearn": {
       "repository": "Afonenko-Course-Tools/quarto-course-prairielearn",
-      "commit": "59ae2f453900952843355c550af85c41e0f392af",
-      "tag": "v8.2.3",
-      "version": "8.2.3",
-      "sourceZip": "https://github.com/Afonenko-Course-Tools/quarto-course-prairielearn/archive/refs/tags/v8.2.3.zip",
+      "commit": "87bb47cc20cc0cc9f835c2205962f8223da5211f",
+      "tag": "v8.2.4",
+      "version": "8.2.4",
+      "sourceZip": "https://github.com/Afonenko-Course-Tools/quarto-course-prairielearn/archive/refs/tags/v8.2.4.zip",
       "provider": "prairielearn",
       "scopes": [
         "tasks"
       ],
       "files": {
         "_extension.yml": {
-          "sha256": "3bc03cf1e868282b4d266fa4f9720b4d527ac044190a5245f8c6d91c4b27739e",
+          "sha256": "f6612ecdbaecfd839acdbc05ea4177f12255e7c65d09f324058f9efa82cc918d",
           "size": 517,
           "mode": 420
         },
@@ -1133,8 +1133,8 @@
           "mode": 420
         },
         "application/export.ts": {
-          "sha256": "97191d66930ea1e086b55ff93912811ccbabe919eb2dfcd07f3c47373c7f2df7",
-          "size": 30829,
+          "sha256": "4eec06c8e932572b5716a47c90aa42ccb9e58300868b7e0fed27f60a6f0f2c97",
+          "size": 30871,
           "mode": 420
         },
         "application/grading-descriptor.ts": {
@@ -1298,7 +1298,7 @@
           "mode": 420
         }
       },
-      "extensionTree": "f064119084855b9f9d91cfa5da4d03840e2b4c7d"
+      "extensionTree": "7f1f6d5fdf3550ff07b763f26fa66afd4ec106e6"
     },
     "project-download": {
       "repository": "Afonenko-Course-Tools/quarto-project-download",
