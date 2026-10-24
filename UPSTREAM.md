@@ -1,8 +1,8 @@
 # Происхождение технической поставки SystemPractice
 
-## Подготовленная техническая поставка 8.2.4/8.2.3/3.2.0
+## Подготовленная техническая поставка 8.2.4/8.2.4/3.2.0
 
-Core 8.2.4 и Exporter 8.2.3 опубликованы как immutable Releases.
+Core 8.2.4 и Exporter 8.2.4 опубликованы как immutable Releases.
 Site 5.1.2, QRC 3.1.0 и Download 3.2.0 сохранены без изменения исходников.
 Точные теги, коммиты и sourceZip закреплены в `providers.json`;
 области установки и хеши генерирует штатный `tools/materialize-providers.py`.
@@ -13,10 +13,10 @@ Site 5.1.2, QRC 3.1.0 и Download 3.2.0 сохранены без изменен
 | Afonenko-Course-Tools/quarto-course | v8.2.4 | `7d8a472a0fe4f05b5543fb856336a6d15278ef3a` |
 | Afonenko-Course-Tools/quarto-project-publish | v5.1.2 | `359e55786ca1d35e98b791a1362193e7bfbbd9b4` |
 | Afonenko-Course-Tools/quarto-reference-catalog | v3.1.0 | `3df2110e9f525f03f3ecb4926b5d55718e955c4c` |
-| Afonenko-Course-Tools/quarto-course-prairielearn | v8.2.3 | `59ae2f453900952843355c550af85c41e0f392af` |
+| Afonenko-Course-Tools/quarto-course-prairielearn | v8.2.4 | `87bb47cc20cc0cc9f835c2205962f8223da5211f` |
 | Afonenko-Course-Tools/quarto-project-download | v3.2.0 | `2dd97d8ce28c4ad514e869fe86d25dbc19f79def` |
 
-Exporter 8.2.3 принимает явные whole conditions ZIP принятой публикации.
+Exporter 8.2.4 принимает явные whole conditions ZIP принятой публикации.
 Учебные условия, стартеры, эталоны, оценки и остальные providers сохранены.
 Существующие области установки не меняются. Исторические capture и
 materialization не подтверждают новый source commit; для этой поставки нужны
@@ -94,3 +94,8 @@ native/manual интеграция System и её проверка пропущ�
 новую предметную или Moodle приёмку они не устанавливают.
 Внешние URL, Moodle ссылки и настройки не изменялись. Исторические сведения
 о первой поставке сохранены в [истории](docs/provider-history/UPSTREAM-before-20261016.md).
+
+Exporter8.2.4 сохраняет учебную Git-историю в неизменном starter ZIP,
+но исключает raw `.git` из прямого starter subtree для обычного Git clone.
+Публичные TAR/ZIP и две stock установки приняты отдельно; новый native capture
+и CI этого курса подтверждаются только последующими фактическими проверками.
