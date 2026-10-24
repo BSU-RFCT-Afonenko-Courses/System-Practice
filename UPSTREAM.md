@@ -1,42 +1,37 @@
 # Происхождение технической поставки SystemPractice
 
-## Подготовленная техническая поставка 8.2.4/8.2.1/3.2.0
+## Подготовленная техническая поставка 8.2.4/8.2.3/3.2.0
 
-Core 8.2.4 подготовлен из точного source commit. Exporter 8.2.1 и Site 5.1.2
-сохраняют прежние опубликованные immutable Releases. QRC 3.1.0 и Download 3.2.0 сохранены.
+Core 8.2.4 и Exporter 8.2.3 опубликованы как immutable Releases.
+Site 5.1.2, QRC 3.1.0 и Download 3.2.0 сохранены без изменения исходников.
 Точные теги, коммиты и sourceZip закреплены в `providers.json`;
 области установки и хеши генерирует штатный `tools/materialize-providers.py`.
 Активные candidate blocks не используются.
-
-Core 8.2.4 подготовлен локально для независимой линии от 8.2.2. Новые
-Performance bridge/env-контексты сюда не переносились. Тег и sourceZip в
-манифесте задают план поставки; публичный выпуск Core и итоговая фиксация
-курса ещё не подтверждены. Остальные провайдеры сохранены на прежних версиях.
 
 | Владелец | Выпуск | Коммит |
 | --- | --- | --- |
 | Afonenko-Course-Tools/quarto-course | v8.2.4 | `7d8a472a0fe4f05b5543fb856336a6d15278ef3a` |
 | Afonenko-Course-Tools/quarto-project-publish | v5.1.2 | `359e55786ca1d35e98b791a1362193e7bfbbd9b4` |
 | Afonenko-Course-Tools/quarto-reference-catalog | v3.1.0 | `3df2110e9f525f03f3ecb4926b5d55718e955c4c` |
-| Afonenko-Course-Tools/quarto-course-prairielearn | v8.2.1 | `b1aa5373d62da1e3fc1aaa5f0c21cb21aad903c8` |
+| Afonenko-Course-Tools/quarto-course-prairielearn | v8.2.3 | `59ae2f453900952843355c550af85c41e0f392af` |
 | Afonenko-Course-Tools/quarto-project-download | v3.2.0 | `2dd97d8ce28c4ad514e869fe86d25dbc19f79def` |
 
-Поставка восстанавливается из проверенных локальных Git checkout без сетевых загрузок:
+Exporter 8.2.3 принимает явные whole conditions ZIP принятой публикации.
+Учебные условия, стартеры, эталоны, оценки и остальные providers сохранены.
+Существующие области установки не меняются. Исторические capture и
+materialization не подтверждают новый source commit; для этой поставки нужны
+свежие семь NativeRun-деклараций, observer и student/grading materialization.
+
+Воспроизведение выполняется из проверенных локальных release checkout:
 
 ```sh
 python3 tools/materialize-providers.py --providers-root /absolute/release-checkouts --write
 python3 tools/materialize-providers.py --check
 ```
 
-Существующие области установки сохранены: 20 для Core/Exporter/Download,
-27 вместе с Site/QRC. Новые области установки не добавлены.
-Три прежние поправки и manifests сохранены в истории Git.
-
-Exporter использует delivery v3 с Core; Body package остаётся v2.
-Подключение расширений не меняет Platform/Gateway, сервисные OCI pins или production.
-Runtime builder и образы остаются опубликованной поставкой Platform 2.3.0.
-Готовность capture, архивов, экспорта, импорта и пользовательского интерфейса
-подтверждается отдельно. Учебные условия и оценивание этой поставкой не изменены.
+Runtime builder и OCI images остаются опубликованной поставкой Platform 2.3.0.
+Новый source pin сам по себе не подтверждает CI, capture, экспорт, импорт
+или пользовательскую приёмку. Исторические результаты сохранены ниже.
 
 ## История прежней статической поставки
 
