@@ -35,7 +35,8 @@ return __perfFilters({{Pandoc = function(doc)
   assert(doc.meta.course.schema == nil, diagnostics.format("CORE.SCHEMA_INVALID", "Поле course.schema не поддерживается; удалите его из YAML: действует единый текущий контракт", {field="course.schema"}))
   assert(doc.meta["course-export-context"] ~= true or quarto.doc.is_format("json"), diagnostics.format("CORE.VISIBILITY_INVALID", "course-export-context требует native JSON export", {field="course-export-context"}))
   local effective=require("./exercise-defaults").normalize(doc)
-  local projectFacts=require("./projects").collect(doc,effective)
+  local boundMaterialization=output.bound_materialization(doc)
+  local projectFacts=require("./projects").collect(doc,effective,boundMaterialization)
   local canonical,domains,rawAssessment = native_document.validate(doc,effective)
   local publicAnswers=answers.validate(doc)
   if rawAssessment then doc.meta["course-assessment-id"]=pandoc.MetaString(rawAssessment.id) end
@@ -104,7 +105,7 @@ return __perfFilters({{Pandoc = function(doc)
   end
   output.write({
     exportContext=doc.meta["course-export-context"]==true or nil,
-    projects=projectFacts, topic=topic,
+    projects=projectFacts, projectMaterializations=boundMaterialization, topic=topic,
     declarations=declarations, rawAssessment=require("./assessment").composition(rawAssessment),
     course = {id = doc.meta.course.id and pandoc.utils.stringify(doc.meta.course.id) or nil,
               view = doc.meta.course.view and pandoc.utils.stringify(doc.meta.course.view) or nil},
@@ -114,7 +115,7 @@ return __perfFilters({{Pandoc = function(doc)
     body = {publicExercises=publicExercises,publicAssessment=projectedAssessment(public),publicAnswers=selectedAnswers,fullAnswers=view=="full" and publicAnswers or nil},
     resources = resources.facts(raw,public,resourceProjects)
   })
-  if rawAssessment and doc.meta["course-current-native-run"]==true and quarto.doc.is_format("html") then
+  if rawAssessment and doc.meta.course["assessment-time"]~=false and doc.meta["course-current-native-run"]==true and quarto.doc.is_format("html") then
     doc.blocks:insert(pandoc.RawBlock("html","<!--course-assessment-time-->"))
   end
   if #canonical>0 and doc.meta["course-current-native-run"]==true and quarto.doc.is_format("html") then

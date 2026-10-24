@@ -1,0 +1,1 @@
+latency_limit = 25 ms

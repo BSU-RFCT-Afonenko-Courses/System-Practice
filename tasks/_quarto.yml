@@ -1,3 +1,5 @@
+exercise-bank: true
+default-exercise-statement-visibility: open
 project:
   type: book
   output-dir: _output
@@ -19,9 +21,11 @@ project:
   - '!**/_generated/**'
   pre-render:
   - _extensions/Afonenko-Course-Tools/course-core/entrypoints/pre.ts
+  - _extensions/Afonenko-Course-Tools/project-download/entrypoints/pre.ts
   post-render:
   - _extensions/Afonenko-Course-Tools/course-core/entrypoints/post.ts
   - _extensions/Afonenko-Course-Tools/reference-catalog/entrypoints/post.ts
+  - _extensions/Afonenko-Course-Tools/project-download/entrypoints/post.ts
   - ../_extensions/Afonenko-Course-Tools/course-site/entrypoints/collect.ts
 format:
   html:
@@ -36,6 +40,8 @@ filters:
 - course-core
 - course-presentation
 - reference-catalog
+- course-prairielearn
+- project-download
 reference-catalog:
   namespace: system-practice-tasks
 profile:
@@ -51,6 +57,8 @@ book:
   - labs/data-processing.qmd
   - labs/version-control.qmd
   - optional/project-maintenance.qmd
+  - delivery/units/sec-unit-version-control-restore-selected-state.qmd
+  - delivery/units/sec-unit-project-maintenance-release.qmd
   search: true
   page-navigation: true
   sidebar:
@@ -58,3 +66,46 @@ book:
     - icon: house
       href: ../index.html#sec-system-practice
       text: Портал курса
+
+website:
+  site-url: https://bsu-rfct-afonenko-courses.github.io/System-Practice/tasks/
+course:
+  id: system-practice
+  adapters: [prairielearn]
+project-download:
+  course-model: true
+
+prairielearn:
+  delivery:
+    book: tasks
+    course:
+      name: SYSTEM-PRACTICE
+      title: System Practice
+      timezone: Europe/Minsk
+      topics:
+      - name: Shell
+        color: blue2
+        description: Файлы и потоки
+    instances:
+      pilot:
+        title: Пилот System Practice
+        self-enrollment: false
+        publishing:
+          start-date: '1970-01-01T00:00:00Z'
+          end-date: '9999-12-31T00:00:00Z'
+        works:
+        - sec-lab-work-environment
+        - sec-lab-data-processing
+        - sec-lab-version-control
+        - sec-unit-version-control-restore-selected-state
+        - sec-unit-project-maintenance-release
+  question-defaults:
+    topic: Shell
+    single-variant: true
+    grading:
+      method: manual
+    submission:
+      mode: upload
+  assessment-defaults:
+    assignment:
+      mode: assessment-id

@@ -11,7 +11,7 @@ permissions:
 jobs:
   render:
     runs-on: ubuntu-24.04
-    timeout-minutes: 30
+    timeout-minutes: 150
     steps:
       - name: Получить исходники
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
@@ -42,8 +42,8 @@ jobs:
           python3 tools/materialize_public_materials.py --check
           python3 -m unittest discover -s tests -p 'test_*.py' -v
       - name: Собрать student
-        run: quarto render --profile student --fail-if-warnings
+        run: timeout --signal=TERM --kill-after=5s 2700s quarto render --profile student --fail-if-warnings
       - name: Собрать full
-        run: quarto render --profile full --fail-if-warnings
+        run: timeout --signal=TERM --kill-after=5s 2700s quarto render --profile full --fail-if-warnings
       - name: Вернуть student после full
-        run: quarto render --profile student --fail-if-warnings
+        run: timeout --signal=TERM --kill-after=5s 2700s quarto render --profile student --fail-if-warnings

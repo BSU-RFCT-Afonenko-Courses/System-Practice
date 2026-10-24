@@ -79,6 +79,8 @@ function M.validate(doc, effective)
   effective=effective or require("./exercise-defaults").normalize(doc)
   local owner = pandoc.utils.stringify(doc.meta.course.id or '')
   check(owner=='' or valid(owner,'^[a-z][a-z0-9%-]*$'),'CORE.COURSE_INVALID','Идентификатор курса должен состоять из строчных латинских букв, цифр и дефисов', {id=owner,field='course.id',hint='Используйте имя вроде course-demo'})
+  local assessmentTime=doc.meta.course['assessment-time']
+  check(assessmentTime==nil or type(assessmentTime)=='boolean','CORE.COURSE_INVALID','Настройка публикации времени должна быть boolean', {field='course.assessment-time',hint='Укажите true или false'})
   local source,rows = source_path(),occurrences(doc)
   local bank=contract.bank(doc.meta)
   local defaults=contract.defaults(doc.meta)

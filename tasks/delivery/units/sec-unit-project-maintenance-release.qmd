@@ -1,0 +1,20 @@
+---
+assessment:
+  id: sec-unit-project-maintenance-release
+  kind: lab
+  prairielearn:
+    max-points: 100
+    attempts: 1
+    pass:
+      at-least: 1
+    auto-points: 0
+    manual-points: 100
+---
+
+# Подготовка выпуска {#sec-unit-project-maintenance-release}
+
+Добровольная работа. Результат учитывается отдельно от обязательных лабораторных.
+
+::: {.task-items requirement="required"}
+- @exr-project-maintenance-release
+:::

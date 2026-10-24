@@ -85,7 +85,7 @@ export async function finalizeAssessmentPreview(run:NativeRun){
     // The public post-quarto filter put already-native HTML outside main.
     // Native book crossrefs resolve there before search and configured hooks.
     const pending=new Map<string,string>();
-    html=html.replace(/<!--course-assignment-pending:(exr-[a-z0-9-]+):start--><div hidden(?:="")? inert(?:="")?>([\s\S]*?)<\/div><!--course-assignment-pending:\1:end-->/g,(_match,id,content)=>{pending.set(id,content);return "";});
+    html=html.replace(/<div hidden(?:="")? inert(?:="")?><!--course-assignment-pending:(exr-[a-z0-9-]+):start-->([\s\S]*?)<!--course-assignment-pending:\1:end--><\/div>/g,(_match,id,content)=>{pending.set(id,content);return "";});
     // Relocate exact native markup only for a current open member; no parser,
     // constructed address, inferred caption or stale native document lookup.
     html=html.replace(/<!--course-assignment:(exr-[a-z0-9-]+):start--><template>[\s\S]*?<\/template><!--course-assignment:\1:end-->/g,(_match,id)=>facts.get(id)?.statementVisibility==="open"&&pending.has(id)?pending.get(id)!:'<span class="course-assignment-omitted"></span>');

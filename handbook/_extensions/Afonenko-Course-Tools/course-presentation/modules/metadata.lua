@@ -28,7 +28,9 @@ function M.decorate(div, cfg)
     badge(roles[role].label, "role")
   end
   badge(label(difficulty[values.difficulty], cfg), "difficulty")
-  badge(values.time and (values.time .. (cfg.ru and " мин" or " min")), "time")
+  if cfg.assessmentTime ~= false then
+    badge(values.time and (values.time .. (cfg.ru and " мин" or " min")), "time")
+  end
   if values["work-mode"] ~= "individual" then
     badge(label(modes[values["work-mode"]], cfg), "work-mode")
   end

@@ -3,10 +3,10 @@
   "packages": {
     "course-core": {
       "repository": "Afonenko-Course-Tools/quarto-course",
-      "commit": "aebf6f4580c0bd5e9468498e840221619fc69e5f",
-      "tag": "v7.2.0",
-      "version": "7.2.0",
-      "sourceZip": "https://github.com/Afonenko-Course-Tools/quarto-course/archive/refs/tags/v7.2.0.zip",
+      "commit": "7d8a472a0fe4f05b5543fb856336a6d15278ef3a",
+      "tag": "v8.2.4",
+      "version": "8.2.4",
+      "sourceZip": "https://github.com/Afonenko-Course-Tools/quarto-course/archive/refs/tags/v8.2.4.zip",
       "provider": "core",
       "scopes": [
         ".",
@@ -18,18 +18,23 @@
       ],
       "files": {
         "_extension.yml": {
-          "sha256": "ba40502c07ebd46bb45377328083da5d9b12d1efe4849929367f718ab62f3da0",
+          "sha256": "5be33e4b84818ee3b93003a04048ad9bf3bace231a642e5dbaedb15b401dd495",
           "size": 211,
           "mode": 420
         },
+        "artifacts/materialize.ts": {
+          "sha256": "07317d3f80633245f9d951bae61f85e51073797ee4aca266b231ee26dfd12007",
+          "size": 18282,
+          "mode": 420
+        },
         "artifacts/resolve.ts": {
-          "sha256": "bf4a6ca3887cf01b8325ef11e0f8bea0c491f25f63b2fd41c3a29a9bcf1f50e1",
-          "size": 9799,
+          "sha256": "33814b6e28157ba656dedc1327ed401a1096e1cc103d7147381c3dfc6964f6b6",
+          "size": 11730,
           "mode": 420
         },
         "assessment.lua": {
-          "sha256": "d0944c56f318d305bd1ac1b51e56216a6856d7169fd2267222554081a229b116",
-          "size": 8884,
+          "sha256": "a0e2b9c55a2b856fd14fb2f06d43b5c324511d7a8520ba77de836b88e32cae1b",
+          "size": 9157,
           "mode": 420
         },
         "body-export/answer.cue": {
@@ -43,8 +48,8 @@
           "mode": 420
         },
         "body-export/collect.ts": {
-          "sha256": "89c3d3241d9a95024f3309190fffc1ad45dbdd51ce5f8b886cc0c8a07b04dd5d",
-          "size": 18097,
+          "sha256": "f407092879be6ab73481d640539936ed166124b1b489397e8ff6750c6b6ca549",
+          "size": 19171,
           "mode": 420
         },
         "body-export/links.ts": {
@@ -58,8 +63,8 @@
           "mode": 420
         },
         "body-export/package.cue": {
-          "sha256": "7bbe0d377df3e7a1b4a05501bb0830a04ba41d05ed0056b96955d86d8841d254",
-          "size": 3249,
+          "sha256": "5a0828b1a398eaadc57b8868139d698b7e95667aa8bdfbfc82a624191f7be8b4",
+          "size": 3347,
           "mode": 420
         },
         "body-export/producer.ts": {
@@ -108,8 +113,8 @@
           "mode": 420
         },
         "domain/assemble.ts": {
-          "sha256": "3104bdea818676f2e48f8eab8c26537915302957a380a344e1a0233a78b76a55",
-          "size": 4681,
+          "sha256": "8949a5ec0b4de43cea4e966a8d099870327aa31e0b3720856d66703275264f81",
+          "size": 4885,
           "mode": 420
         },
         "domain/diagnostics.ts": {
@@ -118,13 +123,18 @@
           "mode": 420
         },
         "domain/model.ts": {
-          "sha256": "fcb2826f0fe546234797f30bd0261bcabf0d4abcf78fdcd874414067081c966c",
-          "size": 5095,
+          "sha256": "709f789ef089c5e69aa8ac653d455a039baf90414d24a7ca5b107fa3c9a1ce5c",
+          "size": 5664,
+          "mode": 420
+        },
+        "domain/project-materialization.ts": {
+          "sha256": "0f0ec1a74d144abfb3265e7f04225af7192159b88a6acbeb56a5ee2a5053acde",
+          "size": 4149,
           "mode": 420
         },
         "domain/release.ts": {
-          "sha256": "5a14aae8b66b0b5db4ed64ee58934b5fafd1aae51f2cc3b6db38fe6c20fa1e6b",
-          "size": 9692,
+          "sha256": "ccb8ce58588d88d88c851ba4d607aee35074062892cae08c55421bc252941bce",
+          "size": 9924,
           "mode": 420
         },
         "domain/vocabulary.ts": {
@@ -137,6 +147,11 @@
           "size": 1253,
           "mode": 420
         },
+        "entrypoints/common-path-binding.ts": {
+          "sha256": "8c10b73aee653c313915c2c48efeb3b3c66976ba8af2de66c3125323863eb7b7",
+          "size": 587,
+          "mode": 420
+        },
         "entrypoints/diagnostics.ts": {
           "sha256": "1465d0e32857b0d60f385a9cac8f20887dc7cbefd11c68347031a97dd771d42c",
           "size": 789,
@@ -147,9 +162,14 @@
           "size": 2227,
           "mode": 420
         },
+        "entrypoints/materialize-projects.ts": {
+          "sha256": "915d5fdb6a06f16262911f56ad680abc9c3357e8e94ee6634ccd38445294b6ba",
+          "size": 2281,
+          "mode": 420
+        },
         "entrypoints/post.ts": {
-          "sha256": "334c3fa7a28f43e3ed97ada7dd9e241f65fd8fd5175f7a37ea6927f8edc158bc",
-          "size": 2230,
+          "sha256": "230ae3b534768b7ffde6c2170814c48b7d4137cdd9394cf9c44fac11781f364d",
+          "size": 2197,
           "mode": 420
         },
         "entrypoints/pre.ts": {
@@ -158,7 +178,7 @@
           "mode": 420
         },
         "entrypoints/preview.ts": {
-          "sha256": "3b81937f87d765e74dc63155284e76afd83114e99cd80010f07d36916b4752b5",
+          "sha256": "918a4742e8e14c1cd68f57a95e98ab9a0c10882c82126cca204db566dcfd85fd",
           "size": 7482,
           "mode": 420
         },
@@ -178,8 +198,8 @@
           "mode": 420
         },
         "filter.lua": {
-          "sha256": "539b02ccc878696c9b6e9e1f17c0ee11e85247d387e2dbe55dddb64cea204bd1",
-          "size": 13605,
+          "sha256": "a6a0a56207cd440342f8d334e7bf7e9d12556f923da3df935604e6161b16d927",
+          "size": 13781,
           "mode": 420
         },
         "grading.lua": {
@@ -192,24 +212,89 @@
           "size": 4026,
           "mode": 420
         },
+        "infrastructure/common-path-binding.ts": {
+          "sha256": "a7f1c7541bf479fa8c80ae2df59e7c635d9ef99f2755d301eaa04bce37b24167",
+          "size": 41354,
+          "mode": 420
+        },
         "infrastructure/files.ts": {
           "sha256": "a67b623b340b5425a366a8d78bdd3dc59c35ad13483c7d4f40d863e1417f9661",
           "size": 4276,
           "mode": 420
         },
+        "infrastructure/inspection-preimages.ts": {
+          "sha256": "3032e7366176c83f776a1de36b72dd859ae1c7451e6df3bd113ad779414b2017",
+          "size": 14854,
+          "mode": 420
+        },
+        "infrastructure/metadata-closure.ts": {
+          "sha256": "4a72f0daf6cb6c9fd05e917bf00f9bdf71a34f3ede7cb70e9889530233a5a1d8",
+          "size": 25540,
+          "mode": 420
+        },
+        "infrastructure/native-export-retirement.ts": {
+          "sha256": "86230bc861d925ac94d12a9bda1976508f3e6ba02bdd5e1d9dd49a57625b08a9",
+          "size": 16056,
+          "mode": 420
+        },
+        "infrastructure/native-qmd-raw.lua": {
+          "sha256": "bb6830b5d497a98fdf4c10a18a5e2d1de2bc5fcc1145c993059422c3bb4a6c11",
+          "size": 1395,
+          "mode": 420
+        },
+        "infrastructure/native-raw-metadata.ts": {
+          "sha256": "6a555eae9b4ceb60f8f47e52ef9f6b0b2aea2a73bce304cf500916fbf1a6f847",
+          "size": 8067,
+          "mode": 420
+        },
         "infrastructure/native-run.ts": {
-          "sha256": "56df324e55eaded73cccb5afc35de15d1fe2df3141e5a6423766ff2e5f6abb03",
-          "size": 18305,
+          "sha256": "ba0e43ac4bcfbe351848bac9e7f76263a235043650e58a86509b6f7e82aa3517",
+          "size": 34552,
+          "mode": 420
+        },
+        "infrastructure/owned-config-derive.ts": {
+          "sha256": "cd53c8dad660b7d235aae4f273cd34962d94c11cce2c78e56ea2abbde91c6ee7",
+          "size": 6290,
+          "mode": 420
+        },
+        "infrastructure/owned-config-entry.ts": {
+          "sha256": "61e6e9ec3808576373a6653b8e6ee94e717e91642c5f07a4a1dd2ca33ca68cbd",
+          "size": 26994,
+          "mode": 420
+        },
+        "infrastructure/owned-config-overlay.ts": {
+          "sha256": "373af01a48329e166c801b1ec045dafb14b6ff662c4d980042884ef78f7acf07",
+          "size": 43943,
+          "mode": 420
+        },
+        "infrastructure/owned-config-proof.ts": {
+          "sha256": "5bdd6219549096cc72c973395da2a3af70feffe756089e9546621c289c581d14",
+          "size": 5950,
+          "mode": 420
+        },
+        "infrastructure/owned-config-source.ts": {
+          "sha256": "627b1c2bd754858037a9b202a46b1cd56336e343f256e2fdf6624656fcca9372",
+          "size": 26424,
+          "mode": 420
+        },
+        "infrastructure/owned-export-profile.ts": {
+          "sha256": "b02a97239b654c85b9d5b24927793953fdea676cf38d8c9c30250e24754b36fd",
+          "size": 12170,
           "mode": 420
         },
         "infrastructure/process.ts": {
-          "sha256": "d8077802e6cf10f356684aecd907361c294613075682412c54a8c30bf9bb703e",
-          "size": 1939,
+          "sha256": "7baa1fc3159ffcbd2f84bedf3d497de3f20c87873e4c8fb40f45f7b28ba6b295",
+          "size": 1980,
           "mode": 420
         },
         "infrastructure/resources.ts": {
           "sha256": "bafc4e2abbe1cccb936c9be1f8833f3333e3dd03c30e33086389921944508f92",
           "size": 14719,
+          "mode": 420
+        },
+        "infrastructure/source-identities.ts": {
+          "sha256": "9661365f69cad0eb0377d93f1e3a6df4e39dfd2141a0f63d23cca752237c23a7",
+          "size": 10207,
           "mode": 420
         },
         "infrastructure/validate.ts": {
@@ -228,8 +313,8 @@
           "mode": 420
         },
         "native-document.lua": {
-          "sha256": "d6c72cbf6bd7f0a59eeccd264e6fa606b2501aa14861ec9730d6c36d1073b3a2",
-          "size": 15940,
+          "sha256": "205b2dbc7432a74414778680e4b02946e1d22382ca490da4953156d2f2631dff",
+          "size": 16245,
           "mode": 420
         },
         "native-resources.lua": {
@@ -248,8 +333,8 @@
           "mode": 420
         },
         "output.lua": {
-          "sha256": "18bfae195487f9e034481523083c64eba373dc4f766a167b537e25207b901e0f",
-          "size": 5524,
+          "sha256": "6445d491ee5c627b39256d12bd99b3f2684e0dbd16f6345a7c065ee860b299ca",
+          "size": 12696,
           "mode": 420
         },
         "pedagogy/collect.lua": {
@@ -263,8 +348,8 @@
           "mode": 420
         },
         "project-checks/collect.ts": {
-          "sha256": "7bbc5285d38eff909f46cc1037fcf3d2fc85cf58f2a773e1786786db48a5892b",
-          "size": 11205,
+          "sha256": "eae41fd97d0725e4d389707ae0564476a5b91facf9d7e6bb1c3f22d987ebeabe",
+          "size": 12120,
           "mode": 420
         },
         "project-checks/manifest.cue": {
@@ -273,17 +358,17 @@
           "mode": 420
         },
         "projects.lua": {
-          "sha256": "aa8cd408437378664a1c74bebac465ddff4953116098353806aac6df74cda217",
-          "size": 10928,
+          "sha256": "99594c86f538765d189f34673ffc2937f5461f47bb7cd82a84dbccb720e6d8a7",
+          "size": 16328,
           "mode": 420
         },
         "spec/core.cue": {
-          "sha256": "792c46dc8dc011fc0a9a7b2d6dafa8cdafcae730969712a21dad0c57e09940d6",
-          "size": 9657,
+          "sha256": "b2a4978ef6134cb3ebffe3c268a4d6981b242761ddb6c2b5b2e007a52d02d1be",
+          "size": 10664,
           "mode": 420
         },
         "visibility.lua": {
-          "sha256": "609e7c89a9ae116b0b4096ab8686a6a499d142d36177388ccd8115b2f852f034",
+          "sha256": "9d98949ac04b0425fd39a553613d482df4e2b8e613afff3d5e930dcdfd5f00cb",
           "size": 19119,
           "mode": 420
         },
@@ -293,14 +378,14 @@
           "mode": 420
         }
       },
-      "extensionTree": "150c82e8075ee93cd81347f2a99d19ff50a44806"
+      "extensionTree": "ddd9ae28faf73040f517d8faff723e9384e578d7"
     },
     "course-presentation": {
       "repository": "Afonenko-Course-Tools/quarto-course",
-      "commit": "aebf6f4580c0bd5e9468498e840221619fc69e5f",
-      "tag": "v7.2.0",
-      "version": "7.2.0",
-      "sourceZip": "https://github.com/Afonenko-Course-Tools/quarto-course/archive/refs/tags/v7.2.0.zip",
+      "commit": "7d8a472a0fe4f05b5543fb856336a6d15278ef3a",
+      "tag": "v8.2.4",
+      "version": "8.2.4",
+      "sourceZip": "https://github.com/Afonenko-Course-Tools/quarto-course/archive/refs/tags/v8.2.4.zip",
       "provider": "core",
       "scopes": [
         ".",
@@ -312,7 +397,7 @@
       ],
       "files": {
         "_extension.yml": {
-          "sha256": "883448c778f704afc1e3d73aa0c26105ad11ebe8a6b00cf3ae0b55e02c213f91",
+          "sha256": "993df97d1d95e31a4037d5a4b70c1410f35f7c33a38cbe8a4660c6819a0eb68a",
           "size": 178,
           "mode": 420
         },
@@ -337,13 +422,13 @@
           "mode": 420
         },
         "modules/config.lua": {
-          "sha256": "1a6d14fcfbfd139f7c40dce261e730f97d66b1cc1f9dd4a608e6682a9d3979ab",
-          "size": 2346,
+          "sha256": "2dbf5f64108cf8113c753cd2ae3b84f58cc15e95aa61f1057295a9d74804f6fa",
+          "size": 2447,
           "mode": 420
         },
         "modules/metadata.lua": {
-          "sha256": "177607cf54112df6d75dda2c667998937a0fe5458ee66bdf846fc6c189b1cabf",
-          "size": 2870,
+          "sha256": "420d91427971cf5b70b044106cd5716f39f1d7c7540558e0ded2e47fdcd7075a",
+          "size": 2916,
           "mode": 420
         },
         "modules/vocabulary.json": {
@@ -372,19 +457,19 @@
           "mode": 420
         },
         "presentation.js": {
-          "sha256": "55a13bf5f7c8f131ed2977258d7b91a027d5ae216ca3f16d80f27c342606015a",
-          "size": 6085,
+          "sha256": "6826b6d661c54bcb0aa57ea6b7c685cefb039f8f85183360dadcddb51faae621",
+          "size": 7591,
           "mode": 420
         }
       },
-      "extensionTree": "576c47c9a89154781fcf0994e8cda339af0b08ef"
+      "extensionTree": "528d3abb003d815476e1cbdcd08327e06f3ab1af"
     },
     "course-navigation": {
       "repository": "Afonenko-Course-Tools/quarto-course",
-      "commit": "aebf6f4580c0bd5e9468498e840221619fc69e5f",
-      "tag": "v7.2.0",
-      "version": "7.2.0",
-      "sourceZip": "https://github.com/Afonenko-Course-Tools/quarto-course/archive/refs/tags/v7.2.0.zip",
+      "commit": "7d8a472a0fe4f05b5543fb856336a6d15278ef3a",
+      "tag": "v8.2.4",
+      "version": "8.2.4",
+      "sourceZip": "https://github.com/Afonenko-Course-Tools/quarto-course/archive/refs/tags/v8.2.4.zip",
       "provider": "core",
       "scopes": [
         ".",
@@ -396,12 +481,12 @@
       ],
       "files": {
         "README.md": {
-          "sha256": "c64c4734222a9e16ad450d3374d95adba409925a9756fbc2f7d8280a98e5925e",
-          "size": 8414,
+          "sha256": "3b805ed9d3c8bd7e4d7d495ec5cf38de0269b69a564868272643ffe12e006f23",
+          "size": 8424,
           "mode": 420
         },
         "_extension.yml": {
-          "sha256": "ff52b80085c1bad13ad07b9a975245ec7004e05a7b6f8021e76e878eb9e6ec3b",
+          "sha256": "3aa4973895c511460727f2d0cfd4c3778bf1ce203f0b8829514e0689d65f6f5a",
           "size": 252,
           "mode": 420
         },
@@ -456,27 +541,27 @@
           "mode": 420
         }
       },
-      "extensionTree": "fbef35a4a5ed5e3261e8f6a5a893abdf47cdb9a6"
+      "extensionTree": "4b53e8c1d97f25bd8e352af529d33511c1fe3d7d"
     },
     "course-site": {
       "repository": "Afonenko-Course-Tools/quarto-project-publish",
-      "commit": "62f8c4a01a5fd9af11f5f66abba2bb48c2ef2631",
-      "tag": "v5.1.0",
-      "version": "5.1.0",
-      "sourceZip": "https://github.com/Afonenko-Course-Tools/quarto-project-publish/archive/refs/tags/v5.1.0.zip",
+      "commit": "359e55786ca1d35e98b791a1362193e7bfbbd9b4",
+      "tag": "v5.1.2",
+      "version": "5.1.2",
+      "sourceZip": "https://github.com/Afonenko-Course-Tools/quarto-project-publish/archive/refs/tags/v5.1.2.zip",
       "provider": "site",
       "scopes": [
         "."
       ],
       "files": {
         "_extension.yml": {
-          "sha256": "cb5b9af87335d135519e1128ff212fea068e74f9b477b9d0f9c9a66c2a267c7a",
+          "sha256": "01a426b45c1bcfd81719eff2748a3c921196c64a8718dbf693a861debc866eee",
           "size": 144,
           "mode": 420
         },
         "application/compose.ts": {
-          "sha256": "c7a9ec779523259ca7f8c37bbba7bd9480ff127e3ec702112d318db118659851",
-          "size": 17508,
+          "sha256": "65acc4a3c532ab5441846862daa2c7a180eda0115f581eaf0632ad82ca6f2fa9",
+          "size": 17795,
           "mode": 420
         },
         "entrypoints/collect.ts": {
@@ -500,8 +585,8 @@
           "mode": 420
         },
         "infrastructure/config.ts": {
-          "sha256": "745176d197e6ec9434012e5699680baec929eff1ae386fb5f9986380fcb590ca",
-          "size": 12415,
+          "sha256": "82185859d91feb21ac62f134dbf3c9485dcd5938184895ccedb475596439f673",
+          "size": 12688,
           "mode": 420
         },
         "infrastructure/diagnostics.ts": {
@@ -510,8 +595,8 @@
           "mode": 420
         },
         "infrastructure/files.ts": {
-          "sha256": "d76db6058f4affa54ae3747fbe5bb0dff80d9b05cb0fc8e816c3c0189c2ee2ff",
-          "size": 8002,
+          "sha256": "6605c4afc126bbcf420833fbe01c76462c09acf0a6ca27a8bf0274ef9ed8d5c4",
+          "size": 8589,
           "mode": 420
         },
         "infrastructure/navigation.ts": {
@@ -535,7 +620,7 @@
           "mode": 420
         }
       },
-      "extensionTree": "1cd14d38b035cf7e136712cba1e4cf59c133849c"
+      "extensionTree": "c8a2b4044c812a1f7c4b3e3c65c93e95dba9860a"
     },
     "reference-catalog": {
       "repository": "Afonenko-Course-Tools/quarto-reference-catalog",
@@ -1010,6 +1095,294 @@
         }
       },
       "extensionTree": "71693a23bac40fc7f90567861f6eb3b467d23d57"
+    },
+    "course-prairielearn": {
+      "repository": "Afonenko-Course-Tools/quarto-course-prairielearn",
+      "commit": "59ae2f453900952843355c550af85c41e0f392af",
+      "tag": "v8.2.3",
+      "version": "8.2.3",
+      "sourceZip": "https://github.com/Afonenko-Course-Tools/quarto-course-prairielearn/archive/refs/tags/v8.2.3.zip",
+      "provider": "prairielearn",
+      "scopes": [
+        "tasks"
+      ],
+      "files": {
+        "_extension.yml": {
+          "sha256": "3bc03cf1e868282b4d266fa4f9720b4d527ac044190a5245f8c6d91c4b27739e",
+          "size": 517,
+          "mode": 420
+        },
+        "application/completion.ts": {
+          "sha256": "bbdd1a0aa2a923400223f66ef85e489862bb2b9800bc45ed4d9db1d60bc01953",
+          "size": 3758,
+          "mode": 420
+        },
+        "application/declarations.ts": {
+          "sha256": "457fe30189f067594109696a8c711bf23b0cb2658ac006a59f9431832288e3ef",
+          "size": 5478,
+          "mode": 420
+        },
+        "application/diagnostics.ts": {
+          "sha256": "e74e33312c14257f992eb8af37586739d1ed667ee1be60fd18bf007066d41ee4",
+          "size": 959,
+          "mode": 420
+        },
+        "application/export-course.ts": {
+          "sha256": "24ee4c163b13e89f45e5dae2603937337515d5b8adc83cff696af0e8dcc9b8b4",
+          "size": 24776,
+          "mode": 420
+        },
+        "application/export.ts": {
+          "sha256": "97191d66930ea1e086b55ff93912811ccbabe919eb2dfcd07f3c47373c7f2df7",
+          "size": 30829,
+          "mode": 420
+        },
+        "application/grading-descriptor.ts": {
+          "sha256": "9fd3e13dfd58b4911f7f4a61d5b24b38f7559022b459118eea2e47df53a8b077",
+          "size": 851,
+          "mode": 420
+        },
+        "application/grading-policy.ts": {
+          "sha256": "911df450c2e1bd560da2a34142dbb0c1cbe0502c92dc07136491d6248f5ff4ef",
+          "size": 7172,
+          "mode": 420
+        },
+        "application/java-build.ts": {
+          "sha256": "269cfb1e219680100b4f4b3ad26e774f37a3d7bdd731933f730a4e5791e4489e",
+          "size": 1403,
+          "mode": 420
+        },
+        "application/materialized-student.ts": {
+          "sha256": "249c2ddf32cd41ab03d018ac1d3b06d6639b0e01f8ea259499b06acdc532c0c9",
+          "size": 1792,
+          "mode": 420
+        },
+        "application/native-semantics.ts": {
+          "sha256": "9fe7706ab177b5a73b25fc19c5efb385a4e85268c177bdafda4b58d569aa126e",
+          "size": 2991,
+          "mode": 420
+        },
+        "application/native-validators.js": {
+          "sha256": "510c5d87b99e01e7d347814d517c17963e1477cf152c5b186ce67e0669bf4468",
+          "size": 222382,
+          "mode": 420
+        },
+        "application/publication-conditions.ts": {
+          "sha256": "7225d7cf4f1f333ffeaecb190be2c9fdaf1926127c32ff04c07bb80b53fcf2dd",
+          "size": 6742,
+          "mode": 420
+        },
+        "application/runtime-descriptor.ts": {
+          "sha256": "a7ecec067c45c35e475c40c1cef1c7e6fde25c179ba243fa8b857ab4531ddd12",
+          "size": 5264,
+          "mode": 420
+        },
+        "application/slots.ts": {
+          "sha256": "c67c2f943c1e6450be1d8369d83a5cd42353fa14a5b5c5b3a822cb11c5904427",
+          "size": 4474,
+          "mode": 420
+        },
+        "application/source-selection.ts": {
+          "sha256": "6623fad55070e52d3d7429d12eafa530f9562b2485509ca659f5b2f32c82da65",
+          "size": 5337,
+          "mode": 420
+        },
+        "application/verification-inventory.ts": {
+          "sha256": "1e60020a792eea9c3051b2a98f2c29827b20beb13ef934da420977d164119cfd",
+          "size": 2943,
+          "mode": 420
+        },
+        "assessment.lua": {
+          "sha256": "62cd0fcf18f8b37468cb170e04d6f55af7a85746ee11040790a44ac9f414bd10",
+          "size": 5797,
+          "mode": 420
+        },
+        "contract.json": {
+          "sha256": "67e979fa3f2aed4be2b73011bc0b65293b342ff869ce74cf9113aa22c9f598cc",
+          "size": 373,
+          "mode": 420
+        },
+        "contract.lua": {
+          "sha256": "d8d1e27078eac5ea814069577d165cfce69d30ceb8dbf9a20cd18fe0b5346a46",
+          "size": 794,
+          "mode": 420
+        },
+        "diagnostics.lua": {
+          "sha256": "1b18f756b38ad6462a6512caf76cb8c94d8a6f5d5b1004066984e34bdf866fa1",
+          "size": 1050,
+          "mode": 420
+        },
+        "entrypoints/export-course.ts": {
+          "sha256": "3642c02d2382f10aaa635f6678fdc380f9319432e424cc256a8ab32f6eb452fb",
+          "size": 5683,
+          "mode": 420
+        },
+        "entrypoints/export.ts": {
+          "sha256": "f764bae7278f8efa0f90f01d5964d67fa315913c8cc1537092e8b6693352f257",
+          "size": 4278,
+          "mode": 420
+        },
+        "entrypoints/inspect-grading.ts": {
+          "sha256": "9bc2693d7dfa7e4acff48be6a6455e3b57fc56e7d1b76f0661a3b178352c0dd2",
+          "size": 3021,
+          "mode": 420
+        },
+        "filter.lua": {
+          "sha256": "d7659db25f1e855dfb8d4c97defdb9f554a7d5c195a3a1d368c71ee72303196e",
+          "size": 1334,
+          "mode": 420
+        },
+        "native.lua": {
+          "sha256": "028a1204a0b771880ca24185caf2c325af0b6ac115a2d5291ac6f02a4322e786",
+          "size": 13040,
+          "mode": 420
+        },
+        "observability/bridge.lua": {
+          "sha256": "da299fcf97c9eaa3cce85e16fa00416cf556c8707121af74a7e72e7863a60bb2",
+          "size": 849,
+          "mode": 420
+        },
+        "observability/bridge.ts": {
+          "sha256": "484167bff5d39d223644b15c7b534b8c47b701d1153c1b164d4a5825288f7a08",
+          "size": 1732,
+          "mode": 420
+        },
+        "spec/prairielearn.cue": {
+          "sha256": "588801092d2f6239184336fbb6b09fef8d175464a6899ab51e8d9d132c7f36a8",
+          "size": 3444,
+          "mode": 420
+        },
+        "spec/upstream/AJV-LICENSE": {
+          "sha256": "9b6a90e9be78799534e4030d71b6817271fb99aa10e261f9f9f6dec1cff4177a",
+          "size": 1089,
+          "mode": 420
+        },
+        "spec/upstream/PRAIRIELEARN-LICENSE": {
+          "sha256": "f3fba75145cfb48af6b3f50664b12459b5a60b50500176692b06309beb1dda4d",
+          "size": 36983,
+          "mode": 420
+        },
+        "spec/upstream/infoAssessment.json": {
+          "sha256": "e1dea2e09084c3d64217a8132c1aec21adccee1a2c98353b0b64e3c59bd3c282",
+          "size": 37075,
+          "mode": 420
+        },
+        "spec/upstream/infoCourse.json": {
+          "sha256": "16387588b1f08321843e3acc38f59c4fbad38ddc0a0ca7558aa886b8f0d8c2cd",
+          "size": 7985,
+          "mode": 420
+        },
+        "spec/upstream/infoCourseInstance.json": {
+          "sha256": "262b6f0b1605e07b6996111710512fbe2289e9fa019857317f272b708eb2e2d7",
+          "size": 7294,
+          "mode": 420
+        },
+        "spec/upstream/infoQuestion.json": {
+          "sha256": "5558c38dde1dff059b3603891698da4f9dec2d88b1d9ebe10e825a817cffaf26",
+          "size": 14494,
+          "mode": 420
+        },
+        "spec/upstream/provenance.json": {
+          "sha256": "a8890c2d4bb4320b0708aeda86139fca57b5845805decefaf8053182370ceb9d",
+          "size": 174,
+          "mode": 420
+        },
+        "validate-paths.ts": {
+          "sha256": "ab74043d9d76bb5ea0a0f357bd95bfeec54e45504c8c18bfc1227de6bbb57a7f",
+          "size": 1796,
+          "mode": 420
+        },
+        "validate.lua": {
+          "sha256": "7e44a41c3874cb19d1e451bad4325eeadaa37027147dac130f1af109aabd7452",
+          "size": 6611,
+          "mode": 420
+        }
+      },
+      "extensionTree": "f064119084855b9f9d91cfa5da4d03840e2b4c7d"
+    },
+    "project-download": {
+      "repository": "Afonenko-Course-Tools/quarto-project-download",
+      "commit": "2dd97d8ce28c4ad514e869fe86d25dbc19f79def",
+      "tag": "v3.2.0",
+      "version": "3.2.0",
+      "sourceZip": "https://github.com/Afonenko-Course-Tools/quarto-project-download/archive/refs/tags/v3.2.0.zip",
+      "provider": "download",
+      "scopes": [
+        "tasks"
+      ],
+      "files": {
+        "_extension.yml": {
+          "sha256": "69fca6183e244f4b9cfb4de3d392b4937e05a0e56572e8d9adcc30df9bd7fd2b",
+          "size": 211,
+          "mode": 420
+        },
+        "application/publish.ts": {
+          "sha256": "113940d2cbd3af74b1980eb4f84207714aa8417c2aeaea2b8d1c9b06e5325234",
+          "size": 4883,
+          "mode": 420
+        },
+        "diagnostics.ts": {
+          "sha256": "a873ce2e9945d089684ff761a899534a3e17e71af067e37e197a478be5bfbacf",
+          "size": 2020,
+          "mode": 420
+        },
+        "domain/config.ts": {
+          "sha256": "3518da943c2ceea8fba85703d82ce8bb166f4bf8934a5f62d9d3c38fe2105415",
+          "size": 3452,
+          "mode": 420
+        },
+        "domain/zip.ts": {
+          "sha256": "89274882675364c162e78efc43a44aa5219172fc0fbc01ab06e4dbec078987cb",
+          "size": 3512,
+          "mode": 420
+        },
+        "entrypoints/post.ts": {
+          "sha256": "f0d7e412b73a05f93dbed27f4795fc85eddbba66430c5339430398a4d7ba9869",
+          "size": 407,
+          "mode": 420
+        },
+        "entrypoints/pre.ts": {
+          "sha256": "1c81166ca6409f4a07ae08a367d2023a31231a472a853721ec8908bcd7e37e79",
+          "size": 306,
+          "mode": 420
+        },
+        "filter.lua": {
+          "sha256": "48e93f8bf3b5322b11ceac6eeac3a2816ac01ba6fd8977d2a63a522cac884c2a",
+          "size": 4952,
+          "mode": 420
+        },
+        "infrastructure/files.ts": {
+          "sha256": "b4f2fab9a71209a936ad27bc4f3024f8163376187b2dc5624c0e46bcff9cbd2a",
+          "size": 7293,
+          "mode": 420
+        },
+        "infrastructure/runtime.ts": {
+          "sha256": "1063e90b4c6b390524f5bc0b254b4072b0a1be0a40c8c7fed651ce2ca8866c2e",
+          "size": 17295,
+          "mode": 420
+        },
+        "observability/bridge.lua": {
+          "sha256": "da299fcf97c9eaa3cce85e16fa00416cf556c8707121af74a7e72e7863a60bb2",
+          "size": 849,
+          "mode": 420
+        },
+        "observability/bridge.ts": {
+          "sha256": "484167bff5d39d223644b15c7b534b8c47b701d1153c1b164d4a5825288f7a08",
+          "size": 1732,
+          "mode": 420
+        },
+        "ownership.ts": {
+          "sha256": "2e0244d286b0d02492729aa6004fb4b0c9408056a33e06728e8e8818428c930d",
+          "size": 6083,
+          "mode": 420
+        },
+        "shortcodes.lua": {
+          "sha256": "095cc10ea9a193d7fdc433ee905fe7125cb3c1fbaad69b9c8e7d09dc58a40d66",
+          "size": 1929,
+          "mode": 420
+        }
+      },
+      "extensionTree": "0be39a217934a23c4b74fc1fc22298fd7f609e77"
     }
   }
 }

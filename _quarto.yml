@@ -48,6 +48,7 @@ format:
 lang: ru
 fail-if-warnings: true
 website:
+  site-url: https://bsu-rfct-afonenko-courses.github.io/System-Practice/
   title: System Practice
   search: true
   navbar:

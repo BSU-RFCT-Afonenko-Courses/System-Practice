@@ -30,6 +30,7 @@ function M.read(meta)
   local pedagogy = meta["course-pedagogy"] or {}
   if type(pedagogy) ~= "table" then assert(false, message("course-pedagogy должен содержать YAML-словарь параметров", "course-pedagogy")) end
   return {answers = answers, reveal = reveal, html = html,bank=meta["exercise-bank"]==true,
+    assessmentTime = not (type(meta.course) == "table" and meta.course["assessment-time"] == false),
     ru = lang:match("^ru") ~= nil,
     defaults = pedagogy["document-defaults"] == true and {
       difficulty = string(meta.difficulty), time = string(meta.time),
