@@ -16,8 +16,8 @@ type Context=Pick<CommonPathWitness,'projectRoot'|'runDirectory'|'profiles'|'out
 function reserved(w:Context){return w.profiles.some(p=>p.startsWith('course-export-'))||w.outputDirectory.startsWith(join(w.projectRoot,'_generated/course-spec/export-output')+'/')||w.temporaryExportProfile!==undefined||w.forcedWriter!==undefined}
 async function inventory(w:Context,owned:boolean){
  if(resolve(w.runDirectory)!==w.runDirectory||await Deno.realPath(w.runDirectory)!==w.runDirectory||!(await Deno.lstat(w.runDirectory)).isDirectory)fail('Private owned run path не regular');
- const dirs=new Set(['documents','adapters','inspections','resources']),files=new Set(['common-files-path-binding.json','native-run.json',...(owned?[filename]:[])]);
- if(w.ownedConfigOverlay){overlayReference(w.ownedConfigOverlay);files.add('owned-export-source-context.json');files.add('owned-export-source-config.raw');let p:any;try{p=JSON.parse(await Deno.readTextFile(join(w.projectRoot,'_generated/course-spec/active-native-run.json')))}catch(e){if(!(e instanceof Deno.errors.NotFound))throw e}
+ const dirs=new Set(['documents','adapters','inspections','resources','selected-common-paths']),files=new Set(['common-files-path-binding.json','native-run.json',...(owned?[filename]:[])]);
+ if(w.ownedConfigOverlay){dirs.add('native-json-intents');overlayReference(w.ownedConfigOverlay);files.add('owned-export-source-context.json');files.add('owned-export-source-config.raw');let p:any;try{p=JSON.parse(await Deno.readTextFile(join(w.projectRoot,'_generated/course-spec/active-native-run.json')))}catch(e){if(!(e instanceof Deno.errors.NotFound))throw e}
  if(p?.schema==='course-native-run-pointer-v3'&&p.directory===w.runDirectory&&stable(p.ownedConfigOverlay)===stable(w.ownedConfigOverlay)&&p.overlayState==='restored'){restorationReference(p.ownedConfigRestoration);files.add('owned-export-restored-entry.json');dirs.add('owned-export-config-quarantine')}
  }
  for await(const e of Deno.readDir(w.runDirectory)){if(e.isSymlink||(dirs.has(e.name)?!e.isDirectory:!files.has(e.name)||!e.isFile))fail('Лишний/type private run artifact: '+e.name)}

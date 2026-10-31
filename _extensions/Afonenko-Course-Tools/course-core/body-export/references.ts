@@ -1,5 +1,6 @@
-import {createMetrics as __createMetrics} from "../observability/bridge.ts";
-const __metrics=__createMetrics("course-core");
+import { assignmentServiceDirectory } from "../runtime/assignment-execution.ts";
+import { createMetrics as __createMetrics } from "../observability/bridge.ts";
+const __metrics = __createMetrics("course-core");
 import { dirname, resolve } from "stdlib/path";
 import { command, quartoExecutable } from "../infrastructure/process.ts";
 import { diagnostic, type DiagnosticContext } from "../domain/diagnostics.ts";
@@ -71,7 +72,7 @@ export async function resolveReferences(
       }
     });
     const file = await Deno.makeTempFile({
-      dir: cwd,
+      dir: await assignmentServiceDirectory(root, "citations") ?? cwd,
       prefix: ".course-citations-",
       suffix: ".json",
     });
@@ -213,6 +214,12 @@ export function assertReferenceTargets(
 }
 
 // @ts-expect-error JS допускает замену function binding; сигнатура публичного API сохраняется.
-resolveReferences=__metrics.wrapAsync({id:"course-core.body-export.references.resolveReferences",kind:"phase"},resolveReferences);
+resolveReferences = __metrics.wrapAsync({
+  id: "course-core.body-export.references.resolveReferences",
+  kind: "phase",
+}, resolveReferences);
 // @ts-expect-error JS допускает замену function binding; сигнатура публичного API сохраняется.
-assertReferenceTargets=__metrics.wrapSync({id:"course-core.body-export.references.assertReferenceTargets",kind:"phase"},assertReferenceTargets);
+assertReferenceTargets = __metrics.wrapSync({
+  id: "course-core.body-export.references.assertReferenceTargets",
+  kind: "phase",
+}, assertReferenceTargets);

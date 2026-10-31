@@ -5,6 +5,7 @@ project-materialization:
       common-files: []
 default-exercise-project-check: false
 assessment:
+  id: sec-lab-data-processing
   kind: lab
   prairielearn:
     max-points: 100

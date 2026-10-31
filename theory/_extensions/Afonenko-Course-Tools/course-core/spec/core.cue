@@ -1,6 +1,7 @@
 package course
 
 import "list"
+import "struct"
 
 // BEGIN GENERATED VOCABULARY
 // Производный словарь; изменяйте contract-vocabulary.json.
@@ -120,7 +121,7 @@ import "list"
 #SourceProfile: {mode:"implementation"|"student-tests",root:string & !="",include:[...string] & list.MinItems(1)}
 #VerificationExpectation: {"student-compilation"?:"success"|"failure",job?:"complete"|"failure","required-tests"?:"all-pass",classification?:string,"failed-tests"?:{"at-least"?:int & >=0,exactly?:int & >=0},"executed-tests"?:{"at-least"?:int & >=0,exactly?:int & >=0},"test-ids"?:[...string],score?:{"less-than"?:number & >=0,"at-least"?:number & >=0,exactly?:number & >=0}}
 #Scoring: {mode:"weighted"} | {mode:"all-pass"} | {mode:"contract-groups",groups:[...{id:string & !="",weight:number & >0,tests:[...string] & list.MinItems(1)}] & list.MinItems(1)} | {mode:"threshold",basis:"score"|"passed-tests",value:number & >=0}
-#PublicCase: {id:string & !="",name:string & !="",test:string & !="",input?:string,state?:string,action?:string,expected:string} & ({input:string}|{state:string}|{action:string})
+#PublicCase: {id:string & !="",name:string & !="",test:string & !="",input?:string,state?:string,action?:string,expected:string} & struct.MinFields(5)
 #ResolvedProjectCheck: CHECK={
  profile:string & !="",runtime:string & !="",sourceProfile:#SourceProfile,"source-profile":string & !="",tests:[...string]
  java?:{release:int & >0,encoding?:string & !="","compiler-options"?:[...string]}
@@ -143,8 +144,8 @@ import "list"
  if CHECK["api-precheck"] != _|_ {runtime:"java25-junit-v1"|"java25-gradle-junit-v1",sourceProfile:mode:"implementation"}
  if CHECK["verification-api-precheck"] != _|_ {runtime:"java25-junit-v1"|"java25-gradle-junit-v1",sourceProfile:mode:"implementation"}
 }
-#JavaBuild: {kind:"gradle-jar-v1","main-class":#ApiPrecheck.entry,artifact:string & =~"^[A-Za-z0-9][A-Za-z0-9_-]{0,100}\\.jar$"}
-#AdditionalJavaSources: {archive:string & =~"^[A-Za-z0-9][A-Za-z0-9_-]{0,100}\\.zip$","max-files":int & >=1 & <=128,"max-file-bytes":int & >=1 & <=1048576,"max-total-bytes":int & >=1 & <=4194304,"max-archive-bytes":int & >=1 & <=2097152}
+#JavaBuild: {kind:"gradle-jar-v1","main-class"?:#ApiPrecheck.entry,artifact:string & =~"^[A-Za-z0-9][A-Za-z0-9_-]{0,100}\\.jar$"}
+#AdditionalJavaSources: {"primary-required"?:bool,archive:string & =~"^[A-Za-z0-9][A-Za-z0-9_-]{0,100}\\.zip$","max-files":int & >=1 & <=128,"max-file-bytes":int & >=1 & <=1048576,"max-total-bytes":int & >=1 & <=4194304,"max-archive-bytes":int & >=1 & <=2097152}
 #ApiPrecheck: {files:[...string & !=""] & list.MinItems(1),entry:string & =~"^[A-Za-z_$][A-Za-z0-9_$]*(\\.[A-Za-z_$][A-Za-z0-9_$]*)*$"}
 #ProjectMaterialization: {commonFiles:[...{source:string & !="",target:string & !="",audience:"student"|"grading"}],includeGit?:bool}
 #ProjectFact: {exerciseId:string, source:string, projectRoot:string & !="", bankMember:bool, purpose?:#ExercisePurpose, statementVisibility:#StatementVisibility, artifactPolicy:{student?:"starter"|"full",full:"full",conditions:bool},check?:#ResolvedProjectCheck,materialization?:#ProjectMaterialization}

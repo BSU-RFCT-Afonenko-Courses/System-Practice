@@ -1,5 +1,6 @@
-import {createMetrics as __createMetrics} from "../observability/bridge.ts";
-const __metrics=__createMetrics("course-prairielearn");
+import { submission as parseSubmission } from "./submission.ts";
+import { createMetrics as __createMetrics } from "../observability/bridge.ts";
+const __metrics = __createMetrics("course-prairielearn");
 export const object = (v: any) =>
   v !== null && typeof v === "object" && !Array.isArray(v);
 export function closed(v: any, required: string[], optional: string[] = []) {
@@ -18,7 +19,7 @@ export function closed(v: any, required: string[], optional: string[] = []) {
   }
 }
 export function question(v: any) {
-  closed(v, ["topic", "submission"], ["single-variant","grading"]);
+  closed(v, ["topic", "submission"], ["single-variant", "grading"]);
   if (
     Object.hasOwn(v, "single-variant") &&
     typeof v["single-variant"] !== "boolean"
@@ -26,32 +27,40 @@ export function question(v: any) {
   if (typeof v.topic !== "string" || !v.topic.trim()) {
     throw new Error("PL topic required");
   }
-  closed(v.submission, ["mode"], ["ace-mode"]);
+  const submission = parseSubmission(v.submission, true);
   if (
-    !["editor", "upload"].includes(v.submission.mode) ||
-    v.submission["ace-mode"] !== undefined &&
-      (v.submission.mode !== "editor" ||
-        !/^ace\/mode\/[a-z][a-z0-9_]*$/.test(v.submission["ace-mode"]))
-  ) throw new Error("PL submission invalid");
+    submission.mode === "workspace" &&
+    (v.grading?.method !== "manual" || v["single-variant"] === false)
+  ) {
+    throw Error(
+      "PL.WORKSPACE_INVALID: Workspace требует Manual и single-variant: true",
+    );
+  }
   return {
     topic: v.topic,
-    ...(v.grading!==undefined&&v.grading!=='external'?{grading:gradingMethod(v.grading)}:{}),
+    ...(v.grading !== undefined && v.grading !== "external"
+      ? { grading: gradingMethod(v.grading) }
+      : {}),
     ...(Object.hasOwn(v, "single-variant")
       ? { singleVariant: v["single-variant"] }
       : {}),
-    submission: {
-      mode: v.submission.mode,
-      ...(v.submission["ace-mode"]
-        ? { aceMode: v.submission["ace-mode"] }
-        : {}),
-    },
+    ...(submission.mode === "workspace" ? { singleVariant: true } : {}),
+    submission,
   };
 }
-export function gradingMethod(value:any):{method:'external'|'manual'|'mixed'}{
-  if(value===undefined||value==='external')return {method:'external'};
-  closed(value,['method']);
-  if(!['manual','mixed'].includes(value.method))throw Error('PL.GRADING_INVALID: grading.method должен быть manual или mixed');
-  return {method:value.method};
+export function gradingMethod(
+  value: any,
+): { method: "external" | "manual" | "mixed" } {
+  if (value === undefined || value === "external") {
+    return { method: "external" };
+  }
+  closed(value, ["method"]);
+  if (!["manual", "mixed"].includes(value.method)) {
+    throw Error(
+      "PL.GRADING_INVALID: grading.method должен быть manual или mixed",
+    );
+  }
+  return { method: value.method };
 }
 export function declarations(raw: any, key: string) {
   closed(raw, ["delivery", "question-defaults"], ["assessment-defaults"]);
@@ -125,8 +134,17 @@ export function declarations(raw: any, key: string) {
 }
 
 // @ts-expect-error JS допускает замену function binding; сигнатура публичного API сохраняется.
-closed=__metrics.wrapSync({id:"course-prairielearn.application.declarations.closed",kind:"phase"},closed);
+closed = __metrics.wrapSync({
+  id: "course-prairielearn.application.declarations.closed",
+  kind: "phase",
+}, closed);
 // @ts-expect-error JS допускает замену function binding; сигнатура публичного API сохраняется.
-question=__metrics.wrapSync({id:"course-prairielearn.application.declarations.question",kind:"phase"},question);
+question = __metrics.wrapSync({
+  id: "course-prairielearn.application.declarations.question",
+  kind: "phase",
+}, question);
 // @ts-expect-error JS допускает замену function binding; сигнатура публичного API сохраняется.
-declarations=__metrics.wrapSync({id:"course-prairielearn.application.declarations.declarations",kind:"phase"},declarations);
+declarations = __metrics.wrapSync({
+  id: "course-prairielearn.application.declarations.declarations",
+  kind: "phase",
+}, declarations);

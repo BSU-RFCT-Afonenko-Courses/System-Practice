@@ -1,3 +1,4 @@
+import {assertSelectedCommonPaths} from './common-path-selected.ts';
 /** Внутреннее подтверждение native-путей; авторский metadata/fact API прежний. */
 import {basename,dirname,fromFileUrl,join,relative,resolve} from 'stdlib/path';
 import {diagnostic} from '../domain/diagnostics.ts';
@@ -235,7 +236,7 @@ export async function assertProducedCommonPathBinding(p:NativeRunPointer){
  const bytes=await regular(p.directory,ref.file);if(!bytes||await digest(bytes)!==ref.sha256||await digest(bytes,'SHA-1')!==ref.sha1)fail('Produced witness изменён перед pointer');
  const w=JSON.parse(new TextDecoder('utf-8',{fatal:true}).decode(bytes)) as CommonPathWitness;
  if(w.projectRoot!==p.projectRoot||w.runDirectory!==p.directory||w.outputDirectory!==p.outputDirectory||w.renderAll!==p.renderAll||stable(w.profiles)!==stable(p.profiles))fail('Чужой produced run');
- const originals=await validateOriginalInspections(w);if(p.schema==='course-native-run-pointer-v3')await admitOverlayNativeOutputs(p,await readOverlayContext(p),originals.lexical);await currentInputs(p.projectRoot,w,p);await assertOwnedProfileCurrent(p,w);
+ const originals=await validateOriginalInspections(w);if(p.schema==='course-native-run-pointer-v3')await admitOverlayNativeOutputs(p,await readOverlayContext(p),originals.lexical);await currentInputs(p.projectRoot,w,p);await assertOwnedProfileCurrent(p,w);await assertSelectedCommonPaths(p,w);return w;
 }
 async function validateOriginalInspections(w:CommonPathWitness){
  return await withInspectionSnapshot(w.runDirectory,inspectionRefs(w),w,phase=>validateOriginalInspectionsInPhase(w,phase));
@@ -344,7 +345,7 @@ async function readCommonPathBindingUsing<T>(p:NativeRunPointer,use:BindingUse<T
  if(stable(final.closure)!==stable(w.metadataClosure))fail('Metadata closure drift после final owner inspect');
  await currentInputs(p.projectRoot,w,p);await validateOriginalInspectionsInPhase(w,phase);await check();if(retirement)await validateCompletedExportScope(p,w,phase,true);
  // Полный immutable original union перечитывается после B, не на каждом nested guard.
- await checkInspectionStore(p.directory,inspectionRefs(w));await beforePublish?.();await boundary();await assertNativeRawBoundary(rawPhase,p.projectRoot);await publish?.();await check();return result;
+ await checkInspectionStore(p.directory,inspectionRefs(w));await assertSelectedCommonPaths(p,w,retirement);await beforePublish?.();await boundary();await assertNativeRawBoundary(rawPhase,p.projectRoot);await publish?.();await check();return result;
  }finally{bindingPhases.delete(w)}
  };return p.schema==='course-native-run-pointer-v3'?await withOverlayCurrentCheck(p,undefined,operation,{w,phase}):await operation();
  }));

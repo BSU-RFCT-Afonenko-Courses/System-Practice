@@ -174,7 +174,7 @@ export function ownedCtimeRepresentation(originalNative:string,originalDeno:unkn
  return (restoredNative:string)=>{const n=parse(restoredNative)[kind];if(!valid(n))fail('Restored ctime вне Date range');return Number(n)};
 }
 
-/** ARCH87: native scalar format recipe, not a suffix allowlist or default guess. */
+/** Явная JSON recipe обычной инспекции. Forced-writer admission использует actual native boundary. */
 export type NativeJsonSlot={source:string;temporary:string;final:string};
 export function nativeJsonOutputSlots(root:string,selected:string[],identities:SourceRoleIdentities,frames:Record<string,any>,output:string):NativeJsonSlot[]{
  if(resolve(root)!==root||resolve(output)!==output||!relative(root,output)||relative(root,output).startsWith('..')||stable(Object.keys(frames).sort())!==stable([...selected].sort()))fail('Нет exact native JSON frame scope');

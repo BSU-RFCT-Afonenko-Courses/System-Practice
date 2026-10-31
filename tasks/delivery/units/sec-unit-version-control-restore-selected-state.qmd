@@ -18,3 +18,8 @@ assessment:
 ::: {.task-items requirement="required"}
 - @exr-version-control-restore-selected-state
 :::
+
+Работу можно выполнить в native Workspace либо в собственной ОС.
+В Workspace решение отправляется штатной кнопкой PrairieLearn без ручного
+создания ZIP; локальный маршрут сохраняет сдачу архива с `work/.git`
+и прежним пояснением. Оба маршрута проверяются вручную по одному условию.
