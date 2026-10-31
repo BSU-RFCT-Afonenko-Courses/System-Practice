@@ -58,7 +58,7 @@ export async function collectProjectChecks(root:string,options:{book:string;prof
   const javaRuntime=check.runtime==='java25-junit-v1'||check.runtime==='java25-gradle-junit-v1';
   const build=check['java-build'];
   if(check.runtime==='java25-gradle-junit-v1'&&build===undefined)throw diagnostic('CHECKS.JAVA_BUILD_INVALID','Native Gradle runtime требует java-build');
-  if(build!==undefined&&(!build||typeof build!=='object'||Array.isArray(build)||Object.keys(build).length!==3||Object.keys(build).some(k=>!['kind','main-class','artifact'].includes(k))||check.runtime!=='java25-gradle-junit-v1'||check.sourceProfile.mode!=='implementation'||build.kind!=='gradle-jar-v1'||typeof build['main-class']!=='string'||!/^[A-Za-z_$][A-Za-z0-9_$]*(?:\.[A-Za-z_$][A-Za-z0-9_$]*)*$/.test(build['main-class'])||typeof build.artifact!=='string'||!/^[A-Za-z0-9][A-Za-z0-9_-]{0,100}\.jar$/.test(build.artifact)))throw diagnostic('CHECKS.JAVA_BUILD_INVALID','Требуется закрытая Gradle implementation policy');
+  if(build!==undefined&&(!build||typeof build!=='object'||Array.isArray(build)||(Object.keys(build).length!==2&&Object.keys(build).length!==3)||Object.keys(build).some(k=>!['kind','main-class','artifact'].includes(k))||check.runtime!=='java25-gradle-junit-v1'||check.sourceProfile.mode!=='implementation'||build.kind!=='gradle-jar-v1'||(Object.hasOwn(build,'main-class')&&(typeof build['main-class']!=='string'||!/^[A-Za-z_$][A-Za-z0-9_$]*(?:\.[A-Za-z_$][A-Za-z0-9_$]*)*$/.test(build['main-class'])))||typeof build.artifact!=='string'||!/^[A-Za-z0-9][A-Za-z0-9_-]{0,100}\.jar$/.test(build.artifact)))throw diagnostic('CHECKS.JAVA_BUILD_INVALID','Требуется закрытая Gradle implementation policy');
   const missing:string[]=[];
   let project=resolve(collected.projectRoot,fact.projectRoot);
   try{project=await guarded(collected.projectRoot,fact.projectRoot)}catch(e){if(!(e instanceof Deno.errors.NotFound))throw e;missing.push("projectRoot");}
@@ -87,7 +87,7 @@ export async function collectProjectChecks(root:string,options:{book:string;prof
   const references=[];
   for(const ref of check.references??[]){
    let available=true,files:SourceSelection[]=[];
-   files=await select(ref.root,check.sourceProfile.include);available=files.length>0;
+   files=await select(ref.root,extras?.['primary-required']===false?["**/*.java"]:check.sourceProfile.include);available=files.length>0;
    if(!available&&!ref.optional)missing.push("reference:"+ref.name);
    const allowed=new Set(sources.map(s=>s.submissionRelativePath));
    if(sources.length&&!check['additional-java-sources']&&files.some(file=>!allowed.has(file.submissionRelativePath)))throw diagnostic("CHECKS.REFERENCE_MAPPING_INVALID","Reference не соответствует именам выбранных sources",{source:fact.source,id:fact.exerciseId});

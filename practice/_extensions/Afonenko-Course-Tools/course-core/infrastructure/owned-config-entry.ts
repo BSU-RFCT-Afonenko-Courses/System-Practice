@@ -101,6 +101,30 @@ export async function beginConfigEntry(root:string,entry:'_quarto.yml'|'_quarto.
     else if(state==='source-quarantined'){await runtimeCurrent();held(originalfd,sourceHeldIdentity,sourceBytes);move(leasefd,'quarantined-source',rootfd,entry);sourceRestoredIdentity=rebind(originalfd,sourceHeldIdentity,sourceBytes);sourceHeldIdentity=sourceRestoredIdentity;current(entry,sourceRestoredIdentity,sourceBytes);state='restored'}
     if(state==='restored'||state==='lease-retired')await api.checkRestored();else if(state==='source'||state==='prepared')await api.checkSource();else fail('Неподтверждённая failure restoration phase');
    },
+   async quarantineEmptyNativeOutput(name:string,destination:string){
+    if(state!=='restored')fail('Native EMPTY cleanup требует активную failure-restoration фазу');
+    await api.checkRestored();
+    const parts=name.split('/'),target=relative(root,destination).replaceAll('\\','/');
+    if(parts.some(p=>!p||p==='.'||p==='..'||/[\\\0]/.test(p))||!parts.at(-1)!.endsWith('_files')||!/^_generated\/course-spec\/native-runs\/[0-9a-f-]{36}\/aborted-native-empty$/.test(target))fail('Нет finite native EMPTY quarantine scope');
+    const openDirectories=(parts:string[])=>{
+     let fd=rootfd;const chain:{parent:number;name:string;fd:number;identity:EntryIdentity}[]=[];
+     for(const name of parts){const next=open(fd,name,DIR),identity=info(next);if(identity.uid!==rootIdentity.uid||identity.devMajor!==rootIdentity.devMajor||identity.devMinor!==rootIdentity.devMinor)fail('Foreign native EMPTY parent');chain.push({parent:fd,name,fd:next,identity});fd=next}
+     const check=()=>{parentCurrent();for(const item of chain)if(!same(info(item.fd),item.identity,false)||!same(info(item.parent,item.name),item.identity,false))fail('Native EMPTY quarantine parent replaced')};check();return {fd,check};
+    };
+    const parent=openDirectories(parts.slice(0,-1)),leaf=parts.at(-1)!,fd=open(parent.fd,leaf,DIR),before=info(fd),path=join(root,name);
+    const regularEmptyDirectory=(s:EntryIdentity)=>{if((s.mode&0o170000)!==0o040000||(s.mode&0o7777)!==0o755||s.uid!==rootIdentity.uid||s.gid!==rootIdentity.gid||s.devMajor!==rootIdentity.devMajor||s.devMinor!==rootIdentity.devMinor)fail('Не native same-owner EMPTY directory')};
+    regularEmptyDirectory(before);
+    const names=[];for await(const entry of Deno.readDir(path)){if(entry.isSymlink||!entry.isDirectory||entry.name!=='mediabag')fail('Native EMPTY quarantine содержит чужие files');names.push(entry.name)}
+    if(names.length>1)fail('Лишний native EMPTY child');
+    let child:{fd:number;identity:EntryIdentity}|undefined;
+    if(names.length){const childfd=open(fd,'mediabag',DIR),identity=info(childfd);regularEmptyDirectory(identity);for await(const _entry of Deno.readDir(join(path,'mediabag')))fail('Непустой native mediabag');child={fd:childfd,identity}}
+    const check=()=>{parent.check();if(!same(info(fd),before)||!same(info(parent.fd,leaf),before))fail('Native EMPTY changed before quarantine');if(child&&(!same(info(child.fd),child.identity)||!same(info(fd,'mediabag'),child.identity)))fail('Native EMPTY child changed')};
+    // No-replace rename preserves the entire entry even if a final namespace race is detected.
+    const targetParent=openDirectories(target.split('/'));check();targetParent.check();
+    const quarantine=crypto.randomUUID();move(parent.fd,leaf,targetParent.fd,quarantine);
+    const after=info(fd);if(!same({...after,ctime:before.ctime},before)||!same(info(targetParent.fd,quarantine),after))fail('Подменённый native EMPTY entry сохранён в quarantine: '+join(destination,quarantine));
+    targetParent.check();parent.check();await api.checkRestored();return {name,quarantine,identity:after};
+   },
    async checkRestored(){if(!['restored','lease-retired'].includes(state))fail('Нет restored config');await runtimeCurrent();current(entry,sourceRestoredIdentity,sourceBytes)},
    async quarantineProfile(){if(state!=='restored'||!profileEntry||profileEntry.retired)fail('Неверная profile quarantine phase');await api.checkRestored();const p=profileEntry!;current(p.name,p.identity,p.bytes);held(p.fd,p.identity,p.bytes);move(rootfd,p.name,leasefd,'retired-profile');p.identity=rebind(p.fd,p.identity,p.bytes);const fd=open(leasefd,'retired-profile',0);try{if(!same(info(fd),p.identity)||!equal(read(fd),p.bytes))fail('Перемещён foreign profile; bytes сохранены')}finally{close(fd)}p.retired=true},
    async restoredEntry(){await api.checkRestored();return Object.freeze({...info(originalfd)})},

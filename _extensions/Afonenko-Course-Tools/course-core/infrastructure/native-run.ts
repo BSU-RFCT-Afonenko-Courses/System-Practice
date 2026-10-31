@@ -1,3 +1,4 @@
+import {publishSelectedCommonPaths,readSelectedCommonPath,type SelectedCommonPathRef} from './common-path-selected.ts';
 import {createMetrics as __createMetrics} from "../observability/bridge.ts";
 const __metrics=__createMetrics("course-core");
 import { diagnostic } from "../domain/diagnostics.ts";
@@ -14,7 +15,7 @@ import {
   validateCapturedResources,
 } from "./resources.ts";
 import {produceCommonPathBinding,assertProducedCommonPathBinding,readCommonPathBinding,withCommonPathBinding,commonBindingPhase,validateCapturedCommon,stable} from "./common-path-binding.ts";
-import {discoverOwnedConfigOverlay,readOverlayContext,assertOverlayCurrent,assertOverlayFinalOutputs} from './owned-config-overlay.ts';
+import {discoverOwnedConfigOverlay,readOverlayContext,assertOverlayCurrent,assertOverlayFinalOutputs,admitOverlayNativeWriter} from './owned-config-overlay.ts';
 import {overlayReference,restorationReference,type OwnedConfigOverlay,type RestorationReference} from './owned-config-proof.ts';
 import {validateCompletedExportScope} from './native-export-retirement.ts';
 export interface NativeRunPointer {
@@ -28,6 +29,7 @@ export interface NativeRunPointer {
   renderAll: boolean;
   configurationHashes: Record<string,string|false>;
   commonPathBinding: {file:"common-files-path-binding.json";sha1:string;sha256:string};
+  commonPathDocuments?:SelectedCommonPathRef[];
   commonPathRetirement?: {profile:string;file:string;sha1:string;sha256:string};
 }
 export interface NativeRun {
@@ -72,7 +74,7 @@ async function readPointer(root:string):Promise<NativeRunPointer>{
   if (!["course-native-run-pointer-v2","course-native-run-pointer-v3"].includes(p.schema) || p.projectRoot !== root) {
     throw diagnostic("NATIVE.RUN_POINTER_INVALID", "Указатель текущей native-сборки некорректен", {source: root, field: "native-run"});
   }
-  if(Object.keys(p).some(k=>!['schema','directory','projectRoot','profiles','outputDirectory','initialInputFiles','renderAll','configurationHashes','commonPathBinding','commonPathRetirement',...(p.schema==='course-native-run-pointer-v3'?['ownedConfigOverlay','overlayState','ownedConfigRestoration']:[])].includes(k))||!Array.isArray(p.profiles)||p.profiles.some((x:unknown)=>typeof x!=='string'||!/^[-a-zA-Z0-9_]+$/.test(x))||typeof p.renderAll!=='boolean')throw diagnostic('NATIVE.RUN_POINTER_INVALID','Некорректная private pointer schema',{source:root,field:'native-run'});
+  if(Object.keys(p).some(k=>!['schema','directory','projectRoot','profiles','outputDirectory','initialInputFiles','renderAll','configurationHashes','commonPathBinding','commonPathDocuments','commonPathRetirement',...(p.schema==='course-native-run-pointer-v3'?['ownedConfigOverlay','overlayState','ownedConfigRestoration']:[])].includes(k))||!Array.isArray(p.profiles)||p.profiles.some((x:unknown)=>typeof x!=='string'||!/^[-a-zA-Z0-9_]+$/.test(x))||typeof p.renderAll!=='boolean')throw diagnostic('NATIVE.RUN_POINTER_INVALID','Некорректная private pointer schema',{source:root,field:'native-run'});
   child(join(base(root), "native-runs"), p.directory);
   await contained(root, p.directory);
   const current=Array.isArray(p.profiles)?await configurationHashes(root,p.profiles):{};let expected=p.configurationHashes;
@@ -159,6 +161,7 @@ export async function beginNativeRun(
   const directory = overlay?.directory??join(runs, crypto.randomUUID());
   await Deno.mkdir(join(directory, "documents"), { recursive: true });
   await Deno.mkdir(join(directory, "adapters"));
+  if(overlay)await Deno.mkdir(join(directory,'native-json-intents'),{mode:0o700});
   const p = {
     schema: overlay?"course-native-run-pointer-v3":"course-native-run-pointer-v2",
     ...(overlay?{ownedConfigOverlay:overlay.ownedConfigOverlay,overlayState:"active" as const}:{}),
@@ -171,6 +174,8 @@ export async function beginNativeRun(
     configurationHashes:await configurationHashes(root,profiles()),
   } as NativeRunPointer;
   p.commonPathBinding=await produceCommonPathBinding(p);
+  const witness=await assertProducedCommonPathBinding(p);
+  p.commonPathDocuments=await publishSelectedCommonPaths(p,witness);
   await assertProducedCommonPathBinding(p);
   await Deno.writeTextFile(
     join(base(root), "active-native-run.json"),
@@ -443,10 +448,20 @@ async function loadNativeRunUsing(root:string,expectation:NativeRunExpectation,o
 
 /** Внутренний мост Lua, связанный с текущим pointer, без caller override. */
 export async function commonPathDocument(root:string,source:string,format:string){
- root=await Deno.realPath(root);const {witness:w}=await validatedPointer(root);
+ return await __metrics.wrapAsync({id:"course-core.infrastructure.native-run.commonPathDocument",kind:"io",document_id:source},async()=>{
+ root=await Deno.realPath(root);const p=await readPointer(root);
+ if(p.commonPathDocuments!==undefined&&!p.commonPathRetirement&&(p.schema!=='course-native-run-pointer-v3'||p.overlayState==='active'))return await readSelectedCommonPath(p,source,format);
+ const {witness:w}=await validatedPointer(root);
  const rows=w.documents.filter(d=>d.source===source&&d.format===format);
  if(rows.length!==1)throw diagnostic('NATIVE.COMMON_PATH_BINDING_INVALID','Неизвестный source/format текущего witness',{source,field:'native-run'});
  return rows[0];
+ })();
+}
+/** Private actual Lua writer boundary; no caller override to public read-only API. */
+export async function bindNativeJsonDocument(root:string,source:string,format:string,writer:string,documentOutput:string){
+ root=await Deno.realPath(root);const p=await readPointer(root),identity=stable(p);
+ const selectedCheck=async()=>{if(stable(await readPointer(root))!==identity)throw diagnostic('NATIVE.RUN_NOT_CURRENT','Pointer изменён во время native writer admission',{source,field:'native-run'});return await commonPathDocument(root,source,format)};
+ const row=await selectedCheck();await admitOverlayNativeWriter(p,source,format,writer,documentOutput,selectedCheck);await selectedCheck();return row;
 }
 /** Произвольный retained NativeRun не разрешает materialization общих файлов. */
 export async function assertCommonPathRun(run:NativeRun){
@@ -472,6 +487,12 @@ saveNativeRun=__metrics.wrapAsync({id:"course-core.infrastructure.native-run.sav
 prepareNativeExportCleanup=__metrics.wrapAsync({id:"course-core.infrastructure.native-run.prepareNativeExportCleanup",kind:"io"},prepareNativeExportCleanup);
 // @ts-expect-error JS допускает замену function binding; сигнатура публичного API сохраняется.
 loadNativeRun=__metrics.wrapAsync({id:"course-core.infrastructure.native-run.loadNativeRun",kind:"io"},loadNativeRun);
+// @ts-expect-error JS допускает замену function binding; generic callback API сохраняется.
+withLoadedNativeRun=__metrics.wrapAsync({id:"course-core.infrastructure.native-run.withLoadedNativeRun",kind:"phase"},withLoadedNativeRun);
+// @ts-expect-error JS допускает замену function binding; generic callback API сохраняется.
+withFinishedNativeRun=__metrics.wrapAsync({id:"course-core.infrastructure.native-run.withFinishedNativeRun",kind:"phase"},withFinishedNativeRun);
+// @ts-expect-error JS допускает замену function binding; generic callback API сохраняется.
+withNativeRunProof=__metrics.wrapAsync({id:"course-core.infrastructure.native-run.withNativeRunProof",kind:"phase"},withNativeRunProof);
 
 /** Producer-only completed execution → restored descriptor transition. No legacy token. */
 export async function prepareOverlayNativeCleanup(projectRoot:string,profile:string){

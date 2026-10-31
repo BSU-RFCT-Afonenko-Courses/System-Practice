@@ -51,7 +51,7 @@ local function string_array(value, nonempty)
   return true
 end
 local function overlay_pointer(run)
-  local allowed={schema=true,directory=true,projectRoot=true,profiles=true,outputDirectory=true,initialInputFiles=true,renderAll=true,configurationHashes=true,commonPathBinding=true,ownedConfigOverlay=true,overlayState=true,ownedConfigRestoration=true}
+  local allowed={schema=true,directory=true,projectRoot=true,profiles=true,outputDirectory=true,initialInputFiles=true,renderAll=true,configurationHashes=true,commonPathBinding=true,commonPathDocuments=true,ownedConfigOverlay=true,overlayState=true,ownedConfigRestoration=true}
   for key,_ in pairs(run) do if not allowed[key] then return false end end
   for _,key in ipairs({'schema','directory','projectRoot','profiles','outputDirectory','renderAll','configurationHashes','commonPathBinding','ownedConfigOverlay','overlayState'}) do if run[key]==nil then return false end end
   return overlay_ref(run.ownedConfigOverlay) and (run.overlayState=='active' or run.overlayState=='restored') and string_array(run.profiles,true) and #run.profiles==1 and type(run.outputDirectory)=='string' and type(run.renderAll)=='boolean' and type(run.configurationHashes)=='table' and (run.initialInputFiles==nil or string_array(run.initialInputFiles,false)) and file_ref(run.commonPathBinding,'common-files-path-binding.json')
@@ -131,6 +131,7 @@ function M.bound_materialization(doc)
   end
   local ref=run.commonPathBinding
   assert(type(ref)=='table' and ref.file=='common-files-path-binding.json' and type(ref.sha1)=='string' and type(ref.sha256)=='string',diagnostics.format('NATIVE.COMMON_PATH_BINDING_INVALID','Отсутствует witness ref',{field='native-run'}))
+  if run.commonPathDocuments==nil then
   local file=assert(io.open(run.directory..'/'..ref.file,'rb'))
   local bytes=file:read('*a');file:close()
   assert(pandoc.utils.sha1(bytes)==ref.sha1,diagnostics.format('NATIVE.COMMON_PATH_BINDING_INVALID','Witness SHA1 изменён',{field='native-run'}))
@@ -141,10 +142,19 @@ function M.bound_materialization(doc)
     local contextBytes=context:read('*a');context:close()
     assert(pandoc.utils.sha1(contextBytes)==run.ownedConfigOverlay.sourceContext.sha1,diagnostics.format('NATIVE.COMMON_PATH_BINDING_INVALID','Source-context SHA1 изменён',{field='native-run'}))
   end
+  end
   -- Штатный Quarto/Deno проверяет regular files, symlinks компонентов,
   -- SHA256 и source/config/common hashes, без платформенного readlink.
   local entry=pandoc.path.join({pandoc.path.directory(module_file),'entrypoints/common-path-binding.ts'})
-  local raw=pandoc.pipe(os.getenv('QUARTO') or 'quarto',{'run',entry,'--','--root',root,'--source',source(root),'--format',FORMAT},'')
+  local args={'run',entry,'--','--root',root,'--source',source(root),'--format',FORMAT}
+  if run.schema=='course-native-run-pointer-v3' then
+    local writer=PANDOC_STATE.output_file
+    assert(type(writer)=='string' and writer~='' and writer~='-',diagnostics.format('NATIVE.RUN_POINTER_INVALID','Нет native writer destination',{field='native-run'}))
+    if pandoc.path.is_relative(writer) then writer=pandoc.path.join({pandoc.system.get_working_directory(),writer}) end
+    args[#args+1]='--native-output';args[#args+1]=pandoc.path.normalize(writer)
+    args[#args+1]='--document-output';args[#args+1]=quarto.doc.output_file
+  end
+  local raw=pandoc.pipe(os.getenv('QUARTO') or 'quarto',args,'')
   local proof=pandoc.json.decode(raw)
   if proof.effectiveDeclarations==pandoc.json.null then proof.effectiveDeclarations=nil end
   if proof.canonicalDeclarations==pandoc.json.null then proof.canonicalDeclarations=nil end

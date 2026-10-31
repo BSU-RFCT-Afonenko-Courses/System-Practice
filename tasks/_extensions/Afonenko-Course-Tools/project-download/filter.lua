@@ -46,6 +46,10 @@ return __perfFilters({{Pandoc = function(doc)
       if context then
         exercise = {["course-role"]=(context.purpose and pandoc.utils.stringify(context.purpose) or ""), ["statement-visibility"]=(context.statementVisibility and pandoc.utils.stringify(context.statementVisibility) or "")}
       end
+      if not exercise and pandoc.utils.stringify(doc.meta['course-core-runtime'] or '')=='native-ts' then
+        if not span.attributes.kind then fail('DOWNLOAD.KIND_UNQUALIFIED','Native custom appearance требует явный kind до owner artifact-context',id,'kind') end
+        exercise={}
+      end
       if not exercise then fail("DOWNLOAD.RESOURCE_UNAVAILABLE", "Нет видимого упражнения в текущем документе", id, "exerciseId") end
       kind = span.attributes.kind
       if not kind then
@@ -66,7 +70,15 @@ return __perfFilters({{Pandoc = function(doc)
   local directory = root .. "/_generated/project-download/requests"
   pandoc.system.make_directory(directory, true)
   local file = assert(io.open(directory .. "/" .. pandoc.utils.sha1(source) .. ".json", "w"))
-  local request = {source=source, resources=requests}
+  local function plain(value)
+    if type(value)=='boolean' or type(value)=='number' or type(value)=='string' then return value end
+    local kind=pandoc.utils.type(value)
+    if kind=='Inlines' or kind=='MetaInlines' or kind=='Blocks' or kind=='MetaBlocks' then return pandoc.utils.stringify(value) end
+    local result={}
+    for key,child in pairs(value or {}) do result[key]=plain(child) end
+    return result
+  end
+  local request = {source=source, resources=requests, configuration=plain(config), native=pandoc.utils.stringify(doc.meta['course-core-runtime'] or '')=='native-ts'}
   if #artifacts > 0 then request.artifacts = artifacts end
   if doc.meta["course-core-processed"] == true then request.courseProcessed = true end
   file:write(pandoc.json.encode(request)); file:close()

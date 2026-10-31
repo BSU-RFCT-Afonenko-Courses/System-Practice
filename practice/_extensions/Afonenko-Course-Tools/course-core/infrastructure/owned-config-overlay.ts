@@ -1,9 +1,10 @@
 /** Единственный internal SOURCE → execution → restored lifecycle, ARCH82/84. */
 import {join,resolve,relative,dirname,basename} from 'stdlib/path';
+import {nativeJsonIntentDirectory,captureNativeJsonIntents,actualNativeJsonSlot,writeNativeJsonIntent} from './owned-json-writer.ts';
 import {diagnostic} from '../domain/diagnostics.ts';
 import {command,quartoExecutable} from './process.ts';
 import {beginConfigEntry,openConfigEntryView,withOverlayRuntime,assertOverlayRuntimeBoundary,type EntryIdentity} from './owned-config-entry.ts';
-import {captureSourceFiles,assertSourceFiles,captureSourceRoles,sourceRoleRefs,validateSourceRoles,captureSourceDependencies,assertSourceDependencies,overlayEntryState,assertOverlaySourceFiles,ownedCtimeRepresentation,nativeJsonOutputSlots,admitNativeJsonSlots,nativeJsonSnapshot,assertNativeJsonDocument,assertNativeJsonAdapter,type NativeJsonSlot,type SourceFiles,type SourceDependencyClosure,type SourceInspectionRoles,type SourceRoleIdentities} from './owned-config-source.ts';
+import {captureSourceFiles,assertSourceFiles,captureSourceRoles,sourceRoleRefs,validateSourceRoles,captureSourceDependencies,assertSourceDependencies,overlayEntryState,assertOverlaySourceFiles,ownedCtimeRepresentation,admitNativeJsonSlots,nativeJsonSnapshot,assertNativeJsonDocument,assertNativeJsonAdapter,type NativeJsonSlot,type SourceFiles,type SourceDependencyClosure,type SourceInspectionRoles,type SourceRoleIdentities} from './owned-config-source.ts';
 import {deriveExecutionConfig,assertExecutionMetadata,type DerivedInputProjection} from './owned-config-derive.ts';
 import {overlayReference,restorationReference,validateRestorationRecord,validateCompletedRestorationRefs,type OwnedConfigOverlay,type RestorationReference} from './owned-config-proof.ts';
 import {withInspectionWriter,type InspectionSnapshot,inspectionSnapshotData,inspectionRefs} from './inspection-preimages.ts';
@@ -21,7 +22,7 @@ const keys=(v:any,n:string[])=>!!v&&typeof v==='object'&&!Array.isArray(v)&&Obje
 const sameEntry=(a:EntryIdentity,b:EntryIdentity,ctime=true)=>stable(ctime?a:{...a,ctime:b.ctime})===stable(b);
 const fixed='owned-export-source-context.json',rawSlot='owned-export-source-config.raw';
 export type OverlaySourceContext={
- schema:'course-owned-export-source-context-v1';projectRoot:string;runDirectory:string;nonce:string;
+ schema:'course-owned-export-source-context-v2';projectRoot:string;runDirectory:string;nonce:string;
  sourceProfiles:string[];selectionProfiles:string[];selected:string[];roles:SourceInspectionRoles;identities:SourceRoleIdentities;
  sourceParent:EntryIdentity;leaseEntry:EntryIdentity;sourceFiles:SourceFiles;dependencies:SourceDependencyClosure;metadataClosure:MetadataClosure;
  base:{file:'_quarto.yml'|'_quarto.yaml';present:true;hashes:{sha1:string;sha256:string};originalEntry:EntryIdentity};
@@ -43,7 +44,23 @@ export async function startOwnedConfigOverlay(root:string,sourceText:string,sour
  try{await checkInitial()}catch(e){t.close();throw e}
  return {
   close:t.close,
-  async abort(){await t.recoverSource()},
+  async abort(){
+   await t.recoverSource();
+   if(ctx&&active){
+    // Failed execution retires only its held config/profile entries. No completed capability.
+    await t.quarantineProfile();
+    const protectedPaths=await protectedOverlayPaths(root,ctx),seen=new Set<string>();
+    for(const source of ctx.selected){
+     const id=ctx.identities[source];if(id.linkTarget!==null||id.physicalPath!==resolve(root,source))continue;
+     const file=basename(source),dot=file.lastIndexOf('.'),stem=dot>0?file.slice(0,dot):file,name=relative(root,join(dirname(resolve(root,source)),stem+'_files')).replaceAll('\\','/'),path=resolve(root,name);
+     if(seen.has(name)||Object.hasOwn(ctx.sourceFiles,name)||protectedPaths.some(p=>path===resolve(p)||path.startsWith(resolve(p)+'/')||resolve(p).startsWith(path+'/')))continue;seen.add(name);
+     try{await Deno.lstat(path)}catch(e){if(e instanceof Deno.errors.NotFound)continue;throw e}
+     const destination=join(directory,'aborted-native-empty');try{await Deno.mkdir(destination,{mode:0o700})}catch(e){if(!(e instanceof Deno.errors.AlreadyExists))throw e}
+     await t.quarantineEmptyNativeOutput(name,destination);
+    }
+    await t.retire(join(directory,rawSlot));await t.verifyRetired();active=false;
+   }
+  },
   async prepare(profile:string,bytes:Uint8Array,selected:string[],output:string){
    if(ctx||active||!/^course-export-[0-9a-f-]{36}$/.test(profile))fail('Неверная overlay preparation phase');
    const file='_quarto-'+profile+'.yml',owned=JSON.parse(new TextDecoder().decode(bytes));await checkInitial(file);
@@ -57,7 +74,7 @@ export async function startOwnedConfigOverlay(root:string,sourceText:string,sour
    const selectionProfiles=[profile,...sourceProfiles],selectionText=await inspect(root,selectionProfiles,sourceCheck),selection=JSON.parse(selectionText);
    await Deno.mkdir(directory,{recursive:true,mode:0o700});if(((await Deno.lstat(directory)).mode!&0o7777)!==0o700)fail('Нет private overlay run');
    let sourceRoles:Awaited<ReturnType<typeof captureSourceRoles>>|undefined,all:Record<string,any>|undefined;
-   await withInspectionWriter(directory,async writer=>{sourceRoles=await captureSourceRoles({root,selected,sourceProfiles,selectionProfiles,sourceOwnerText:sourceText,selectionText,append:writer.append,check:sourceCheck});all=await writer.snapshot()});
+   await withInspectionWriter(directory,async writer=>{sourceRoles=await captureSourceRoles({root,selected,sourceProfiles,selectionProfiles,sourceOwnerText:sourceText,selectionText,append:writer.append,check:()=>t.checkSource()});all=await writer.snapshot()});
    const roles=sourceRoles!.roles,identities=sourceRoles!.identities;
    const sourceIdentities={schema:'course-native-source-identities-v1' as const,sources:selected.map(source=>({source,physicalPath:identities[source].physicalPath,linkTarget:identities[source].linkTarget,nativeOwner:root,physicalInspectionHash:roles.physical[source]}))};
    const extensionRoots=nativeExtensionRoots(root,selection.extensions??[]),extensionFiles:string[]=[];
@@ -71,12 +88,12 @@ export async function startOwnedConfigOverlay(root:string,sourceText:string,sour
    const tool=JSON.parse(await invocationIdentity(root)),toolFiles=[tool.physical,join(dirname(tool.physical),'quarto.js')];
    for(const path of toolFiles)if(await Deno.realPath(path)!==path||!(await Deno.lstat(path)).isFile)fail('Нет closed stock Quarto runtime dependency');
    const dependencies=await captureSourceDependencies([...new Set([...metadataClosure.origins.map(o=>o.path),...toolFiles])],[...hookRoots]);
-   ctx={schema:'course-owned-export-source-context-v1',projectRoot:root,runDirectory:directory,nonce:basename(directory),sourceProfiles:[...sourceProfiles],selectionProfiles,selected:[...selected],roles,identities,sourceParent:t.source.parent,leaseEntry:t.source.leaseIdentity,sourceFiles,dependencies,metadataClosure,base:{file:t.source.entry,present:true,hashes:await hashes(t.source.bytes),originalEntry:t.source.identity},execution:{hashes:await hashes(executionBytes),preparedEntry,preparedFile},profile:{name:profile,file,hashes:await hashes(bytes),entry:profileEntry},projection:derived.projection,runtime:t.source.runtime};
+   ctx={schema:'course-owned-export-source-context-v2',projectRoot:root,runDirectory:directory,nonce:basename(directory),sourceProfiles:[...sourceProfiles],selectionProfiles,selected:[...selected],roles,identities,sourceParent:t.source.parent,leaseEntry:t.source.leaseIdentity,sourceFiles,dependencies,metadataClosure,base:{file:t.source.entry,present:true,hashes:await hashes(t.source.bytes),originalEntry:t.source.identity},execution:{hashes:await hashes(executionBytes),preparedEntry,preparedFile},profile:{name:profile,file,hashes:await hashes(bytes),entry:profileEntry},projection:derived.projection,runtime:t.source.runtime};
    await sourceCheck();await assertSourceDependencies(dependencies);await Deno.writeFile(join(directory,rawSlot),t.source.bytes,{createNew:true,mode:0o600});
    const sourceContext=await writePrivate(join(directory,fixed),ctx);ref={kind:'owned-config-overlay-v1',sourceContext};return {directory,ownedConfigOverlay:ref};
   },
   async activate(){
-   if(!ctx||!ref||active)fail('Нет prepared overlay');await t.quarantineSource();await t.installExecution();active=true;
+   if(!ctx||!ref||active)fail('Нет prepared overlay');await assertSourceFiles(root,ctx!.sourceFiles);await assertSourceDependencies(ctx!.dependencies);await t.quarantineSource();await t.installExecution();active=true;
    const entries=await t.activeEntries();await t.publishBootstrap(new TextEncoder().encode(JSON.stringify({schema:'course-owned-export-overlay-bootstrap-v1',projectRoot:root,runDirectory:directory,ownedConfigOverlay:ref,sourceEntry:entries.source,executionEntry:entries.execution})));await t.checkActive();
   },
   async checkActive(){if(!active)fail('Overlay не active');await t.checkActive()},
@@ -87,7 +104,7 @@ export async function startOwnedConfigOverlay(root:string,sourceText:string,sour
  };
 }
 // Только lifetime withOverlayCurrentCheck, без повторного admission из nested helpers.
-type OverlayReadState={pointer:string;ref:string;ctx:OverlaySourceContext;boundary?:()=>Promise<OverlaySourceContext>;slots?:NativeJsonSlot[];protected?:string[];owned?:any;adapters?:{contract:any;fragments:any[]}[];originals?:{w:CommonPathWitness;all:Record<string,any>}};
+type OverlayReadState={pointer:string;ref:string;ctx:OverlaySourceContext;boundary?:()=>Promise<OverlaySourceContext>;slots?:NativeJsonSlot[];intentsIdentity?:string;protected?:string[];owned?:any;adapters?:{contract:any;fragments:any[]}[];originals?:{w:CommonPathWitness;all:Record<string,any>}};
 const overlayReads=new Map<string,OverlayReadState>();
 function overlayRead(p:{projectRoot:string;directory:string;ownedConfigOverlay?:unknown}){const state=overlayReads.get(p.directory);if(state&&(state.ctx.projectRoot!==p.projectRoot||state.ref!==stable(p.ownedConfigOverlay)))fail('Foreign overlay operation');return state}
 function immutable<T>(v:T):T{if(v&&typeof v==='object'&&!Object.isFrozen(v)){for(const c of Object.values(v))immutable(c);Object.freeze(v)}return v}
@@ -98,7 +115,7 @@ export async function readOverlayContext(p:{projectRoot:string;directory:string;
 async function readOverlayContextFresh(p:{projectRoot:string;directory:string;ownedConfigOverlay?:unknown}):Promise<OverlaySourceContext>{
  const ref=overlayReference(p.ownedConfigOverlay),raw=await readPrivate(join(p.directory,fixed));if(await hash(raw)!==ref.sourceContext.sha256||await hash(raw,'SHA-1')!==ref.sourceContext.sha1)fail('Source-context ref/hash mismatch');
  const c=JSON.parse(new TextDecoder('utf-8',{fatal:true}).decode(raw)) as OverlaySourceContext;
- if(!keys(c,['schema','projectRoot','runDirectory','nonce','sourceProfiles','selectionProfiles','selected','roles','identities','sourceParent','leaseEntry','sourceFiles','dependencies','metadataClosure','base','execution','profile','projection','runtime'])||c.schema!=='course-owned-export-source-context-v1'||c.projectRoot!==p.projectRoot||c.runDirectory!==p.directory||c.nonce!==basename(p.directory)||!/^[-0-9a-f]{36}$/.test(c.nonce)||join(c.projectRoot,'_generated/course-spec/native-runs',c.nonce)!==c.runDirectory||!keys(c.base,['file','present','hashes','originalEntry'])||!['_quarto.yml','_quarto.yaml'].includes(c.base.file)||c.base.present!==true||!keys(c.execution,['hashes','preparedEntry','preparedFile'])||!keys(c.profile,['name','file','hashes','entry'])||c.profile.file!=='_quarto-'+c.profile.name+'.yml'||stable(c.selectionProfiles)!==stable([c.profile.name,...c.sourceProfiles]))fail('Нет closed overlay source context');
+ if(!keys(c,['schema','projectRoot','runDirectory','nonce','sourceProfiles','selectionProfiles','selected','roles','identities','sourceParent','leaseEntry','sourceFiles','dependencies','metadataClosure','base','execution','profile','projection','runtime'])||c.schema!=='course-owned-export-source-context-v2'||c.projectRoot!==p.projectRoot||c.runDirectory!==p.directory||c.nonce!==basename(p.directory)||!/^[-0-9a-f]{36}$/.test(c.nonce)||join(c.projectRoot,'_generated/course-spec/native-runs',c.nonce)!==c.runDirectory||!keys(c.base,['file','present','hashes','originalEntry'])||!['_quarto.yml','_quarto.yaml'].includes(c.base.file)||c.base.present!==true||!keys(c.execution,['hashes','preparedEntry','preparedFile'])||!keys(c.profile,['name','file','hashes','entry'])||c.profile.file!=='_quarto-'+c.profile.name+'.yml'||stable(c.selectionProfiles)!==stable([c.profile.name,...c.sourceProfiles]))fail('Нет closed overlay source context');
  sourceRoleRefs(c.roles,c.selected);const source=await readPrivate(join(p.directory,rawSlot));if(await hash(source)!==c.base.hashes.sha256||await hash(source,'SHA-1')!==c.base.hashes.sha1)fail('Original source raw slot изменён');
  return c;
 }
@@ -260,17 +277,54 @@ async function protectedOverlayPaths(root:string,ctx:OverlaySourceContext){
  const result=[...protectedPaths];if(state?.ctx===ctx)state.protected=result;return result;
 }
 
-/** Prehook admission uses already authenticated execution originals, before native writes. */
+/** Pre-hook authenticates selected inputs, without inventing a forced writer recipe. */
 export async function admitOverlayNativeOutputs(p:NativeRunPointer,ctx:OverlaySourceContext,frames:Record<string,any>){
- const slots=nativeJsonOutputSlots(p.projectRoot,ctx.selected,ctx.identities,frames,p.outputDirectory);
- await admitNativeJsonSlots(p.projectRoot,ctx.sourceFiles,slots,await protectedOverlayPaths(p.projectRoot,ctx));
+ if(stable(Object.keys(frames).sort())!==stable([...ctx.selected].sort()))fail('Нет exact selected native writer scope');
+ for(const source of ctx.selected)if(ctx.identities[source]?.linkTarget!==null||ctx.identities[source]?.physicalPath!==resolve(p.projectRoot,source)||frames[source]?.project?.dir!==p.projectRoot||!frames[source]?.fileInformation?.[resolve(p.projectRoot,source)])fail('Нет authenticated regular native writer source');
+ const snapshot=await captureNativeJsonIntents(p,ctx);try{if(snapshot.slots.length)fail('Native writer intents существовали до render');await snapshot.check()}finally{snapshot.close()}
 }
 async function overlayOutputSlots(p:NativeRunPointer,ctx:OverlaySourceContext){
- const state=overlayRead(p);if(state?.slots)return state.slots;
- const ref=p.commonPathBinding;if(!ref)return [];
- let w:any;if(state?.originals)w=state.originals.w;else{const bytes=await readPrivate(join(p.directory,ref.file));if(ref.file!=='common-files-path-binding.json'||await hash(bytes)!==ref.sha256||await hash(bytes,'SHA-1')!==ref.sha1)fail('Native output witness hash drift');w=JSON.parse(new TextDecoder().decode(bytes))}if(w.schema!=='course-common-files-path-binding-v2'||w.projectRoot!==p.projectRoot||w.runDirectory!==p.directory||w.outputDirectory!==p.outputDirectory||stable(w.profiles)!==stable(p.profiles)||stable(w.inputFiles)!==stable(ctx.selected)||stable(w.ownedConfigOverlay)!==stable(p.ownedConfigOverlay)||stable(Object.keys(w.documentInspectionHashes).sort())!==stable([...ctx.selected].sort()))fail('Native output frame owner mismatch');
- const frames:Record<string,any>={};for(const source of ctx.selected){const h=w.documentInspectionHashes[source];if(typeof h!=='string'||!/^[a-f0-9]{64}$/.test(h))fail('Native output frame ref');if(state?.originals){if(!state.originals.all[h])fail('Missing admitted execution role');frames[source]=state.originals.all[h]}else{const b=await readPrivate(join(p.directory,'inspections/sha256',h+'.json'));if(await hash(b)!==h)fail('Native output execution frame hash drift');frames[source]=JSON.parse(new TextDecoder().decode(b))}}
- const slots=nativeJsonOutputSlots(p.projectRoot,ctx.selected,ctx.identities,frames,p.outputDirectory);if(state)state.slots=slots;return slots;
+ const state=overlayRead(p),snapshot=await captureNativeJsonIntents(p,ctx);
+ try{
+  if(state?.intentsIdentity!==undefined&&state.intentsIdentity!==snapshot.identity)fail('Native writer intent identity/inventory changed across operation');
+  if(state){state.intentsIdentity=snapshot.identity;state.slots=snapshot.slots}
+  const slots=snapshot.slots,protectedPaths=await protectedOverlayPaths(p.projectRoot,ctx);
+  for(const slot of slots){const path=resolve(p.projectRoot,slot.temporary);if(Object.hasOwn(ctx.sourceFiles,slot.temporary)||protectedPaths.some(p=>path===resolve(p)||path.startsWith(resolve(p)+'/')||resolve(p).startsWith(path+'/')))fail('Native writer intent пересекает source/protected role')}
+  const names=new Set(await Promise.all(slots.map(async slot=>await hash(new TextEncoder().encode(slot.source+'\0json'),'SHA-1')+'.json')));
+  for await(const entry of Deno.readDir(join(p.directory,'documents')))if(!entry.isFile||entry.isSymlink||!names.has(entry.name))fail('Actual native document без writer intent');
+  await snapshot.check();return slots;
+ }finally{snapshot.close()}
+}
+/** Native intent admission is a separate selected boundary; pointer stays immutable. */
+export async function admitOverlayNativeWriter(p:NativeRunPointer,source:string,format:string,writer:string,documentOutput:string,selectedCheck:()=>Promise<unknown>){
+ if(p.schema!=='course-native-run-pointer-v3'||p.overlayState!=='active'||format!=='json')fail('Нет active owned JSON writer');
+ return await withOverlayRuntime(p.projectRoot,async()=>{
+  const ctx=await readOverlayContext(p),view=await openConfigEntryView(p.projectRoot,ctx.base.file);
+  let retained:Awaited<ReturnType<typeof openConfigEntryView>>|undefined,snapshot:Awaited<ReturnType<typeof captureNativeJsonIntents>>|undefined,outputs:Awaited<ReturnType<typeof nativeJsonSnapshot>>|undefined;
+  try{
+   retained=await openConfigEntryView(join(p.projectRoot,'_generated/course-spec/owned-config-overlay-lease'),'quarantined-source');
+   const check=async()=>{
+    await view.check();await retained!.check();await selectedCheck();
+    if(stable(await readOverlayContextFresh(p))!==stable(ctx))fail('Native writer source context changed');
+    const b=JSON.parse(new TextDecoder().decode(await readPrivate(join(p.projectRoot,'_generated/course-spec/owned-config-overlay-lease/bootstrap.json'))));
+    if(b.projectRoot!==p.projectRoot||b.runDirectory!==p.directory||stable(b.ownedConfigOverlay)!==stable(p.ownedConfigOverlay)||!sameEntry(view.identity,b.executionEntry)||!sameEntry(view.identity,ctx.execution.preparedEntry,false)||!sameEntry(retained!.identity,b.sourceEntry)||!sameEntry(retained!.identity,ctx.base.originalEntry,false)||!dirIdentity(view.parent,ctx.sourceParent)||!dirIdentity(retained!.parent,ctx.leaseEntry)||stable(view.runtime)!==stable(ctx.runtime)||stable(await hashes(view.bytes))!==stable(ctx.execution.hashes)||stable(await hashes(retained!.bytes))!==stable(ctx.base.hashes))fail('Native writer не bound к active execution/source entries');
+    try{await Deno.lstat(join(p.directory,'native-run.json'));fail('Completed run не разрешает native writer')}catch(e){if(!(e instanceof Deno.errors.NotFound))throw e}
+   };
+   await check();snapshot=await captureNativeJsonIntents(p,ctx);
+   const slot=actualNativeJsonSlot(p,ctx,source,writer,documentOutput);
+   if(snapshot.slots.some(old=>old.source===source||old.temporary===slot.temporary||old.final===slot.final))fail('Повторный native writer source/output');
+   outputs=await nativeJsonSnapshot(p.projectRoot,snapshot.slots,true,slot=>capturedNativeJson(p,slot));
+   const absent=async()=>{
+    await admitNativeJsonSlots(p.projectRoot,ctx.sourceFiles,[slot],await protectedOverlayPaths(p.projectRoot,ctx));
+    try{await Deno.lstat(slot.final);fail('Native final output существовал до writer')}catch(e){if(!(e instanceof Deno.errors.NotFound))throw e}
+    let parent=dirname(slot.final);while(parent!==p.projectRoot){try{const s=await Deno.lstat(parent);if(!s.isDirectory||s.isSymlink||s.uid!==ctx.sourceFiles[''].uid||s.dev!==ctx.sourceFiles[''].dev||await Deno.realPath(parent)!==parent)fail('Native final parent не canonical same-owner')}catch(e){if(!(e instanceof Deno.errors.NotFound))throw e}const next=dirname(parent);if(next===parent||!parent.startsWith(p.projectRoot+'/'))fail('Native final parent вне owner');parent=next}
+   };
+   await absent();await snapshot.check();await outputs.check();await check();
+   await writeNativeJsonIntent(p,slot,documentOutput);
+   await snapshot.checkHeld();await outputs.check();await absent();await check();
+   const after=await captureNativeJsonIntents(p,ctx);try{if(after.slots.length!==snapshot.slots.length+1||!after.slots.some(s=>stable(s)===stable(slot))||Object.entries(snapshot.records).some(([name,value])=>stable(after.records[name])!==stable(value)))fail('Native intent append изменил existing records');await after.check();await snapshot.checkHeld();await outputs.check()}finally{after.close()}
+  }finally{outputs?.close();snapshot?.close();retained?.close();view.close()}
+ });
 }
 async function capturedNativeJson(p:NativeRunPointer,slot:NativeJsonSlot){
  const name=await hash(new TextEncoder().encode(slot.source+'\0json'),'SHA-1')+'.json',path=join(p.directory,'documents',name),before=await Deno.lstat(path);
@@ -287,7 +341,7 @@ async function finalNativeJson(p:NativeRunPointer,slots:NativeJsonSlot[],outputs
  for(const slot of slots){if(outputs.filter(path=>path===slot.final).length!==1)fail('Нет exact relocated native JSON output');const view=await openNativeJsonOutput(p.outputDirectory,relative(p.outputDirectory,slot.final).replaceAll('\\','/'));try{await capturedNativeJson(p,slot);const body=JSON.parse(new TextDecoder('utf-8',{fatal:true}).decode(view.bytes));if(!Array.isArray(body.blocks)||!Array.isArray(body['pandoc-api-version']))fail('Relocated output не native JSON');await view.check()}finally{view.close()}}
 }
 export async function assertOverlayFinalOutputs(p:NativeRunPointer,outputs:string[]){
- if(p.schema!=='course-native-run-pointer-v3')return;return await withOverlayRuntime(p.projectRoot,async()=>{const ctx=await readOverlayContext(p),slots=await overlayOutputSlots(p,ctx),snapshot=await nativeJsonSnapshot(p.projectRoot,slots,false,()=>Promise.resolve());try{await finalNativeJson(p,slots,outputs);await snapshot.check()}finally{snapshot.close()}});
+ if(p.schema!=='course-native-run-pointer-v3')return;return await withOverlayRuntime(p.projectRoot,async()=>{const ctx=await readOverlayContext(p),slots=await overlayOutputSlots(p,ctx);if(stable(slots.map(s=>s.source).sort())!==stable([...ctx.selected].sort()))fail('Неполный native JSON writer scope');const snapshot=await nativeJsonSnapshot(p.projectRoot,slots,false,()=>Promise.resolve());try{await finalNativeJson(p,slots,outputs);await snapshot.check()}finally{snapshot.close()}});
 }
 async function checkOverlaySourceInventory(root:string,ctx:OverlaySourceContext,expected:SourceFiles,p?:NativeRunPointer,final=false){
  const slots=p?await overlayOutputSlots(p,ctx):[],active=!!p&&p.overlayState==='active'&&!final;

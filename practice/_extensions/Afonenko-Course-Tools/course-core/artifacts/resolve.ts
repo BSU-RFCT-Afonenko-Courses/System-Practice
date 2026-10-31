@@ -1,3 +1,4 @@
+import {assignmentBeforeChild,assignmentChild} from '../runtime/assignment-execution.ts';
 import {createMetrics as __createMetrics} from "../observability/bridge.ts";
 const __metrics=__createMetrics("course-core");
 import {resolve,relative,join,dirname} from 'stdlib/path';
@@ -32,7 +33,7 @@ function walk(value:any,visit:(node:any,owner?:string)=>void,publicOnly=false,ow
 }
 const __perfWalk=__metrics.wrapWalk({id:"course-core.artifacts.resolve.walk",kind:"ast_walk",scope:"fragment"},walk);
 async function writeHtml(ast:any,cwd:string){
- const child=new Deno.Command(quartoExecutable(),{args:['pandoc','--from','json','--to','html'],cwd,env:__metrics.childEnv({}),stdin:'piped',stdout:'piped',stderr:'piped'}).spawn();
+ const args=['pandoc','--from','json','--to','html'];await assignmentBeforeChild();const qualified=assignmentChild(quartoExecutable(),args,cwd);const child=new Deno.Command(qualified?.executable??quartoExecutable(),{...(qualified?.options??{args,cwd,env:__metrics.childEnv({})}),stdin:'piped',stdout:'piped',stderr:'piped'}).spawn();
  const input=child.stdin.getWriter();await input.write(new TextEncoder().encode(JSON.stringify(ast)));await input.close();
  const result=await child.output();if(!result.success)throw diagnostic('ARTIFACT.WRITER_FAILED',new TextDecoder().decode(result.stderr));return new TextDecoder().decode(result.stdout);
 }
@@ -46,9 +47,11 @@ function freezeBatchRun(value:any):any{
 export async function withNativeArtifactBatch<T>(root:string,expectation:NativeRunExpectation,use:(batch:Readonly<{run:NativeRun;resolveArtifact:(request:ArtifactRequest)=>Promise<ResolvedArtifact>}>)=>Promise<T>):Promise<T>{
  return await withLoadedNativeRun(root,expectation,async run=>{
   freezeBatchRun(run);let active=true,busy=false,pending:Promise<ResolvedArtifact>|undefined;
-  const batch=Object.freeze({run,resolveArtifact:async(request:ArtifactRequest)=>{
-   if(!active||busy)throw diagnostic('NATIVE.RUN_NOT_CURRENT','Expired/reentrant native artifact batch');busy=true;
-   try{pending=resolveArtifact(run,Object.freeze({...request}));return await pending}finally{busy=false;pending=undefined}
+  const batch=Object.freeze({run,resolveArtifact:(request:ArtifactRequest)=>{
+   if(!active||busy)return Promise.reject(diagnostic('NATIVE.RUN_NOT_CURRENT','Expired/reentrant native artifact batch'));busy=true;
+   // Храним тот же Promise, который получает caller, включая его finally.
+   pending=(async()=>{try{return await resolveArtifact(run,Object.freeze({...request}))}finally{busy=false;pending=undefined}})();
+   return pending;
   }});
   try{const result=await use(batch);if(busy)throw diagnostic('NATIVE.RUN_NOT_CURRENT','Pending artifact request at batch exit');return result}finally{active=false;if(pending)await pending.catch(()=>{})}
  });
@@ -123,3 +126,5 @@ async function resolveArtifactUsing(run:NativeRun,request:ArtifactRequest):Promi
 writeHtml=__metrics.wrapAsync({id:"course-core.artifacts.resolve.writeHtml",kind:"command"},writeHtml);
 // @ts-expect-error JS допускает замену function binding; публичная сигнатура сохраняется.
 resolveArtifact=__metrics.wrapAsync({id:"course-core.artifacts.resolve.resolveArtifact",kind:"phase"},resolveArtifact);
+// @ts-expect-error JS допускает замену function binding; generic callback API сохраняется.
+withNativeArtifactBatch=__metrics.wrapAsync({id:"course-core.artifacts.resolve.withNativeArtifactBatch",kind:"phase"},withNativeArtifactBatch);

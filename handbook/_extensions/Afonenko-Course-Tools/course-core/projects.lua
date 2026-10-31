@@ -10,7 +10,7 @@ local checkShape={['source-profile']=true,runtime=true,java={release=true,encodi
  ['verification-expectations']={reference=expectationShape,starter=expectationShape},
  discovery={['min-executed']=true,['allow-skipped']=true},variants={correct='array',mutants='array'},
  ['java-build']={kind=true,['main-class']=true,artifact=true},
- ['additional-java-sources']={archive=true,['max-files']='integer',['max-file-bytes']='integer',['max-total-bytes']='integer',['max-archive-bytes']='integer'},
+ ['additional-java-sources']={['primary-required']=true,archive=true,['max-files']='integer',['max-file-bytes']='integer',['max-total-bytes']='integer',['max-archive-bytes']='integer'},
  ['api-precheck']={files='array',entry=true},['verification-api-precheck']={files='array',entry=true}}
 local function fail(field,detail,id) diagnostics.fail('CORE.PROJECT_CHECK_INVALID',detail,{source=quarto.doc.input_file,id=id,field=field}) end
 local function scalar(value)
@@ -121,12 +121,15 @@ function M.resolve(config,name,id)
   if source.mode~='implementation' or result.runtime~='java25-gradle-junit-v1' then fail('java-build','Сборка требует exact Gradle implementation runtime',id) end
   if build.kind~='gradle-jar-v1' then fail('java-build.kind','Неизвестный recipe kind',id) end
   local main=build['main-class']
+  if main~=nil then
   if type(main)~='string' or main=='' or main:find('..',1,true) or main:sub(1,1)=='.' or main:sub(-1)=='.' then fail('java-build.main-class','Требуется qualified Java class',id) end
   for segment in main:gmatch('[^.]+') do if not segment:match('^[%a_$][%w_$]*$') then fail('java-build.main-class','Требуется qualified Java class',id) end end
+  end
   if type(build.artifact)~='string' or not build.artifact:match('^[A-Za-z0-9][A-Za-z0-9_-]*%.jar$') or #build.artifact>105 then fail('java-build.artifact','Требуется безопасное basename JAR',id) end
  end
  local extras=result['additional-java-sources']
  if extras then
+  if extras['primary-required']~=nil and type(extras['primary-required'])~='boolean' then fail('additional-java-sources.primary-required','Требуется boolean',id) end
   if source.mode~='implementation' or not javaRuntime then fail('additional-java-sources','Дополнительные Java sources требуют Java implementation',id) end
   if type(extras.archive)~='string' or not extras.archive:match('^[A-Za-z0-9][A-Za-z0-9_-]*%.zip$') or #extras.archive>105 then fail('additional-java-sources.archive','Требуется безопасное basename ZIP',id) end
   for key,cap in pairs({['max-files']=128,['max-file-bytes']=1048576,['max-total-bytes']=4194304,['max-archive-bytes']=2097152}) do
