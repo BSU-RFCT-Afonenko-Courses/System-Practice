@@ -84,3 +84,5 @@ subprojects:
 - tasks
 - practice
 - handbook
+course-core-runtime: native-ts
+course-core-projection: student
