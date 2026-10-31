@@ -11,6 +11,7 @@ project-materialization:
       include-git: true
 default-exercise-project-check: false
 assessment:
+  id: sec-lab-version-control
   kind: lab
   prairielearn:
     max-points: 100
