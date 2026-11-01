@@ -154,7 +154,7 @@ async function inputFiles(root: string) {
     ).map((path) => relative(root, resolve(root, path)).replaceAll("\\", "/"));
 }
 /** Публичная текущая операция Core; публикация выполняется после её final fence. */
-async function validateRelease(root: string, operation: any, Core: any) {
+async function validateRelease(operation: any, Core: any) {
   let PL: any;
   const extension = dirname(dirname(fromFileUrl(import.meta.url)));
   const path = join(dirname(extension), "course-prairielearn", "public.ts");
@@ -164,23 +164,20 @@ async function validateRelease(root: string, operation: any, Core: any) {
   } catch (cause) {
     if (!(cause instanceof Deno.errors.NotFound)) throw cause;
   }
-  const adapter = PL?.createNativeAdapter({ root, core: Core });
   const request = {
     expectedSources: operation.catalog.documents.map((d: any) => d.source),
   };
   const before = operation.metrics;
-  let proof = await operation.validateRelease(
-      request,
-      adapter ? [adapter] : [],
-    ),
-    validationPasses = 1;
-  if (proof.validatedAdapters.includes("prairielearn")) {
-    proof = await adapter.validateCourse(operation, request);
-    validationPasses++;
+  let proof;
+  if (PL) {
+    const publication = await PL.inspectPublication(Core, operation, request);
+    proof = Core.NativeReleaseProofSchema.parse(publication.proof);
+  } else {
+    proof = await operation.validateRelease(request, []);
   }
   return {
     proof,
-    validationPasses,
+    validationPasses: 1,
     metricsBefore: before,
     metricsAfter: operation.metrics,
   };
@@ -212,7 +209,7 @@ export async function finish(
   let resolvedOutput = output;
   const collect = async (operation?: any, Core?: any): Promise<number> => {
     const release = operation
-      ? await validateRelease(root, operation, Core)
+      ? await validateRelease(operation, Core)
       : undefined;
     if (operation) await options.observeOperation?.(operation.catalog, release);
     let sources = operation?.catalog.documents.map((d: any) => d.source) ??

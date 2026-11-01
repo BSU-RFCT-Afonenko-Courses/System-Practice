@@ -74,10 +74,10 @@
           "tasks"
         ]
       },
-      "version": "9.0.0",
-      "tag": "v9.0.0",
-      "commit": "eb35a5f16600915bdc78a41c21601e1ae92fe019",
-      "sourceZip": "https://github.com/Afonenko-Course-Tools/quarto-course-prairielearn/archive/refs/tags/v9.0.0.zip"
+      "version": "9.0.1",
+      "tag": "v9.0.1",
+      "commit": "df8bd4aad274d618a782265b1db9c63e9b9a40f9",
+      "sourceZip": "https://github.com/Afonenko-Course-Tools/quarto-course-prairielearn/archive/refs/tags/v9.0.1.zip"
     },
     "download": {
       "repository": "Afonenko-Course-Tools/quarto-project-download",
@@ -87,10 +87,10 @@
           "tasks"
         ]
       },
-      "version": "3.3.0",
-      "tag": "v3.3.0",
-      "commit": "2794813728039893ed48b1f1007be71e48d5a6bc",
-      "sourceZip": "https://github.com/Afonenko-Course-Tools/quarto-project-download/archive/refs/tags/v3.3.0.zip"
+      "version": "3.3.1",
+      "tag": "v3.3.1",
+      "commit": "e4ce084d8d15381368def66c746b51c6ba810a7d",
+      "sourceZip": "https://github.com/Afonenko-Course-Tools/quarto-project-download/archive/refs/tags/v3.3.1.zip"
     }
   }
 }

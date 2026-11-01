@@ -2513,17 +2513,17 @@
     },
     "course-prairielearn": {
       "repository": "Afonenko-Course-Tools/quarto-course-prairielearn",
-      "commit": "eb35a5f16600915bdc78a41c21601e1ae92fe019",
-      "tag": "v9.0.0",
-      "version": "9.0.0",
-      "sourceZip": "https://github.com/Afonenko-Course-Tools/quarto-course-prairielearn/archive/refs/tags/v9.0.0.zip",
+      "commit": "df8bd4aad274d618a782265b1db9c63e9b9a40f9",
+      "tag": "v9.0.1",
+      "version": "9.0.1",
+      "sourceZip": "https://github.com/Afonenko-Course-Tools/quarto-course-prairielearn/archive/refs/tags/v9.0.1.zip",
       "provider": "prairielearn",
       "scopes": [
         "tasks"
       ],
       "files": {
         "_extension.yml": {
-          "sha256": "393893310790fda749014a6282c9c0e83fbcff4445e4faadcab06589d4ee9198",
+          "sha256": "ca8df9a64cd9344a968ae2c52943d86ae47d3b2f579f4b9df0f8fecbce12e4aa",
           "size": 517,
           "mode": 420
         },
@@ -2643,8 +2643,8 @@
           "mode": 420
         },
         "application/native-publication.ts": {
-          "sha256": "229938681e33e317f23eaa3b7f28e10544dc12205cb7678f629032a9b55bc809",
-          "size": 3420,
+          "sha256": "e10a6210744de831c89d6b33d993451d26fd866260814f19bf2799a1807a65ff",
+          "size": 3778,
           "mode": 420
         },
         "application/native-selection.ts": {
@@ -3873,21 +3873,21 @@
           "mode": 420
         }
       },
-      "extensionTree": "3f96d79210295a795d72044bba5c2898e6e1e5c3"
+      "extensionTree": "800edcda9291a36786596c3cd6f273358aa4e986"
     },
     "project-download": {
       "repository": "Afonenko-Course-Tools/quarto-project-download",
-      "commit": "2794813728039893ed48b1f1007be71e48d5a6bc",
-      "tag": "v3.3.0",
-      "version": "3.3.0",
-      "sourceZip": "https://github.com/Afonenko-Course-Tools/quarto-project-download/archive/refs/tags/v3.3.0.zip",
+      "commit": "e4ce084d8d15381368def66c746b51c6ba810a7d",
+      "tag": "v3.3.1",
+      "version": "3.3.1",
+      "sourceZip": "https://github.com/Afonenko-Course-Tools/quarto-project-download/archive/refs/tags/v3.3.1.zip",
       "provider": "download",
       "scopes": [
         "tasks"
       ],
       "files": {
         "_extension.yml": {
-          "sha256": "22c65973de4e21f2676ec00cc495bfe22a1a1f45f0296a5988aa3df4d47adf23",
+          "sha256": "0638ea6234039d241359450c2394cce9dde7945e03389966cab539d030f52137",
           "size": 211,
           "mode": 420
         },
@@ -3937,8 +3937,8 @@
           "mode": 420
         },
         "infrastructure/runtime.ts": {
-          "sha256": "eb7b11be1ccbd93217835616e2af5fc11baf9fd8847a14777fa47d7bc36ea225",
-          "size": 28058,
+          "sha256": "674c59c95bbbad8c348f2782baa1dfef38eb0697ca0c0014406a6c0b00e7da8e",
+          "size": 27946,
           "mode": 420
         },
         "observability/bridge.lua": {
@@ -3967,7 +3967,7 @@
           "mode": 420
         }
       },
-      "extensionTree": "39580962bdd84a809be2877d1656f0f5270c2ba8"
+      "extensionTree": "9ba5e5b54a71240f2725f75b41bedff322bf066b"
     }
   }
 }
