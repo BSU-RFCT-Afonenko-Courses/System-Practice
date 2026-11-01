@@ -3,7 +3,7 @@ project-materialization:
   projects:
     exr-project-maintenance-release:
       common-files:
-      - source: materials/project-maintenance-start.zip
+      - source: /materials/project-maintenance-start.zip
         target: student/project-maintenance-start.zip
         audience: student
 default-exercise-project-check: false

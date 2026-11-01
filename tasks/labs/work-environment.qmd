@@ -3,18 +3,18 @@ project-materialization:
   projects:
     exr-work-environment-file-state:
       common-files:
-      - source: common/work-environment/count.fish
+      - source: /common/work-environment/count.fish
         target: student/survey/tools/count.fish
         audience: student
-      - source: common/work-environment/count.ps1
+      - source: /common/work-environment/count.ps1
         target: student/survey/tools/count.ps1
         audience: student
     exr-work-environment-launch-counter:
       common-files:
-      - source: common/work-environment/count.fish
+      - source: /common/work-environment/count.fish
         target: student/survey/tools/count.fish
         audience: student
-      - source: common/work-environment/count.ps1
+      - source: /common/work-environment/count.ps1
         target: student/survey/tools/count.ps1
         audience: student
 default-exercise-project-check: false
