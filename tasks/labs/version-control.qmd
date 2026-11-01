@@ -1,4 +1,19 @@
 ---
+prairielearn:
+  question-defaults:
+    submission:
+      mode: workspace
+      workspaceOptions:
+        image: ghcr.io/afonenko-course-tools/sp-git-workspace@sha256:a547a7419726857eb391476edcf8906ee4acc062250e1c29acaee4733d9de930
+        home: /home/coder/workspace
+        port: 8080
+        rewriteUrl: true
+        gradedFiles:
+        - 'work/**'
+        - 'work/.git/**'
+        - 'work/.*'
+        - 'explanation.m[d]'
+        - '.pl-seed/identity.jso[n]'
 project-materialization:
   projects:
     exr-version-control-local-history:
