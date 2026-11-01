@@ -1,3 +1,4 @@
+import { SupportedQuartoVersionSchema } from "../infrastructure/quarto-version.ts";
 import {
   assignmentChild,
   withAssignmentExecution,
@@ -360,7 +361,7 @@ export async function prepareAssignment(
     new TextDecoder("utf-8", { fatal: true }).decode(inspected.stdout),
   );
   if (
-    owner.dir !== reservation.root || owner.quarto?.version !== "1.11.5" ||
+    owner.dir !== reservation.root || !SupportedQuartoVersionSchema.safeParse(owner.quarto?.version).success ||
     owner.config?.["course-core-runtime"] !== "native-ts" ||
     owner.config?.["course-core-projection"] !== "author" ||
     !Array.isArray(owner.files?.input) || !Array.isArray(owner.engines) ||

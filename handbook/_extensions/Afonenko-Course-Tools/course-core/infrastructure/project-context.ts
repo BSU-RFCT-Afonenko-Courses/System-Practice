@@ -1,3 +1,4 @@
+import { SupportedQuartoVersionSchema } from "./quarto-version.ts";
 import { withAssignmentA1Probe } from "../runtime/assignment-execution.ts";
 import { quartoOutputNames } from "./generated-paths.ts";
 import { toolCacheContainer, toolCachePath } from "./tool-cache.ts";
@@ -445,22 +446,23 @@ export async function readProjectContexts<T>(
           toolHashReads: 1,
         },
         tool: quartoExecutable(),
-        version: "1.11.5",
+        version: "",
         invocation: await invocationIdentity(owner),
         localInvocation: await invocationIdentity(owner, false),
       };
       allStates.push(state);
       const original = await inspect(owner, profiles, state);
       if (
-        original.quarto?.version !== state.version || original.dir !== owner ||
+        !SupportedQuartoVersionSchema.safeParse(original.quarto?.version).success || original.dir !== owner ||
         !original.config
       ) {
         fail(
           "CONTEXT_RUNTIME",
-          "Требуется настоящий Quarto 1.11.5 owner",
+          "Требуется настоящий Quarto >=1.11.5 owner",
           owner,
         );
       }
+      state.version = original.quarto.version;
       const temp = await Deno.makeTempDir({ prefix: "course-native-context-" });
       cleanups.push(temp);
       await copyOwner(owner, temp, state);
@@ -696,6 +698,7 @@ export function operationProjectContextReuse(source: {
   generation: object;
   sync: () => void;
   ownerWitness: {
+    quarto: { version: string };
     config: Record<string, unknown>;
     files: { config: string[] };
   };
@@ -743,7 +746,7 @@ export function operationProjectContextReuse(source: {
       relevant: new Set(),
       metrics,
       tool: quartoExecutable(),
-      version: "1.11.5",
+      version: source.ownerWitness.quarto.version,
       invocation: "",
       localInvocation: "",
     };

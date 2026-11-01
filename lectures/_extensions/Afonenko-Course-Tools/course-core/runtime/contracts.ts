@@ -32,6 +32,7 @@ export const NativeOperationIdentitySchema = z.strictObject({
   operation: z.uuid(),
   profiles: z.array(z.string()),
   projection: z.enum(["student", "author"]),
+  // Технический ABI native transport; actual программа хранится в owner witness.
   runtime: z.literal("quarto-1.11.5"),
 });
 export const NativeDocumentRequestSchema = z.strictObject({ source: path });

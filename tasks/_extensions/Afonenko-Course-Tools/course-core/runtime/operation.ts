@@ -1,3 +1,4 @@
+import { SupportedQuartoVersionSchema } from "../infrastructure/quarto-version.ts";
 import { operationProjectContextReuse } from "../infrastructure/project-context.ts";
 import type { NativeOperationProjectContextBatch } from "../infrastructure/project-context.ts";
 import { ProjectContextRequestSchema } from "../contracts/project.ts";
@@ -169,7 +170,7 @@ const stateSchema = z.strictObject({
   relevantInputs: z.array(pathSchema),
   ownerInputs: z.array(pathSchema).default([]),
   ownerWitness: z.strictObject({
-    quarto: z.strictObject({ version: z.literal("1.11.5") }),
+    quarto: z.strictObject({ version: SupportedQuartoVersionSchema }),
     dir: z.string(),
     config: z.record(z.string(), z.unknown()),
     files: z.strictObject({
@@ -906,7 +907,7 @@ function bindOwner(
   const projection = owner.config?.["course-core-projection"] ??
     (view === "full" ? "author" : "student");
   if (
-    owner.quarto?.version !== "1.11.5" || owner.dir !== root ||
+    !SupportedQuartoVersionSchema.safeParse(owner.quarto?.version).success || owner.dir !== root ||
     (owner.config?.["course-core-runtime"] ?? "native-ts") !== "native-ts" ||
     !["student", "author"].includes(projection) ||
     (view !== undefined &&
@@ -914,7 +915,7 @@ function bindOwner(
   ) {
     fail(
       "OPERATION_UNQUALIFIED",
-      "Требуется согласованный native-ts Quarto1.11.5 owner/projection",
+      "Требуется согласованный native-ts Quarto>=1.11.5 owner/projection",
     );
   }
   if (expectedProjection && projection !== state.projection) {
@@ -973,7 +974,7 @@ function bindOwner(
   }
   state.relevantInputs = [...relevant];
   state.ownerWitness = {
-    quarto: { version: "1.11.5" },
+    quarto: { version: owner.quarto.version },
     dir: owner.dir,
     config: structuredClone(owner.config),
     files: {
