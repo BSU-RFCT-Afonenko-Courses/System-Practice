@@ -63,7 +63,7 @@ import { bindNativeValue } from "./capabilities.ts";
 import { dirname, join, relative, resolve } from "stdlib/path";
 // @deno-types="../vendor/zod/v4/index.d.ts"
 import { z } from "../vendor/zod/v4/index.js";
-import { fail } from "../contracts/project.ts";
+import { boundInput, fail } from "../contracts/project.ts";
 import {
   decode,
   EarlyDocumentSchema,
@@ -282,13 +282,77 @@ async function runtimeIdentity(
 async function json(path: string) {
   return JSON.parse(await Deno.readTextFile(path));
 }
-async function envFiles(root: string, key: string) {
+async function nativeFileSelection(root: string, key: string) {
   const file = Deno.env.get(
     key.replace("QUARTO_PROJECT_", "QUARTO_USE_FILE_FOR_PROJECT_"),
   );
-  return (file ? await Deno.readTextFile(file) : Deno.env.get(key) || "").split(
-    /\r?\n/,
-  ).filter(Boolean).map((p) => resolve(root, p));
+  const content = file ? await Deno.readTextFile(file) : Deno.env.get(key);
+  return {
+    explicitlyEmpty: content === "",
+    files: (content ?? "").split(/\r?\n/).filter(Boolean).map((p) =>
+      resolve(root, p)
+    ),
+  };
+}
+async function envFiles(root: string, key: string) {
+  return (await nativeFileSelection(root, key)).files;
+}
+/** No-work — только native hook lifecycle, не пустая capture/assignment операция. */
+async function invalidateNoWorkHook(root: string) {
+  const nativeRoot = Deno.env.get("QUARTO_PROJECT_DIR"),
+    output = Deno.env.get("QUARTO_PROJECT_OUTPUT_DIR");
+  decode(
+    NativeOperationExpectationSchema.shape.profiles,
+    (Deno.env.get("QUARTO_PROFILE") || "").split(",").filter(Boolean),
+    "OPERATION_BINDING",
+  );
+  if (
+    nativeRoot !== root || await Deno.realPath(Deno.cwd()) !== root ||
+    !output || output !== resolve(output) ||
+    !output.startsWith(root + "/") || toolCachePath(root, output) ||
+    Deno.env.get("COURSE_CORE_CAPTURE_TOKEN") !== undefined
+  ) {
+    fail(
+      "OPERATION_BINDING",
+      "Zero-work требует обычного native hook owner/output без capture token",
+    );
+  }
+  await safeParent(output);
+  const current = await readOptionalPointer(root);
+  if (!current) return;
+  await ownedPhysical(root, relative(root, current.directory));
+  try {
+    await Deno.lstat(join(current.directory, "reservation.json"));
+    fail(
+      "OPERATION_BINDING",
+      "Zero-work не может инвалидировать capture reservation",
+    );
+  } catch (error) {
+    if (!(error instanceof Deno.errors.NotFound)) throw error;
+  }
+  const state = decode(
+    stateSchema,
+    await json(
+      await regular(
+        root,
+        relative(root, join(current.directory, "state.json")),
+      ),
+    ),
+    "OPERATION_BINDING",
+  );
+  if (
+    state.root !== root || state.operation !== current.operation ||
+    state.directory !== current.directory || state.assignment
+  ) fail("OPERATION_BINDING", "Zero-work не принадлежит ordinary operation");
+  await withWriter(root, async () => {
+    if (!same(await readOptionalPointer(root), current)) {
+      fail(
+        "OPERATION_CHANGED",
+        "Operation pointer заменён во время zero-work hook",
+      );
+    }
+    await Deno.remove(await regular(root, relative(root, pointer(root))));
+  });
 }
 async function assertPrivate(state: State, full = false) {
   if (
@@ -840,10 +904,10 @@ function bindOwner(
   let outputDirectory = state.outputDirectory;
   const view = owner.config?.course?.view;
   const projection = owner.config?.["course-core-projection"] ??
-    (view === "full" ? "author" : view === "student" ? "student" : undefined);
+    (view === "full" ? "author" : "student");
   if (
     owner.quarto?.version !== "1.11.5" || owner.dir !== root ||
-    owner.config?.["course-core-runtime"] !== "native-ts" ||
+    (owner.config?.["course-core-runtime"] ?? "native-ts") !== "native-ts" ||
     !["student", "author"].includes(projection) ||
     (view !== undefined &&
       view !== (projection === "author" ? "full" : "student"))
@@ -956,15 +1020,28 @@ async function writePendingState(state: State) {
 
 /** Production pre-render: реальный native inspect, source fence и новые capture capabilities. */
 export async function beginNativeOperation(root: string) {
+  return await beginNativeOperationInternal(root, false);
+}
+/** Internal pre-render entrypoint; не экспортируется через public.ts. */
+export async function beginNativePreHook(root: string) {
+  return await beginNativeOperationInternal(root, true);
+}
+async function beginNativeOperationInternal(root: string, nativeHook: boolean) {
   root = await Deno.realPath(root);
   const profiles = decode(
     NativeOperationExpectationSchema.shape.profiles,
     (Deno.env.get("QUARTO_PROFILE") || "").split(",").filter(Boolean),
     "OPERATION_BINDING",
   );
-  const actualInputs = (await envFiles(root, "QUARTO_PROJECT_INPUT_FILES")).map(
-    (p) => relative(root, p),
+  const selection = await nativeFileSelection(
+    root,
+    "QUARTO_PROJECT_INPUT_FILES",
   );
+  if (nativeHook && selection.explicitlyEmpty) {
+    await invalidateNoWorkHook(root);
+    return;
+  }
+  const actualInputs = selection.files.map((p) => relative(root, p));
   if (
     !actualInputs.length ||
     new Set(actualInputs).size !== actualInputs.length ||
@@ -1181,7 +1258,24 @@ function localUses(value: unknown): string[] {
 }
 /** Production post-render: поздняя фактическая проекция и только текущие native outputs. */
 export async function finishNativeOperation(root: string) {
+  return await finishNativeOperationInternal(root, false);
+}
+/** Internal post-render entrypoint; no-work не создаёт complete.json. */
+export async function finishNativePostHook(root: string) {
+  return await finishNativeOperationInternal(root, true);
+}
+async function finishNativeOperationInternal(
+  root: string,
+  nativeHook: boolean,
+) {
   root = await Deno.realPath(root);
+  const selection = nativeHook
+    ? await nativeFileSelection(root, "QUARTO_PROJECT_OUTPUT_FILES")
+    : undefined;
+  if (selection?.explicitlyEmpty) {
+    await invalidateNoWorkHook(root);
+    return;
+  }
   const active = await json(pointer(root));
   if (
     !z.uuid().safeParse(active.operation).success ||
@@ -1242,15 +1336,18 @@ export async function finishNativeOperation(root: string) {
       (Deno.env.get("QUARTO_PROFILE") || "").split(",").filter(Boolean),
     )
   ) fail("OPERATION_BINDING", "Native profiles изменились между hooks");
-  const outputs = await envFiles(root, "QUARTO_PROJECT_OUTPUT_FILES");
+  const outputs = selection?.files ??
+    await envFiles(root, "QUARTO_PROJECT_OUTPUT_FILES");
   if (!outputs.length) {
     fail("OPERATION_INCOMPLETE", "Нет текущих native outputs");
   }
-  const documents = [],
-    catalogDocuments = [],
+  const documents: z.output<typeof NativePublicDocumentSchema>[] = [],
+    catalogDocuments: z.output<typeof NativeCatalogSchema>["documents"] = [],
     resources: z.output<typeof completeSchema>["resources"] = [],
     outputRows: z.output<typeof rowSchema>[] = [];
   const additions: string[] = [];
+  const indexTopics = new Map<string, Record<string, unknown>>();
+  const indexPages = new Map<string, string>();
   const releaseDocuments: z.output<typeof completeSchema>["releaseDocuments"] =
     [];
   for (const sourceInput of inputs) {
@@ -1328,11 +1425,15 @@ export async function finishNativeOperation(root: string) {
     if (outputRows.some((r) => r.path === outputPath)) {
       fail("OPERATION_BINDING", "Output collision");
     }
+    const outputBytes = await Deno.readFile(output);
+    const outputText = new TextDecoder().decode(outputBytes);
+    if (outputText.includes("<!--course-exercise-index")) indexPages.set(outputPath, outputText);
+    indexTopics.set(state.inputs[index], early.ast.meta);
     state.metrics.outputHashReads++;
     outputRows.push({
       path: outputPath,
       signature: signature(await Deno.lstat(output)),
-      sha256: await hash(await Deno.readFile(output)),
+      sha256: await hash(outputBytes),
     });
     let projectFacts:
       | z.output<typeof NativeProjectFactsCaptureSchema>
@@ -1361,7 +1462,7 @@ export async function finishNativeOperation(root: string) {
         projectFacts.projects.length !== declared.length ||
         projectFacts.projects.some((fact) =>
           fact.source !== sourceInput || !declared.some((row) =>
-            row.id === fact.exerciseId && row.project === "/" + fact.projectRoot
+            row.id === fact.exerciseId && row.project === "/" + fact.projectRoot && row.check === fact.projectCheck
           )
         )
       ) {
@@ -1401,7 +1502,7 @@ export async function finishNativeOperation(root: string) {
     catalogDocuments.push({
       source,
       output: relative(state.outputDirectory, output),
-      format: early.context.format,
+      format: NativeWebFormatSchema.parse(early.context.format),
       role,
       exercises: document.occurrences.filter((r) => r.kind === "exercise").map(
         (r) => ({
@@ -1508,6 +1609,23 @@ export async function finishNativeOperation(root: string) {
       if (!state.rows.some((r) => r.path === canonical)) {
         additions.push(canonical);
       }
+    }
+  }
+  if (indexPages.size && !reservation) {
+    if (!same([...inputs].sort(), [...state.ownerInputs].sort())) fail("RELEASE.FULL_NATIVE_RUN_REQUIRED", "Указатель требует полной текущей native области");
+    const { renderExerciseIndex } = await import("../../course-navigation/exercise-index.ts");
+    const catalog = NativeCatalogSchema.parse({identity:{operation:state.operation,profiles:state.profiles,projection:state.projection,runtime:"quarto-1.11.5"},documents:catalogDocuments});
+    for (const [path, html] of indexPages) {
+      const rendered = html.replace(/<!--course-exercise-index(?::(.*?))?-->/g, (_marker, request) => renderExerciseIndex(documents, catalog, indexTopics, (source, anchor) => {
+        const target = catalog.documents.find(doc => doc.source === source);
+        if (!target) fail("OPERATION_BINDING", "Нет current index target");
+        return relative(dirname(resolve(root, path)), resolve(state.outputDirectory, target.output)).replaceAll("\\", "/") + "#" + anchor;
+      }, request ? JSON.parse(request) : {}));
+      await Deno.writeTextFile(resolve(root, path), rendered);
+      const row = outputRows.find(row => row.path === path)!;
+      row.signature = signature(await Deno.lstat(resolve(root, path)));
+      row.sha256 = await hash(new TextEncoder().encode(rendered));
+      state.metrics.outputHashReads++;
     }
   }
   if (
@@ -2120,6 +2238,7 @@ function publicOperation(
     );
     await guard(false, request.files.map((f) => f.source));
     const targets = new Set<string>(), files = [];
+    let readBytes = false;
     for (const file of request.files) {
       assertArtifactTarget(
         file.target,
@@ -2149,6 +2268,7 @@ function publicOperation(
       ]);
       let bytes = snapshots.get(physicalKey);
       if (!bytes) {
+        readBytes = true;
         metrics.resourceByteReads++;
         metrics.resourceHashReads++;
         bytes = await Deno.readFile(row.path);
@@ -2168,7 +2288,9 @@ function publicOperation(
         reason: "native-resource" as const,
       });
     }
-    await guard(false, request.files.map((f) => f.source));
+    // Cached bytes копируются синхронно: после entry fence нет await/read/callback.
+    // Второй fence нужен только когда выше действительно читались/хешировались bytes.
+    if (readBytes) await guard(false, request.files.map((f) => f.source));
     return NativeResourceInventorySchema.parse({
       schema: "course-native-resource-inventory-v1",
       operation: catalog.identity.operation,
@@ -2407,8 +2529,9 @@ function publicOperation(
             complete.releaseDocuments,
           );
         }
+        boundInput(requestsValue);
         const requests = decode(
-          z.array(ProjectContextRequestSchema).max(64),
+          z.array(ProjectContextRequestSchema),
           requestsValue,
           "CONTEXT_REQUEST",
         );

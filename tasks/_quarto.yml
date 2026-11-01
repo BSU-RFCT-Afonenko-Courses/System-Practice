@@ -20,10 +20,10 @@ project:
   - '!**/_output/**'
   - '!**/_generated/**'
   pre-render:
-  - _extensions/Afonenko-Course-Tools/course-core/entrypoints/native-pre.ts
+  - _extensions/Afonenko-Course-Tools/course-core/entrypoints/pre.ts
   - _extensions/Afonenko-Course-Tools/project-download/entrypoints/pre.ts
   post-render:
-  - _extensions/Afonenko-Course-Tools/course-core/entrypoints/native-post.ts
+  - _extensions/Afonenko-Course-Tools/course-core/entrypoints/post.ts
   - _extensions/Afonenko-Course-Tools/reference-catalog/entrypoints/post.ts
   - _extensions/Afonenko-Course-Tools/project-download/entrypoints/post.ts
   - ../_extensions/Afonenko-Course-Tools/course-site/entrypoints/collect.ts
@@ -76,6 +76,8 @@ project-download:
   course-model: true
 
 prairielearn:
+  seed-targets:
+    exr-version-control-github-ssh: versioning/project
   delivery:
     book: tasks
     course:

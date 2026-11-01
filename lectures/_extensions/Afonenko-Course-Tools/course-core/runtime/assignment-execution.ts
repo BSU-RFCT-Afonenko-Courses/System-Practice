@@ -79,14 +79,10 @@ export function assignmentChild(
   const profile = state.profile;
   const target = executable === "quarto"
     ? profile.native.executable
-    : executable === "cue"
-    ? profile.native.environment.CUE
     : executable;
   if (
     !target || !target.startsWith("/") ||
-    ![profile.native.executable, profile.native.environment.CUE].includes(
-      target,
-    ) ||
+    target !== profile.native.executable ||
     !profile.runtime.files.some((row) => row.path === target)
   ) {
     changed("Внешний executable вне квалифицированного command closure");

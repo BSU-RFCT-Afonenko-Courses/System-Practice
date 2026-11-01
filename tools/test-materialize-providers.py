@@ -27,7 +27,7 @@ class Materialize(unittest.TestCase):
   self.target=self.root/'_extensions/Example/course-core';self.other=self.root/'lectures/_extensions/Example/course-core'
   unrelated=self.root/'_extensions/unrelated/theme.txt';unrelated.parent.mkdir();unrelated.write_text('preserve')
  def save(self):(self.root/'providers.json').write_text(json.dumps(self.manifest))
- def run_cli(self,mode):return subprocess.run([sys.executable,str(SCRIPT),'--course-root',str(self.root),'--providers-root',str(self.repo.parent),mode],capture_output=True,text=True,timeout=20)
+ def run_cli(self,mode):return subprocess.run([sys.executable,'-B',str(SCRIPT),'--course-root',str(self.root),'--providers-root',str(self.repo.parent),mode],capture_output=True,text=True,timeout=20)
  def test_patch_from_release_without_unpublished_object_and_repeat_are_exact(self):
   self.assertNotEqual(0,self.run_cli('--check').returncode)
   r=self.run_cli('--write');self.assertEqual(0,r.returncode,r.stderr)
@@ -48,4 +48,25 @@ class Materialize(unittest.TestCase):
   self.assertEqual(0,self.run_cli('--write').returncode)
   path=self.root/'installed-packages.json';info=json.loads(path.read_text());info['packages']['course-core']['tag']='v9.9.9';path.write_text(json.dumps(info))
   self.assertNotEqual(0,self.run_cli('--check').returncode)
+ def test_released_executable_git_mode_preserved_and_checked(self):
+  package=self.repo/'_extensions/course-core';script=package/'early-filter.sh';script.write_text('#!/bin/sh\nexit 0\n');script.chmod(0o755)
+  self.git('add','.');self.git('commit','-qm','executable release');self.git('tag','-f','v1.0.0')
+  self.provider.pop('candidate');self.provider['commit']=self.git('rev-parse','HEAD');self.save()
+  r=self.run_cli('--write');self.assertEqual(0,r.returncode,r.stderr)
+  for target in [self.target,self.other]:self.assertEqual(0o755,(target/'early-filter.sh').stat().st_mode&0o777)
+  info=json.loads((self.root/'installed-packages.json').read_text());self.assertEqual(0o755,info['packages']['course-core']['files']['early-filter.sh']['mode'])
+  self.assertEqual(0,self.run_cli('--check').returncode)
+  (self.other/'early-filter.sh').chmod(0o644);self.assertNotEqual(0,self.run_cli('--check').returncode)
+ def test_local_mode_edit_refuses_before_other_scope_changes(self):
+  (self.other/'entry.ts').chmod(0o755);r=self.run_cli('--write');self.assertNotEqual(0,r.returncode)
+  self.assertEqual(b'base\n',(self.target/'entry.ts').read_bytes());self.assertEqual(0o755,(self.other/'entry.ts').stat().st_mode&0o777)
+ def test_candidate_git_mode_change_is_in_package_hash(self):
+  package=self.repo/'_extensions/course-core';entry=package/'entry.ts';entry.write_bytes(self.new['entry.ts']);entry.chmod(0o755)
+  patch=subprocess.check_output(['git','diff','--','_extensions'],cwd=self.repo);self.git('checkout','--','_extensions')
+  path=self.root/'tools/provider-patches/core.patch';path.write_bytes(patch);c=self.provider['candidate'];c['patchSha256']=digest(patch)
+  files=inv(self.new);files['entry.ts']['mode']=0o755;c['packageHashes']['course-core']=digest(json.dumps(files,sort_keys=True,separators=(',',':')).encode());self.save()
+  r=self.run_cli('--write');self.assertEqual(0,r.returncode,r.stderr);self.assertEqual(0o755,(self.target/'entry.ts').stat().st_mode&0o777);self.assertEqual(0,self.run_cli('--check').returncode)
+ def test_mode_inventory_uses_git_owner_execute_class(self):
+  self.assertEqual(0,self.run_cli('--write').returncode);(self.other/'entry.ts').chmod(0o654)
+  self.assertEqual(0,self.run_cli('--check').returncode)
 if __name__=='__main__':unittest.main()

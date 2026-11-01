@@ -222,7 +222,7 @@ export async function prepareAssignment(
   }
   for (const [key, value] of Object.entries(Deno.env.toObject())) {
     if (
-      /^(?:QUARTO(?:_|$)|DENO(?:_|$)|CUE$|PANDOC(?:_|$)|COURSE_(?:PERF|CORE|QRC|NATIVE)_)/
+      /^(?:QUARTO(?:_|$)|DENO(?:_|$)|PANDOC(?:_|$)|COURSE_(?:PERF|CORE|QRC|NATIVE)_)/
         .test(
           key,
         ) &&

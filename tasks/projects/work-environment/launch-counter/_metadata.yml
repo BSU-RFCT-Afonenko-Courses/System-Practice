@@ -1,0 +1,10 @@
+course-project:
+  starter:
+    path: student
+  instructions:
+    local:
+      path: student/README.md
+  build:
+    files:
+      survey/tools/count.fish: ../../../common/work-environment/count.fish
+      survey/tools/count.ps1: ../../../common/work-environment/count.ps1

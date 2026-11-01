@@ -1,2 +1,2 @@
-import { finishNativeOperation } from "../runtime/operation.ts";
-await finishNativeOperation(Deno.env.get("QUARTO_PROJECT_DIR") || Deno.cwd());
+import { finishNativePostHook } from "../runtime/operation.ts";
+await finishNativePostHook(Deno.env.get("QUARTO_PROJECT_DIR") || Deno.cwd());

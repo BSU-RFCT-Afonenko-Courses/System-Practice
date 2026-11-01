@@ -1,6 +1,6 @@
 // @deno-types="../vendor/zod/v4/index.d.ts"
 import { z } from "../vendor/zod/v4/index.js";
-// Исполняемый перенос Core body-export/answer.cue; закрытые факты вне public AST.
+// Единый исполняемый договор ответа; закрытые факты вне public AST.
 const manual = { type: z.literal("manual"), submission: z.literal("text") };
 const numeric = {
   type: z.literal("numeric"),

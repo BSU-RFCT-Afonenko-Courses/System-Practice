@@ -45,6 +45,7 @@ export const NativeAssignmentProvenanceSchema = z.strictObject({
     format: NativeWebFormatSchema,
     courseId: z.string().optional(),
     projects: z.array(NativeProjectFactSchema),
+    projectChecks: z.unknown().optional(),
     projectMaterializations: z.record(
       z.string(),
       NativeProjectMaterializationSchema,
@@ -119,7 +120,7 @@ export function buildAssignmentProvenance(
       !unique(parsed.projects.map((p) => p.exerciseId)) || declared.some((d) =>
         !parsed.projects.some((p) =>
           p.exerciseId === d.id && p.source === doc.source &&
-          "/" + p.projectRoot === d.project
+          "/" + p.projectRoot === d.project && p.projectCheck === d.check
         )
       )
     ) {
@@ -149,6 +150,9 @@ export function buildAssignmentProvenance(
         ? { courseId: doc.early.release.course.id }
         : {}),
       projects: parsed.projects,
+      ...(doc.early.release?.nativeMetadata.projectChecks !== undefined
+        ? { projectChecks: doc.early.release.nativeMetadata.projectChecks }
+        : {}),
       projectMaterializations: parsed.projectMaterializations,
     });
   }

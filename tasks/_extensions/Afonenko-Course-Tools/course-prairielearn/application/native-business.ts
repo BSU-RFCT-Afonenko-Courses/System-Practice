@@ -1,8 +1,16 @@
-import { decodeNativeMaterialization } from "./native-materialization.ts";
+import {
+  decodeNativeMaterialization,
+  NativeSeedTargetsSchema,
+} from "./native-materialization.ts";
 // @deno-types="../vendor/zod/v4/index.d.ts"
 import { z } from "../vendor/zod/v4/index.js";
 import { createHash } from "node:crypto";
-import { closed, declarations, question } from "./declarations.ts";
+import {
+  closed,
+  declarations,
+  publicationQuestion,
+  question,
+} from "./declarations.ts";
 import { gradingPolicy, validateGradingComponents } from "./grading-policy.ts";
 import {
   nativeCheckScalars,
@@ -107,9 +115,10 @@ function mergePolicy(base: any, local: any): any {
   return out;
 }
 /** Полный raw канон проверяется до Core audience projection. */
-export function validateNativeRaw(
+function readNativeRaw(
   value: unknown,
-  context: { source?: string } = {},
+  context: { source?: string },
+  parseQuestion: (value: any) => unknown,
 ) {
   const raw = NativeBusinessSchema.parse(structuredClone(value)),
     config = (raw.config ?? {}) as any;
@@ -118,7 +127,15 @@ export function validateNativeRaw(
   if (typeof port === "string" && /^\d+$/.test(port)) {
     config["question-defaults"].submission.workspaceOptions.port = Number(port);
   }
-  closed(config, [], ["delivery", "question-defaults", "assessment-defaults"]);
+  closed(config, [], [
+    "delivery",
+    "question-defaults",
+    "assessment-defaults",
+    "seed-targets",
+  ]);
+  if (config["seed-targets"] !== undefined) {
+    NativeSeedTargetsSchema.parse(config["seed-targets"]);
+  }
   if (config.delivery !== undefined) {
     const keys = Object.keys(config.delivery?.instances ?? {});
     if (!keys.length) throw Error("PL.DECLARATION_INVALID: пустые instances");
@@ -130,7 +147,7 @@ export function validateNativeRaw(
     }, keys[0]);
   }
   if (config["question-defaults"] !== undefined) {
-    question(config["question-defaults"]);
+    parseQuestion(config["question-defaults"]);
   }
   const defaults = AssessmentDefaultsSchema.parse(
     nativePolicy(config["assessment-defaults"] ?? {}),
@@ -179,17 +196,27 @@ export function validateNativeRaw(
   return { raw, config, defaults, materialization };
 }
 /** Чистая PL business validation: не создаёт Core capability/release proof. */
-export function decodeNativeBusiness(
+export function validateNativeRaw(
+  value: unknown,
+  context: { source?: string } = {},
+) {
+  return readNativeRaw(value, context, question);
+}
+function decodeBusiness<
+  Q extends Partial<ReturnType<typeof publicationQuestion>>,
+>(
   value: unknown,
   input: any,
-  options: { deferComposition?: boolean } = {},
+  options: { deferComposition?: boolean },
+  parseQuestion: (value: any) => Q,
+  completeGrading: boolean,
 ) {
-  const { raw, config, defaults, materialization } = validateNativeRaw(value, {
+  const { raw, config, defaults, materialization } = readNativeRaw(value, {
     source: input.origin?.source,
-  });
+  }, parseQuestion);
   const questions: Record<
     string,
-    ReturnType<typeof question> & {
+    Q & {
       grading: { method: "external" | "manual" | "mixed" };
     }
   > = {};
@@ -202,10 +229,7 @@ export function decodeNativeBusiness(
       throw Error("PL.ANSWER_UNQUALIFIED: raw/native answer mismatch");
     }
     const attrs = declaration.attributes, base = config["question-defaults"];
-    if (!base) {
-      throw Error("PL.DECLARATION_INVALID: требуются question-defaults");
-    }
-    const authored = structuredClone(base);
+    const authored = structuredClone(base ?? {});
     if (attrs["prairielearn-topic"] !== undefined) {
       authored.topic = attrs["prairielearn-topic"];
     }
@@ -230,7 +254,7 @@ export function decodeNativeBusiness(
         delete authored.submission.workspaceOptions;
       }
     }
-    const parsed = question(authored);
+    const parsed = parseQuestion(authored);
     questions[declaration.id] = {
       ...parsed,
       grading: parsed.grading ?? { method: "external" },
@@ -269,7 +293,9 @@ export function decodeNativeBusiness(
       extensions: { prairielearn: assessment },
     };
     // Для чужих документов состав сверяет полная операция; local native membership проверяется здесь.
-    if (
+    if (!completeGrading) {
+      // Partial publication vet проверяет форму/порог; pricing требует полной delivery.
+    } else if (
       input.assessment.slots.every((s: any) =>
         s.candidates.every((id: string) => methods[id] !== undefined)
       )
@@ -281,5 +307,63 @@ export function decodeNativeBusiness(
       );
     }
   }
-  return { questions, assessment, raw, materialization };
+  return {
+    questions,
+    assessment,
+    raw,
+    materialization,
+    seedTargets: NativeSeedTargetsSchema.parse(config["seed-targets"] ?? {}),
+  };
+}
+
+/** Полная delivery не получает неполные topic/submission через publication parser. */
+export function decodeNativeBusiness(
+  value: unknown,
+  input: any,
+  options: { deferComposition?: boolean } = {},
+) {
+  return decodeBusiness(value, input, options, question, true);
+}
+/** Чистая частичная publication validation, без delivery/proof/operation authority. */
+export function decodePublicationBusiness(
+  value: unknown,
+  input: any,
+  options: { deferComposition?: boolean } = {},
+) {
+  return decodeBusiness(value, input, options, publicationQuestion, false);
+}
+
+/** Только проверка уже декодированных authentic inputs полной native операции.
+ * Inherited map может ссылаться на другой source; каждый target имеет одного owner.
+ */
+export function assertNativeSeedTargets(
+  rows: readonly ReturnType<typeof decodeNativeBusiness>[],
+) {
+  for (const row of rows) {
+    for (const [id, target] of Object.entries(row.seedTargets)) {
+      const owners = rows.filter((owner) => Object.hasOwn(owner.questions, id));
+      if (owners.length !== 1) {
+        throw Error(
+          "PL.SEED_TARGET_INVALID: неизвестный или неоднозначный project ID",
+        );
+      }
+      const owner = owners[0], settings = owner.questions[id];
+      if (
+        owner.seedTargets[id] !== target ||
+        owner.materialization?.projects[id]?.["include-git"] !== true
+      ) {
+        throw Error(
+          "PL.SEED_TARGET_INVALID: target не связан с authoritative include-git project",
+        );
+      }
+      if (
+        !["upload", "workspace"].includes(settings.submission.mode) ||
+        settings.submission.mode === "workspace" && target !== "work"
+      ) {
+        throw Error(
+          "PL.SEED_TARGET_INVALID: поддержаны upload target или прежний Workspace work",
+        );
+      }
+    }
+  }
 }

@@ -1,6 +1,6 @@
 # Навигация по презентации
 
-Текущий candidate bundle 8.2.0, Quarto 1.11.5 / CUE 0.17.1. Фактические выпуски
+Текущий unreleased bundle 9.0.1, Quarto 1.11.5 / TypeScript. Фактические выпуски
 проверяйте по неизменяемым тегам и GitHub Releases репозитория.
 
 `course-navigation` добавляет управление к обычному формату Quarto `revealjs`.

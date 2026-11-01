@@ -1,2 +1,2 @@
-import { beginNativeOperation } from "../runtime/operation.ts";
-await beginNativeOperation(Deno.env.get("QUARTO_PROJECT_DIR") || Deno.cwd());
+import { beginNativePreHook } from "../runtime/operation.ts";
+await beginNativePreHook(Deno.env.get("QUARTO_PROJECT_DIR") || Deno.cwd());

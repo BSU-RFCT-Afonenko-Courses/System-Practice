@@ -5,7 +5,8 @@ return function(doc)
     local f=assert(io.open(manual,'rb'));local request=pandoc.json.decode(f:read('*a'));f:close()
     return request,manual
   end
-  if pandoc.utils.stringify(doc.meta['course-core-runtime'] or '')~='native-ts' then return nil end
+  local route=pandoc.utils.stringify(doc.meta['course-core-runtime'] or 'native-ts')
+  assert(route=='native-ts','CORE.METADATA_INVALID: неизвестный Core runtime')
   local root=assert(quarto.project.directory,'OPERATION_BINDING: нет project owner')
   local function read(path)
     local f=assert(io.open(path,'rb'),'OPERATION_INCOMPLETE: отсутствует '..path)

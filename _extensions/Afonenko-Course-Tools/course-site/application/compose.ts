@@ -18,6 +18,7 @@ import {
 } from "../infrastructure/files.ts";
 import {
   inspectDocuments,
+  validateAudience,
   validateAudienceOutputs,
   workspace,
 } from "../infrastructure/config.ts";
@@ -62,18 +63,32 @@ async function remove(path: string) {
     if (!(e instanceof Deno.errors.NotFound)) throw e;
   }
 }
+// Core 9 использует native TS по умолчанию. Это только выбор технического
+// маршрута: право на выдачу всё равно подтверждает текущая операция Core.
+function nativeCore(config: any): boolean {
+  if (config["course-core-runtime"] !== undefined) {
+    return config["course-core-runtime"] === "native-ts";
+  }
+  const filters = Array.isArray(config.filters)
+    ? config.filters
+    : [config.filters];
+  return filters.some((filter: any) =>
+    filter === "course-core" || filter?.path === "course-core"
+  );
+}
 function releaseQualification(config: any, root: string) {
-  if (config.course && config["course-core-runtime"] !== "native-ts") {
+  if (config.course && !nativeCore(config)) {
     throw diagnostic(
       "SITE.RELEASE_UNQUALIFIED",
       "Course release требует публичную текущую native operation Core",
-      { source: root, field: "course-core-runtime" },
+      { source: root, field: "filters/course-core-runtime" },
     );
   }
 
   if (
-    config["course-core-runtime"] &&
-    (config["course-core-runtime"] !== "native-ts" ||
+    (config["course-core-runtime"] !== undefined || nativeCore(config)) &&
+    ((config["course-core-runtime"] !== undefined &&
+      config["course-core-runtime"] !== "native-ts") ||
       !["student", "author"].includes(
         config["course-core-projection"] ??
           (config.course?.view === "full" ? "author" : "student"),
@@ -81,14 +96,14 @@ function releaseQualification(config: any, root: string) {
   ) {
     throw diagnostic(
       "SITE.NATIVE_UNQUALIFIED",
-      "Публичная операция требует native-ts и явную student/author projection",
+      "Публичная операция требует Core native TS и проекцию student/author",
       { source: root, field: "course-core-runtime/projection" },
     );
   }
 }
 async function coreHook(root: string, config: any, phase: "pre" | "post") {
   releaseQualification(config, root);
-  if (config["course-core-runtime"] === "native-ts") {
+  if (nativeCore(config)) {
     await quarto(
       [
         "run",
@@ -198,7 +213,7 @@ async function finalizeDownloads(
   if (config["project-download"]) {
     const Download = await module("project-download", "public.ts", root);
     await Download.finishDownloads(root, {
-      native: config["course-core-runtime"] === "native-ts",
+      native: nativeCore(config),
       outputDirectory: record.outputDir,
       projection: projection(config),
       profiles: record.profiles,
@@ -211,7 +226,7 @@ async function finalizeDownloads(
       observeOperation,
       destinationDirectory,
     });
-  } else if (config["course-core-runtime"] === "native-ts") {
+  } else if (nativeCore(config)) {
     const Core = await module("course-core", "public.ts", root);
     await Core.withCurrentNativeOperation(
       {
@@ -239,6 +254,12 @@ export async function pre(root = Deno.cwd()): Promise<void> {
   await remove(state);
   const ws = await workspace(root);
   releaseQualification(ws.config, root);
+  const audience = validateAudience(
+    root,
+    ws.profiles,
+    ws.config.course?.view,
+    nativeCore(ws.config) ? projection(ws.config) : undefined,
+  );
   if (Deno.env.get("QUARTO_PROJECT_RENDER_ALL") !== "1") {
     if (ws.config["project-download"]) {
       await (await module("project-download", "public.ts")).prepareDownloads(
@@ -250,7 +271,14 @@ export async function pre(root = Deno.cwd()): Promise<void> {
   }
   const run = join(dirname(state), "runs", crypto.randomUUID());
   await Deno.mkdir(run, { recursive: true });
-  await validateAudienceOutputs(root, ws.profiles, ws.output);
+  await validateAudienceOutputs(
+    root,
+    ws.profiles,
+    ws.output,
+    ws.config.course?.view,
+    nativeCore(ws.config) ? projection(ws.config) : undefined,
+    audience,
+  );
   const publicationBase = ws.config.website?.["site-url"] ||
     ws.config["course-navigation"]?.["course-url"];
   if (ws.config["project-download"]?.["course-model"] && !publicationBase) {
@@ -297,6 +325,8 @@ export async function pre(root = Deno.cwd()): Promise<void> {
       ws.profiles,
       output,
       config.course?.view,
+      nativeCore(config) ? projection(config) : undefined,
+      nativeCore(config) ? audience : undefined,
     );
     inspected.push({ project, config, output, plan });
   }
@@ -383,7 +413,7 @@ export async function pre(root = Deno.cwd()): Promise<void> {
         ),
       );
     };
-    if (config["course-core-runtime"] === "native-ts" && calls.length > 1) {
+    if (nativeCore(config) && calls.length > 1) {
       const Core = await module("course-core", "public.ts", project.path);
       await Core.withNativeCaptureScope(
         {
@@ -637,5 +667,3 @@ post = __metrics.wrapAsync({
   id: "course-site.application.compose.post",
   kind: "phase",
 }, post);
-
-export { stageConditions } from "./conditions.ts";

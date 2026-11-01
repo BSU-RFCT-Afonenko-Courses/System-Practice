@@ -34,8 +34,7 @@ return {{
   end,
   Pandoc=function(doc)
     if not doc.meta['course-core-ts-binding'] then
-      assert(pandoc.utils.stringify(doc.meta['course-core-runtime'] or '')~='native-ts','OPERATION_INCOMPLETE: отсутствует early binding')
-      return doc
+      error('OPERATION_INCOMPLETE: отсутствует early binding')
     end
     local request=dofile(pandoc.path.join({dir,'request.lua'}))(doc)
     assert(request,'OPERATION_BINDING: отсутствует late request')
@@ -82,6 +81,7 @@ return {{
       native:write(pandoc.json.encode(data));native:close()
     end
     doc.meta['course-core-ts-binding']=nil
+    doc.meta['course-core-processed']=nil
     return doc:walk({Div=clean,Span=function(span) if span.attributes['data-course-core-native-title'] then return span.content end end})
   end
 }}

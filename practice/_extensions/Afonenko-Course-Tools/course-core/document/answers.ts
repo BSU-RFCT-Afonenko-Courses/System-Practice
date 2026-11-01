@@ -12,13 +12,13 @@ const object = (v: unknown): v is Record<string, any> =>
 const attr = (v: Node) =>
   ["Div", "Span", "CodeBlock"].includes(v.t) ? v.c?.[0] : undefined;
 const para = (s: string): Node => ({ t: "Para", c: [{ t: "Str", c: s }] });
-function project(a: AnswerSpec): Node[] {
+export function projectAnswer(a: AnswerSpec): Node[] {
   if (a.type === "numeric") return [para("Ответ: ____________________")];
   if (a.type === "manual") {
     return [para("Ответ: ________________________________________")];
   }
   if (a.type === "multipart") {
-    return a.parts.flatMap((p) => [para(p.label), ...project(p)]);
+    return a.parts.flatMap((p) => [para(p.label), ...projectAnswer(p)]);
   }
   return [
     para("Условия"),
@@ -28,7 +28,7 @@ function project(a: AnswerSpec): Node[] {
     para("Соответствия: ____________________"),
   ];
 }
-function yaml(source: string, input: string): AnswerSpec {
+export function decodeAnswerYaml(source: string, input: string): AnswerSpec {
   if (source.length > 65536) {
     fail("ANSWER_YAML", "Слишком большой YAML ответа", input);
   }
@@ -142,8 +142,8 @@ export function collectAnswers(
             next,
           );
         }
-        const answer = yaml(v.c[1], input);
-        put(next, answer, v, project(answer));
+        const answer = decodeAnswerYaml(v.c[1], input);
+        put(next, answer, v, projectAnswer(answer));
         return;
       }
       if (

@@ -4,7 +4,7 @@ import { toolCacheContainer, toolCachePath } from "./tool-cache.ts";
 import { dirname, isAbsolute, join, relative, resolve } from "stdlib/path";
 import { isAlias, parseDocument } from "../body-export/vendor/libraries.js";
 import { command, quartoExecutable } from "./process.ts";
-import { invocationIdentity } from "./common-path-binding.ts";
+import { invocationIdentity } from "./invocation.ts";
 import {
   decodeProjectRequests,
   decodeProjectValue,

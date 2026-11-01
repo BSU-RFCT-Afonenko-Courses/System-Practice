@@ -20,7 +20,7 @@ def inventory(root):
         if p.is_symlink(): raise ValueError(f'Символическая ссылка: {p}')
         if p.is_dir(): continue
         if not p.is_file(): raise ValueError(f'Ожидался обычный файл: {p}')
-        data=p.read_bytes(); result[p.relative_to(root).as_posix()]={'sha256':sha(data),'size':len(data),'mode':420}
+        data=p.read_bytes(); result[p.relative_to(root).as_posix()]={'sha256':sha(data),'size':len(data),'mode':0o755 if p.stat().st_mode & 0o100 else 0o644}
     return result
 
 def tree_hash(files): return sha(json.dumps(files,sort_keys=True,separators=(',',':')).encode())
@@ -46,7 +46,7 @@ def staged(root, provider, sources, temporary):
             path=safe(temporary,entry.name)
             if entry.isdir(): path.mkdir(parents=True,exist_ok=True)
             elif entry.isfile():
-                path.parent.mkdir(parents=True,exist_ok=True);path.write_bytes(archive.extractfile(entry).read());path.chmod(0o644)
+                path.parent.mkdir(parents=True,exist_ok=True);path.write_bytes(archive.extractfile(entry).read());path.chmod(0o755 if entry.mode & 0o100 else 0o644)
             else: raise ValueError(f'Необычный файл Git archive: {entry.name}')
     if 'candidate' in provider:
         c=provider['candidate']; patch=safe(root,c['patch'])
@@ -79,7 +79,7 @@ def current_expected(root,info,scope,namespace,package):
     return files
 
 def matches(actual,expected):
-    return set(actual)==set(expected) and all(all(actual[n].get(k)==v for k,v in row.items() if k!='mode') for n,row in expected.items())
+    return set(actual)==set(expected) and all(all(actual[n].get(k)==v for k,v in row.items()) for n,row in expected.items())
 def atomic_text(path,text):
     path.parent.mkdir(parents=True,exist_ok=True)
     with tempfile.NamedTemporaryFile(dir=path.parent,delete=False) as f:
@@ -132,7 +132,9 @@ def main():
             if target.exists():shutil.rmtree(target)
             shutil.copytree(source,target)
             for f in target.rglob('*'):
-                if f.is_file():f.chmod(0o644)
+                if f.is_file():f.chmod(files[f.relative_to(target).as_posix()]['mode'])
+                elif f.is_dir():f.chmod(0o755)
+            target.chmod(0o755)
             if inventory(target)!=files:raise ValueError('Ошибка materialization')
         output=json.dumps(provenance,indent=2,ensure_ascii=False)+'\n'
         if not installed.exists() or installed.read_text()!=output:atomic_text(installed,output)

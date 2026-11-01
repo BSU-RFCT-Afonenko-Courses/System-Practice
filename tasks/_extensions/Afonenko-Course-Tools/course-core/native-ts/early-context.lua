@@ -15,7 +15,7 @@ return {{Pandoc=function(doc)
     context.exerciseBank=role=='exercise-bank'
     local course=doc.meta.course or {}
     local native_view=pandoc.utils.stringify(course.view or '')
-    local projection=doc.meta['course-core-projection'] and pandoc.utils.stringify(doc.meta['course-core-projection']) or (native_view=='full' and 'author' or native_view=='student' and 'student' or '')
+    local projection=doc.meta['course-core-projection'] and pandoc.utils.stringify(doc.meta['course-core-projection']) or (native_view=='full' and 'author' or native_view=='student' and 'student' or 'student')
     assert(projection==context.projection,'DOCUMENT_BINDING: course.view/native projection отличается')
     if native_view~='' then assert(native_view==(projection=='author' and 'full' or 'student'),'DOCUMENT_BINDING: course.view conflict') end
     doc.meta['course-core-projection']=pandoc.MetaString(projection)
@@ -62,6 +62,5 @@ return {{Pandoc=function(doc)
     doc.meta['course-core-producer-evidence']=pandoc.MetaString(pandoc.json.encode({filters=param('quarto-filters'),shortcodes=param('shortcodes',{}),engine=param('execution-engine'),format=native_format}))
   end
   local projected=pandoc.utils.run_json_filter(doc,pandoc.path.join({dir,'early-filter.sh'}),{FORMAT})
-  if request.assignment then dofile(pandoc.path.join({dir,'project-facts.lua'})).capture(doc,request,context) end
   return projected
 end}}

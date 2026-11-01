@@ -18,15 +18,13 @@ jobs:
       - name: Установить Quarto
         uses: quarto-dev/quarto-actions/setup@8a96df13519ee81fd526f2dfca5962811136661b
         with:
-          version: '1.11.6'
-      - name: Установить CUE
-        uses: cue-lang/setup-cue@b0e30e540a2dae47304ebf16586a5b2db023b61c
-        with:
-          version: v0.17.1
+          version: '1.11.5'
       - name: Проверить точные tracked provider bytes и safe materializer
         run: |
-          python3 tools/materialize-providers.py --check
-          python3 tools/test-materialize-providers.py
+          python3 -B tools/materialize-providers.py --check
+          python3 -B CI/check-production-pins.py
+          python3 -B CI/test-production-pins.py
+          python3 -B tools/test-materialize-providers.py
       - name: Подготовить оболочки для проверки готовых сценариев
         run: |
           sudo apt-get update

@@ -106,7 +106,7 @@ export function decodeProjectValue(
 
 export const ProjectContextRequestSchema = z.strictObject({
   owner: z.string().min(1).max(4096),
-  inputs: z.array(z.string().min(1).max(4096)).min(1).max(256),
+  inputs: z.array(z.string().min(1).max(4096)).min(1),
   profiles: z.array(z.string().regex(/^[-a-z0-9]+$/)).max(16),
   format: z.string().regex(/^[-a-z0-9]+$/),
 });
@@ -137,7 +137,7 @@ export const ProjectContextSchema = z.strictObject({
 export type ProjectContext = Readonly<z.output<typeof ProjectContextSchema>>;
 export function decodeProjectRequests(value: unknown): ProjectContextRequest[] {
   boundInput(value);
-  const result = z.array(ProjectContextRequestSchema).min(1).max(64).safeParse(
+  const result = z.array(ProjectContextRequestSchema).min(1).safeParse(
     value,
   );
   if (!result.success) {

@@ -375,7 +375,7 @@ export function collectReleaseFacts(
     {
       course: {
         ...(course.id !== undefined ? { id: course.id } : {}),
-        ...(course.view !== undefined ? { view: course.view } : {}),
+        view: course.view ?? (context.projection === "author" ? "full" : "student"),
         adapters: course.adapters ?? [],
       },
       nativeMetadata: {

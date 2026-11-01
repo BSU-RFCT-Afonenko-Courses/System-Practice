@@ -49,6 +49,13 @@ export async function noSymlinks(root: string, path: string): Promise<void> {
 /** Git применяет правила игнорирования: вложенные файлы, отрицания и исключения каталогов. */
 async function gitIgnored(root: string, paths: string[]): Promise<Set<string>> {
   if (!paths.length) return new Set();
+  const childOptions = () => {
+    const base: Record<string, string> = {};
+    const context = __metrics.childEnv(base);
+    return context === base ? {} : {
+      env: __metrics.childEnv(Deno.env.toObject()), clearEnv: true,
+    };
+  };
   // Изолированный индекс не наследует .gitignore внешнего репозитория:
   // издатель может собирать копию внутри игнорируемого рабочего каталога.
   const gitDirectory = await Deno.makeTempDir({
@@ -58,6 +65,7 @@ async function gitIgnored(root: string, paths: string[]): Promise<Set<string>> {
     let initialized: Deno.CommandOutput;
     try {
       initialized = await new Deno.Command("git", {
+        ...childOptions(),
         args: ["init", "--bare", "--quiet", gitDirectory],
         stdout: "piped",
         stderr: "piped",
@@ -78,6 +86,7 @@ async function gitIgnored(root: string, paths: string[]): Promise<Set<string>> {
     let process: Deno.ChildProcess;
     try {
       process = new Deno.Command("git", {
+        ...childOptions(),
         args: [
           "-c",
           "core.excludesFile=" + excludesFile,

@@ -1,19 +1,7 @@
-// Wire validation for EXISTING projects.lua ProjectFact; no second business resolver.
+// Единственный TS owner generic project facts; PL check normalization остаётся у адаптера.
 // @deno-types="../vendor/zod/v4/index.d.ts"
 import { z } from "../vendor/zod/v4/index.js";
 import { DocumentContextSchema } from "./contracts.ts";
-const sourceProfile = z.strictObject({
-  mode: z.enum(["implementation", "student-tests"]),
-  root: z.string().min(1),
-  include: z.array(z.string()),
-});
-const check = z.object({
-  profile: z.string().min(1),
-  runtime: z.string().min(1),
-  sourceProfile,
-  "source-profile": z.string().min(1),
-  tests: z.array(z.string()),
-}).catchall(z.unknown());
 export const NativeProjectMaterializationSchema = z.strictObject({
   commonFiles: z.array(
     z.strictObject({
@@ -23,6 +11,57 @@ export const NativeProjectMaterializationSchema = z.strictObject({
     }),
   ),
   includeGit: z.boolean().optional(),
+}).superRefine((value, context) => {
+  const safe = (path: string) =>
+    !!path && !/^[\/\\]/.test(path) && !/[\\\0:*?\[\]{}]/.test(path) &&
+    path.split("/").every((p) => p && p !== "." && p !== ".." && p !== ".git");
+  const privateNames = new Set([
+    "private",
+    "reference",
+    "solution",
+    "solutions",
+    "grading-notes",
+    "rubric.md",
+    "contract.md",
+  ]);
+  const targets = new Set<string>();
+  for (const [i, file] of value.commonFiles.entries()) {
+    if (
+      !safe(file.source) || !safe(file.target) || targets.has(file.target) ||
+      file.source.split("/").some((p) =>
+        privateNames.has(p) || p === "tests"
+      ) ||
+      (file.audience === "student"
+        ? !file.target.startsWith("student/") ||
+          file.target.split("/").some((p) => privateNames.has(p))
+        : file.target.startsWith("student/")) ||
+      (!["student", "reference", "tests"].includes(file.target.split("/")[0]) &&
+        !["rubric.md", "contract.md"].includes(file.target))
+    ) {
+      context.addIssue({
+        code: "custom",
+        message:
+          "Недопустимый common source/target/audience или повторный target",
+        path: ["commonFiles", i],
+      });
+    }
+    targets.add(file.target);
+  }
+});
+const materializationEntryInput = z.strictObject({
+  "common-files": NativeProjectMaterializationSchema.shape.commonFiles,
+  "include-git": NativeProjectMaterializationSchema.shape.includeGit,
+}).transform((value) => ({
+  commonFiles: value["common-files"],
+  ...(value["include-git"] !== undefined
+    ? { includeGit: value["include-git"] }
+    : {}),
+})).pipe(NativeProjectMaterializationSchema);
+export const NativeProjectMaterializationInputSchema = z.strictObject({
+  projects: z.record(
+    z.string().regex(/^exr-[a-z0-9][a-z0-9-]*$/),
+    materializationEntryInput,
+  ),
 });
 export const NativeProjectFactSchema = z.strictObject({
   exerciseId: z.string().regex(/^exr-/),
@@ -41,7 +80,10 @@ export const NativeProjectFactSchema = z.strictObject({
     full: z.literal("full"),
     conditions: z.boolean(),
   }),
-  check: check.optional(),
+  projectCheck: z.string().regex(/^[a-z][a-z0-9-]*$/).optional(),
+  // Только старое inert DATA; actual Core producer не выдаёт normalized check.
+  // C обязан проверить parity со своим каноном до использования и вычисления hashes.
+  check: z.unknown().optional(),
   materialization: NativeProjectMaterializationSchema.optional(),
 });
 export type NativeProjectFact = z.output<typeof NativeProjectFactSchema>;

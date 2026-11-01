@@ -1,3 +1,5 @@
+import { createMetrics } from "../observability/bridge.ts";
+const metrics = createMetrics("course-core");
 import {
   assignmentAnswerTransport,
   assignmentIntroductionAttribute,
@@ -8,7 +10,7 @@ import type {
   AssignmentNormalization,
 } from "./assignment-contracts.ts";
 import { collectAnswers } from "./answers.ts";
-import { collectReleaseFacts } from "../release/collect.ts";
+import { collectReleaseFacts, nativeMetadata } from "../release/collect.ts";
 import { isAlias, parseDocument } from "../body-export/vendor/libraries.js";
 import { boundInput, fail } from "../contracts/project.ts";
 import {
@@ -91,7 +93,7 @@ function isMarker(v: unknown): boolean {
     v.c[0][1].includes("course-exercise");
 }
 /** Валидация всех объявлений предшествует любой audience projection. */
-export function normalizeDocument(
+function normalizeDocumentWork(
   value: unknown,
   rawContext: DocumentContext,
   assignmentInput?: AssignmentNormalization,
@@ -107,6 +109,12 @@ export function normalizeDocument(
       "Вход уже имеет binding предыдущего прохода",
       context.input,
     );
+  }
+  if (
+    Object.hasOwn(ast.meta, "course-core-runtime") &&
+    nativeMetadata(ast.meta["course-core-runtime"]) !== "native-ts"
+  ) {
+    fail("DOCUMENT_BINDING", "Неизвестный Core runtime", context.input);
   }
   const definitions: Record<string, ExerciseDeclaration> = {},
     occurrences: EarlyDocument["occurrences"] = [];
@@ -507,6 +515,16 @@ export function normalizeDocument(
       }]),
     ),
   };
+  if (Object.hasOwn(ast.meta, "course-core-processed")) {
+    fail(
+      "DOCUMENT_BINDING",
+      "Авторский Core processed marker запрещён",
+      context.input,
+    );
+  }
+  ast.meta["course-core-processed"] = { t: "MetaBool", c: true };
+  // Технический marker того же проверенного route для последующих native consumers.
+  ast.meta["course-core-runtime"] = { t: "MetaString", c: "native-ts" };
   ast.meta[bindingMetadata] = { t: "MetaString", c: JSON.stringify(context) };
   return decode(
     EarlyDocumentSchema,
@@ -521,4 +539,17 @@ export function normalizeDocument(
     "DOCUMENT_EARLY",
     context.input,
   );
+}
+
+/** Один meaningful TS phase на документ; никакого IO/обхода в getter/поле/Div. */
+export function normalizeDocument(
+  ...args: Parameters<typeof normalizeDocumentWork>
+): ReturnType<typeof normalizeDocumentWork> {
+  return metrics.wrapSync({
+    id: "course-core.document.normalizeDocument",
+    kind: "phase",
+    document_id: args[1] && typeof args[1].input === "string"
+      ? args[1].input
+      : undefined,
+  }, () => normalizeDocumentWork(...args))();
 }

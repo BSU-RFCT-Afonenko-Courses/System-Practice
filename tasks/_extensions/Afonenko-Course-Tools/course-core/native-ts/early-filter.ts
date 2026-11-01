@@ -1,3 +1,4 @@
+import { collectNativeProjectFacts } from "../document/project-capture.ts";
 import { nativeAssignmentProfile } from "../runtime/assignment-admission.ts";
 import { qualifyAssignmentProducer } from "../document/assignment-producer.ts";
 import { normalizeDocument } from "../public.ts";
@@ -90,5 +91,24 @@ try {
     fail("DOCUMENT_BINDING", "Early sidecar уже существует", context.input);
   }
   throw error;
+}
+if (request.assignment) {
+  const facts = collectNativeProjectFacts(early, Deno.cwd());
+  try {
+    await Deno.writeTextFile(
+      request.capture + ".project-facts.json",
+      JSON.stringify(facts),
+      { createNew: true, mode: 0o600 },
+    );
+  } catch (error) {
+    if (error instanceof Deno.errors.AlreadyExists) {
+      fail(
+        "DOCUMENT_BINDING",
+        "Project facts sidecar уже существует",
+        context.input,
+      );
+    }
+    throw error;
+  }
 }
 await Deno.stdout.write(new TextEncoder().encode(JSON.stringify(early.ast)));
