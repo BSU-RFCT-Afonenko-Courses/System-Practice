@@ -151,7 +151,7 @@ Bundle переносит коммиты и ссылки. Исходный вы�
 {{< xref system-practice-handbook sec-version-control-reference "команды Git" >}}
 и {{< xref system-practice-handbook sec-reference-git-package "упаковка Git-материалов" >}}.
 
-{{< project-download exr-version-control-local-history kind="starter" text="Скачать исходные измерения без готовой истории" >}}
+{{< project-download exr-version-control-local-history >}}
 
 ### Публичные наблюдения
 
@@ -316,7 +316,7 @@ verification и explanation.md. Сохраните оба каталога `.git
 {{< xref system-practice-handbook sec-reference-git-remote "удалённый репозиторий" >}}
 и {{< xref system-practice-handbook sec-reference-git-package "упаковка обеих копий" >}}.
 
-{{< project-download exr-version-control-github-ssh kind="starter" text="Скачать каталог оборудования с готовой локальной историей" >}}
+{{< project-download exr-version-control-github-ssh >}}
 
 ### Публичные наблюдения
 
@@ -376,7 +376,7 @@ verification и explanation.md. Сохраните оба каталога `.git
 
 {{< project-download exr-version-control-restore-selected-state kind="conditions" text="Скачать условие для локального просмотра" >}}
 
-{{< project-download exr-version-control-restore-selected-state kind="starter" text="Скачать стартовый комплект" >}}
+{{< project-download exr-version-control-restore-selected-state >}}
 
 Добровольная задача о содержимом коммита, индекса и рабочего дерева.
 Сохраните исправление названия проекта отдельным коммитом и восстановите

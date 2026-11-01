@@ -183,7 +183,7 @@ Stdout сценария пуст во всех случаях. Успешные 
 {{< xref system-practice-handbook sec-data-processing-reference "команды обработки" >}}
 и {{< xref system-practice-handbook sec-reference-script "подготовка запуска" >}}.
 
-{{< project-download exr-data-processing-two-result-pipeline kind="starter" text="Скачать наблюдения, открытые образцы и инструкцию" >}}
+{{< project-download exr-data-processing-two-result-pipeline >}}
 
 ### Публичные наблюдения
 

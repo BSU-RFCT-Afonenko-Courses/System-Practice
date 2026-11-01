@@ -126,7 +126,7 @@ result/
 {{< xref system-practice-practice sec-work-environment-intro "вводный разбор" >}},
 {{< xref system-practice-handbook sec-work-environment-reference "файловые команды" >}}.
 
-{{< project-download exr-work-environment-file-state kind="starter" text="Скачать исходное дерево и инструкцию" >}}
+{{< project-download exr-work-environment-file-state >}}
 
 ### Публичные наблюдения
 
@@ -233,7 +233,7 @@ survey/
 Подготовка: {{< xref system-practice-practice sec-work-environment-intro "вводный разбор запуска" >}}
 и {{< xref system-practice-handbook sec-reference-script "подготовка среды и запуск сценария" >}}.
 
-{{< project-download exr-work-environment-launch-counter kind="starter" text="Скачать готовый инструмент и утренние измерения" >}}
+{{< project-download exr-work-environment-launch-counter >}}
 
 ### Публичные наблюдения
 

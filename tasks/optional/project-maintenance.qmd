@@ -17,7 +17,7 @@ default-exercise-project-check: false
 
 {{< project-download exr-project-maintenance-release kind="conditions" text="Скачать условие для локального просмотра" >}}
 
-{{< project-download exr-project-maintenance-release kind="starter" text="Скачать стартовый комплект" >}}
+{{< project-download exr-project-maintenance-release >}}
 
 Добровольный проект продолжает три обязательные лабораторные.
 Подготовьте выпуск небольшого проекта отчёта: получите поступившую
