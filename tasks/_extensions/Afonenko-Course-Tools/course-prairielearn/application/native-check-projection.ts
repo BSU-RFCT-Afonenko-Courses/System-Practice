@@ -1,7 +1,7 @@
 import { matchesGlob } from "node:path";
 import { NativeProjectCheckSchema } from "./native-checks.ts";
 import { selectNativeCompilerInputs } from "./native-selection.ts";
-import { nativeRawSourceSelection } from "./native-check-inventory.ts";
+import { prepareNativeRawSourceSelection } from "./native-check-inventory.ts";
 import { safePath } from "./source-selection.ts";
 /** Только private projection непосредственно materialized A1 inventories.
  * Это не resolver/reader; все paths/data получены от public Core той же операции.
@@ -28,9 +28,14 @@ export async function projectNativeChecks(
     check,
     runtimeProfile: input.runtime,
   });
+  const selectOrigin = prepareNativeRawSourceSelection({
+    Core: input.Core,
+    projectRoot: input.fact.projectRoot,
+    sourceRows: input.sourceRows,
+    version: 2,
+  });
   const origin = (f: any, name: string) =>
-    nativeRawSourceSelection({
-      Core: input.Core,
+    selectOrigin({
       file: {
         target: f.target,
         rawSource: f.rawSource,
@@ -40,10 +45,7 @@ export async function projectNativeChecks(
         audience: f.audience ?? "full",
         reason: f.reason,
       },
-      projectRoot: input.fact.projectRoot,
       submissionRelativePath: name,
-      sourceRows: input.sourceRows,
-      version: 2,
     });
   const sources = await Promise.all(
     selection.sources.map((f) => origin({ ...f, audience: "student" }, f.name)),
@@ -64,6 +66,9 @@ export async function projectNativeChecks(
     const names = new Set(ref.files.map((f) => f.name));
     if (
       ref.available &&
+      // Явная Java reference-группа без student ZIP policy — полное решение,
+      // а не копия списка starter-файлов. Выбор role/hash/limits уже проверен.
+      !(!extras && ["java25-junit-v1", "java25-gradle-junit-v1"].includes(check.runtime)) &&
       ((!extras && [...names].some((n) => !primary.has(n))) ||
         extras?.["primary-required"] !== false &&
           [...primary].some((n) => !names.has(n)))

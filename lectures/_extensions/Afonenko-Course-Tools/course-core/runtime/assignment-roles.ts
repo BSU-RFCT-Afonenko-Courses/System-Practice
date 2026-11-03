@@ -5,7 +5,7 @@ import {
   assertProjectContextGeneration,
 } from "../infrastructure/project-context.ts";
 import { projectPlanState } from "../artifacts/plan.ts";
-import type { ProjectContext } from "../contracts/project.ts";
+import type { ProjectContextView } from "../contracts/project.ts";
 import type { ProjectPlan } from "../artifacts/contracts.ts";
 export type NativeAssignmentProjectPlans = {
   source: string;
@@ -125,7 +125,7 @@ export async function assignmentRoleIndex(
     pairs.length > 4096
   ) invalid("Неполное покрытие declared projects");
   const roles: AssignmentRole[] = [],
-    contexts = new Map<ProjectContext, ProjectPlan>(),
+    contexts = new Map<ProjectContextView, ProjectPlan>(),
     projectRoots: string[] = [],
     plans = new Map<string, NativeAssignmentProjectPlans>();
   for (const pair of pairs) {

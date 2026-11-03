@@ -9,8 +9,10 @@ type Execution = {
   lives: { active: boolean }[];
   token?: string;
   probe?: { temporaryInput: string; originalInput: string; technical: string };
+  contractProbe?: { temporaryOwner: string; guard: () => void };
 };
 const current = new AsyncLocalStorage<Execution>();
+const carrierGuard = new AsyncLocalStorage<() => Promise<void>>();
 function changed(message: string): never {
   return fail("BODY.PRODUCER_INPUT_CHANGED", message);
 }
@@ -42,6 +44,17 @@ export function withAssignmentExecution<T>(
 ) {
   return enter({ profile, beforeChild }, use);
 }
+/** Вложенная граница batch; наследует profile/token/probes и истекает отдельно. */
+export function withAssignmentBeforeChild<T>(
+  beforeChild: () => Promise<void>,
+  use: () => Promise<T>,
+  life: { active: boolean },
+) {
+  const state = execution();
+  return state
+    ? enter({ ...state, beforeChild, lives: [...state.lives, life] }, use)
+    : use();
+}
 /** Internal Core lifecycle only: the reservation created this exact token. */
 export function withAssignmentCaptureChild<T>(
   token: string,
@@ -60,9 +73,61 @@ export function withAssignmentA1Probe<T>(
   if (!state) return use();
   return enter({ ...state, probe: { ...probe } }, use);
 }
+/** Внутренний вызов только из live operation closure после проверки SAME S/coverage. */
+export async function withAssignmentContractProbe<T>(
+  probe: {
+    temporaryOwner: string;
+    originalInputs: readonly string[];
+    format: string;
+    guard: () => void;
+    beforeSpawn?: () => Promise<void>;
+  },
+  use: () => Promise<T>,
+) {
+  const state = execution();
+  const run = () =>
+    carrierGuard.run(async () => {
+      probe.guard();
+      await probe.beforeSpawn?.();
+      probe.guard();
+    }, use);
+  if (!state) return await run();
+  probe.guard();
+  const profiles = state.profile.native.actualProfiles.join(",");
+  if (
+    probe.format !== "html" || !probe.temporaryOwner.startsWith("/") ||
+    /[\\\0]/.test(probe.temporaryOwner) ||
+    probe.temporaryOwner.split("/").slice(1).some((part) =>
+      !part || part === "." || part === ".."
+    ) ||
+    probe.temporaryOwner === state.profile.root ||
+    probe.temporaryOwner.startsWith(state.profile.root + "/") ||
+    !probe.originalInputs.length ||
+    new Set(probe.originalInputs).size !== probe.originalInputs.length ||
+    probe.originalInputs.some((input) =>
+      !state.profile.native.renders.some((allowed) =>
+        JSON.stringify(allowed) ===
+          JSON.stringify([
+            "inspect",
+            input,
+            ...(profiles ? ["--profile", profiles] : []),
+          ])
+      )
+    )
+  ) {
+    changed("Aggregate probe вне принятых project inputs/format");
+  }
+  return await enter({
+    ...state,
+    contractProbe: { temporaryOwner: probe.temporaryOwner, guard: probe.guard },
+  }, run);
+}
 export async function assignmentBeforeChild() {
   const state = execution();
+  state?.contractProbe?.guard();
   await state?.beforeChild?.();
+  state?.contractProbe?.guard();
+  await carrierGuard.getStore()?.();
   execution();
 }
 export function assignmentQuarto() {
@@ -91,6 +156,10 @@ export function assignmentChild(
   if (!Array.isArray(args) || args.some((arg) => typeof arg !== "string")) {
     changed("Неверный assignment argv");
   }
+  state.contractProbe?.guard();
+  const exactContractProbe = !!state.contractProbe &&
+    JSON.stringify(args) ===
+      JSON.stringify(["inspect", state.contractProbe.temporaryOwner]);
   let qualifiedArgs = [...args];
   const base = profile.native.actualProfiles.join(",");
   const technicalProfiles = state.probe
@@ -114,6 +183,7 @@ export function assignmentChild(
     ];
   }
   if (
+    !exactContractProbe &&
     !profile.native.renders.some((allowed) =>
       JSON.stringify(allowed) === JSON.stringify(qualifiedArgs)
     )
@@ -126,7 +196,11 @@ export function assignmentChild(
   }
   for (const [key, value] of Object.entries(env)) {
     if (key === "QUARTO_PROFILE") {
-      if (value !== base && !(exactProbe && value === technicalProfiles)) {
+      if (
+        exactContractProbe
+          ? value !== ""
+          : value !== base && !(exactProbe && value === technicalProfiles)
+      ) {
         changed("Неквалифицированный child profiles");
       }
     } else if (key === "COURSE_CORE_CAPTURE_TOKEN") {

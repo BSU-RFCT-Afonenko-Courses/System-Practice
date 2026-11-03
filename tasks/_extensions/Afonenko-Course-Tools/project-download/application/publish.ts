@@ -1,25 +1,24 @@
 import { createMetrics as __createMetrics } from "../observability/bridge.ts";
 const __metrics = __createMetrics("project-download");
-import { diagnostic } from "../diagnostics.ts";
+import { diagnostic, progress, reportProgress } from "../diagnostics.ts";
 import {
   type Configuration,
   type Resource,
   RESOURCE_ID,
 } from "../domain/config.ts";
 import { type ArchiveEntry, zip } from "../domain/zip.ts";
-export type ArtifactKind = "starter" | "full" | "conditions";
-export interface ArtifactRequest {
-  exerciseId: string;
-  kind: ArtifactKind;
-}
-export interface Request {
-  source: string;
-  resources: string[];
-  artifacts?: ArtifactRequest[];
-  courseProcessed?: boolean;
-  configuration?: unknown;
-  native?: boolean;
-}
+import {
+  ARTIFACT_KINDS,
+  type resolveDownloadRequests,
+} from "../domain/request.ts";
+export type ArtifactKind = typeof ARTIFACT_KINDS[number];
+type NativeRequest = ReturnType<typeof resolveDownloadRequests>["request"];
+export type ArtifactRequest = NonNullable<NativeRequest["artifacts"]>[number];
+// Старый public port допускает отсутствие native/configuration; типы полей
+// выводятся из исполняемого owner batch, отдельного ручного DTO нет.
+export type Request =
+  & Pick<NativeRequest, "source" | "resources">
+  & Partial<Omit<NativeRequest, "source" | "resources">>;
 export interface PublishPorts {
   requests(): Promise<Request[]>;
   courseResource(id: string, source: string): Promise<Resource>;
@@ -41,6 +40,9 @@ export async function publish(
   profiles: string[],
   ports: PublishPorts,
 ): Promise<number> {
+  return await progress("Сборка материалов и ZIP", () => publishInternal(config, profiles, ports));
+}
+async function publishInternal(config: Configuration, profiles: string[], ports: PublishPorts): Promise<number> {
   const selected = new Map<string, Resource>();
   const model = new Map<
     string,
@@ -50,7 +52,7 @@ export async function publish(
     for (const artifact of request.artifacts ?? []) {
       if (
         !RESOURCE_ID.test(artifact.exerciseId) ||
-        !["starter", "full", "conditions"].includes(artifact.kind) ||
+        !ARTIFACT_KINDS.includes(artifact.kind) ||
         Object.keys(artifact).some((k) => !["exerciseId", "kind"].includes(k))
       ) {
         throw diagnostic(
@@ -148,6 +150,7 @@ export async function publish(
       selected.set(id, resource);
     }
   }
+  reportProgress(`Сборка материалов и ZIP — resources=${selected.size}, model=${model.size}`);
   const archives = [];
   for (
     const [id, resource] of [...selected].sort(([a], [b]) => a < b ? -1 : 1)
@@ -170,6 +173,7 @@ export async function publish(
       bytes: artifact.package ? await artifact.package() : zip(artifact.files),
     });
   }
+  reportProgress(`Публикация материалов — archives=${archives.length}`);
   await ports.save(archives);
   return archives.length;
 }

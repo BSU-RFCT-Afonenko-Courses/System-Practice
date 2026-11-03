@@ -2,7 +2,11 @@ import {
   assertProjectContext,
   decodeProjectContract,
 } from "../infrastructure/project-context.ts";
-import type { ProjectContext } from "../contracts/project.ts";
+import type {
+  ProjectContext,
+  ProjectContextView,
+  ProjectContractContext,
+} from "../contracts/project.ts";
 import { fail } from "../contracts/project.ts";
 import { decode } from "../document/contracts.ts";
 import { immutable } from "../document/condition.ts";
@@ -17,7 +21,7 @@ import type {
   ProjectSelection,
 } from "./contracts.ts";
 export type PlanState = {
-  context: ProjectContext;
+  context: ProjectContextView;
   files: { path: string; target: string; reason: string }[];
   trees: { path: string; prefix: string; reason: string }[];
   gradle?: string;
@@ -40,8 +44,20 @@ export async function projectPlanState(plan: ProjectPlan) {
   return state;
 }
 /** Closure names share one namespace; explicit false is never re-enabled by requires. */
-export async function planProject(
+export function planProject(
   context: ProjectContext,
+  selection: ProjectSelection,
+): Promise<ProjectPlan>;
+export function planProject(
+  context: ProjectContractContext,
+  selection: ProjectSelection,
+): Promise<ProjectPlan>;
+export function planProject(
+  context: ProjectContextView,
+  selection: ProjectSelection,
+): Promise<ProjectPlan>;
+export async function planProject(
+  context: ProjectContextView,
   selection: ProjectSelection,
 ): Promise<ProjectPlan> {
   await assertProjectContext(context);

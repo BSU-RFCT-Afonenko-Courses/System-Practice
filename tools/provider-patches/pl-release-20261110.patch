@@ -1,0 +1,324 @@
+diff --git a/_extensions/course-prairielearn/application/declarations.ts b/_extensions/course-prairielearn/application/declarations.ts
+index 34393ae..5909b9c 100644
+--- a/_extensions/course-prairielearn/application/declarations.ts
++++ b/_extensions/course-prairielearn/application/declarations.ts
+@@ -97,6 +97,14 @@ export function declarations(raw: any, key: string) {
+     "assessment-defaults",
+     "seed-targets",
+   ]);
++  if (
++    object(raw["assessment-defaults"]) &&
++    Object.hasOwn(raw["assessment-defaults"], "uuid")
++  ) {
++    throw Error(
++      "PL.ASSESSMENT_INVALID: uuid разрешён только в локальной assessment.prairielearn, не в assessment-defaults",
++    );
++  }
+   if (raw["seed-targets"] !== undefined) {
+     NativeSeedTargetsSchema.parse(raw["seed-targets"]);
+   }
+diff --git a/_extensions/course-prairielearn/application/export-course.ts b/_extensions/course-prairielearn/application/export-course.ts
+index 449ebf7..35ef18f 100644
+--- a/_extensions/course-prairielearn/application/export-course.ts
++++ b/_extensions/course-prairielearn/application/export-course.ts
+@@ -194,6 +194,21 @@ export async function exportCourse(
+     ).method;
+   }
+   for (const work of works) validateGradingComponents(work, methods);
++  const courseUuid = await identity("course/" + input.courseId);
++  const assessmentUuids = new Map<string, string>();
++  const uuidOwners = new Map<string, string>();
++  for (const work of works) {
++    const uuid = work.extensions.prairielearn.uuid ??
++      await identity("assessment/" + work.id, courseUuid);
++    const previous = uuidOwners.get(uuid.toLowerCase());
++    if (previous !== undefined) {
++      throw Error(
++        `PL.ASSESSMENT_INVALID: повторный UUID ${uuid}: ${previous} и ${work.id}`,
++      );
++    }
++    uuidOwners.set(uuid.toLowerCase(), work.id);
++    assessmentUuids.set(work.id, uuid);
++  }
+   const selectedIds = input.publicationConditions
+     ? new Set(
+       works.flatMap((w: any) => [
+@@ -236,7 +251,6 @@ export async function exportCourse(
+     );
+   };
+   try {
+-    const courseUuid = await identity("course/" + input.courseId);
+     await write("infoCourse.json", {
+       uuid: courseUuid,
+       name: d.course.name,
+@@ -676,7 +690,7 @@ export async function exportCourse(
+         "courseInstances/" + input.instance + "/assessments/" + work.id +
+           "/infoAssessment.json",
+         {
+-          uuid: await identity("assessment/" + work.id, courseUuid),
++          uuid: assessmentUuids.get(work.id),
+           type: assessmentType,
+           title: work.title,
+           set: assessmentType,
+diff --git a/_extensions/course-prairielearn/application/grading-policy.ts b/_extensions/course-prairielearn/application/grading-policy.ts
+index cd29bb8..a0df102 100644
+--- a/_extensions/course-prairielearn/application/grading-policy.ts
++++ b/_extensions/course-prairielearn/application/grading-policy.ts
+@@ -1,6 +1,9 @@
+ import {createMetrics as __createMetrics} from "../observability/bridge.ts";
+ const __metrics=__createMetrics("course-prairielearn");
+ import { closed } from "./declarations.ts";
++// Форма UUID совпадает с закреплённой native infoAssessment schema.
++export const assessmentUuidPattern =
++  /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+ const scalar = (v: any) =>
+   typeof v === "number" && Number.isFinite(v) && v >= 0;
+ const attempts = (v: any) => Number.isSafeInteger(v) && v >= 1;
+@@ -22,6 +25,7 @@ export function gradingPolicy(work: any) {
+   };
+   closed(policy, ["attempts", "pass"], [
+     "assignment",
++    "uuid",
+     "question-points",
+     "question-max-points",
+     "slot-overrides",
+@@ -32,6 +36,14 @@ export function gradingPolicy(work: any) {
+     "auto-points",
+     "manual-points",
+   ]);
++  if (
++    Object.hasOwn(policy, "uuid") &&
++    (typeof policy.uuid !== "string" || !assessmentUuidPattern.test(policy.uuid))
++  ) {
++    throw Error(
++      `PL.ASSESSMENT_INVALID: ${source} uuid: ожидается native UUID контрольной работы`,
++    );
++  }
+   if (!attempts(policy.attempts)) {
+     fail("attempts", "expected positive integer (native triesPerVariant)");
+   }
+diff --git a/_extensions/course-prairielearn/application/native-adapter.ts b/_extensions/course-prairielearn/application/native-adapter.ts
+index 0ccbb30..2e7f03d 100644
+--- a/_extensions/course-prairielearn/application/native-adapter.ts
++++ b/_extensions/course-prairielearn/application/native-adapter.ts
+@@ -505,7 +505,10 @@ export function createNativeAdapter(
+         inventory.audience !== "student"
+       ) throw Error("PL.WORKSPACE_SEED: inventory identity");
+       for (const file of inventory.files) {
+-        if (await hash(file.bytes) !== file.sha256) {
++        if (
++          file.bytes.byteLength !== file.size ||
++          await hash(file.bytes) !== file.sha256
++        ) {
+           throw Error("PL.WORKSPACE_SEED: inventory bytes changed");
+         }
+       }
+diff --git a/_extensions/course-prairielearn/application/native-business.ts b/_extensions/course-prairielearn/application/native-business.ts
+index 020ac68..602ed13 100644
+--- a/_extensions/course-prairielearn/application/native-business.ts
++++ b/_extensions/course-prairielearn/application/native-business.ts
+@@ -11,7 +11,11 @@ import {
+   publicationQuestion,
+   question,
+ } from "./declarations.ts";
+-import { gradingPolicy, validateGradingComponents } from "./grading-policy.ts";
++import {
++  assessmentUuidPattern,
++  gradingPolicy,
++  validateGradingComponents,
++} from "./grading-policy.ts";
+ import {
+   nativeCheckScalars,
+   NativeProjectChecksSchema,
+@@ -42,6 +46,10 @@ export const ScoringPolicySchema = z.strictObject({
+   "allow-multiple-instances": z.boolean().optional(),
+ });
+ export const AssessmentPolicySchema = ScoringPolicySchema.extend({
++  uuid: z.string().regex(
++    assessmentUuidPattern,
++    "Ожидается native UUID контрольной работы",
++  ).optional(),
+   pass: z.strictObject({ "at-least": z.number().int().positive() }),
+   attempts: z.number().int().positive(),
+   assignment: AssignmentPolicySchema.optional(),
+diff --git a/_extensions/course-prairielearn/application/native-check-inventory.ts b/_extensions/course-prairielearn/application/native-check-inventory.ts
+index 2a8c606..0d61f3c 100644
+--- a/_extensions/course-prairielearn/application/native-check-inventory.ts
++++ b/_extensions/course-prairielearn/application/native-check-inventory.ts
+@@ -21,25 +21,24 @@ export function checksCanonical(value: any): string {
+  * непосредственно от guarded materializeProject в живом callback той же операции.
+  * Version2 выражает shared origin явно; legacy1 его отклоняет.
+  */
+-export async function nativeRawSourceSelection(
+-  input: {
+-    Core: any;
+-    file: unknown;
+-    projectRoot: string;
+-    submissionRelativePath: string;
+-    sourceRows: readonly { source: string; sha256: string }[];
+-    version?: 1 | 2;
+-  },
++type RawSourceSelectionInput = {
++  Core: any;
++  file: unknown;
++  projectRoot: string;
++  submissionRelativePath: string;
++  sourceRows: readonly { source: string; sha256: string }[];
++  version?: 1 | 2;
++};
++export async function nativeRawSourceSelection(input: RawSourceSelectionInput) {
++  return await prepareNativeRawSourceSelection(input)(input);
++}
++
++/** Локальная подготовка для неизменной партии одной project projection.
++ * Map остаётся внутри closure; отдельные selections проверяют свои bytes/paths.
++ */
++export function prepareNativeRawSourceSelection(
++  input: Omit<RawSourceSelectionInput, "file" | "submissionRelativePath">,
+ ) {
+-  const file = input.Core.ArtifactFileSchema.parse(input.file);
+-  if (
+-    !safePath(input.projectRoot) || !safePath(input.submissionRelativePath) ||
+-    !safePath(file.rawSource)
+-  ) {
+-    throw Error(
+-      "PL.NATIVE_ORIGIN_UNQUALIFIED: explicit project/submission/raw source required",
+-    );
+-  }
+   const rows = new Map<string, string>();
+   for (const row of input.sourceRows) {
+     if (!safePath(row.source) || rows.has(row.source)) {
+@@ -47,28 +46,42 @@ export async function nativeRawSourceSelection(
+     }
+     rows.set(row.source, row.sha256);
+   }
+-  if (
+-    file.size !== file.bytes.length ||
+-    rows.get(file.rawSource) !== file.sha256 ||
+-    await hash(file.bytes) !== file.sha256
+-  ) {
+-    throw Error(
+-      "PL.NATIVE_ORIGIN_UNQUALIFIED: missing/foreign/changed same-S raw bytes",
+-    );
+-  }
+-  const path = posix.relative(input.projectRoot, file.rawSource);
+-  if (!safePath(path) && input.version !== 2) {
+-    throw Error(
+-      "PL.NATIVE_ORIGIN_OUTSIDE_PROJECT: shared raw source cannot be represented by legacy projectRelativePath: " +
+-        file.rawSource,
+-    );
+-  }
+-  return {
+-    ...(safePath(path)
+-      ? { projectRelativePath: path }
+-      : { ownerRelativePath: file.rawSource }),
+-    submissionRelativePath: input.submissionRelativePath,
+-    sha256: file.sha256,
++  return async (
++    selection: Pick<RawSourceSelectionInput, "file" | "submissionRelativePath">,
++  ) => {
++    const file = input.Core.ArtifactFileSchema.parse(selection.file);
++    if (
++      !safePath(input.projectRoot) ||
++      !safePath(selection.submissionRelativePath) ||
++      !safePath(file.rawSource)
++    ) {
++      throw Error(
++        "PL.NATIVE_ORIGIN_UNQUALIFIED: explicit project/submission/raw source required",
++      );
++    }
++    if (
++      file.size !== file.bytes.length ||
++      rows.get(file.rawSource) !== file.sha256 ||
++      await hash(file.bytes) !== file.sha256
++    ) {
++      throw Error(
++        "PL.NATIVE_ORIGIN_UNQUALIFIED: missing/foreign/changed same-S raw bytes",
++      );
++    }
++    const path = posix.relative(input.projectRoot, file.rawSource);
++    if (!safePath(path) && input.version !== 2) {
++      throw Error(
++        "PL.NATIVE_ORIGIN_OUTSIDE_PROJECT: shared raw source cannot be represented by legacy projectRelativePath: " +
++          file.rawSource,
++      );
++    }
++    return {
++      ...(safePath(path)
++        ? { projectRelativePath: path }
++        : { ownerRelativePath: file.rawSource }),
++      submissionRelativePath: selection.submissionRelativePath,
++      sha256: file.sha256,
++    };
+   };
+ }
+ /** Структура/hash-область v1; не создаёт valid CheckProject и не публикует manifest.
+diff --git a/_extensions/course-prairielearn/application/native-check-projection.ts b/_extensions/course-prairielearn/application/native-check-projection.ts
+index 97e6671..967431d 100644
+--- a/_extensions/course-prairielearn/application/native-check-projection.ts
++++ b/_extensions/course-prairielearn/application/native-check-projection.ts
+@@ -1,7 +1,7 @@
+ import { matchesGlob } from "node:path";
+ import { NativeProjectCheckSchema } from "./native-checks.ts";
+ import { selectNativeCompilerInputs } from "./native-selection.ts";
+-import { nativeRawSourceSelection } from "./native-check-inventory.ts";
++import { prepareNativeRawSourceSelection } from "./native-check-inventory.ts";
+ import { safePath } from "./source-selection.ts";
+ /** Только private projection непосредственно materialized A1 inventories.
+  * Это не resolver/reader; все paths/data получены от public Core той же операции.
+@@ -28,9 +28,14 @@ export async function projectNativeChecks(
+     check,
+     runtimeProfile: input.runtime,
+   });
++  const selectOrigin = prepareNativeRawSourceSelection({
++    Core: input.Core,
++    projectRoot: input.fact.projectRoot,
++    sourceRows: input.sourceRows,
++    version: 2,
++  });
+   const origin = (f: any, name: string) =>
+-    nativeRawSourceSelection({
+-      Core: input.Core,
++    selectOrigin({
+       file: {
+         target: f.target,
+         rawSource: f.rawSource,
+@@ -40,10 +45,7 @@ export async function projectNativeChecks(
+         audience: f.audience ?? "full",
+         reason: f.reason,
+       },
+-      projectRoot: input.fact.projectRoot,
+       submissionRelativePath: name,
+-      sourceRows: input.sourceRows,
+-      version: 2,
+     });
+   const sources = await Promise.all(
+     selection.sources.map((f) => origin({ ...f, audience: "student" }, f.name)),
+diff --git a/_extensions/course-prairielearn/application/native-materialize.ts b/_extensions/course-prairielearn/application/native-materialize.ts
+index c0a122f..f33a1c1 100644
+--- a/_extensions/course-prairielearn/application/native-materialize.ts
++++ b/_extensions/course-prairielearn/application/native-materialize.ts
+@@ -188,11 +188,6 @@ export async function materializeNativeQuestion(
+       ) throw Error("PL.SELECTION_CHANGED: final starter");
+     }
+   }
+-  const files = final.files.map((f: any) => ({
+-    name: f.target,
+-    bytes: f.bytes,
+-  }));
+-  let archive = await input.Download.packageArtifact(final);
+   if (
+     input.settings.submission.mode === "workspace" ||
+     input.materialization?.includeGit === true
+@@ -214,6 +209,11 @@ export async function materializeNativeQuestion(
+       archive: workspace.archive,
+     };
+   }
++  const files = final.files.map((f: any) => ({
++    name: f.target,
++    bytes: f.bytes,
++  }));
++  const archive = await input.Download.packageArtifact(final);
+   await (input.checkpoint
+     ? input.checkpoint()
+     : input.operation.assertCurrent());

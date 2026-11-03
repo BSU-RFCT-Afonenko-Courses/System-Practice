@@ -1,7 +1,7 @@
 import { createMetrics as __createMetrics } from "../observability/bridge.ts";
 const __metrics = __createMetrics("project-download");
 import { inspectOwnedRequests } from "../ownership.ts";
-import { diagnostic, externalFailure } from "../diagnostics.ts";
+import { diagnostic, externalFailure, progress, reportProgress } from "../diagnostics.ts";
 import {
   dirname,
   fromFileUrl,
@@ -91,6 +91,9 @@ export async function clearOwned(root: string, output: string): Promise<void> {
   await Deno.remove(manifest);
 }
 export async function prepare(root: string): Promise<void> {
+  return await progress(`Подготовка материалов: ${root}`, () => prepareInternal(root));
+}
+async function prepareInternal(root: string): Promise<void> {
   const inspected = Deno.env.get("QUARTO_PROJECT_OUTPUT_DIR")
     ? undefined
     : await inspect(root);
@@ -186,6 +189,13 @@ export async function finish(
   root: string,
   options: FinishOptions = {},
 ): Promise<number> {
+  return await progress(`Финализация материалов: ${root}`, async () => {
+    const count = await finishInternal(root, options);
+    reportProgress(`Финализация материалов — archives=${count}`);
+    return count;
+  });
+}
+async function finishInternal(root: string, options: FinishOptions): Promise<number> {
   const directory = join(root, "_generated/project-download/requests");
   let native = options.native === true;
   if (await exists(directory)) {
@@ -587,7 +597,7 @@ export async function finish(
       }
     }
     if (projectRequests.size) {
-      return await operation.withProjectContexts(
+      return await operation.withProjectContracts(
         [...projectRequests].map(([format, inputs]) => ({
           owner: root,
           inputs: [...inputs],

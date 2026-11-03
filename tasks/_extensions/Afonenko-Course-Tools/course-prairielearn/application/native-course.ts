@@ -8,7 +8,7 @@ import { decodeNativeCheck } from "./native-checks.ts";
 import { validateNativeRaw } from "./native-business.ts";
 import { nativeChecksManifest } from "./native-check-inventory.ts";
 import { nativeVerificationInventory } from "./verification-inventory.ts";
-import { exportCourse } from "./export-course.ts";
+import { exportCourse, nativeUnitMenus } from "./export-course.ts";
 import { exportPrairieLearn } from "./export.ts";
 import {
   checkedJSON,
@@ -30,10 +30,13 @@ export async function withNativeProjectPlans<T>(
   root: string,
   profiles: string[],
   witness: any,
-  use: (plans: any[]) => Promise<T>,
+  use: (plans: any[], checkpoint: () => Promise<void>) => Promise<T>,
   operation: any,
 ): Promise<NativeProjectPlansResult<T>> {
-  if (typeof operation?.withProjectContexts !== "function") {
+  const withProjects = typeof operation?.withProjectContracts === "function"
+    ? operation.withProjectContracts
+    : operation?.withProjectContexts;
+  if (typeof withProjects !== "function") {
     throw Error(
       "PL.NATIVE_PROJECT_CONTEXT_REUSE_REQUIRED: public current-operation A1 batch unavailable; no standalone fallback",
     );
@@ -67,10 +70,15 @@ export async function withNativeProjectPlans<T>(
     }
     return snapshot as Readonly<Record<string, number>>;
   };
-  const value = await operation.withProjectContexts(
+  const value = await withProjects.call(
+    operation,
     requests,
     async (batch: any) => {
       retained = batch;
+      // Capability захватывается только этой callback; старый Core всегда full.
+      const checkpoint = typeof batch.checkpoint === "function"
+        ? () => batch.checkpoint()
+        : () => operation.assertCurrent();
       if (batch.groups.length !== requests.length) {
         throw Error(
           "PL.PROVENANCE_CHANGED: A1 group coverage",
@@ -112,7 +120,7 @@ export async function withNativeProjectPlans<T>(
           });
         }
       }
-      const result = await use(plans);
+      const result = await use(plans, checkpoint);
       inside = metrics();
       return result;
     },
@@ -143,6 +151,7 @@ export async function withNativeAssignments<T>(
       witness: any;
       projectPlans: any[];
       deliveries: any[];
+      checkpoint: () => Promise<void>;
     },
   ) => Promise<T>,
 ): Promise<NativeProjectPlansResult<T>> {
@@ -164,21 +173,34 @@ export async function withNativeAssignments<T>(
     descriptor.root,
     descriptor.identity.profiles,
     witness,
-    async (projectPlans) => {
+    async (projectPlans, checkpoint) => {
       const deliveries = [];
       for (const assessment of selection.assessments) {
         deliveries.push(
-          await adapter.assignmentDelivery(operation, {
-            source: assessment.source,
-            assessmentId: assessment.id,
-          }, {
-            projectPlans,
-            ...(input.references ? { references: input.references } : {}),
-          }, release),
+          await adapter.assignmentDelivery(
+            operation,
+            {
+              source: assessment.source,
+              assessmentId: assessment.id,
+            },
+            {
+              projectPlans,
+              ...(input.references ? { references: input.references } : {}),
+            },
+            release,
+            checkpoint,
+          ),
         );
       }
-      await operation.assertCurrent();
-      return await use({ adapter, proof, witness, projectPlans, deliveries });
+      await checkpoint();
+      return await use({
+        adapter,
+        proof,
+        witness,
+        projectPlans,
+        deliveries,
+        checkpoint,
+      });
     },
     operation,
   );
@@ -259,7 +281,8 @@ export async function prepareNativeCourse(
       ...input,
       references: references.references,
     }, async (prepared) => {
-      const { adapter, witness, projectPlans, deliveries } = prepared;
+      const { adapter, witness, projectPlans, deliveries, checkpoint } =
+        prepared;
       const courseId = deliveries[0]?.publicPackage.owner;
       if (
         !courseId ||
@@ -303,6 +326,41 @@ export async function prepareNativeCourse(
         artifacts: any = {},
         settings: any = {},
         bodies = new Map<string, any>();
+      // Введение каждого реально используемого меню готово до дорогих A1 ZIP.
+      // Assignment membership проверяет Core по раннему observed context intent.
+      if (options.instance) {
+        const selectedWorks = selection.assessments.map((a) => {
+          const work = content.assessments.find((w: any) =>
+            w.id === a.id && w.source === a.source
+          );
+          if (!work) {
+            throw Error(
+              "PL.NATIVE_INTENT_INCOMPLETE: selected work absent: " + a.id,
+            );
+          }
+          return work;
+        });
+        const menus = nativeUnitMenus(selectedWorks, content.assessments);
+        const needed = new Map<string, any>();
+        for (const group of menus.values()) {
+          for (const menu of group) needed.set(menu.id, menu);
+        }
+        for (const menu of needed.values()) {
+          const delivered = await adapter.assignmentDelivery(
+            operation,
+            {
+              source: menu.source,
+              assessmentId: menu.id,
+            },
+            { projectPlans, references: references.references },
+            {
+              expectedSources: selection.expectedSources,
+            },
+            checkpoint,
+          );
+          bodies.set(menu.id, delivered.publicPackage);
+        }
+      }
       let registryInput: any;
       let standaloneBinding: { assert: () => Promise<void> } | undefined;
       const checkBindings = async () => {
@@ -311,9 +369,11 @@ export async function prepareNativeCourse(
         await standaloneBinding?.assert();
       };
       const fence = async () => {
-        await operation.assertCurrent();
+        await checkpoint();
         await checkBindings();
       };
+      // Ровно одна batch в этой composition; после выхода остаётся старый
+      // истёкший token, а не fallback или checkpoint следующей партии.
       liveFence = fence;
       const registry = async () => {
         registryInput ??= await checkedJSON(
@@ -328,6 +388,14 @@ export async function prepareNativeCourse(
         }
         return registryInput.value;
       };
+      const materializationTotal = new Set(deliveries.flatMap((d: any) =>
+        d.publicPackage.questions.filter((q: any) =>
+          !d.nativeAnswers[q.id]
+        ).map((q: any) =>
+          q.id
+        )
+      )).size;
+      let materializationIndex = 0;
       for (const delivered of deliveries) {
         bodies.set(
           delivered.publicPackage.works[0].id,
@@ -386,9 +454,15 @@ export async function prepareNativeCourse(
           if (fact.check && !runtime) {
             throw Error("PL.RUNTIME_INVALID: selected profile");
           }
+          const progressIndex = ++materializationIndex,
+            started = performance.now();
+          console.error(
+            `PrairieLearn: подготовка задания ${progressIndex}/${materializationTotal} ${q.key} — начало`,
+          );
           const materialized = await materializeNativeQuestion({
             Core,
             operation,
+            checkpoint,
             auxiliary,
             pair: pairs[0],
             condition: delivered.conditions[q.id],
@@ -404,6 +478,11 @@ export async function prepareNativeCourse(
             adapter,
             expectedSources: selection.expectedSources,
           });
+          console.error(
+            `PrairieLearn: подготовка задания ${progressIndex}/${materializationTotal} ${q.key} — готово (${
+              ((performance.now() - started) / 1000).toFixed(1)
+            } с)`,
+          );
           artifacts[q.id] = materialized;
           if (materialized.project) {
             projects.push(materialized.project);
@@ -444,6 +523,7 @@ export async function prepareNativeCourse(
         });
         const config = validateNativeRaw(
           adapter.business(selection.assessments[0].source).raw,
+          { source: selection.assessments[0].source },
         )
           .config;
         result = await exportCourse({

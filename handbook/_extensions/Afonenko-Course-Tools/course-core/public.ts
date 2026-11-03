@@ -6,6 +6,7 @@ export {
 export type {
   ProjectContract,
   ProjectContractInput,
+  ProjectContractContext,
 } from "./contracts/project.ts";
 export {
   assertProjectContext,

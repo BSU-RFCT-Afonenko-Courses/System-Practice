@@ -4,7 +4,7 @@
     "core": {
       "repository": "Afonenko-Course-Tools/quarto-course",
       "checkout": "quarto-course",
-      "commit": "04c189fccfaa56badfc079f7be46fea4969ccf37",
+      "commit": "a478d2cc0dfb19e0bebd99108815ac8ef1fe85a8",
       "packages": {
         "course-core": [
           ".",
@@ -13,27 +13,11 @@
           "practice",
           "tasks",
           "handbook"
-        ],
-        "course-presentation": [
-          ".",
-          "theory",
-          "lectures",
-          "practice",
-          "tasks",
-          "handbook"
-        ],
-        "course-navigation": [
-          ".",
-          "theory",
-          "lectures",
-          "practice",
-          "tasks",
-          "handbook"
         ]
       },
-      "version": "9.1.0",
-      "tag": "v9.1.0",
-      "sourceZip": "https://github.com/Afonenko-Course-Tools/quarto-course/archive/refs/tags/v9.1.0.zip"
+      "version": "9.3.4",
+      "tag": "v9.3.4",
+      "sourceZip": "https://github.com/Afonenko-Course-Tools/quarto-course/archive/refs/tags/v9.3.4.zip"
     },
     "site": {
       "repository": "Afonenko-Course-Tools/quarto-project-publish",
@@ -69,28 +53,64 @@
     "prairielearn": {
       "repository": "Afonenko-Course-Tools/quarto-course-prairielearn",
       "checkout": "quarto-course-prairielearn",
+      "commit": "1c41f03f83b26adfe58415b4d89958a3663fabf2",
       "packages": {
         "course-prairielearn": [
           "tasks"
         ]
       },
-      "version": "9.0.1",
-      "tag": "v9.0.1",
-      "commit": "df8bd4aad274d618a782265b1db9c63e9b9a40f9",
-      "sourceZip": "https://github.com/Afonenko-Course-Tools/quarto-course-prairielearn/archive/refs/tags/v9.0.1.zip"
+      "version": "9.0.7",
+      "tag": "v9.0.7",
+      "sourceZip": "https://github.com/Afonenko-Course-Tools/quarto-course-prairielearn/archive/refs/tags/v9.0.7.zip",
+      "candidate": {
+        "status": "local-unpublished",
+        "baseCommit": "1c41f03f83b26adfe58415b4d89958a3663fabf2",
+        "commit": "35496cdd547d6ad2263fe171e451fb251c793c83",
+        "patch": "tools/provider-patches/pl-release-20261110.patch",
+        "patchSha256": "21c748d16697b178ea4ac45c8c0215cd1ca4983f74b4549e54716c4c0449c3a7",
+        "packageHashes": {
+          "course-prairielearn": "24ddeb7ddbb4200ba6fc0c6fddd495a10142ae5a664b5e99b79c504753fba93c"
+        }
+      }
     },
     "download": {
       "repository": "Afonenko-Course-Tools/quarto-project-download",
       "checkout": "quarto-project-download",
+      "commit": "c81df7364dd1fbbd07a0e54d67714b3d66f9695e",
       "packages": {
         "project-download": [
           "tasks"
         ]
       },
-      "version": "3.3.1",
-      "tag": "v3.3.1",
-      "commit": "e4ce084d8d15381368def66c746b51c6ba810a7d",
-      "sourceZip": "https://github.com/Afonenko-Course-Tools/quarto-project-download/archive/refs/tags/v3.3.1.zip"
+      "version": "3.5.0",
+      "tag": "v3.5.0",
+      "sourceZip": "https://github.com/Afonenko-Course-Tools/quarto-project-download/archive/refs/tags/v3.5.0.zip"
+    },
+    "core-ui": {
+      "repository": "Afonenko-Course-Tools/quarto-course",
+      "checkout": "quarto-course",
+      "commit": "04c189fccfaa56badfc079f7be46fea4969ccf37",
+      "packages": {
+        "course-presentation": [
+          ".",
+          "theory",
+          "lectures",
+          "practice",
+          "tasks",
+          "handbook"
+        ],
+        "course-navigation": [
+          ".",
+          "theory",
+          "lectures",
+          "practice",
+          "tasks",
+          "handbook"
+        ]
+      },
+      "version": "9.1.0",
+      "tag": "v9.1.0",
+      "sourceZip": "https://github.com/Afonenko-Course-Tools/quarto-course/archive/refs/tags/v9.1.0.zip"
     }
   }
 }

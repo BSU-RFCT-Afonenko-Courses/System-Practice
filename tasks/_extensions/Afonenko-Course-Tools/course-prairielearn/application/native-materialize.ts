@@ -140,6 +140,7 @@ export async function materializeNativeQuestion(
     adapter: any;
     expectedSources: string[];
     auxiliary?: NativeAuxiliary;
+    checkpoint?: () => Promise<void>;
   },
 ) {
   const { Core, pair, condition } = input;
@@ -187,17 +188,13 @@ export async function materializeNativeQuestion(
       ) throw Error("PL.SELECTION_CHANGED: final starter");
     }
   }
-  const files = final.files.map((f: any) => ({
-    name: f.target,
-    bytes: f.bytes,
-  }));
-  let archive = await input.Download.packageArtifact(final);
   if (
     input.settings.submission.mode === "workspace" ||
     input.materialization?.includeGit === true
   ) {
     const workspace = await input.adapter.workspaceArtifact({
       operation: input.operation,
+      checkpoint: input.checkpoint,
       auxiliary: input.auxiliary,
       expectedSources: input.expectedSources,
       source: input.fact.source,
@@ -212,6 +209,13 @@ export async function materializeNativeQuestion(
       archive: workspace.archive,
     };
   }
-  await input.operation.assertCurrent();
+  const files = final.files.map((f: any) => ({
+    name: f.target,
+    bytes: f.bytes,
+  }));
+  const archive = await input.Download.packageArtifact(final);
+  await (input.checkpoint
+    ? input.checkpoint()
+    : input.operation.assertCurrent());
   return { ...checked, student: final, files, archive };
 }

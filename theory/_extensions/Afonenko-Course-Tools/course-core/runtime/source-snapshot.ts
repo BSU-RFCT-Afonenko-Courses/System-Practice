@@ -130,6 +130,26 @@ export async function snapshot(state: SourceSnapshotState) {
   }
   await walk(state.root);
 }
+// Индексы живут только вместе с private S, не сериализуются и не обнаруживают новые пути.
+const indexes = new WeakMap<SourceSnapshotState, {
+  rows: Map<string, SourceSnapshotState["rows"][number]>;
+  directories: Map<string, Set<string>>;
+}>();
+export function sourceIndex(state: SourceSnapshotState) {
+  let index = indexes.get(state);
+  if (!index) {
+    index = {
+      rows: new Map(state.rows.map((row) => [row.path, row])),
+      directories: new Map(
+        Object.entries(state.memberships).map((
+          [path, names],
+        ) => [path, new Set(names)]),
+      ),
+    };
+    indexes.set(state, index);
+  }
+  return index;
+}
 export async function assertSources(
   state: SourceSnapshotState,
   additions: readonly string[] = [],
@@ -138,7 +158,7 @@ export async function assertSources(
 ) {
   if (full) state.metrics.fullSourceFences++;
   else state.metrics.localSourceFences++;
-  const relevant = new Set(selectedInputs);
+  const index = sourceIndex(state);
   const directories = new Set(
     selectedInputs.map((p) => dirname(p) === "." ? "" : dirname(p)),
   );
@@ -151,29 +171,65 @@ export async function assertSources(
     }
     directories.add("");
   }
-  for (const row of state.rows) {
-    if (!full && !relevant.has(row.path)) continue;
-    const p = await regular(state.root, row.path);
-    if (signature(await Deno.lstat(p)) !== row.signature) {
+  // Общие предки проверяются один раз на границу, включая пустые каталоги.
+  const physical = new Map<string, Deno.FileInfo>();
+  const inspectPath = async (path: string) => {
+    let current = state.root;
+    let info: Deno.FileInfo | undefined;
+    for (const part of path.split("/")) {
+      current = join(current, part);
+      info = physical.get(current);
+      if (!info) {
+        info = await Deno.lstat(current);
+        if (info.isSymlink || await Deno.realPath(current) !== current) {
+          fail("OPERATION_CHANGED", "Неканонический native source path");
+        }
+        physical.set(current, info);
+      }
+    }
+    return info!;
+  };
+  const rows = full
+    ? state.rows
+    : [...new Set(selectedInputs)].flatMap((path) => {
+      const row = index.rows.get(path);
+      return row ? [row] : [];
+    });
+  for (const row of rows) {
+    const info = await inspectPath(row.path);
+    if (!info.isFile || signature(info) !== row.signature) {
       fail("OPERATION_CHANGED", "Native source изменён: " + row.path);
     }
   }
   const allowed = new Set(additions);
-  for (const [dir, names] of Object.entries(state.memberships)) {
-    if (!full && !directories.has(dir)) continue;
+  const allowedParents = new Set<string>();
+  for (const path of additions) {
+    let parent = dirname(path);
+    while (parent !== ".") {
+      allowedParents.add(parent);
+      parent = dirname(parent);
+    }
+  }
+  const selectedDirectories = full ? index.directories.keys() : directories;
+  for (const dir of selectedDirectories) {
+    const names = state.memberships[dir], known = index.directories.get(dir);
+    if (!names || !known) continue;
+    if (dir && !(await inspectPath(dir)).isDirectory) {
+      fail("OPERATION_CHANGED", "Native source directory type изменён");
+    }
     const current: string[] = [];
     state.metrics.sourceDirectoryReads++;
     for await (const entry of Deno.readDir(join(state.root, dir))) {
       const path = join(state.root, dir, entry.name);
       if (excluded(state, path)) continue;
       if (
-        !names.includes(entry.name) &&
+        !known.has(entry.name) &&
         await toolCacheContainer(state.root, path)
       ) continue;
       const local = relative(state.root, path);
       if (
-        !names.includes(entry.name) &&
-        [...allowed].some((p) => p === local || p.startsWith(local + "/"))
+        !known.has(entry.name) &&
+        (allowed.has(local) || allowedParents.has(local))
       ) continue;
       current.push(entry.name);
     }

@@ -135,6 +135,14 @@ export const ProjectContextSchema = z.strictObject({
   origins: z.record(z.string(), NativeOriginSchema),
 });
 export type ProjectContext = Readonly<z.output<typeof ProjectContextSchema>>;
+/** Узкий namespace handle; authority существует только в private lifetime binding. */
+export const ProjectContractContextSchema = ProjectContextSchema.omit({
+  effectiveMetadata: true,
+}).extend({ contract: ProjectContractSchema });
+export type ProjectContractContext = Readonly<
+  z.output<typeof ProjectContractContextSchema>
+>;
+export type ProjectContextView = ProjectContext | ProjectContractContext;
 export function decodeProjectRequests(value: unknown): ProjectContextRequest[] {
   boundInput(value);
   const result = z.array(ProjectContextRequestSchema).min(1).safeParse(

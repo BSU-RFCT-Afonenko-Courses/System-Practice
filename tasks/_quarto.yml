@@ -113,3 +113,4 @@ prairielearn:
       mode: assessment-id
 course-core-runtime: native-ts
 course-core-projection: student
+course-core-source-policy: static

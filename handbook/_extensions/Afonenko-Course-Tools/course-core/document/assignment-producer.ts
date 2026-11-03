@@ -11,7 +11,13 @@ const stable = (v: unknown): string =>
         )
         : x,
   );
-function unsupported(s:string):never {return fail("BODY.DELIVERY_PHASE_UNSUPPORTED",s)}
+function unsupported(s: string): never {
+  return fail("BODY.DELIVERY_PHASE_UNSUPPORTED", s);
+}
+// readqmd.lua/lpegshortcode.lua сохраняют nested shortcode как UUID + hex.
+// Это отложенный transport, а не literal для разрешённого handler.
+const dynamicLiteral =
+  /\{\{|\}\}|b58fc729-690b-4000-b19f-365a4093b2ff;[a-fA-F0-9]+;/;
 /** Actual native invocation and literal reader nodes, before shortcode/ConditionalBlock. */
 export function qualifyAssignmentProducer(
   ast: any,
@@ -35,6 +41,11 @@ export function qualifyAssignmentProducer(
     if (v.t === "Span" && v.c?.[0]?.[1]?.includes("quarto-shortcode__")) {
       const args: { key?: string; value: string }[] = [];
       for (const param of v.c[1]) {
+        // Native reader сохраняет разделители; Quarto не передаёт их handler.
+        if (
+          (param.t === "Space" || param.t === "SoftBreak") &&
+          Object.keys(param).every((key) => key === "t")
+        ) continue;
         if (
           param.t !== "Span" ||
           !param.c[0][1].includes("quarto-shortcode__-param") ||
@@ -42,9 +53,18 @@ export function qualifyAssignmentProducer(
         ) unsupported("Динамический shortcode argument");
         const attrs = Object.fromEntries(param.c[0][2]);
         if (
+          Object.keys(attrs).length !== param.c[0][2].length ||
+          attrs["data-is-shortcode"] !== "1" ||
+          typeof attrs["data-raw"] !== "string" ||
           typeof attrs["data-value"] !== "string" ||
-          /\{\{|\}\}/.test(attrs["data-value"]) ||
-          Object.keys(attrs).some((k) => k !== "data-value" && k !== "data-key")
+          (attrs["data-key"] !== undefined &&
+            (typeof attrs["data-key"] !== "string" || !attrs["data-key"])) ||
+          dynamicLiteral.test(attrs["data-value"]) ||
+          dynamicLiteral.test(attrs["data-raw"]) ||
+          Object.keys(attrs).some((k) =>
+            !["data-value", "data-key", "data-is-shortcode", "data-raw"]
+              .includes(k)
+          )
         ) unsupported("Неподдержанный shortcode argument");
         args.push({ key: attrs["data-key"], value: attrs["data-value"] });
       }
