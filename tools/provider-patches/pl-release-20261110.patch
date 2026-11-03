@@ -60,6 +60,20 @@ index 449ebf7..35ef18f 100644
            type: assessmentType,
            title: work.title,
            set: assessmentType,
+diff --git a/_extensions/course-prairielearn/application/grading-descriptor.ts b/_extensions/course-prairielearn/application/grading-descriptor.ts
+index 0fc4975..23f5a9d 100644
+--- a/_extensions/course-prairielearn/application/grading-descriptor.ts
++++ b/_extensions/course-prairielearn/application/grading-descriptor.ts
+@@ -1,7 +1,8 @@
+ import {createMetrics as __createMetrics} from "../observability/bridge.ts";
+ const __metrics=__createMetrics("course-prairielearn");
+ import { closed } from "./declarations.ts";
+-export function normalizeDiscovery(value: any = {}) {
++import type { NativeProjectCheck } from "./native-checks.ts";
++export function normalizeDiscovery(value: NativeProjectCheck["discovery"] = {}) {
+   closed(value, [], ["min-executed", "allow-skipped"]);
+   const merged = { "min-executed": 1, "allow-skipped": false, ...value };
+   if (
 diff --git a/_extensions/course-prairielearn/application/grading-policy.ts b/_extensions/course-prairielearn/application/grading-policy.ts
 index cd29bb8..a0df102 100644
 --- a/_extensions/course-prairielearn/application/grading-policy.ts
@@ -97,6 +111,24 @@ index cd29bb8..a0df102 100644
    if (!attempts(policy.attempts)) {
      fail("attempts", "expected positive integer (native triesPerVariant)");
    }
+diff --git a/_extensions/course-prairielearn/application/java-build.ts b/_extensions/course-prairielearn/application/java-build.ts
+index 3c0de64..3903cef 100644
+--- a/_extensions/course-prairielearn/application/java-build.ts
++++ b/_extensions/course-prairielearn/application/java-build.ts
+@@ -1,11 +1,12 @@
+ // Внутренняя закрытая граница captured Core check → Platform descriptor.
++import type { NativeProjectCheck } from "./native-checks.ts";
+ export interface JavaBuild {
+   kind: "gradle-jar-v1";
+   mainClass?: string;
+   artifact: string;
+ }
+ export function javaBuild(
+-  check: any,
++  check: Pick<NativeProjectCheck, "runtime" | "sourceProfile" | "java-build">,
+   profile?: {
+     mode?: string;
+     javaRelease?: number;
 diff --git a/_extensions/course-prairielearn/application/native-adapter.ts b/_extensions/course-prairielearn/application/native-adapter.ts
 index 0ccbb30..40de478 100644
 --- a/_extensions/course-prairielearn/application/native-adapter.ts
@@ -222,10 +254,17 @@ index 020ac68..602ed13 100644
    attempts: z.number().int().positive(),
    assignment: AssignmentPolicySchema.optional(),
 diff --git a/_extensions/course-prairielearn/application/native-check-inventory.ts b/_extensions/course-prairielearn/application/native-check-inventory.ts
-index 2a8c606..0d61f3c 100644
+index 2a8c606..922b2b1 100644
 --- a/_extensions/course-prairielearn/application/native-check-inventory.ts
 +++ b/_extensions/course-prairielearn/application/native-check-inventory.ts
-@@ -21,25 +21,24 @@ export function checksCanonical(value: any): string {
+@@ -1,5 +1,6 @@
+ import { posix } from "node:path";
+ import { hash, safePath } from "./source-selection.ts";
++import type * as Core from "course-core/public.ts";
+ /** Прежняя Core checks canonical область; localeCompare сохранён буквально. */
+ export function checksCanonical(value: any): string {
+   if (Array.isArray(value)) {
+@@ -21,25 +22,24 @@ export function checksCanonical(value: any): string {
   * непосредственно от guarded materializeProject в живом callback той же операции.
   * Version2 выражает shared origin явно; legacy1 его отклоняет.
   */
@@ -239,7 +278,7 @@ index 2a8c606..0d61f3c 100644
 -    version?: 1 | 2;
 -  },
 +type RawSourceSelectionInput = {
-+  Core: any;
++  Core: Pick<typeof Core, "ArtifactFileSchema">;
 +  file: unknown;
 +  projectRoot: string;
 +  submissionRelativePath: string;
@@ -268,7 +307,7 @@ index 2a8c606..0d61f3c 100644
    const rows = new Map<string, string>();
    for (const row of input.sourceRows) {
      if (!safePath(row.source) || rows.has(row.source)) {
-@@ -47,28 +46,42 @@ export async function nativeRawSourceSelection(
+@@ -47,28 +47,42 @@ export async function nativeRawSourceSelection(
      }
      rows.set(row.source, row.sha256);
    }
@@ -334,36 +373,77 @@ index 2a8c606..0d61f3c 100644
  }
  /** Структура/hash-область v1; не создаёт valid CheckProject и не публикует manifest.
 diff --git a/_extensions/course-prairielearn/application/native-check-projection.ts b/_extensions/course-prairielearn/application/native-check-projection.ts
-index 97e6671..967431d 100644
+index 97e6671..de7933a 100644
 --- a/_extensions/course-prairielearn/application/native-check-projection.ts
 +++ b/_extensions/course-prairielearn/application/native-check-projection.ts
-@@ -1,7 +1,7 @@
+@@ -1,21 +1,36 @@
  import { matchesGlob } from "node:path";
  import { NativeProjectCheckSchema } from "./native-checks.ts";
  import { selectNativeCompilerInputs } from "./native-selection.ts";
 -import { nativeRawSourceSelection } from "./native-check-inventory.ts";
 +import { prepareNativeRawSourceSelection } from "./native-check-inventory.ts";
  import { safePath } from "./source-selection.ts";
++import type * as Core from "course-core/public.ts";
++import type {
++  ArtifactFile,
++  ArtifactInventory,
++  NativeProjectFact,
++  ProjectPlan,
++} from "course-core/public.ts";
++import type { NativeProjectCheck } from "./native-checks.ts";
++import type { RuntimeProfile } from "./runtime-descriptor.ts";
++export type CheckedNativeProjectFact = Omit<NativeProjectFact, "check"> & {
++  check?: NativeProjectCheck;
++};
  /** Только private projection непосредственно materialized A1 inventories.
   * Это не resolver/reader; все paths/data получены от public Core той же операции.
-@@ -28,9 +28,14 @@ export async function projectNativeChecks(
+  */
+ export async function projectNativeChecks(
+   input: {
+-    Core: any;
+-    fact: any;
+-    sourceRows: any[];
+-    student: any;
+-    full: any;
+-    studentPlan: any;
+-    fullPlan: any;
+-    runtime: any;
++    Core: Pick<
++      typeof Core,
++      "ArtifactInventorySchema" | "ProjectPlanSchema" | "ArtifactFileSchema"
++    >;
++    fact: CheckedNativeProjectFact;
++    sourceRows: readonly { source: string; sha256: string }[];
++    student: ArtifactInventory;
++    full: ArtifactInventory | undefined;
++    studentPlan: ProjectPlan;
++    fullPlan: ProjectPlan;
++    runtime: RuntimeProfile;
+     courseId: string;
+   },
+ ) {
+@@ -28,9 +43,17 @@ export async function projectNativeChecks(
      check,
      runtimeProfile: input.runtime,
    });
+-  const origin = (f: any, name: string) =>
+-    nativeRawSourceSelection({
+-      Core: input.Core,
 +  const selectOrigin = prepareNativeRawSourceSelection({
 +    Core: input.Core,
 +    projectRoot: input.fact.projectRoot,
 +    sourceRows: input.sourceRows,
 +    version: 2,
 +  });
-   const origin = (f: any, name: string) =>
--    nativeRawSourceSelection({
--      Core: input.Core,
++  const origin = (
++    f: Omit<ArtifactFile, "audience"> & { audience?: ArtifactFile["audience"] },
++    name: string,
++  ) =>
 +    selectOrigin({
        file: {
          target: f.target,
          rawSource: f.rawSource,
-@@ -40,10 +45,7 @@ export async function projectNativeChecks(
+@@ -40,10 +63,7 @@ export async function projectNativeChecks(
          audience: f.audience ?? "full",
          reason: f.reason,
        },
@@ -374,8 +454,100 @@ index 97e6671..967431d 100644
      });
    const sources = await Promise.all(
      selection.sources.map((f) => origin({ ...f, audience: "student" }, f.name)),
+@@ -66,7 +86,10 @@ export async function projectNativeChecks(
+       ref.available &&
+       // Явная Java reference-группа без student ZIP policy — полное решение,
+       // а не копия списка starter-файлов. Выбор role/hash/limits уже проверен.
+-      !(!extras && ["java25-junit-v1", "java25-gradle-junit-v1"].includes(check.runtime)) &&
++      !(!extras &&
++        ["java25-junit-v1", "java25-gradle-junit-v1"].includes(
++          check.runtime,
++        )) &&
+       ((!extras && [...names].some((n) => !primary.has(n))) ||
+         extras?.["primary-required"] !== false &&
+           [...primary].some((n) => !names.has(n)))
+@@ -85,7 +108,7 @@ export async function projectNativeChecks(
+       sources: await Promise.all(ref.files.map((f) => origin(f, f.name))),
+     });
+   }
+-  const chosen = (files: any[], patterns: string[]) =>
++  const chosen = (files: ArtifactFile[], patterns: string[]) =>
+     files.filter((f) => patterns.some((p) => matchesGlob(f.target, p))).sort((
+       a,
+       b,
+@@ -125,7 +148,7 @@ export async function projectNativeChecks(
+   if ((check["verification-tests"] ?? []).length && !verificationTests.length) {
+     missing.push("verificationTests");
+   }
+-  const trustedRole = (f: any) =>
++  const trustedRole = (f: ArtifactFile) =>
+     f.reason.startsWith("testset:")
+       ? input.fullPlan.testsets.includes(f.reason.slice(8))
+       : f.reason.startsWith("component:") &&
+@@ -134,7 +157,7 @@ export async function projectNativeChecks(
+     if (!safePath(name)) {
+       throw Error("PL.SELECTION_INVALID: unsafe contract logical target");
+     }
+-    const files = full.files.filter((f: any) => f.target === name);
++    const files = full.files.filter((f) => f.target === name);
+     if (files.length !== 1 || !trustedRole(files[0])) {
+       throw Error(
+         "PL.SELECTION_MIGRATION_REQUIRED: contract target must be selected trusted A1 raw file: " +
+@@ -143,27 +166,35 @@ export async function projectNativeChecks(
+     }
+     return files[0];
+   };
+-  let contractCasesHash, contractCases;
+-  const contractFixtures: any[] = [];
++  type Origin = Awaited<ReturnType<typeof origin>>;
++  let contractCasesHash:
++    | (Omit<Origin, "submissionRelativePath"> & { logicalTarget: string })
++    | undefined;
++  let contractCases: (ArtifactFile & { name: string }) | undefined;
++  const contractFixtures: (Origin & { logicalTarget: string })[] = [];
+   if (check["contract-cases"]) {
+     const name = check["contract-cases"], file = target(name);
+     const selected = await origin(file, name);
+     const { submissionRelativePath: _ignored, ...hashRecord } = selected;
+     contractCasesHash = { ...hashRecord, logicalTarget: name };
+     contractCases = { ...file, name };
+-    const doc = JSON.parse(
++    const raw: unknown = JSON.parse(
+       new TextDecoder("utf-8", { fatal: true }).decode(file.bytes),
+     );
++    const doc = raw as Record<string, unknown>;
+     if (doc.schemaVersion !== 1 || !Array.isArray(doc.cases)) {
+       throw Error("PL.VERIFICATION_INVALID: contract cases");
+     }
+     const ids = new Set<string>();
+-    for (const row of doc.cases) {
++    const cases: unknown[] = doc.cases;
++    for (const value of cases) {
++      const row = value as Record<string, unknown>;
+       if (typeof row.id !== "string" || !row.id || ids.has(row.id)) {
+         throw Error("PL.VERIFICATION_INVALID: case id");
+       }
+       ids.add(row.id);
+-      for (const item of row.sources ?? []) {
++      for (const value of (row.sources ?? []) as Iterable<unknown>) {
++        const item = value as Record<string, unknown>;
+         if (
+           !safePath(item.fixture) ||
+           !item.fixture.startsWith("tests/fixtures/") ||
+diff --git a/_extensions/course-prairielearn/application/native-checks.ts b/_extensions/course-prairielearn/application/native-checks.ts
+index 65f5a55..e8c2315 100644
+--- a/_extensions/course-prairielearn/application/native-checks.ts
++++ b/_extensions/course-prairielearn/application/native-checks.ts
+@@ -151,6 +151,7 @@ export const NativeProjectChecksSchema = z.strictObject({
+   "source-profiles": z.record(text, NativeSourceProfileSchema),
+   profiles: z.record(text, z.strictObject(fields).partial()),
+ });
++export type NativeProjectCheck = z.output<typeof NativeProjectCheckSchema>;
+ /** Только PL policy inheritance. Native metadata inheritance уже выполнил Quarto. */
+ function merge(base: any, local: any): any {
+   if (!local || typeof local !== "object" || Array.isArray(local)) return local;
 diff --git a/_extensions/course-prairielearn/application/native-entry.ts b/_extensions/course-prairielearn/application/native-entry.ts
-index ea54326..e19c2b3 100644
+index ea54326..ca2b53d 100644
 --- a/_extensions/course-prairielearn/application/native-entry.ts
 +++ b/_extensions/course-prairielearn/application/native-entry.ts
 @@ -1,3 +1,9 @@
@@ -388,7 +560,7 @@ index ea54326..e19c2b3 100644
  import { join, relative, resolve } from "node:path";
  import { pathToFileURL } from "node:url";
  
-@@ -201,13 +207,21 @@ export async function nativeEntry(options: NativeEntryOptions) {
+@@ -201,13 +207,18 @@ export async function nativeEntry(options: NativeEntryOptions) {
      }
    }
    if (!core) throw Error("PL.INPUT_INVALID: installed public Core required");
@@ -406,24 +578,26 @@ index ea54326..e19c2b3 100644
 -  let descriptor: any, observedConfig: any;
 +  let descriptor: NativePreparedOperation | undefined;
 +  let observedConfig: unknown;
-+  const functionalProfiles = (options.profiles ??
-+    (Deno.env.get("QUARTO_PROFILE") || "").split(",")).filter((p) =>
-+      p && p !== "student" && p !== "full"
-+    );
++  let functionalProfiles: string[] | undefined;
    await withNativeCaptureScope({
      root: owner,
      projection: "author",
-@@ -215,7 +229,8 @@ export async function nativeEntry(options: NativeEntryOptions) {
+@@ -215,7 +226,13 @@ export async function nativeEntry(options: NativeEntryOptions) {
    }, {
      assignment: {
        mode: "new",
 -      prepare: async (observed: Readonly<Record<string, any>>) => {
-+      profiles: functionalProfiles,
++      get profiles() {
++        return functionalProfiles ??= (options.profiles ??
++          (Deno.env.get("QUARTO_PROFILE") || "").split(",")).filter((p) =>
++            p && p !== "student" && p !== "full"
++          );
++      },
 +      prepare: async (observed) => {
          observedConfig = structuredClone(observed.config);
          selected = await selectNativeOwnerAssignments(observed, {
            ...options,
-@@ -230,27 +245,31 @@ export async function nativeEntry(options: NativeEntryOptions) {
+@@ -230,27 +247,31 @@ export async function nativeEntry(options: NativeEntryOptions) {
          };
        },
      },
@@ -467,7 +641,7 @@ index ea54326..e19c2b3 100644
                p !== "student" && p !== "full"
              ),
            )
-@@ -258,12 +277,12 @@ export async function nativeEntry(options: NativeEntryOptions) {
+@@ -258,12 +279,12 @@ export async function nativeEntry(options: NativeEntryOptions) {
        const { prepareNativeAdapter } = await import("./native-adapter.ts");
        await prepareNativeAdapter(Core, {
          root: owner,
@@ -482,7 +656,7 @@ index ea54326..e19c2b3 100644
          selected.expectedSources,
          {
            // Executable/cwd/env/token принадлежат qualified Core lease.
-@@ -273,34 +292,41 @@ export async function nativeEntry(options: NativeEntryOptions) {
+@@ -273,34 +294,41 @@ export async function nativeEntry(options: NativeEntryOptions) {
            timeoutMs: 20 * 60 * 1000,
          },
        );
@@ -533,7 +707,7 @@ index ea54326..e19c2b3 100644
          options,
          observedConfig,
        });
-@@ -309,11 +335,17 @@ export async function nativeEntry(options: NativeEntryOptions) {
+@@ -309,11 +337,17 @@ export async function nativeEntry(options: NativeEntryOptions) {
  }
  /** Тот же порядок nativeEntry: handle сохраняется ВНУТРИ parent callback.
   * scope — настоящий Core gate в production; функция не создаёт authority. */
@@ -598,10 +772,137 @@ index 66e0ff8..b038d97 100644
        attributes: structuredClone(d.attributes),
        ...(d.answer ? { answer: true } : {}),
 diff --git a/_extensions/course-prairielearn/application/native-materialize.ts b/_extensions/course-prairielearn/application/native-materialize.ts
-index c0a122f..f33a1c1 100644
+index c0a122f..095d24e 100644
 --- a/_extensions/course-prairielearn/application/native-materialize.ts
 +++ b/_extensions/course-prairielearn/application/native-materialize.ts
-@@ -188,11 +188,6 @@ export async function materializeNativeQuestion(
+@@ -4,6 +4,20 @@ import { pathToFileURL } from "node:url";
+ import { hash } from "./source-selection.ts";
+ import { describeSubmission } from "./submission.ts";
+ import { projectNativeChecks } from "./native-check-projection.ts";
++import type { CheckedNativeProjectFact } from "./native-check-projection.ts";
++import type * as CorePublic from "course-core/public.ts";
++import type {
++  ArtifactInventory,
++  MaterializableCondition,
++  MaterializationBindings,
++  NativeAssignmentProjectPlans,
++  NativeOperation,
++  ProjectPlan,
++  SubmissionInstructions,
++} from "course-core/public.ts";
++import type { createNativeAdapter } from "./native-adapter.ts";
++import type { question } from "./declarations.ts";
++import type { RuntimeProfile } from "./runtime-descriptor.ts";
+ export async function publicExtension(owner: string, name: string) {
+   for (
+     const root of [
+@@ -47,7 +61,7 @@ export async function nativeReferenceBindings(
+     outputDirectory: string;
+     book: string;
+     config: any;
+-    operation: any;
++    operation: Pick<NativeOperation, "catalog">;
+   },
+ ) {
+   const QRC = await publicExtension(input.owner, "reference-catalog"),
+@@ -77,7 +91,7 @@ export async function nativeReferenceBindings(
+     })
+     : QRC.createBodyLinks({ catalog: file.value, baseUrl });
+   const sources = Object.fromEntries(
+-    input.operation.catalog.documents.map((d: any) => [d.source, d.output]),
++    input.operation.catalog.documents.map((d) => [d.source, d.output]),
+   );
+   return {
+     QRC,
+@@ -95,10 +109,18 @@ export async function nativeReferenceBindings(
+         return new URL(sources[source], baseUrl).href;
+       },
+     },
+-    async bindings(Core: any, plan: any, condition: any, submission: any) {
++    async bindings(
++      Core: Pick<typeof CorePublic, "materializationClosure">,
++      plan: ProjectPlan,
++      condition: MaterializableCondition,
++      submission: SubmissionInstructions,
++    ): Promise<MaterializationBindings> {
+       const closure = await Core.materializationClosure(plan, condition),
+-        linksBySource: any = {},
+-        referencesBySource: any = {};
++        linksBySource: NonNullable<MaterializationBindings["linksBySource"]> =
++          {},
++        referencesBySource: NonNullable<
++          MaterializationBindings["referencesBySource"]
++        > = {};
+       for (const fragment of closure.fragments) {
+         linksBySource[fragment.source] = QRC.bindConditionLinks({
+           context: { input: fragment.source },
+@@ -125,19 +147,37 @@ export async function nativeReferenceBindings(
+ /** Genuine Core calls remain inside the live A1 + native operation callback. */
+ export async function materializeNativeQuestion(
+   input: {
+-    Core: any;
+-    operation: any;
+-    pair: any;
+-    condition: any;
+-    fact: any;
++    Core: Pick<
++      typeof CorePublic,
++      | "materializeProject"
++      | "ArtifactInventorySchema"
++      | "ProjectPlanSchema"
++      | "ArtifactFileSchema"
++    >;
++    operation: NativeOperation;
++    pair: NativeAssignmentProjectPlans;
++    condition: MaterializableCondition;
++    fact: CheckedNativeProjectFact;
+     materialization?: { includeGit?: boolean };
+-    settings: any;
+-    sourceRows: any[];
++    settings: Pick<ReturnType<typeof question>, "submission">;
++    sourceRows: readonly { source: string; sha256: string }[];
+     courseId: string;
+-    runtime: any;
+-    bindings: (plan: any, condition: any, submission: any) => Promise<any>;
+-    Download: any;
+-    adapter: any;
++    runtime: RuntimeProfile;
++    bindings: (
++      plan: ProjectPlan,
++      condition: MaterializableCondition,
++      submission: SubmissionInstructions,
++    ) => Promise<MaterializationBindings>;
++    Download: {
++      zip: Parameters<
++        Awaited<ReturnType<typeof createNativeAdapter>>["workspaceArtifact"]
++      >[0]["zip"];
++      packageArtifact: (inventory: ArtifactInventory) => Promise<Uint8Array>;
++    };
++    adapter: Pick<
++      Awaited<ReturnType<typeof createNativeAdapter>>,
++      "workspaceArtifact"
++    >;
+     expectedSources: string[];
+     auxiliary?: NativeAuxiliary;
+     checkpoint?: () => Promise<void>;
+@@ -169,7 +209,7 @@ export async function materializeNativeQuestion(
+   }
+   const submission = describeSubmission(
+     input.settings.submission,
+-    checked?.selection.sources.map((f: any) => ({
++    checked?.selection.sources.map((f) => ({
+       name: f.name,
+       starterPath: f.target,
+     })) ?? [],
+@@ -181,18 +221,13 @@ export async function materializeNativeQuestion(
+   );
+   if (checked) {
+     for (const f of checked.selection.sources) {
+-      const actual = final.files.find((file: any) => file.target === f.target);
++      const actual = final.files.find((file) => file.target === f.target);
+       if (
+         !actual || actual.sha256 !== f.sha256 ||
+         await hash(actual.bytes) !== f.sha256
        ) throw Error("PL.SELECTION_CHANGED: final starter");
      }
    }
@@ -613,11 +914,11 @@ index c0a122f..f33a1c1 100644
    if (
      input.settings.submission.mode === "workspace" ||
      input.materialization?.includeGit === true
-@@ -214,6 +209,11 @@ export async function materializeNativeQuestion(
+@@ -214,6 +249,11 @@ export async function materializeNativeQuestion(
        archive: workspace.archive,
      };
    }
-+  const files = final.files.map((f: any) => ({
++  const files = final.files.map((f) => ({
 +    name: f.target,
 +    bytes: f.bytes,
 +  }));
@@ -625,3 +926,117 @@ index c0a122f..f33a1c1 100644
    await (input.checkpoint
      ? input.checkpoint()
      : input.operation.assertCurrent());
+diff --git a/_extensions/course-prairielearn/application/native-selection.ts b/_extensions/course-prairielearn/application/native-selection.ts
+index dc6399f..6e0fb3b 100644
+--- a/_extensions/course-prairielearn/application/native-selection.ts
++++ b/_extensions/course-prairielearn/application/native-selection.ts
+@@ -2,28 +2,24 @@ import { matchesGlob } from "node:path";
+ import { NativeProjectCheckSchema } from "./native-checks.ts";
+ import { hash, safePath } from "./source-selection.ts";
+ import { runtimeDescriptor } from "./runtime-descriptor.ts";
++import type * as Core from "course-core/public.ts";
++import type { ArtifactFile, ProjectPlan } from "course-core/public.ts";
++import type { RuntimeProfile } from "./runtime-descriptor.ts";
+ 
+-type File = {
+-  target: string;
+-  rawSource?: string;
+-  bytes: Uint8Array;
+-  sha256: string;
+-  reason: string;
+-  size: number;
+-};
+-type CoreBoundary = {
+-  ArtifactInventorySchema: { parse: (value: unknown) => any };
+-  ProjectPlanSchema: { parse: (value: unknown) => any };
+-};
++type File = Omit<ArtifactFile, "audience">;
++type CoreBoundary = Pick<
++  typeof Core,
++  "ArtifactInventorySchema" | "ProjectPlanSchema"
++>;
+ /** Pure consumer of actual checked A1 plan inventories. It never discovers files
+  * or interprets metadata. Authored roots/globs keep their exact target meaning.
+  */
+ export async function selectNativeCompilerInputs(options: {
+   core: CoreBoundary;
+   check: unknown;
+-  runtimeProfile: any;
+-  studentPlan: unknown;
+-  fullPlan: unknown;
++  runtimeProfile: RuntimeProfile;
++  studentPlan: ProjectPlan;
++  fullPlan: ProjectPlan;
+   student: unknown;
+   full: unknown;
+ }) {
+@@ -112,7 +108,7 @@ export async function selectNativeCompilerInputs(options: {
+     !Array.isArray(extensions) || !extensions.length ||
+     options.runtimeProfile?.javaRelease !== undefined &&
+       extensions.some((e: string) => e !== ".java") ||
+-    extensions.some((e: any) =>
++    extensions.some((e) =>
+       typeof e !== "string" || !/^\.[a-z][a-z0-9]*$/.test(e)
+     )
+   ) throw Error("PL.SELECTION_INVALID: runtime extensions");
+@@ -143,9 +139,7 @@ export async function selectNativeCompilerInputs(options: {
+   }
+   const trustedRecords = new Map<string, File>();
+   for (const pattern of check.tests) {
+-    const selected = (full.files as File[]).filter((f) =>
+-      matchesGlob(f.target, pattern)
+-    );
++    const selected = full.files.filter((f) => matchesGlob(f.target, pattern));
+     if (!selected.length) {
+       throw Error(
+         "PL.SELECTION_MIGRATION_REQUIRED: no A1 target for tests " + pattern,
+diff --git a/_extensions/course-prairielearn/application/runtime-descriptor.ts b/_extensions/course-prairielearn/application/runtime-descriptor.ts
+index fb6016e..6fe269f 100644
+--- a/_extensions/course-prairielearn/application/runtime-descriptor.ts
++++ b/_extensions/course-prairielearn/application/runtime-descriptor.ts
+@@ -3,6 +3,8 @@ const __metrics=__createMetrics("course-prairielearn");
+ import { normalizeDiscovery } from './grading-descriptor.ts';
+ import { javaBuild } from './java-build.ts';
+ import { safePath } from './source-selection.ts';
++import type { NativeProjectCheck } from './native-checks.ts';
++export type RuntimeProfile = NonNullable<Parameters<typeof javaBuild>[1]>;
+ export interface AdditionalJavaSources {primaryRequired?:boolean;archive:string;maxFiles:number;maxFileBytes:number;maxTotalBytes:number;maxArchiveBytes:number}
+ export function validateAdditionalJavaSources(value:any,sources:string[],tests:string[]):AdditionalJavaSources {
+   const caps={maxFiles:128,maxFileBytes:1048576,maxTotalBytes:4194304,maxArchiveBytes:2097152};
+@@ -10,7 +12,7 @@ export function validateAdditionalJavaSources(value:any,sources:string[],tests:s
+   if([...sources,...tests,'grading-job.json','tests/grading-job.json'].some(name=>name===value.archive||name.startsWith(value.archive+'/')||value.archive.startsWith(name+'/')))throw new Error('PL additional Java archive conflicts with primary/trusted path');
+   return {...value};
+ }
+-function publicCases(value:any){
++function publicCases(value:NonNullable<NativeProjectCheck['public-cases']>){
+  if(!Array.isArray(value)||value.length>32)throw Error('PL public-cases requires a bounded list');
+  const ids=new Set<string>();
+  return value.map(c=>{
+@@ -19,12 +21,12 @@ function publicCases(value:any){
+  });
+ }
+ export interface ApiPrecheck {files:string[];entry:string}
+-export function runtimeDescriptor(c: any, profile: any, sources: string[], tests: string[], api?:ApiPrecheck) {
++export function runtimeDescriptor(c: NativeProjectCheck, profile: RuntimeProfile, sources: string[], tests: string[], api?:ApiPrecheck) {
+   const build=javaBuild(c,profile);
+   const javaRuntime = profile.javaRelease !== undefined || !profile.sourceExtensions;
+   if (!javaRuntime && c.java !== undefined) throw new Error('PL non-Java runtime cannot declare Java compiler settings');
+   if(Boolean(c['api-precheck'])!==Boolean(api))throw new Error('PL API precheck selection missing or undeclared');
+-  if(api&&(!['java25-junit-v1','java25-gradle-junit-v1'].includes(c.runtime)||!javaRuntime||c.sourceProfile.mode!=='implementation'||!Array.isArray(api.files)||!api.files.length||new Set(api.files).size!==api.files.length||api.files.length>=tests.length||api.files.some(x=>!safePath(x)||!x.endsWith('.java')||!tests.includes(x))||!/^[A-Za-z_$][\w$]*(?:\.[A-Za-z_$][\w$]*)*$/.test(api.entry)||api.entry!==c['api-precheck'].entry))throw new Error('PL API precheck must be a proper trusted Java subset');
++  if(api&&(!['java25-junit-v1','java25-gradle-junit-v1'].includes(c.runtime)||!javaRuntime||c.sourceProfile.mode!=='implementation'||!Array.isArray(api.files)||!api.files.length||new Set(api.files).size!==api.files.length||api.files.length>=tests.length||api.files.some(x=>!safePath(x)||!x.endsWith('.java')||!tests.includes(x))||!/^[A-Za-z_$][\w$]*(?:\.[A-Za-z_$][\w$]*)*$/.test(api.entry)||api.entry!==c['api-precheck']!.entry))throw new Error('PL API precheck must be a proper trusted Java subset');
+   if(c.feedback!==undefined&&(!c.feedback||typeof c.feedback!=='object'||Array.isArray(c.feedback)||Object.keys(c.feedback).sort().join(',')!=='requirement,what-check'||Object.values(c.feedback).some(v=>typeof v!=='string'||!v||v.length>8192)))throw Error('PL feedback requires explicit public requirement/what-check');
+   const extra=c['additional-java-sources'];
+   let additionalJavaSources:AdditionalJavaSources|undefined;
+diff --git a/_extensions/course-prairielearn/application/source-selection.ts b/_extensions/course-prairielearn/application/source-selection.ts
+index bd33b36..2628e05 100644
+--- a/_extensions/course-prairielearn/application/source-selection.ts
++++ b/_extensions/course-prairielearn/application/source-selection.ts
+@@ -2,7 +2,7 @@ import {createMetrics as __createMetrics} from "../observability/bridge.ts";
+ const __metrics=__createMetrics("course-prairielearn");
+ import { javaBuild } from './java-build.ts';
+ import { join, relative, resolve } from "node:path";
+-export const safePath = (p: string) =>
++export const safePath = (p: unknown): p is string =>
+   typeof p === "string" && !!p && !/^(?:[\/\\]|[A-Za-z]:)/.test(p) &&
+   !p.includes("\\") && !p.includes("\0") && !p.split("/").some((p) =>
+     !p || p === "." || p === ".."

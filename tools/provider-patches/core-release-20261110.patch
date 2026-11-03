@@ -1396,7 +1396,7 @@ index 915a4eb..7224805 100644
      }
    };
 diff --git a/_extensions/course-core/runtime/assignment-execution.ts b/_extensions/course-core/runtime/assignment-execution.ts
-index 91283a0..2c99102 100644
+index 91283a0..a02318c 100644
 --- a/_extensions/course-core/runtime/assignment-execution.ts
 +++ b/_extensions/course-core/runtime/assignment-execution.ts
 @@ -1,10 +1,11 @@
@@ -1536,7 +1536,7 @@ index 91283a0..2c99102 100644
  export function assignmentChild(
    executable: string,
    args: readonly string[],
-@@ -141,92 +134,103 @@ export function assignmentChild(
+@@ -141,92 +134,105 @@ export function assignmentChild(
  ) {
    const state = execution();
    if (!state) return undefined;
@@ -1673,6 +1673,8 @@ index 91283a0..2c99102 100644
 +    } else if (fixed[key] !== value) changed("Чужой native environment " + key);
      fixed[key] = value;
    }
++  // Private capture ждёт выхода Quarto; site ZIP в этой операции не нужны.
++  if (render) fixed.COURSE_SITE_DEFER_DOWNLOADS = "1";
    return {
 -    executable: target,
 +    executable: runtime.executable,
@@ -1704,7 +1706,7 @@ index 91283a0..2c99102 100644
      })!;
      await assignmentBeforeChild();
      const result = await new Deno.Command(qualified.executable, {
-@@ -240,22 +244,22 @@ export function runAssignmentCaptureChild(
+@@ -240,22 +246,22 @@ export function runAssignmentCaptureChild(
      if (!result.success) {
        fail(
          "OPERATION_INCOMPLETE",

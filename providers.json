@@ -21,11 +21,11 @@
       "candidate": {
         "status": "local-unpublished",
         "baseCommit": "a478d2cc0dfb19e0bebd99108815ac8ef1fe85a8",
-        "commit": "0478458a71f3acf34ad6d9983ac11023783dde3d",
+        "commit": "830381697beea4106655965e10605cc13987199b",
         "patch": "tools/provider-patches/core-release-20261110.patch",
-        "patchSha256": "11d24f674ab73a582f8ab9a022ad38a719c3a019387ec4b2b8c17317007b0a97",
+        "patchSha256": "615acc03c994faf7661093fc6e49d46dd95a030f37b72b8af6c2ccd368cad20e",
         "packageHashes": {
-          "course-core": "f3c091642f54f4be88e6644180a88d9bb939c9f221ba087a07ed4de808bfdc9b"
+          "course-core": "424358c9283657c76549fc5401689c730af7b13a1e7a1065a89dc589845cc422"
         }
       }
     },
@@ -75,11 +75,11 @@
       "candidate": {
         "status": "local-unpublished",
         "baseCommit": "1c41f03f83b26adfe58415b4d89958a3663fabf2",
-        "commit": "f9c00aed6de610dce7d9b7cb6e50c28ebfb9573e",
+        "commit": "da2ad6b6c00891590e59e5abccf3d1eb4ff552f7",
         "patch": "tools/provider-patches/pl-release-20261110.patch",
-        "patchSha256": "67430998e8b5de8ee66bfe8e881a37862a674b068b793dcbc2256de3d9c15b33",
+        "patchSha256": "f301cc3dd6eb230db8b1f86d9a7b389ff261b3857c70f508dc8d7859e0dea054",
         "packageHashes": {
-          "course-prairielearn": "b94cbdde5911ec429b46e98057425de849737ed43b35a42733fefa67d66ca3f1"
+          "course-prairielearn": "3423b3b1d58a18dd078e6327ac0d2bfeed6eab35f7904777bac9c00ebff3bf7e"
         }
       }
     },

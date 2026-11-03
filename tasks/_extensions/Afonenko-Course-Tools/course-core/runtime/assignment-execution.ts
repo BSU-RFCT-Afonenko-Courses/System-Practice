@@ -208,6 +208,8 @@ export function assignmentChild(
     } else if (fixed[key] !== value) changed("Чужой native environment " + key);
     fixed[key] = value;
   }
+  // Private capture ждёт выхода Quarto; site ZIP в этой операции не нужны.
+  if (render) fixed.COURSE_SITE_DEFER_DOWNLOADS = "1";
   return {
     executable: runtime.executable,
     options: { args: [...args], cwd, env: fixed, clearEnv: true as const },
