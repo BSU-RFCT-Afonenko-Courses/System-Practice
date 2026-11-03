@@ -1,15 +1,15 @@
-import { SupportedQuartoVersionSchema } from "../infrastructure/quarto-version.ts";
 import { basename, dirname, join, relative, resolve } from "stdlib/path";
 import { fail } from "../contracts/project.ts";
 import { assertSources, signature, snapshot } from "./source-snapshot.ts";
 import type { SourceSnapshotState } from "./source-snapshot.ts";
 import type { NativeCaptureReservation } from "./contracts.ts";
+import type { NativeOwnerInspection } from "./operation.ts";
 export type AssignmentIntent = { source: string; id: string }[];
 export type AssignmentPreparation = {
   assignment: {
     mode: "new";
     profiles?: readonly string[];
-    prepare: (owner: Readonly<Record<string, unknown>>) => Promise<{
+    prepare: (owner: Readonly<NativeOwnerInspection>) => Promise<{
       expectedSources: readonly string[];
       assessments: readonly { source: string; id: string }[];
     }>;
@@ -27,7 +27,7 @@ export type AssignmentRuntimeWitness = {
 export type AssignmentAdmission = {
   source: SourceSnapshotState;
   operation: string;
-  owner: Record<string, any>;
+  owner: NativeOwnerInspection;
   inputs: string[];
   assessments: AssignmentIntent;
   runtime: AssignmentRuntimeWitness;
@@ -205,11 +205,8 @@ export async function prepareAssignment(
     fail("OPERATION_CHANGED", "Runtime изменён во время preparation");
   }
   if (
-    owner.dir !== source.root ||
-    !SupportedQuartoVersionSchema.safeParse(owner.quarto?.version).success ||
     owner.config?.["course-core-runtime"] !== "native-ts" ||
-    owner.config?.["course-core-projection"] !== "author" ||
-    !Array.isArray(owner.files?.input)
+    owner.config?.["course-core-projection"] !== "author"
   ) invalid("Native owner не соответствует author operation");
   const selection = await options.assignment.prepare(
     frozen(structuredClone(owner)),

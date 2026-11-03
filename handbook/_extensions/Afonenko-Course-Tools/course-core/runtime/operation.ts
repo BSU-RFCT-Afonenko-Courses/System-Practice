@@ -114,6 +114,59 @@ const base = (root: string) => join(root, "_generated/course-spec/native-ts");
 const pointer = (root: string) => join(base(root), "active.json");
 const same = (a: unknown, b: unknown) =>
   JSON.stringify(a) === JSON.stringify(b);
+function record(value: unknown): value is Record<string, unknown> {
+  return value !== null && typeof value === "object" && !Array.isArray(value);
+}
+/** Только используемые поля inspect; полный payload и extension bags сохраняются. */
+export type NativeOwnerInspection = Record<string, unknown> & {
+  dir: string;
+  quarto: Record<string, unknown> & { version: string };
+  config: Record<string, unknown>;
+  files: Record<string, unknown> & { input: string[]; config?: string[] };
+};
+/** Тот же owner guard на выходе JSON, до path операций и передачи callback. */
+export function decodeNativeOwnerInspection(
+  value: unknown,
+  root: string,
+): NativeOwnerInspection {
+  if (!record(value) || !record(value.files)) {
+    fail("OPERATION_BINDING", "Нет native owner input scope");
+  }
+  const inputs: unknown = value.files.input;
+  if (
+    !Array.isArray(inputs) ||
+    !inputs.every((path: unknown) => typeof path === "string")
+  ) fail("OPERATION_BINDING", "Нет native owner input scope");
+  let configs: string[] | undefined;
+  if (value.files.config !== undefined) {
+    const paths: unknown = value.files.config;
+    if (
+      !Array.isArray(paths) ||
+      !paths.every((path: unknown) => typeof path === "string")
+    ) fail("OPERATION_BINDING", "Некорректный native owner config scope");
+    configs = paths;
+  }
+  const version = SupportedQuartoVersionSchema.safeParse(
+    record(value.quarto) ? value.quarto.version : undefined,
+  );
+  if (
+    !version.success || value.dir !== root || !record(value.config) ||
+    !record(value.quarto)
+  ) {
+    fail("OPERATION_UNQUALIFIED", "Требуется native Quarto>=1.11.5 owner");
+  }
+  return {
+    ...value,
+    dir: value.dir,
+    quarto: { ...value.quarto, version: version.data },
+    config: value.config,
+    files: {
+      ...value.files,
+      input: inputs,
+      ...(configs === undefined ? {} : { config: configs }),
+    },
+  };
+}
 const pathSchema = z.string().min(1).refine((s) =>
   !s.startsWith("/") && !s.includes("\\") && !s.includes("\0") &&
   s.split("/").every((p) => p && p !== "." && p !== "..")
@@ -276,13 +329,16 @@ export async function inspectNativeOwner(
   profiles: string[],
   executable = quartoExecutable(),
   environment?: Record<string, string>,
-) {
+): Promise<NativeOwnerInspection> {
   const args = [
     "inspect",
     root,
     ...(profiles.length ? ["--profile", profiles.join(",")] : []),
   ];
-  if (!environment) return JSON.parse(await command(executable, args, root));
+  if (!environment) {
+    const value: unknown = JSON.parse(await command(executable, args, root));
+    return decodeNativeOwnerInspection(value, root);
+  }
   const result = await new Deno.Command(executable, {
     args,
     cwd: root,
@@ -297,12 +353,21 @@ export async function inspectNativeOwner(
       new TextDecoder().decode(result.stderr),
     );
   }
-  return JSON.parse(
+  const value: unknown = JSON.parse(
     new TextDecoder("utf-8", { fatal: true }).decode(result.stdout),
   );
+  return decodeNativeOwnerInspection(value, root);
 }
-async function json(path: string) {
+async function json(path: string): Promise<unknown> {
   return JSON.parse(await Deno.readTextFile(path));
+}
+function nativePointer(value: unknown, root: string, message: string) {
+  if (!record(value)) fail("OPERATION_BINDING", message);
+  const operation = z.uuid().safeParse(value.operation);
+  if (!operation.success) fail("OPERATION_BINDING", message);
+  const directory = join(base(root), operation.data);
+  if (value.directory !== directory) fail("OPERATION_BINDING", message);
+  return { operation: operation.data, directory };
 }
 async function nativeFileSelection(root: string, key: string) {
   const file = Deno.env.get(
@@ -421,32 +486,22 @@ const reservationPath = (r: Pick<Reservation, "directory">) =>
   join(r.directory, "reservation.json");
 async function readOptionalPointer(root: string) {
   try {
-    const current = await json(
-      await regular(root, relative(root, pointer(root))),
+    return nativePointer(
+      await json(await regular(root, relative(root, pointer(root)))),
+      root,
+      "Чужой private operation pointer",
     );
-    if (
-      !z.uuid().safeParse(current.operation).success ||
-      current.directory !== join(base(root), current.operation)
-    ) {
-      fail("OPERATION_BINDING", "Чужой private operation pointer");
-    }
-    return {
-      operation: current.operation as string,
-      directory: current.directory as string,
-    };
   } catch (e) {
     if (e instanceof Deno.errors.NotFound) return undefined;
     throw e;
   }
 }
 async function readReservation(root: string): Promise<Reservation> {
-  const active = await json(await regular(root, relative(root, pointer(root))));
-  if (
-    !z.uuid().safeParse(active.operation).success ||
-    active.directory !== join(base(root), active.operation)
-  ) {
-    fail("OPERATION_BINDING", "Чужой scope pointer");
-  }
+  const active = nativePointer(
+    await json(await regular(root, relative(root, pointer(root)))),
+    root,
+    "Чужой scope pointer",
+  );
   const reservation = decode(
     reservationSchema,
     await json(
@@ -576,13 +631,11 @@ export async function withNativeCaptureScope<T>(
   await withWriter(root, async () => {
     // Existing private data must remain a recognized Core pointer.
     try {
-      const current = await json(
-        await regular(root, relative(root, pointer(root))),
+      nativePointer(
+        await json(await regular(root, relative(root, pointer(root)))),
+        root,
+        "Чужой private pointer",
       );
-      if (
-        !z.uuid().safeParse(current.operation).success ||
-        current.directory !== join(base(root), current.operation)
-      ) fail("OPERATION_BINDING", "Чужой private pointer");
     } catch (e) {
       if (!(e instanceof Deno.errors.NotFound)) throw e;
     }
@@ -639,7 +692,6 @@ export async function withNativeCaptureScope<T>(
     bindOwner(state, prepared.owner, true, expected.outputDirectory);
     prepared.source.relevantInputs = state.relevantInputs;
     prepared.source.ownerInputs = state.ownerInputs;
-    await assertSources(state);
     await assertAssignmentRuntime(
       state.assignment!.runtime,
       root,
@@ -892,17 +944,14 @@ export async function withNativeCaptureScope<T>(
     live = false;
   }
 }
-function bindOwner(
+export function bindOwner(
   state: State,
-  owner: any,
+  owner: NativeOwnerInspection,
   expectedProjection: boolean,
   nativeOutput?: string,
 ) {
   const root = state.root, inputs = state.inputs;
-  if (!Array.isArray(owner.files?.input)) {
-    fail("OPERATION_BINDING", "Нет native owner input scope");
-  }
-  state.ownerInputs = owner.files.input.map((path: string) =>
+  state.ownerInputs = owner.files.input.map((path) =>
     relative(root, resolve(root, path))
   );
   if (
@@ -911,14 +960,14 @@ function bindOwner(
     state.ownerInputs.some((path) => !pathSchema.safeParse(path).success)
   ) fail("OPERATION_BINDING", "Некорректный native owner input scope");
   let outputDirectory = state.outputDirectory;
-  const view = owner.config?.course?.view;
+  const view = record(owner.config.course)
+    ? owner.config.course.view
+    : undefined;
   const projection = owner.config?.["course-core-projection"] ??
     (view === "full" ? "author" : "student");
   if (
-    !SupportedQuartoVersionSchema.safeParse(owner.quarto?.version).success ||
-    owner.dir !== root ||
     (owner.config?.["course-core-runtime"] ?? "native-ts") !== "native-ts" ||
-    !["student", "author"].includes(projection) ||
+    (projection !== "student" && projection !== "author") ||
     (view !== undefined &&
       view !== (projection === "author" ? "full" : "student"))
   ) {
@@ -933,7 +982,7 @@ function bindOwner(
   const policy = owner.config?.["course-core-source-policy"] === undefined
     ? "general"
     : owner.config["course-core-source-policy"];
-  if (!["general", "static"].includes(policy)) {
+  if (policy !== "general" && policy !== "static") {
     fail("OPERATION_SOURCE_POLICY", "Неизвестная source policy");
   }
   if (policy === "static") {
@@ -941,8 +990,12 @@ function bindOwner(
       !Array.isArray(owner.engines) || !owner.engines.length ||
       owner.engines.some((engine: unknown) => engine !== "markdown") ||
       owner.config?.["ojs-engine"] === true ||
-      Object.values(owner.config?.format ?? {}).some((format: any) =>
-        format?.["ojs-engine"] === true
+      Object.values(
+        owner.config.format !== null && typeof owner.config.format === "object"
+          ? owner.config.format
+          : {},
+      ).some((format: unknown) =>
+        record(format) && format["ojs-engine"] === true
       )
     ) {
       fail(
@@ -951,17 +1004,23 @@ function bindOwner(
       );
     }
     for (const input of state.ownerInputs) {
-      const information = owner.fileInformation?.[input];
+      const information = record(owner.fileInformation)
+        ? owner.fileInformation[input]
+        : undefined;
       if (
-        !information || !Array.isArray(information.codeCells) ||
-        !information.metadata || typeof information.metadata !== "object" ||
-        Array.isArray(information.metadata) ||
+        !record(information) || !Array.isArray(information.codeCells) ||
+        !record(information.metadata) ||
         information.metadata["ojs-engine"] === true ||
-        Object.values(information.metadata.format ?? {}).some((format: any) =>
-          format?.["ojs-engine"] === true
+        Object.values(
+          information.metadata.format !== null &&
+            typeof information.metadata.format === "object"
+            ? information.metadata.format
+            : {},
+        ).some((format: unknown) =>
+          record(format) && format["ojs-engine"] === true
         ) ||
-        information.codeCells.some((cell: any) =>
-          !cell || typeof cell.language !== "string" ||
+        information.codeCells.some((cell: unknown) =>
+          !record(cell) || typeof cell.language !== "string" ||
           (!/^=[A-Za-z][A-Za-z0-9_-]*$/.test(cell.language) &&
             !["mermaid", "dot"].includes(cell.language))
         )
@@ -975,9 +1034,17 @@ function bindOwner(
   }
   state.sourcePolicy = policy;
   state.projection = projection;
+  const output = nativeOutput ??
+    (record(owner.config.project)
+      ? owner.config.project["output-dir"]
+      : undefined) ??
+    "_site";
+  if (typeof output !== "string") {
+    fail("OPERATION_BINDING", "Native output не является путём");
+  }
   outputDirectory = resolve(
     root,
-    nativeOutput ?? owner.config.project?.["output-dir"] ?? "_site",
+    output,
   );
   if (outputDirectory !== state.outputDirectory) {
     fail("OPERATION_BINDING", "Native output отличается");
@@ -990,12 +1057,18 @@ function bindOwner(
   const relevant = new Set<string>(configuration);
   for (const source of inputs) {
     const dependencies = new Set<string>([source]);
-    const information = owner.fileInformation?.[source];
-    if (!information || !Array.isArray(information.includeMap)) {
+    const information = record(owner.fileInformation)
+      ? owner.fileInformation[source]
+      : undefined;
+    if (!record(information) || !Array.isArray(information.includeMap)) {
       fail("OPERATION_UNQUALIFIED", "Нет native include closure");
     }
-    for (const edge of information.includeMap) {
-      if (typeof edge.source !== "string" || typeof edge.target !== "string") {
+    const edges: readonly unknown[] = information.includeMap;
+    for (const edge of edges) {
+      if (
+        !record(edge) || typeof edge.source !== "string" ||
+        typeof edge.target !== "string"
+      ) {
         fail(
           "OPERATION_UNQUALIFIED",
           "Некорректное native include observation",
@@ -1426,11 +1499,11 @@ async function finishNativeOperationInternal(
     await invalidateNoWorkHook(root);
     return;
   }
-  const active = await json(pointer(root));
-  if (
-    !z.uuid().safeParse(active.operation).success ||
-    active.directory !== join(base(root), active.operation)
-  ) fail("OPERATION_BINDING", "Чужой private operation pointer");
+  const active = nativePointer(
+    await json(pointer(root)),
+    root,
+    "Чужой private operation pointer",
+  );
   const state = decode(
     stateSchema,
     await json(join(active.directory, "state.json")),
@@ -1463,6 +1536,9 @@ async function finishNativeOperationInternal(
       const delta = await json(
         join(state.directory, "pre-" + token + ".metrics.json"),
       );
+      if (!record(delta)) {
+        fail("OPERATION_BINDING", "Некорректные child metrics");
+      }
       for (
         const key of Object.keys(state.metrics) as (keyof State["metrics"])[]
       ) {
@@ -1912,7 +1988,7 @@ async function sealCaptureScope(reservation: Reservation) {
     !same(state.inputs, reservation.expectedSources)
   ) fail("OPERATION_BINDING", "Чужой seal state");
   const baselineMetrics = { ...state.metrics };
-  await assertPrivate(state, true);
+  await assertPrivate(state);
   const children = [];
   for (const child of reservation.children) {
     children.push(
@@ -2007,6 +2083,9 @@ async function sealCaptureScope(reservation: Reservation) {
     const delta = await json(
       await regular(root, relative(root, join(state.directory, entry.name))),
     );
+    if (!record(delta)) {
+      fail("OPERATION_BINDING", "Некорректные pending metrics");
+    }
     for (
       const key of Object.keys(state.metrics) as (keyof State["metrics"])[]
     ) {
@@ -2093,16 +2172,16 @@ export async function withPendingNativeOperation<T>(
   }
   let active: { operation: string; directory: string }, state: State;
   try {
-    active = await json(
-      await regular(
-        expectation.root,
-        relative(expectation.root, pointer(expectation.root)),
+    active = nativePointer(
+      await json(
+        await regular(
+          expectation.root,
+          relative(expectation.root, pointer(expectation.root)),
+        ),
       ),
+      expectation.root,
+      "Чужой pending pointer",
     );
-    if (
-      !z.uuid().safeParse(active.operation).success ||
-      active.directory !== join(base(expectation.root), active.operation)
-    ) fail("OPERATION_BINDING", "Чужой pending pointer");
     state = decode(
       stateSchema,
       await json(
@@ -2250,17 +2329,17 @@ export async function withCurrentNativeOperation<T>(
       expectation.root,
       relative(expectation.root, pointer(expectation.root)),
     );
-    active = await json(pointer(expectation.root));
+    active = nativePointer(
+      await json(pointer(expectation.root)),
+      expectation.root,
+      "Неверный operation pointer",
+    );
   } catch (error) {
     if (error instanceof Deno.errors.NotFound) {
       fail("OPERATION_BINDING", "В owner нет текущей native операции");
     }
     throw error;
   }
-  if (
-    !z.uuid().safeParse(active.operation).success ||
-    active.directory !== join(base(expectation.root), active.operation)
-  ) fail("OPERATION_BINDING", "Неверный operation pointer");
   const path = join(active.directory, "complete.json");
   let signatureBefore: string, complete: z.output<typeof completeSchema>;
   try {
@@ -2964,6 +3043,12 @@ function publicOperation(
         const contract = await json(
           await regular(complete.state.root, row.path),
         );
+        if (!record(contract)) {
+          fail(
+            "CORE.ADAPTER_INVALID",
+            "Некорректный installed adapter contract",
+          );
+        }
         if (typeof contract.name === "string") {
           if (installed.includes(contract.name)) {
             fail(

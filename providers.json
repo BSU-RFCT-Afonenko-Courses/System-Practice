@@ -21,11 +21,11 @@
       "candidate": {
         "status": "local-unpublished",
         "baseCommit": "a478d2cc0dfb19e0bebd99108815ac8ef1fe85a8",
-        "commit": "830381697beea4106655965e10605cc13987199b",
+        "commit": "d7cc10eaa21fa35bbe32d73cc4afa216002393da",
         "patch": "tools/provider-patches/core-release-20261110.patch",
-        "patchSha256": "615acc03c994faf7661093fc6e49d46dd95a030f37b72b8af6c2ccd368cad20e",
+        "patchSha256": "026894546be9474e5c1e8a7d4d045b3fb47e647b3c51083eb0cdb40f0e878103",
         "packageHashes": {
-          "course-core": "424358c9283657c76549fc5401689c730af7b13a1e7a1065a89dc589845cc422"
+          "course-core": "ad5cbe9e69c28a95a5e4c82eb13e8572aa534682eea0126e7b3510a0f37ec248"
         }
       }
     },
