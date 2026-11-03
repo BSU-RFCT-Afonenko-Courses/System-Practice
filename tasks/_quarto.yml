@@ -50,6 +50,7 @@ profile:
   - - student
     - full
 book:
+  site-url: https://bsu-rfct-afonenko-courses.github.io/System-Practice/tasks/
   title: System Practice — лабораторные и проект
   chapters:
   - index.qmd
@@ -67,8 +68,6 @@ book:
       href: ../index.html#sec-system-practice
       text: Портал курса
 
-website:
-  site-url: https://bsu-rfct-afonenko-courses.github.io/System-Practice/tasks/
 course:
   id: system-practice
   adapters: [prairielearn]
