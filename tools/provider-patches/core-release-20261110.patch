@@ -1861,7 +1861,7 @@ index 1d6c426..01efd94 100644
    fullSourceFences: z.number().int().nonnegative(),
    localSourceFences: z.number().int().nonnegative(),
 diff --git a/_extensions/course-core/runtime/operation.ts b/_extensions/course-core/runtime/operation.ts
-index 963e65a..f7f5c00 100644
+index 963e65a..1c30633 100644
 --- a/_extensions/course-core/runtime/operation.ts
 +++ b/_extensions/course-core/runtime/operation.ts
 @@ -18,12 +18,6 @@ import type {
@@ -2067,17 +2067,18 @@ index 963e65a..f7f5c00 100644
          runtimePathReads: prepared.runtimePathReads,
          runtimeDirectoryReads: prepared.runtimeDirectoryReads,
          outputHashReads: 0,
-@@ -636,8 +636,8 @@ export async function withNativeCaptureScope<T>(
+@@ -636,8 +636,9 @@ export async function withNativeCaptureScope<T>(
        },
      };
      preparedState = state;
 -    addAuthorityMetrics(state.metrics, prepared);
      bindOwner(state, prepared.owner, true, expected.outputDirectory);
 +    prepared.source.relevantInputs = state.relevantInputs;
++    prepared.source.ownerInputs = state.ownerInputs;
      await assertSources(state);
      await assertAssignmentRuntime(
        state.assignment!.runtime,
-@@ -655,9 +655,6 @@ export async function withNativeCaptureScope<T>(
+@@ -655,9 +656,6 @@ export async function withNativeCaptureScope<T>(
      prepared
        ? {
          ...prepared.source.metrics,
@@ -2087,7 +2088,7 @@ index 963e65a..f7f5c00 100644
          runtimeHashReads: prepared.runtimeHashReads,
          runtimeHashBytes: prepared.runtimeHashBytes,
          runtimePathReads: prepared.runtimePathReads,
-@@ -842,7 +839,7 @@ export async function withNativeCaptureScope<T>(
+@@ -842,7 +840,7 @@ export async function withNativeCaptureScope<T>(
            signature(await Deno.lstat(preparedStatePath)) !==
              preparedStateSignature
          ) fail("OPERATION_CHANGED", "Prepared state replaced");
@@ -2096,7 +2097,7 @@ index 963e65a..f7f5c00 100644
          await assertAssignmentRuntime(prepared.runtime, root, prepared);
        };
        try {
-@@ -853,7 +850,7 @@ export async function withNativeCaptureScope<T>(
+@@ -853,7 +851,7 @@ export async function withNativeCaptureScope<T>(
              captureInputs(
                sources,
                (token) =>
@@ -2105,7 +2106,7 @@ index 963e65a..f7f5c00 100644
                    runAssignmentCaptureChild(token, command), guard),
              ),
            async () => {
-@@ -1058,8 +1055,6 @@ async function writePendingState(state: State) {
+@@ -1058,8 +1056,6 @@ async function writePendingState(state: State) {
              assignment: {
                source: inputs[index],
                assessments: state.assignment.assessments,
@@ -2114,7 +2115,7 @@ index 963e65a..f7f5c00 100644
              },
            }
            : {}),
-@@ -1074,6 +1069,61 @@ async function writePendingState(state: State) {
+@@ -1074,6 +1070,61 @@ async function writePendingState(state: State) {
    );
  }
  
@@ -2176,7 +2177,7 @@ index 963e65a..f7f5c00 100644
  /** Production pre-render: реальный native inspect, source fence и новые capture capabilities. */
  export async function beginNativeOperation(root: string) {
    return await beginNativeOperationInternal(root, false);
-@@ -1227,13 +1277,13 @@ async function beginNativeOperationInternal(root: string, nativeHook: boolean) {
+@@ -1227,13 +1278,13 @@ async function beginNativeOperationInternal(root: string, nativeHook: boolean) {
    await Deno.mkdir(base(root), { recursive: true });
    if (!reservation) await Deno.mkdir(directory, { mode: 0o700 });
    const initialRuntimeMetrics = { runtimeHashReads: 0, runtimeHashBytes: 0 };
@@ -2192,7 +2193,7 @@ index 963e65a..f7f5c00 100644
      operation,
      root,
      directory,
-@@ -1250,9 +1300,8 @@ async function beginNativeOperationInternal(root: string, nativeHook: boolean) {
+@@ -1250,9 +1301,8 @@ async function beginNativeOperationInternal(root: string, nativeHook: boolean) {
      documentInputs: {},
      memberships: {},
      invocation: initialInvocation,
@@ -2203,7 +2204,7 @@ index 963e65a..f7f5c00 100644
        fullSourceFences: 0,
        localSourceFences: 0,
        sourceDirectoryReads: 0,
-@@ -1272,13 +1321,7 @@ async function beginNativeOperationInternal(root: string, nativeHook: boolean) {
+@@ -1272,13 +1322,7 @@ async function beginNativeOperationInternal(root: string, nativeHook: boolean) {
      },
    };
    await snapshot(state);
@@ -2218,7 +2219,7 @@ index 963e65a..f7f5c00 100644
    state.metrics.inspectCalls++;
    bindOwner(
      state,
-@@ -1287,7 +1330,9 @@ async function beginNativeOperationInternal(root: string, nativeHook: boolean) {
+@@ -1287,7 +1331,9 @@ async function beginNativeOperationInternal(root: string, nativeHook: boolean) {
      Deno.env.get("QUARTO_PROJECT_OUTPUT_DIR"),
    );
    await assertSources(state);
@@ -2229,7 +2230,7 @@ index 963e65a..f7f5c00 100644
      fail("OPERATION_CHANGED", "Runtime изменён во время bind");
    }
    if (reservation) await assertReservationCurrent(reservation);
-@@ -1506,30 +1551,58 @@ async function finishNativeOperationInternal(
+@@ -1506,30 +1552,58 @@ async function finishNativeOperationInternal(
        fail("OPERATION_BINDING", "Output collision");
      }
      if (state.assignment) {
@@ -2299,7 +2300,7 @@ index 963e65a..f7f5c00 100644
        state.metrics.nativeMetadataBytes +=
          new TextEncoder().encode(JSON.stringify(native.assignmentDeclarations))
            .length;
-@@ -1884,6 +1957,25 @@ async function sealCaptureScope(reservation: Reservation) {
+@@ -1884,6 +1958,25 @@ async function sealCaptureScope(reservation: Reservation) {
        !same(child.state.rows, state.rows) ||
        !same(child.state.memberships, state.memberships)
      ) fail("OPERATION_BINDING", "Child owner/S witness отличается");
@@ -2325,7 +2326,7 @@ index 963e65a..f7f5c00 100644
      for (const resource of child.resources) {
        const known = resources.find((r) => r.source === resource.source);
        if (known) {
-@@ -2339,7 +2431,6 @@ export async function withCurrentNativeOperation<T>(
+@@ -2339,7 +2432,6 @@ export async function withCurrentNativeOperation<T>(
    const beforeOperationChild = async () => {
      callbackGuard();
      await guard();
@@ -2333,7 +2334,7 @@ index 963e65a..f7f5c00 100644
      callbackGuard();
    };
    const run = async () => {
-@@ -2371,10 +2462,8 @@ export async function withCurrentNativeOperation<T>(
+@@ -2371,10 +2463,8 @@ export async function withCurrentNativeOperation<T>(
      await guard(true);
      return complete.state.assignment
        ? await withAssignmentExecution(
@@ -2346,7 +2347,7 @@ index 963e65a..f7f5c00 100644
          run,
          beforeOperationChild,
        )
-@@ -2825,7 +2914,6 @@ function publicOperation(
+@@ -2825,7 +2915,6 @@ function publicOperation(
          ...metrics,
          ...Object.fromEntries(
            [
@@ -2354,7 +2355,7 @@ index 963e65a..f7f5c00 100644
              "sourceHashBytes",
              "fullSourceFences",
              "localSourceFences",
-@@ -3105,9 +3193,6 @@ function publicOperation(
+@@ -3105,9 +3194,6 @@ function publicOperation(
          ...complete.resources.map((row) =>
            resolve(complete.state.root, row.source)
          ),
@@ -2364,3 +2365,75 @@ index 963e65a..f7f5c00 100644
        ]);
        const publicResource = (absolute: string) => {
          roles.assertPath(absolute);
+diff --git a/_extensions/course-core/runtime/source-snapshot.ts b/_extensions/course-core/runtime/source-snapshot.ts
+index cb0ab9d..93b7ec4 100644
+--- a/_extensions/course-core/runtime/source-snapshot.ts
++++ b/_extensions/course-core/runtime/source-snapshot.ts
+@@ -13,6 +13,8 @@ export type SourceSnapshotState = {
+   rows: { path: string; signature: string; sha256: string }[];
+   memberships: Record<string, string[]>;
+   relevantInputs: string[];
++  /** Тот же existing native owner witness; до owner inspect отсутствует. */
++  ownerInputs?: readonly string[];
+   metrics: {
+     fullWalks: number;
+     sourceDirectoryReads: number;
+@@ -210,12 +212,42 @@ export async function assertSources(
+       parent = dirname(parent);
+     }
+   }
++  // Quarto удаляет пустой <input stem>_files/mediabag после render.
++  // Разрешено только исчезновение exact fileless baseline actual owner input.
++  const emptyNativeDirectories = new Set<string>();
++  for (const input of state.ownerInputs ?? []) {
++    if (!index.rows.has(input)) continue;
++    const supporting = input.replace(/\.[^/.]+$/, "") + "_files";
++    const names = state.memberships[supporting];
++    const media = supporting + "/mediabag";
++    if (
++      !names ||
++      !(names.length === 0 ||
++        names.length === 1 && names[0] === "mediabag" &&
++          state.memberships[media]?.length === 0) ||
++      state.rows.some((row) =>
++        row.path === supporting || row.path.startsWith(supporting + "/")
++      )
++    ) continue;
++    emptyNativeDirectories.add(supporting);
++    if (names.length) emptyNativeDirectories.add(media);
++  }
+   const selectedDirectories = full ? index.directories.keys() : directories;
+   for (const dir of selectedDirectories) {
+     const names = state.memberships[dir], known = index.directories.get(dir);
+     if (!names || !known) continue;
+-    if (dir && !(await inspectPath(dir)).isDirectory) {
+-      fail("OPERATION_CHANGED", "Native source directory type изменён");
++    if (dir) {
++      try {
++        if (!(await inspectPath(dir)).isDirectory) {
++          fail("OPERATION_CHANGED", "Native source directory type изменён");
++        }
++      } catch (error) {
++        if (
++          error instanceof Deno.errors.NotFound &&
++          emptyNativeDirectories.has(dir)
++        ) continue;
++        throw error;
++      }
+     }
+     const current: string[] = [];
+     state.metrics.sourceDirectoryReads++;
+@@ -233,7 +265,12 @@ export async function assertSources(
+       ) continue;
+       current.push(entry.name);
+     }
+-    if (!same(current.sort(), names)) {
++    const present = new Set(current);
++    const expected = names.filter((name) =>
++      present.has(name) ||
++      !emptyNativeDirectories.has(dir ? dir + "/" + name : name)
++    );
++    if (!same(current.sort(), expected)) {
+       fail("OPERATION_CHANGED", "Изменён состав native source: " + dir);
+     }
+   }

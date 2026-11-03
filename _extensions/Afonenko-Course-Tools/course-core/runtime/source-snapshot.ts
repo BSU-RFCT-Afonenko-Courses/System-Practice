@@ -13,6 +13,8 @@ export type SourceSnapshotState = {
   rows: { path: string; signature: string; sha256: string }[];
   memberships: Record<string, string[]>;
   relevantInputs: string[];
+  /** Тот же existing native owner witness; до owner inspect отсутствует. */
+  ownerInputs?: readonly string[];
   metrics: {
     fullWalks: number;
     sourceDirectoryReads: number;
@@ -210,12 +212,42 @@ export async function assertSources(
       parent = dirname(parent);
     }
   }
+  // Quarto удаляет пустой <input stem>_files/mediabag после render.
+  // Разрешено только исчезновение exact fileless baseline actual owner input.
+  const emptyNativeDirectories = new Set<string>();
+  for (const input of state.ownerInputs ?? []) {
+    if (!index.rows.has(input)) continue;
+    const supporting = input.replace(/\.[^/.]+$/, "") + "_files";
+    const names = state.memberships[supporting];
+    const media = supporting + "/mediabag";
+    if (
+      !names ||
+      !(names.length === 0 ||
+        names.length === 1 && names[0] === "mediabag" &&
+          state.memberships[media]?.length === 0) ||
+      state.rows.some((row) =>
+        row.path === supporting || row.path.startsWith(supporting + "/")
+      )
+    ) continue;
+    emptyNativeDirectories.add(supporting);
+    if (names.length) emptyNativeDirectories.add(media);
+  }
   const selectedDirectories = full ? index.directories.keys() : directories;
   for (const dir of selectedDirectories) {
     const names = state.memberships[dir], known = index.directories.get(dir);
     if (!names || !known) continue;
-    if (dir && !(await inspectPath(dir)).isDirectory) {
-      fail("OPERATION_CHANGED", "Native source directory type изменён");
+    if (dir) {
+      try {
+        if (!(await inspectPath(dir)).isDirectory) {
+          fail("OPERATION_CHANGED", "Native source directory type изменён");
+        }
+      } catch (error) {
+        if (
+          error instanceof Deno.errors.NotFound &&
+          emptyNativeDirectories.has(dir)
+        ) continue;
+        throw error;
+      }
     }
     const current: string[] = [];
     state.metrics.sourceDirectoryReads++;
@@ -233,7 +265,12 @@ export async function assertSources(
       ) continue;
       current.push(entry.name);
     }
-    if (!same(current.sort(), names)) {
+    const present = new Set(current);
+    const expected = names.filter((name) =>
+      present.has(name) ||
+      !emptyNativeDirectories.has(dir ? dir + "/" + name : name)
+    );
+    if (!same(current.sort(), expected)) {
       fail("OPERATION_CHANGED", "Изменён состав native source: " + dir);
     }
   }

@@ -98,10 +98,90 @@ index cd29bb8..a0df102 100644
      fail("attempts", "expected positive integer (native triesPerVariant)");
    }
 diff --git a/_extensions/course-prairielearn/application/native-adapter.ts b/_extensions/course-prairielearn/application/native-adapter.ts
-index 0ccbb30..2e7f03d 100644
+index 0ccbb30..40de478 100644
 --- a/_extensions/course-prairielearn/application/native-adapter.ts
 +++ b/_extensions/course-prairielearn/application/native-adapter.ts
-@@ -505,7 +505,10 @@ export function createNativeAdapter(
+@@ -1,3 +1,10 @@
++import type * as CorePublic from "course-core/public.ts";
++import type {
++  NativeOperationIdentity,
++  NativePendingOperationExpectation,
++  NativePreparedLease,
++  NativePreparedOperation,
++} from "course-core/public.ts";
+ import { nativeBusinessInput, nativeMetadataReadSet } from "./native-input.ts";
+ import { assertNativeSeedTargets } from "./native-business.ts";
+ import type { NativeAuxiliary } from "./native-auxiliary.ts";
+@@ -12,16 +19,22 @@ import { decodeNativeCheck } from "./native-checks.ts";
+ import { decodeNativeBusiness } from "./native-business.ts";
+ import { hash, safePath } from "./source-selection.ts";
+ 
+-// Runtime-схемы Core поставляет composition через его публичный модуль.
+-export type PublicCore = {
+-  withPendingNativeOperation: (
+-    expectation: any,
+-    callback: (pending: any) => Promise<unknown>,
+-  ) => Promise<unknown>;
+-  NativeAdapterValidationInputSchema: { parse: (value: unknown) => any };
+-  ArtifactInventorySchema: { parse: (value: unknown) => any };
+-  NativeOperationIdentitySchema: { parse: (value: unknown) => any };
+-  NativePreparedOperationSchema?: { parse: (value: unknown) => any };
++// Типы берутся из того же публичного Core, который выбирает composition.
++// При проверке course-core/ разрешается import map; runtime import отсутствует.
++export type PublicCore = Pick<
++  typeof CorePublic,
++  | "withPendingNativeOperation"
++  | "NativeAdapterValidationInputSchema"
++  | "ArtifactInventorySchema"
++  | "NativeOperationIdentitySchema"
++  | "NativePreparedOperationSchema"
++>;
++export type NativePreparedRequest = {
++  schema: "pl-native-business-request-v1";
++  owner: string;
++  identity: NativeOperationIdentity;
++  outputDirectory: string;
++  inputs: NativePreparedOperation["inputs"];
+ };
+ const ownBase = "_generated/course-spec/prairielearn-native";
+ const generation = z.string().uuid();
+@@ -56,10 +69,10 @@ async function ownFile(root: string, path: string) {
+ }
+ async function requestValue(
+   root: string,
+-  identity: any,
+-  inputs: any[],
++  identity: NativeOperationIdentity,
++  inputs: NativePreparedOperation["inputs"],
+   outputDirectory: string,
+-) {
++): Promise<NativePreparedRequest> {
+   if (
+     !inputs.length || inputs.some((input) =>
+       !safePath(input.source) ||
+@@ -87,7 +100,7 @@ export async function nativePreparedRequest(core: PublicCore, value: unknown) {
+   ) throw Error("PL.CAPTURE_CHANGED: prepared owner/output");
+   return await requestValue(d.root, d.identity, d.inputs, d.outputDirectory);
+ }
+-async function saveRequest(root: string, request: any) {
++async function saveRequest(root: string, request: NativePreparedRequest) {
+   const id = generation.parse(request.identity.operation),
+     folder = await directory(root, ownBase + "/" + id);
+   try {
+@@ -120,8 +133,10 @@ async function saveRequest(root: string, request: any) {
+ }
+ export async function prepareNativeAdapter(
+   core: PublicCore,
+-  expectation: any,
+-  lease?: { descriptor: unknown; assert(expected: unknown): Promise<void> },
++  expectation: Omit<NativePendingOperationExpectation, "profiles"> & {
++    profiles?: string[];
++  },
++  lease?: Pick<NativePreparedLease, "descriptor" | "assert">,
+ ) {
+   const root = await Deno.realPath(expectation.root);
+   if (lease) {
+@@ -505,7 +520,10 @@ export function createNativeAdapter(
          inventory.audience !== "student"
        ) throw Error("PL.WORKSPACE_SEED: inventory identity");
        for (const file of inventory.files) {
@@ -295,29 +375,86 @@ index 97e6671..967431d 100644
    const sources = await Promise.all(
      selection.sources.map((f) => origin({ ...f, audience: "student" }, f.name)),
 diff --git a/_extensions/course-prairielearn/application/native-entry.ts b/_extensions/course-prairielearn/application/native-entry.ts
-index ea54326..350ae20 100644
+index ea54326..e19c2b3 100644
 --- a/_extensions/course-prairielearn/application/native-entry.ts
 +++ b/_extensions/course-prairielearn/application/native-entry.ts
-@@ -208,6 +208,10 @@ export async function nativeEntry(options: NativeEntryOptions) {
+@@ -1,3 +1,9 @@
++import type * as CorePublic from "course-core/public.ts";
++import type {
++  NativeOperation,
++  NativePreparedOperation,
++} from "course-core/public.ts";
++import type { withNativeCaptureScope as CoreCaptureScope } from "course-core/capture.ts";
+ import { join, relative, resolve } from "node:path";
+ import { pathToFileURL } from "node:url";
+ 
+@@ -201,13 +207,21 @@ export async function nativeEntry(options: NativeEntryOptions) {
+     }
+   }
+   if (!core) throw Error("PL.INPUT_INVALID: installed public Core required");
+-  const { withNativeCaptureScope } = await import(
+-    pathToFileURL(join(core, "capture.ts")).href
++  const coreDirectory = core;
++  const { withNativeCaptureScope }: {
++    withNativeCaptureScope: typeof CoreCaptureScope;
++  } = await import(
++    pathToFileURL(join(coreDirectory, "capture.ts")).href
+   );
+   let selected:
      | Awaited<ReturnType<typeof selectNativeOwnerAssignments>>
      | undefined;
-   let descriptor: any, observedConfig: any;
+-  let descriptor: any, observedConfig: any;
++  let descriptor: NativePreparedOperation | undefined;
++  let observedConfig: unknown;
 +  const functionalProfiles = (options.profiles ??
 +    (Deno.env.get("QUARTO_PROFILE") || "").split(",")).filter((p) =>
-+    p && p !== "student" && p !== "full"
-+  );
++      p && p !== "student" && p !== "full"
++    );
    await withNativeCaptureScope({
      root: owner,
      projection: "author",
-@@ -215,6 +219,7 @@ export async function nativeEntry(options: NativeEntryOptions) {
+@@ -215,7 +229,8 @@ export async function nativeEntry(options: NativeEntryOptions) {
    }, {
      assignment: {
        mode: "new",
+-      prepare: async (observed: Readonly<Record<string, any>>) => {
 +      profiles: functionalProfiles,
-       prepare: async (observed: Readonly<Record<string, any>>) => {
++      prepare: async (observed) => {
          observedConfig = structuredClone(observed.config);
          selected = await selectNativeOwnerAssignments(observed, {
-@@ -247,8 +252,7 @@ export async function nativeEntry(options: NativeEntryOptions) {
+           ...options,
+@@ -230,27 +245,31 @@ export async function nativeEntry(options: NativeEntryOptions) {
+         };
+       },
+     },
+-  }, async (scope: any) => {
+-    await scope.withPreparedOperation(async (lease: any) => {
+-      const Core = await import(pathToFileURL(join(core!, "public.ts")).href);
+-      descriptor = Core.NativePreparedOperationSchema.parse(lease.descriptor);
++  }, async (scope) => {
++    await scope.withPreparedOperation(async (lease) => {
++      const Core: typeof CorePublic = await import(
++        pathToFileURL(join(coreDirectory, "public.ts")).href
++      );
++      const prepared = Core.NativePreparedOperationSchema.parse(
++        lease.descriptor,
++      );
++      descriptor = prepared;
+       if (
+-        !selected || descriptor.root !== owner ||
+-        descriptor.outputDirectory !== outputDirectory ||
+-        descriptor.identity.projection !== "author" ||
+-        JSON.stringify(descriptor.inputs.map((i: any) => i.source)) !==
++        !selected || prepared.root !== owner ||
++        prepared.outputDirectory !== outputDirectory ||
++        prepared.identity.projection !== "author" ||
++        JSON.stringify(prepared.inputs.map((i) => i.source)) !==
+           JSON.stringify(selected.expectedSources) ||
+-        JSON.stringify(descriptor.assessments) !==
++        JSON.stringify(prepared.assessments) !==
+           JSON.stringify([
+             ...selected.assessments,
+             ...selected.contextAssessments,
            ])
        ) throw Error("PL.CAPTURE_CHANGED: prepared selection");
        if (
@@ -325,8 +462,141 @@ index ea54326..350ae20 100644
 -        JSON.stringify(options.profiles) !==
 +        JSON.stringify(functionalProfiles) !==
            JSON.stringify(
-             descriptor.identity.profiles.filter((p: string) =>
+-            descriptor.identity.profiles.filter((p: string) =>
++            prepared.identity.profiles.filter((p) =>
                p !== "student" && p !== "full"
+             ),
+           )
+@@ -258,12 +277,12 @@ export async function nativeEntry(options: NativeEntryOptions) {
+       const { prepareNativeAdapter } = await import("./native-adapter.ts");
+       await prepareNativeAdapter(Core, {
+         root: owner,
+-        profiles: descriptor.identity.profiles,
++        profiles: prepared.identity.profiles,
+         projection: "author",
+         outputDirectory,
+       }, lease);
+       await lease.captureInputs(
+-        descriptor,
++        prepared,
+         selected.expectedSources,
+         {
+           // Executable/cwd/env/token принадлежат qualified Core lease.
+@@ -273,34 +292,41 @@ export async function nativeEntry(options: NativeEntryOptions) {
+           timeoutMs: 20 * 60 * 1000,
+         },
+       );
+-      await lease.assert(descriptor);
++      await lease.assert(prepared);
+     });
+   });
+   if (!descriptor || !selected) {
+     throw Error("PL.CAPTURE_MISSING: prepared operation");
+   }
+-  const Core = await import(pathToFileURL(join(core, "public.ts")).href);
++  const prepared = descriptor, selection = selected;
++  const Core: typeof CorePublic = await import(
++    pathToFileURL(join(coreDirectory, "public.ts")).href
++  );
+   const { prepareNativeCourse } = await import("./native-course.ts");
+   return await publishNativePrepared(
+-    (use) =>
++    (
++      use: (
++        operation: NativeOperation,
++      ) => Promise<NativePreparedPublication<unknown>>,
++    ) =>
+       Core.withCurrentNativeOperation({
+         root: owner,
+-        profiles: descriptor.identity.profiles,
+-        projection: descriptor.identity.projection,
++        profiles: prepared.identity.profiles,
++        projection: prepared.identity.projection,
+         outputDirectory,
+       }, use),
+-    async (operation: any) => {
++    async (operation) => {
+       if (
+         JSON.stringify(operation.identity) !==
+-          JSON.stringify(descriptor.identity)
++          JSON.stringify(prepared.identity)
+       ) {
+         throw Error("PL.CAPTURE_CHANGED: sealed generation");
+       }
+       return await prepareNativeCourse({
+         Core,
+         operation,
+-        descriptor,
+-        selection: selected!,
++        descriptor: prepared,
++        selection,
+         options,
+         observedConfig,
+       });
+@@ -309,11 +335,17 @@ export async function nativeEntry(options: NativeEntryOptions) {
+ }
+ /** Тот же порядок nativeEntry: handle сохраняется ВНУТРИ parent callback.
+  * scope — настоящий Core gate в production; функция не создаёт authority. */
+-export async function publishNativePrepared(
+-  scope: (use: (operation: any) => Promise<any>) => Promise<any>,
+-  prepare: (operation: any) => Promise<any>,
+-) {
+-  let prepared: any;
++type NativePreparedPublication<T> = {
++  publish(): Promise<T>;
++  discard(): Promise<void>;
++};
++export async function publishNativePrepared<Operation, T>(
++  scope: (
++    use: (operation: Operation) => Promise<NativePreparedPublication<T>>,
++  ) => Promise<NativePreparedPublication<T>>,
++  prepare: (operation: Operation) => Promise<NativePreparedPublication<T>>,
++): Promise<T> {
++  let prepared: NativePreparedPublication<T> | undefined;
+   try {
+     prepared = await scope(async (operation) => {
+       prepared = await prepare(operation);
+diff --git a/_extensions/course-prairielearn/application/native-input.ts b/_extensions/course-prairielearn/application/native-input.ts
+index 66e0ff8..b038d97 100644
+--- a/_extensions/course-prairielearn/application/native-input.ts
++++ b/_extensions/course-prairielearn/application/native-input.ts
+@@ -1,3 +1,5 @@
++import type { PublicCore } from "./native-adapter.ts";
++
+ /** Единственный data decoder уже аутентичного immutable Core callback input.
+  * Schema parsing plain DTO не создаёт live Core authority. */
+ export const nativeMetadataReadSet = Object.freeze(
+@@ -9,7 +11,7 @@ export const nativeMetadataReadSet = Object.freeze(
+   ] as const,
+ );
+ export function nativeBusinessInput(
+-  Core: { NativeAdapterValidationInputSchema: { parse(value: unknown): any } },
++  Core: Pick<PublicCore, "NativeAdapterValidationInputSchema">,
+   value: unknown,
+ ) {
+   const input = Core.NativeAdapterValidationInputSchema.parse(value);
+@@ -19,7 +21,9 @@ export function nativeBusinessInput(
+     envelope.readSet.length !== slots.length ||
+     slots.some((slot) => !envelope.readSet.includes(slot)) ||
+     !envelope.values ||
+-    Object.keys(envelope.values).some((key) => !slots.includes(key as any))
++    Object.keys(envelope.values).some((key) =>
++      !slots.some((slot) => slot === key)
++    )
+   ) {
+     throw Error("PL.CAPTURE_CHANGED: missing or incomplete nativeMetadata");
+   }
+@@ -29,8 +33,8 @@ export function nativeBusinessInput(
+     projectChecks: "projectChecks",
+     projectMaterialization: "materialization",
+   } as const;
+-  const raw: any = {
+-    declarations: input.declarations.map((d: any) => ({
++  const raw: Record<string, unknown> = {
++    declarations: input.declarations.map((d) => ({
+       id: d.id,
+       attributes: structuredClone(d.attributes),
+       ...(d.answer ? { answer: true } : {}),
 diff --git a/_extensions/course-prairielearn/application/native-materialize.ts b/_extensions/course-prairielearn/application/native-materialize.ts
 index c0a122f..f33a1c1 100644
 --- a/_extensions/course-prairielearn/application/native-materialize.ts

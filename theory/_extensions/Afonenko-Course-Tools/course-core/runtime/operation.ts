@@ -638,6 +638,7 @@ export async function withNativeCaptureScope<T>(
     preparedState = state;
     bindOwner(state, prepared.owner, true, expected.outputDirectory);
     prepared.source.relevantInputs = state.relevantInputs;
+    prepared.source.ownerInputs = state.ownerInputs;
     await assertSources(state);
     await assertAssignmentRuntime(
       state.assignment!.runtime,
