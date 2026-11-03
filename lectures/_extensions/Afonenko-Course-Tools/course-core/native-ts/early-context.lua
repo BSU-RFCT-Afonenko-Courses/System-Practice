@@ -59,7 +59,26 @@ return {{Pandoc=function(doc)
   doc.meta['course-core-ts-context']=pandoc.MetaString(pandoc.json.encode(context))
   if request.assignment then
     assert(doc.meta['course-core-producer-evidence']==nil,'DOCUMENT_BINDING: авторский producer evidence')
-    doc.meta['course-core-producer-evidence']=pandoc.MetaString(pandoc.json.encode({filters=param('quarto-filters'),shortcodes=param('shortcodes',{}),engine=param('execution-engine'),format=native_format}))
+    -- Уже инициализированная таблица Quarto: наблюдаем выбранный handler, не вызываем/не загружаем его.
+    local shortcode_files=pandoc.List(param('shortcodes',{}))
+    local shortcode_handlers,seen=pandoc.List(),{}
+    doc:walk({Span=function(span)
+      if not span.classes:includes('quarto-shortcode__') then return end
+      local name
+      for _,node in ipairs(span.content) do
+        if node.t=='Span' and node.classes:includes('quarto-shortcode__-param') then
+          if node.attributes['data-key']==nil then name=node.attributes['data-value'] end
+          break
+        elseif node.t~='Space' and node.t~='SoftBreak' then break end
+      end
+      if type(name)~='string' or seen[name] then return end
+      seen[name]=true
+      local handler=type(handlerForShortcode)=='function' and handlerForShortcode({name=name}) or nil
+      if type(handler)=='table' and type(handler.handle)=='function' and type(handler.file)=='string' and shortcode_files:includes(handler.file) then
+        shortcode_handlers:insert({name=name,file=handler.file})
+      end
+    end})
+    doc.meta['course-core-producer-evidence']=pandoc.MetaString(pandoc.json.encode({filters=param('quarto-filters'),shortcodes=shortcode_files,shortcodeHandlers=shortcode_handlers,engine=param('execution-engine'),format=native_format}))
   end
   local projected=pandoc.utils.run_json_filter(doc,pandoc.path.join({dir,'early-filter.sh'}),{FORMAT})
   return projected

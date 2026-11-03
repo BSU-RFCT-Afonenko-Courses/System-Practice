@@ -1,5 +1,16 @@
 import { fail } from "../contracts/project.ts";
 import type { DocumentContext } from "./contracts.ts";
+export type NativeShortcodeHandlerObservation = Readonly<
+  { name: string; file: string }
+>;
+/** Данные одного native pre-ast observation; сами по себе не создают producer capability. */
+export type AssignmentProducerObservation = Readonly<{
+  format: string;
+  engine: string;
+  filters: unknown;
+  shortcodes: readonly string[];
+  shortcodeHandlers?: readonly NativeShortcodeHandlerObservation[];
+}>;
 function unsupported(s: string): never {
   return fail("BODY.DELIVERY_PHASE_UNSUPPORTED", s);
 }
@@ -11,15 +22,32 @@ const dynamicLiteral =
 export function qualifyAssignmentProducer(
   ast: any,
   context: DocumentContext,
-  evidence: any,
+  evidence: AssignmentProducerObservation,
 ) {
   if (
     !evidence || evidence.format !== context.format ||
     typeof evidence.engine !== "string" ||
     !evidence.filters || typeof evidence.filters !== "object" ||
-    !evidence.shortcodes || typeof evidence.shortcodes !== "object"
+    !Array.isArray(evidence.shortcodes) ||
+    evidence.shortcodes.length > 4096 ||
+    evidence.shortcodes.some((file: unknown) =>
+      typeof file !== "string" || !file
+    )
   ) {
     unsupported("Нет actual native phase/format/engine observation");
+  }
+  const handlers = evidence.shortcodeHandlers ?? [];
+  if (
+    !Array.isArray(handlers) || handlers.length > 4096 ||
+    handlers.some((row: unknown) => {
+      if (!row || typeof row !== "object") return true;
+      const observed = row as Record<string, unknown>;
+      return typeof observed.name !== "string" || !observed.name ||
+        typeof observed.file !== "string" ||
+        !evidence.shortcodes.includes(observed.file);
+    }) || new Set(handlers.map((row) => row.name)).size !== handlers.length
+  ) {
+    unsupported("Несогласованное native shortcode handler observation");
   }
   function walk(v: any) {
     if (Array.isArray(v)) {
@@ -60,7 +88,10 @@ export function qualifyAssignmentProducer(
       const first = args.shift();
       if (
         !first || first.key ||
-        !["xref", "meta"].includes(first.value)
+        (!["xref", "meta"].includes(first.value) &&
+          !handlers.some((row) =>
+            row.name === first.value && evidence.shortcodes.includes(row.file)
+          ))
       ) unsupported("Shortcode не квалифицирован");
       if (first.value === "meta") {
         const title = ast.meta?.title;
@@ -74,7 +105,7 @@ export function qualifyAssignmentProducer(
           args.length !== 1 || args[0].key || args[0].value !== "title" ||
           !primitive
         ) unsupported("meta допускает только публичный примитивный title");
-      } else {
+      } else if (first.value === "xref") {
         const positional = args.filter((p) => !p.key),
           named = args.filter((p) => p.key);
         if (

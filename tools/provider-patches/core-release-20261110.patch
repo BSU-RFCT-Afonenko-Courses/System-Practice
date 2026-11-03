@@ -71,10 +71,10 @@ index 1ea2d77..f0485c1 100644
    assessments: readonly { source: string; id: string }[];
  };
 diff --git a/_extensions/course-core/document/assignment-producer.ts b/_extensions/course-core/document/assignment-producer.ts
-index 70f6efc..0c9bae8 100644
+index 70f6efc..11a396a 100644
 --- a/_extensions/course-core/document/assignment-producer.ts
 +++ b/_extensions/course-core/document/assignment-producer.ts
-@@ -1,16 +1,5 @@
+@@ -1,16 +1,16 @@
  import { fail } from "../contracts/project.ts";
 -import type { AssignmentProducerProfile } from "../runtime/assignment-producer-profiles.ts";
  import type { DocumentContext } from "./contracts.ts";
@@ -88,15 +88,27 @@ index 70f6efc..0c9bae8 100644
 -        )
 -        : x,
 -  );
++export type NativeShortcodeHandlerObservation = Readonly<
++  { name: string; file: string }
++>;
++/** Данные одного native pre-ast observation; сами по себе не создают producer capability. */
++export type AssignmentProducerObservation = Readonly<{
++  format: string;
++  engine: string;
++  filters: unknown;
++  shortcodes: readonly string[];
++  shortcodeHandlers?: readonly NativeShortcodeHandlerObservation[];
++}>;
  function unsupported(s: string): never {
    return fail("BODY.DELIVERY_PHASE_UNSUPPORTED", s);
  }
-@@ -22,16 +11,16 @@ const dynamicLiteral =
+@@ -22,16 +22,33 @@ const dynamicLiteral =
  export function qualifyAssignmentProducer(
    ast: any,
    context: DocumentContext,
 -  profile: AssignmentProducerProfile,
-   evidence: any,
+-  evidence: any,
++  evidence: AssignmentProducerObservation,
  ) {
 -  const expected =
 -    profile.native.producerEvidence[context.format as "html" | "revealjs"];
@@ -108,24 +120,53 @@ index 70f6efc..0c9bae8 100644
 +    !evidence || evidence.format !== context.format ||
 +    typeof evidence.engine !== "string" ||
 +    !evidence.filters || typeof evidence.filters !== "object" ||
-+    !evidence.shortcodes || typeof evidence.shortcodes !== "object"
++    !Array.isArray(evidence.shortcodes) ||
++    evidence.shortcodes.length > 4096 ||
++    evidence.shortcodes.some((file: unknown) =>
++      typeof file !== "string" || !file
++    )
 +  ) {
 +    unsupported("Нет actual native phase/format/engine observation");
++  }
++  const handlers = evidence.shortcodeHandlers ?? [];
++  if (
++    !Array.isArray(handlers) || handlers.length > 4096 ||
++    handlers.some((row: unknown) => {
++      if (!row || typeof row !== "object") return true;
++      const observed = row as Record<string, unknown>;
++      return typeof observed.name !== "string" || !observed.name ||
++        typeof observed.file !== "string" ||
++        !evidence.shortcodes.includes(observed.file);
++    }) || new Set(handlers.map((row) => row.name)).size !== handlers.length
++  ) {
++    unsupported("Несогласованное native shortcode handler observation");
 +  }
    function walk(v: any) {
      if (Array.isArray(v)) {
        v.forEach(walk);
-@@ -71,9 +60,7 @@ export function qualifyAssignmentProducer(
+@@ -71,9 +88,10 @@ export function qualifyAssignmentProducer(
        const first = args.shift();
        if (
          !first || first.key ||
 -        !profile.native.literalShortcodes.includes(
 -          first.value as "xref" | "meta",
 -        )
-+        !["xref", "meta"].includes(first.value)
++        (!["xref", "meta"].includes(first.value) &&
++          !handlers.some((row) =>
++            row.name === first.value && evidence.shortcodes.includes(row.file)
++          ))
        ) unsupported("Shortcode не квалифицирован");
        if (first.value === "meta") {
          const title = ast.meta?.title;
+@@ -87,7 +105,7 @@ export function qualifyAssignmentProducer(
+           args.length !== 1 || args[0].key || args[0].value !== "title" ||
+           !primitive
+         ) unsupported("meta допускает только публичный примитивный title");
+-      } else {
++      } else if (first.value === "xref") {
+         const positional = args.filter((p) => !p.key),
+           named = args.filter((p) => p.key);
+         if (
 diff --git a/_extensions/course-core/document/contracts.ts b/_extensions/course-core/document/contracts.ts
 index 705c85f..ff35425 100644
 --- a/_extensions/course-core/document/contracts.ts
@@ -161,6 +202,38 @@ index d6febff..acbf86e 100644
        assessments: assignmentInput.assessments.map((v) => ({ ...v })),
        introductions: [],
        answers: {},
+diff --git a/_extensions/course-core/native-ts/early-context.lua b/_extensions/course-core/native-ts/early-context.lua
+index dd8f526..5cd4fa8 100644
+--- a/_extensions/course-core/native-ts/early-context.lua
++++ b/_extensions/course-core/native-ts/early-context.lua
+@@ -59,7 +59,26 @@ return {{Pandoc=function(doc)
+   doc.meta['course-core-ts-context']=pandoc.MetaString(pandoc.json.encode(context))
+   if request.assignment then
+     assert(doc.meta['course-core-producer-evidence']==nil,'DOCUMENT_BINDING: авторский producer evidence')
+-    doc.meta['course-core-producer-evidence']=pandoc.MetaString(pandoc.json.encode({filters=param('quarto-filters'),shortcodes=param('shortcodes',{}),engine=param('execution-engine'),format=native_format}))
++    -- Уже инициализированная таблица Quarto: наблюдаем выбранный handler, не вызываем/не загружаем его.
++    local shortcode_files=pandoc.List(param('shortcodes',{}))
++    local shortcode_handlers,seen=pandoc.List(),{}
++    doc:walk({Span=function(span)
++      if not span.classes:includes('quarto-shortcode__') then return end
++      local name
++      for _,node in ipairs(span.content) do
++        if node.t=='Span' and node.classes:includes('quarto-shortcode__-param') then
++          if node.attributes['data-key']==nil then name=node.attributes['data-value'] end
++          break
++        elseif node.t~='Space' and node.t~='SoftBreak' then break end
++      end
++      if type(name)~='string' or seen[name] then return end
++      seen[name]=true
++      local handler=type(handlerForShortcode)=='function' and handlerForShortcode({name=name}) or nil
++      if type(handler)=='table' and type(handler.handle)=='function' and type(handler.file)=='string' and shortcode_files:includes(handler.file) then
++        shortcode_handlers:insert({name=name,file=handler.file})
++      end
++    end})
++    doc.meta['course-core-producer-evidence']=pandoc.MetaString(pandoc.json.encode({filters=param('quarto-filters'),shortcodes=shortcode_files,shortcodeHandlers=shortcode_handlers,engine=param('execution-engine'),format=native_format}))
+   end
+   local projected=pandoc.utils.run_json_filter(doc,pandoc.path.join({dir,'early-filter.sh'}),{FORMAT})
+   return projected
 diff --git a/_extensions/course-core/native-ts/early-filter.ts b/_extensions/course-core/native-ts/early-filter.ts
 index 74c7b60..91710b5 100644
 --- a/_extensions/course-core/native-ts/early-filter.ts

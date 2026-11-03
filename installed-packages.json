@@ -158,8 +158,8 @@
           "mode": 420
         },
         "document/assignment-producer.ts": {
-          "sha256": "5309ccd5fba9b68307b64c516cd4259c46e46ac40dca7482c2a7a4e2e1f2733c",
-          "size": 3801,
+          "sha256": "9b5ca3b2d64c12d45e431bd2e3f7ddc01da809a71b372a23d678f3e1c73dd442",
+          "size": 5138,
           "mode": 420
         },
         "document/catalogue-cite.ts": {
@@ -283,8 +283,8 @@
           "mode": 420
         },
         "native-ts/early-context.lua": {
-          "sha256": "23bc039a8ae8245207da396fe5eba0373add7d257b27487f89301e66dce97bd3",
-          "size": 4613,
+          "sha256": "d1181a3d3f2ccb3025b8b790475b91b3caecdc023d712cf214776bcf22ce90e8",
+          "size": 5789,
           "mode": 420
         },
         "native-ts/early-filter.sh": {
@@ -1497,11 +1497,11 @@
       "candidate": {
         "status": "local-unpublished",
         "baseCommit": "a478d2cc0dfb19e0bebd99108815ac8ef1fe85a8",
-        "commit": "332ea585d7b09f07c3f3886943d58a97a528078a",
+        "commit": "f10c4e6527b1834651d59a95a0ef4373357cd8f0",
         "patch": "tools/provider-patches/core-release-20261110.patch",
-        "patchSha256": "179538fc0aa2a53f2b463bbd6b24e8241ef37ad70c6f833b5f7c09952e79c723",
+        "patchSha256": "8d2defeb922a225d6f4713cbc6f0a02bf71b40c78b6af082a2a49675ec456b83",
         "packageHashes": {
-          "course-core": "1e5c1e9ddce4398718e3b01ae2416aa4197f7678cf69e2307068d30ad8236e7f"
+          "course-core": "395cf3504eba27d1186e5c41497184aff060dae5e4589da1f82914ca09e14c44"
         }
       }
     },
