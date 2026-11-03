@@ -57,9 +57,10 @@ def staged(root, provider, sources, temporary):
     result={}
     for package,scopes in provider['packages'].items():
         path=safe(temporary,'_extensions/'+package); files=inventory(path)
-        descriptor=(path/'_extension.yml').read_text()
-        if not re.search(r'^version:\s*[\"\']?'+re.escape(provider['version'])+r'[\"\']?\s*$',descriptor,re.M):
-            raise ValueError(f'Version descriptor отличается: {package}')
+        # Один release может содержать пакеты с разными собственными версиями.
+        # Их точные bytes уже задают закреплённый Git commit и candidate patch.
+        if '_extension.yml' not in files:
+            raise ValueError(f'Отсутствует descriptor пакета: {package}')
         if 'candidate' in provider and tree_hash(files)!=provider['candidate']['packageHashes'][package]:
             raise ValueError(f'Candidate bytes отличаются: {package}')
         result[package]=(path,files)

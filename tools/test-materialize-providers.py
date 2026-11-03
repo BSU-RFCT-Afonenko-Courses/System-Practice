@@ -42,6 +42,13 @@ class Materialize(unittest.TestCase):
   (self.root/'tools/provider-patches/core.patch').write_text('tampered');self.assertNotEqual(0,self.run_cli('--write').returncode);self.assertEqual(b'base\n',(self.target/'entry.ts').read_bytes())
  def test_release_tag_pin_rejects_before_write(self):
   self.provider['commit']='0'*40;self.save();self.assertNotEqual(0,self.run_cli('--write').returncode);self.assertEqual(b'base\n',(self.target/'entry.ts').read_bytes())
+ def test_release_can_bundle_packages_with_distinct_descriptor_versions(self):
+  ui=self.repo/'_extensions/course-ui';ui.mkdir();(ui/'_extension.yml').write_text('version: 0.8.0\n');(ui/'entry.ts').write_text('ui release\n')
+  self.git('add','.');self.git('commit','-qm','mixed package versions');self.git('tag','-f','v1.0.0')
+  self.provider.pop('candidate');self.provider['commit']=self.git('rev-parse','HEAD');self.provider['packages']['course-ui']=['.'];self.save()
+  r=self.run_cli('--write');self.assertEqual(0,r.returncode,r.stderr)
+  installed=self.root/'_extensions/Example/course-ui';self.assertEqual('version: 0.8.0\n',(installed/'_extension.yml').read_text());self.assertEqual('ui release\n',(installed/'entry.ts').read_text())
+  info=json.loads((self.root/'installed-packages.json').read_text());self.assertEqual(self.provider['commit'],info['packages']['course-ui']['commit']);self.assertEqual('v1.0.0',info['packages']['course-ui']['tag']);self.assertEqual(0,self.run_cli('--check').returncode)
  def test_check_rejects_unknown_file_and_never_writes(self):
   self.assertEqual(0,self.run_cli('--write').returncode);(self.other/'unknown.txt').write_text('user');r=self.run_cli('--check');self.assertNotEqual(0,r.returncode);self.assertEqual('user',(self.other/'unknown.txt').read_text())
  def test_check_rejects_recorded_release_provenance_drift(self):
