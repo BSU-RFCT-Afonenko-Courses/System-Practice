@@ -132,7 +132,6 @@ function normalizeDocumentWork(
   const assignment: AssignmentEarly | undefined = assignmentInput
     ? {
       source: assignmentInput.source,
-      producerProfile: assignmentInput.producerProfile,
       assessments: assignmentInput.assessments.map((v) => ({ ...v })),
       introductions: [],
       answers: {},

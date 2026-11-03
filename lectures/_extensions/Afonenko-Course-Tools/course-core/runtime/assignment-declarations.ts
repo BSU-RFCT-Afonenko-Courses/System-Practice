@@ -7,6 +7,7 @@ type PresentationContext = {
   xdg: string;
   format: string;
   outputs?: ReadonlySet<string>;
+  nativeImplementation?: (path: string) => boolean;
 };
 function presentationStylesheet(
   row: any,
@@ -116,7 +117,10 @@ export function assertAssignmentDeclarations(
     if (/^(?:[a-z][a-z0-9+.-]*:|\/\/)/i.test(name)) {
       invalid("Внешний declared resource вне frozen inputs");
     }
-    if (!known.has(resolve(dirname(input), name))) {
+    const absolute = resolve(dirname(input), name);
+    if (
+      !known.has(absolute) && !presentation?.nativeImplementation?.(absolute)
+    ) {
       invalid("Неизвестный declared data/resource " + name);
     }
   };

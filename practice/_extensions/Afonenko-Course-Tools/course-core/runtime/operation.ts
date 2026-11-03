@@ -18,12 +18,6 @@ import type {
   NativeCaptureScope,
   NativePreparedLease,
 } from "./prepared-operation.ts";
-import {
-  addAuthorityMetrics,
-  AssignmentAuthorityIdentitySchema,
-  authorityCounterNames,
-  emptyAuthorityMetrics,
-} from "./assignment-authority.ts";
 import { assertAssignmentDeclarations } from "./assignment-declarations.ts";
 import {
   assignmentProjectRoot,
@@ -45,8 +39,8 @@ import {
 } from "./assignment-execution.ts";
 import {
   assertAssignmentRuntime,
-  assignmentProfile,
   consumeAssignmentAdmission,
+  mergeAssignmentImplementationFiles,
 } from "./assignment-admission.ts";
 import type { AssignmentAdmission } from "./assignment-admission.ts";
 import {
@@ -143,7 +137,7 @@ const nativeCaptureSchema = z.strictObject({
   ),
 });
 const stateSchema = z.strictObject({
-  schema: z.literal("course-native-operation-private-v1"),
+  schema: z.literal("course-native-operation-private-v2"),
   operation: z.uuid(),
   root: z.string(),
   directory: z.string(),
@@ -156,19 +150,14 @@ const stateSchema = z.strictObject({
       z.strictObject({ source: pathSchema, id: z.string().min(1) }),
     ).min(1).max(4096),
     runtime: z.strictObject({
-      profile: z.string(),
-      authority: AssignmentAuthorityIdentitySchema,
-      files: z.array(
-        z.strictObject({
-          path: z.string(),
-          signature: z.string(),
-          sha256: z.string(),
-        }),
+      executable: z.string().startsWith("/"),
+      environment: z.record(z.string(), z.string()),
+      profiles: z.array(z.string()),
+      outputDirectory: z.string(),
+      inputs: z.array(pathSchema),
+      implementationFiles: z.array(
+        z.strictObject({ path: z.string(), signature: z.string() }),
       ),
-      directories: z.array(
-        z.strictObject({ path: z.string(), names: z.array(z.string()) }),
-      ),
-      absent: z.array(z.string()),
     }),
   }).optional(),
   invocation: z.string(),
@@ -191,13 +180,6 @@ const stateSchema = z.strictObject({
   documentInputs: z.record(pathSchema, z.array(pathSchema)),
   memberships: z.record(z.string(), z.array(z.string())),
   metrics: z.strictObject({
-    authorityDataReads: z.number().default(0),
-    authorityHashBytes: z.number().default(0),
-    authorityGraphHashReads: z.number().default(0),
-    authorityGraphHashBytes: z.number().default(0),
-    authorityPathReads: z.number().default(0),
-    authorityDirectoryReads: z.number().default(0),
-    authorityTopologyBytes: z.number().default(0),
     inspectCalls: z.number(),
     fullSourceFences: z.number(),
     localSourceFences: z.number(),
@@ -248,10 +230,10 @@ const sourcePart =
 const ordinary = (path: string) =>
   !privateParts.test(path) && !sourcePart.test(path) &&
   !/(^|\/)check\.sh$/.test(path);
-async function runtimeIdentity(
+export async function nativeRuntimeIdentity(
   root: string,
   content = true,
-  metrics?: State["metrics"],
+  metrics?: { runtimeHashReads: number; runtimeHashBytes: number },
   fixedExecutable?: string,
 ) {
   const requested = fixedExecutable ?? quartoExecutable();
@@ -282,12 +264,42 @@ async function runtimeIdentity(
     metrics.runtimeHashBytes += info.size;
   }
   return JSON.stringify({
-    requested,
-    path,
+    requested: physical,
+    path: physical,
     physical,
     signature: signature(info),
     ...(content ? { sha256: await hash(await Deno.readFile(physical)) } : {}),
   });
+}
+export async function inspectNativeOwner(
+  root: string,
+  profiles: string[],
+  executable = quartoExecutable(),
+  environment?: Record<string, string>,
+) {
+  const args = [
+    "inspect",
+    root,
+    ...(profiles.length ? ["--profile", profiles.join(",")] : []),
+  ];
+  if (!environment) return JSON.parse(await command(executable, args, root));
+  const result = await new Deno.Command(executable, {
+    args,
+    cwd: root,
+    env: environment,
+    clearEnv: true,
+    stdout: "piped",
+    stderr: "piped",
+  }).output();
+  if (!result.success) {
+    fail(
+      "BODY.PRODUCER_INSPECTION_FAILED",
+      new TextDecoder().decode(result.stderr),
+    );
+  }
+  return JSON.parse(
+    new TextDecoder("utf-8", { fatal: true }).decode(result.stdout),
+  );
 }
 async function json(path: string) {
   return JSON.parse(await Deno.readTextFile(path));
@@ -380,14 +392,11 @@ async function assertPrivate(state: State, full = false) {
       full,
     );
   }
-  const identity = await runtimeIdentity(
+  const identity = await nativeRuntimeIdentity(
     state.root,
     full,
     state.metrics,
-    state.assignment
-      ? assignmentProfile(state.assignment.runtime, state.root).native
-        .executable
-      : undefined,
+    state.assignment?.runtime.executable,
   );
   if (identity !== (full ? state.invocation : state.localInvocation)) {
     fail("OPERATION_CHANGED", "Изменён native runtime/environment");
@@ -582,21 +591,15 @@ export async function withNativeCaptureScope<T>(
   });
   let preparedState: State | undefined;
   if (prepared) {
-    const initialRuntimeMetrics = { runtimeHashReads: 0, runtimeHashBytes: 0 };
-    const initialInvocation = await runtimeIdentity(
-      root,
-      true,
-      initialRuntimeMetrics as State["metrics"],
-      prepared.profile.native.executable,
-    );
+    const initialInvocation = prepared.invocation;
     const state: State = {
       ...prepared.source,
-      schema: "course-native-operation-private-v1",
+      schema: "course-native-operation-private-v2",
       operation,
       root,
       directory,
       outputDirectory: expected.outputDirectory,
-      profiles: [...prepared.profile.native.actualProfiles],
+      profiles: [...prepared.runtime.profiles],
       projection: "author",
       captureWitnesses: Object.fromEntries(
         prepared.inputs.map((source) => [source, crypto.randomUUID()]),
@@ -608,24 +611,21 @@ export async function withNativeCaptureScope<T>(
       documentInputs: {},
       relevantInputs: [],
       invocation: initialInvocation,
-      localInvocation: await runtimeIdentity(
+      localInvocation: await nativeRuntimeIdentity(
         root,
         false,
         undefined,
-        prepared.profile.native.executable,
+        prepared.runtime.executable,
       ),
       assignment: {
         assessments: prepared.assessments,
         runtime: prepared.runtime,
       },
       metrics: {
-        ...emptyAuthorityMetrics(),
         ...prepared.source.metrics,
         inspectCalls: prepared.inspectCalls,
-        runtimeHashReads: prepared.runtimeHashReads +
-          initialRuntimeMetrics.runtimeHashReads,
-        runtimeHashBytes: prepared.runtimeHashBytes +
-          initialRuntimeMetrics.runtimeHashBytes,
+        runtimeHashReads: prepared.runtimeHashReads,
+        runtimeHashBytes: prepared.runtimeHashBytes,
         runtimePathReads: prepared.runtimePathReads,
         runtimeDirectoryReads: prepared.runtimeDirectoryReads,
         outputHashReads: 0,
@@ -636,8 +636,8 @@ export async function withNativeCaptureScope<T>(
       },
     };
     preparedState = state;
-    addAuthorityMetrics(state.metrics, prepared);
     bindOwner(state, prepared.owner, true, expected.outputDirectory);
+    prepared.source.relevantInputs = state.relevantInputs;
     await assertSources(state);
     await assertAssignmentRuntime(
       state.assignment!.runtime,
@@ -655,9 +655,6 @@ export async function withNativeCaptureScope<T>(
     prepared
       ? {
         ...prepared.source.metrics,
-        ...Object.fromEntries(
-          authorityCounterNames.map((key) => [key, prepared[key]]),
-        ),
         runtimeHashReads: prepared.runtimeHashReads,
         runtimeHashBytes: prepared.runtimeHashBytes,
         runtimePathReads: prepared.runtimePathReads,
@@ -842,7 +839,7 @@ export async function withNativeCaptureScope<T>(
           signature(await Deno.lstat(preparedStatePath)) !==
             preparedStateSignature
         ) fail("OPERATION_CHANGED", "Prepared state replaced");
-        await assertSources(prepared.source);
+        await assertSources(prepared.source, [], false);
         await assertAssignmentRuntime(prepared.runtime, root, prepared);
       };
       try {
@@ -853,7 +850,7 @@ export async function withNativeCaptureScope<T>(
             captureInputs(
               sources,
               (token) =>
-                withAssignmentExecution(prepared.profile, () =>
+                withAssignmentExecution(prepared.runtime, root, () =>
                   runAssignmentCaptureChild(token, command), guard),
             ),
           async () => {
@@ -1058,8 +1055,6 @@ async function writePendingState(state: State) {
             assignment: {
               source: inputs[index],
               assessments: state.assignment.assessments,
-              authority: state.assignment.runtime.authority,
-              producerProfile: state.assignment.runtime.profile,
             },
           }
           : {}),
@@ -1072,6 +1067,61 @@ async function writePendingState(state: State) {
     JSON.stringify(state),
     { createNew: true, mode: 0o600 },
   );
+}
+
+/** Internal early TS filter: private current generation and actual active child. */
+export async function assertNativeAssignmentCapture(
+  context: {
+    operation: string;
+    captureWitness?: string;
+    input: string;
+    profiles: string[];
+    projection: string;
+  },
+  intent: { source: string; assessments: unknown },
+  capture: string,
+) {
+  const source = intent.source;
+  if (Deno.env.get("COURSE_CORE_TS_RUN")) {
+    fail(
+      "BODY.PRODUCER_INPUT_UNQUALIFIED",
+      "Manual transport не создаёт assignment producer",
+    );
+  }
+  const { nativeAssignmentOwner } = await import("./assignment-admission.ts");
+  const root = nativeAssignmentOwner(
+    context.input,
+    source,
+    capture,
+    context.operation,
+  );
+  const reservation = await readReservation(root),
+    token = Deno.env.get("COURSE_CORE_CAPTURE_TOKEN");
+  if (!token) fail("OPERATION_BINDING", "Нет live assignment child token");
+  const child = activeChild(reservation, token);
+  const state = decode(
+    stateSchema,
+    await json(join(reservation.directory, "state.json")),
+    "OPERATION_BINDING",
+  );
+  const index = state.inputs.indexOf(source);
+  if (
+    !state.assignment || reservation.status !== "bound" || !child.used ||
+    child.posted || !child.inputs.includes(source) ||
+    state.operation !== context.operation || state.root !== root ||
+    state.directory !== reservation.directory ||
+    state.outputDirectory !== reservation.outputDirectory ||
+    state.projection !== context.projection ||
+    !same(state.profiles, context.profiles) || index < 0 ||
+    capture !== join(state.directory, String(index)) ||
+    state.captureWitnesses[source] !== context.captureWitness ||
+    !same(intent.assessments, state.assignment.assessments) ||
+    !same(state.inputs, reservation.expectedSources) ||
+    !same(state.assignment.runtime.inputs, state.inputs) ||
+    !same(state.assignment.runtime.profiles, state.profiles)
+  ) fail("OPERATION_BINDING", "Чужой/закрытый native assignment producer");
+  await assertReservationCurrent(reservation);
+  return root;
 }
 
 /** Production pre-render: реальный native inspect, source fence и новые capture capabilities. */
@@ -1227,13 +1277,13 @@ async function beginNativeOperationInternal(root: string, nativeHook: boolean) {
   await Deno.mkdir(base(root), { recursive: true });
   if (!reservation) await Deno.mkdir(directory, { mode: 0o700 });
   const initialRuntimeMetrics = { runtimeHashReads: 0, runtimeHashBytes: 0 };
-  const initialInvocation = await runtimeIdentity(
+  const initialInvocation = await nativeRuntimeIdentity(
     root,
     true,
     initialRuntimeMetrics as State["metrics"],
   );
   const state: State = {
-    schema: "course-native-operation-private-v1",
+    schema: "course-native-operation-private-v2",
     operation,
     root,
     directory,
@@ -1250,9 +1300,8 @@ async function beginNativeOperationInternal(root: string, nativeHook: boolean) {
     documentInputs: {},
     memberships: {},
     invocation: initialInvocation,
-    localInvocation: await runtimeIdentity(root, false),
+    localInvocation: await nativeRuntimeIdentity(root, false),
     metrics: {
-      ...emptyAuthorityMetrics(),
       fullSourceFences: 0,
       localSourceFences: 0,
       sourceDirectoryReads: 0,
@@ -1272,13 +1321,7 @@ async function beginNativeOperationInternal(root: string, nativeHook: boolean) {
     },
   };
   await snapshot(state);
-  const owner = JSON.parse(
-    await command(quartoExecutable(), [
-      "inspect",
-      root,
-      ...(profiles.length ? ["--profile", profiles.join(",")] : []),
-    ], root),
-  );
+  const owner = await inspectNativeOwner(root, profiles);
   state.metrics.inspectCalls++;
   bindOwner(
     state,
@@ -1287,7 +1330,9 @@ async function beginNativeOperationInternal(root: string, nativeHook: boolean) {
     Deno.env.get("QUARTO_PROJECT_OUTPUT_DIR"),
   );
   await assertSources(state);
-  if (await runtimeIdentity(root, true, state.metrics) !== state.invocation) {
+  if (
+    await nativeRuntimeIdentity(root, true, state.metrics) !== state.invocation
+  ) {
     fail("OPERATION_CHANGED", "Runtime изменён во время bind");
   }
   if (reservation) await assertReservationCurrent(reservation);
@@ -1506,30 +1551,58 @@ async function finishNativeOperationInternal(
       fail("OPERATION_BINDING", "Output collision");
     }
     if (state.assignment) {
-      if (!early.authorityCost) {
-        fail(
-          "BODY.PRODUCER_INPUT_UNQUALIFIED",
-          "Missing native authority cost/witness producer",
-        );
-      }
-      addAuthorityMetrics(state.metrics, early.authorityCost);
+      const nativeShare = resolve(
+        dirname(state.assignment.runtime.executable),
+        "../share",
+      );
+      const implementations = new Set<string>();
       assertAssignmentDeclarations(
         native.assignmentDeclarations,
         resolve(root, sourceInput),
         new Set([
           ...state.rows.map((row) => resolve(root, row.path)),
-          ...state.assignment.runtime.files.map((row) => row.path),
         ]),
         {
           root,
           outputDirectory: state.outputDirectory,
-          xdg:
-            assignmentProfile(state.assignment.runtime, root).native.environment
-              .XDG_CACHE_HOME,
+          xdg: state.assignment.runtime.environment.XDG_CACHE_HOME ??
+            join(state.assignment.runtime.environment.HOME ?? root, ".cache"),
+          nativeImplementation: (path: string) => {
+            if (!path.startsWith(nativeShare + "/") || resolve(path) !== path) {
+              return false;
+            }
+            implementations.add(path);
+            return true;
+          },
           format: early.context.format,
           outputs: declaredOutputs,
         },
       );
+      if (implementations.size) {
+        if (await Deno.realPath(nativeShare) !== nativeShare) {
+          fail("BODY.PRODUCER_DEPENDENCY_UNQUALIFIED", "Native share alias");
+        }
+        for (const path of implementations) {
+          await regular(nativeShare, relative(nativeShare, path));
+          const observed = {
+            path,
+            signature: signature(await Deno.lstat(path)),
+          };
+          const previous = state.assignment.runtime.implementationFiles.find((
+            r,
+          ) => r.path === path);
+          if (previous && previous.signature !== observed.signature) {
+            fail(
+              "BODY.PRODUCER_INPUT_CHANGED",
+              "Native implementation dependency изменена",
+            );
+          }
+          if (!previous) {
+            state.assignment.runtime.implementationFiles.push(observed);
+          }
+          state.metrics.runtimePathReads++;
+        }
+      }
       state.metrics.nativeMetadataBytes +=
         new TextEncoder().encode(JSON.stringify(native.assignmentDeclarations))
           .length;
@@ -1884,6 +1957,25 @@ async function sealCaptureScope(reservation: Reservation) {
       !same(child.state.rows, state.rows) ||
       !same(child.state.memberships, state.memberships)
     ) fail("OPERATION_BINDING", "Child owner/S witness отличается");
+    if (state.assignment) {
+      if (
+        !child.state.assignment ||
+        !same(state.assignment.assessments, child.state.assignment.assessments)
+      ) {
+        fail("OPERATION_BINDING", "Child assignment intent отличается");
+      }
+      const { implementationFiles: previous, ...runtime } =
+        state.assignment.runtime;
+      const { implementationFiles: observed, ...childRuntime } =
+        child.state.assignment.runtime;
+      if (!same(runtime, childRuntime)) {
+        fail("OPERATION_BINDING", "Child native runtime binding отличается");
+      }
+      state.assignment.runtime.implementationFiles =
+        mergeAssignmentImplementationFiles(previous, observed);
+    } else if (child.state.assignment) {
+      fail("OPERATION_BINDING", "Unexpected child assignment");
+    }
     for (const resource of child.resources) {
       const known = resources.find((r) => r.source === resource.source);
       if (known) {
@@ -2339,7 +2431,6 @@ export async function withCurrentNativeOperation<T>(
   const beforeOperationChild = async () => {
     callbackGuard();
     await guard();
-    await assertSources(complete.state);
     callbackGuard();
   };
   const run = async () => {
@@ -2371,10 +2462,8 @@ export async function withCurrentNativeOperation<T>(
     await guard(true);
     return complete.state.assignment
       ? await withAssignmentExecution(
-        assignmentProfile(
-          complete.state.assignment.runtime,
-          complete.state.root,
-        ),
+        complete.state.assignment.runtime,
+        complete.state.root,
         run,
         beforeOperationChild,
       )
@@ -2825,7 +2914,6 @@ function publicOperation(
         ...metrics,
         ...Object.fromEntries(
           [
-            ...authorityCounterNames,
             "sourceHashBytes",
             "fullSourceFences",
             "localSourceFences",
@@ -3104,9 +3192,6 @@ function publicOperation(
         ),
         ...complete.resources.map((row) =>
           resolve(complete.state.root, row.source)
-        ),
-        ...assignment.runtime.files.map((row) =>
-          row.path
         ),
       ]);
       const publicResource = (absolute: string) => {

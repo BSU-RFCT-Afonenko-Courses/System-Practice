@@ -109,13 +109,6 @@ export type NativeResourceInventory = z.output<
 >;
 
 export const NativeOperationMetricsSchema = z.strictObject({
-  authorityDataReads: z.number().int().nonnegative(),
-  authorityHashBytes: z.number().int().nonnegative(),
-  authorityGraphHashReads: z.number().int().nonnegative(),
-  authorityGraphHashBytes: z.number().int().nonnegative(),
-  authorityPathReads: z.number().int().nonnegative(),
-  authorityDirectoryReads: z.number().int().nonnegative(),
-  authorityTopologyBytes: z.number().int().nonnegative(),
   inspectCalls: z.number().int().nonnegative(),
   fullSourceFences: z.number().int().nonnegative(),
   localSourceFences: z.number().int().nonnegative(),

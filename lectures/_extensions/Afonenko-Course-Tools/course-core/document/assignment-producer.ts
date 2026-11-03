@@ -1,16 +1,5 @@
 import { fail } from "../contracts/project.ts";
-import type { AssignmentProducerProfile } from "../runtime/assignment-producer-profiles.ts";
 import type { DocumentContext } from "./contracts.ts";
-const stable = (v: unknown): string =>
-  JSON.stringify(
-    v,
-    (_k, x) =>
-      x && typeof x === "object" && !Array.isArray(x)
-        ? Object.fromEntries(
-          Object.entries(x).sort(([a], [b]) => a.localeCompare(b)),
-        )
-        : x,
-  );
 function unsupported(s: string): never {
   return fail("BODY.DELIVERY_PHASE_UNSUPPORTED", s);
 }
@@ -22,16 +11,16 @@ const dynamicLiteral =
 export function qualifyAssignmentProducer(
   ast: any,
   context: DocumentContext,
-  profile: AssignmentProducerProfile,
   evidence: any,
 ) {
-  const expected =
-    profile.native.producerEvidence[context.format as "html" | "revealjs"];
   if (
-    !expected ||
-    stable({ ...evidence, format: undefined }) !== stable(expected) ||
-    evidence.format !== context.format
-  ) unsupported("Native producer order/path/runtime evidence отличается");
+    !evidence || evidence.format !== context.format ||
+    typeof evidence.engine !== "string" ||
+    !evidence.filters || typeof evidence.filters !== "object" ||
+    !evidence.shortcodes || typeof evidence.shortcodes !== "object"
+  ) {
+    unsupported("Нет actual native phase/format/engine observation");
+  }
   function walk(v: any) {
     if (Array.isArray(v)) {
       v.forEach(walk);
@@ -71,9 +60,7 @@ export function qualifyAssignmentProducer(
       const first = args.shift();
       if (
         !first || first.key ||
-        !profile.native.literalShortcodes.includes(
-          first.value as "xref" | "meta",
-        )
+        !["xref", "meta"].includes(first.value)
       ) unsupported("Shortcode не квалифицирован");
       if (first.value === "meta") {
         const title = ast.meta?.title;

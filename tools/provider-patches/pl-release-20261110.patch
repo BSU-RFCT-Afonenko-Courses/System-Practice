@@ -294,6 +294,39 @@ index 97e6671..967431d 100644
      });
    const sources = await Promise.all(
      selection.sources.map((f) => origin({ ...f, audience: "student" }, f.name)),
+diff --git a/_extensions/course-prairielearn/application/native-entry.ts b/_extensions/course-prairielearn/application/native-entry.ts
+index ea54326..350ae20 100644
+--- a/_extensions/course-prairielearn/application/native-entry.ts
++++ b/_extensions/course-prairielearn/application/native-entry.ts
+@@ -208,6 +208,10 @@ export async function nativeEntry(options: NativeEntryOptions) {
+     | Awaited<ReturnType<typeof selectNativeOwnerAssignments>>
+     | undefined;
+   let descriptor: any, observedConfig: any;
++  const functionalProfiles = (options.profiles ??
++    (Deno.env.get("QUARTO_PROFILE") || "").split(",")).filter((p) =>
++    p && p !== "student" && p !== "full"
++  );
+   await withNativeCaptureScope({
+     root: owner,
+     projection: "author",
+@@ -215,6 +219,7 @@ export async function nativeEntry(options: NativeEntryOptions) {
+   }, {
+     assignment: {
+       mode: "new",
++      profiles: functionalProfiles,
+       prepare: async (observed: Readonly<Record<string, any>>) => {
+         observedConfig = structuredClone(observed.config);
+         selected = await selectNativeOwnerAssignments(observed, {
+@@ -247,8 +252,7 @@ export async function nativeEntry(options: NativeEntryOptions) {
+           ])
+       ) throw Error("PL.CAPTURE_CHANGED: prepared selection");
+       if (
+-        options.profiles?.length &&
+-        JSON.stringify(options.profiles) !==
++        JSON.stringify(functionalProfiles) !==
+           JSON.stringify(
+             descriptor.identity.profiles.filter((p: string) =>
+               p !== "student" && p !== "full"
 diff --git a/_extensions/course-prairielearn/application/native-materialize.ts b/_extensions/course-prairielearn/application/native-materialize.ts
 index c0a122f..f33a1c1 100644
 --- a/_extensions/course-prairielearn/application/native-materialize.ts

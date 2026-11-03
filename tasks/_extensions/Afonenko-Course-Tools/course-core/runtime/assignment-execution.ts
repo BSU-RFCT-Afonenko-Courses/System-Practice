@@ -1,10 +1,11 @@
 import type { NativeCaptureCommand } from "./prepared-operation.ts";
+import type { AssignmentRuntimeWitness } from "./assignment-admission.ts";
 import { AsyncLocalStorage } from "node:async_hooks";
+import { relative, resolve } from "stdlib/path";
 import { fail } from "../contracts/project.ts";
-import type { AssignmentProducerProfile } from "./assignment-producer-profiles.ts";
-// Callback-local only; ordinary commands retain their existing environment path.
 type Execution = {
-  profile: AssignmentProducerProfile;
+  runtime: AssignmentRuntimeWitness;
+  root: string;
   beforeChild?: () => Promise<void>;
   lives: { active: boolean }[];
   token?: string;
@@ -13,6 +14,8 @@ type Execution = {
 };
 const current = new AsyncLocalStorage<Execution>();
 const carrierGuard = new AsyncLocalStorage<() => Promise<void>>();
+const equal = (a: unknown, b: unknown) =>
+  JSON.stringify(a) === JSON.stringify(b);
 function changed(message: string): never {
   return fail("BODY.PRODUCER_INPUT_CHANGED", message);
 }
@@ -38,13 +41,13 @@ async function enter<T>(
   }
 }
 export function withAssignmentExecution<T>(
-  profile: AssignmentProducerProfile,
+  runtime: AssignmentRuntimeWitness,
+  root: string,
   use: () => Promise<T>,
   beforeChild?: () => Promise<void>,
 ) {
-  return enter({ profile, beforeChild }, use);
+  return enter({ runtime, root, beforeChild }, use);
 }
-/** Вложенная граница batch; наследует profile/token/probes и истекает отдельно. */
 export function withAssignmentBeforeChild<T>(
   beforeChild: () => Promise<void>,
   use: () => Promise<T>,
@@ -55,7 +58,6 @@ export function withAssignmentBeforeChild<T>(
     ? enter({ ...state, beforeChild, lives: [...state.lives, life] }, use)
     : use();
 }
-/** Internal Core lifecycle only: the reservation created this exact token. */
 export function withAssignmentCaptureChild<T>(
   token: string,
   use: () => Promise<T>,
@@ -64,26 +66,28 @@ export function withAssignmentCaptureChild<T>(
   if (!state) changed("Нет assignment execution для capture child");
   return enter({ ...state, token }, use);
 }
-/** Internal Core A1 instrumentation site, not a public template/provider. */
 export function withAssignmentA1Probe<T>(
   probe: NonNullable<Execution["probe"]>,
   use: () => Promise<T>,
 ) {
   const state = execution();
   if (!state) return use();
+  if (
+    !probe.originalInput.startsWith(state.root + "/") ||
+    resolve(probe.originalInput) !== probe.originalInput ||
+    !probe.temporaryInput.startsWith("/") ||
+    resolve(probe.temporaryInput) !== probe.temporaryInput ||
+    !/^course-a1-[-a-z0-9]+$/.test(probe.technical)
+  ) changed("Чужой A1 probe");
   return enter({ ...state, probe: { ...probe } }, use);
 }
-/** Внутренний вызов только из live operation closure после проверки SAME S/coverage. */
-export async function withAssignmentContractProbe<T>(
-  probe: {
-    temporaryOwner: string;
-    originalInputs: readonly string[];
-    format: string;
-    guard: () => void;
-    beforeSpawn?: () => Promise<void>;
-  },
-  use: () => Promise<T>,
-) {
+export async function withAssignmentContractProbe<T>(probe: {
+  temporaryOwner: string;
+  originalInputs: readonly string[];
+  format: string;
+  guard: () => void;
+  beforeSpawn?: () => Promise<void>;
+}, use: () => Promise<T>) {
   const state = execution();
   const run = () =>
     carrierGuard.run(async () => {
@@ -93,30 +97,18 @@ export async function withAssignmentContractProbe<T>(
     }, use);
   if (!state) return await run();
   probe.guard();
-  const profiles = state.profile.native.actualProfiles.join(",");
   if (
     probe.format !== "html" || !probe.temporaryOwner.startsWith("/") ||
+    resolve(probe.temporaryOwner) !== probe.temporaryOwner ||
     /[\\\0]/.test(probe.temporaryOwner) ||
-    probe.temporaryOwner.split("/").slice(1).some((part) =>
-      !part || part === "." || part === ".."
-    ) ||
-    probe.temporaryOwner === state.profile.root ||
-    probe.temporaryOwner.startsWith(state.profile.root + "/") ||
+    probe.temporaryOwner === state.root ||
+    probe.temporaryOwner.startsWith(state.root + "/") ||
     !probe.originalInputs.length ||
     new Set(probe.originalInputs).size !== probe.originalInputs.length ||
     probe.originalInputs.some((input) =>
-      !state.profile.native.renders.some((allowed) =>
-        JSON.stringify(allowed) ===
-          JSON.stringify([
-            "inspect",
-            input,
-            ...(profiles ? ["--profile", profiles] : []),
-          ])
-      )
+      !input.startsWith(state.root + "/") || resolve(input) !== input
     )
-  ) {
-    changed("Aggregate probe вне принятых project inputs/format");
-  }
+  ) changed("Aggregate probe вне принятых project inputs/format");
   return await enter({
     ...state,
     contractProbe: { temporaryOwner: probe.temporaryOwner, guard: probe.guard },
@@ -131,8 +123,9 @@ export async function assignmentBeforeChild() {
   execution();
 }
 export function assignmentQuarto() {
-  return execution()?.profile.native.executable;
+  return execution()?.runtime.executable;
 }
+/** Только existing Core call sites; caller capture получает отдельный exact render ниже. */
 export function assignmentChild(
   executable: string,
   args: readonly string[],
@@ -141,92 +134,103 @@ export function assignmentChild(
 ) {
   const state = execution();
   if (!state) return undefined;
-  const profile = state.profile;
-  const target = executable === "quarto"
-    ? profile.native.executable
-    : executable;
+  const { runtime, root } = state;
   if (
-    !target || !target.startsWith("/") ||
-    target !== profile.native.executable ||
-    !profile.runtime.files.some((row) => row.path === target)
-  ) {
-    changed("Внешний executable вне квалифицированного command closure");
-  }
-  if (cwd !== profile.root) changed("Неизвестный assignment cwd");
-  if (!Array.isArray(args) || args.some((arg) => typeof arg !== "string")) {
-    changed("Неверный assignment argv");
-  }
+    (executable !== "quarto" && executable !== runtime.executable) ||
+    cwd !== root ||
+    !Array.isArray(args) || args.some((a) => typeof a !== "string")
+  ) changed("Чужой native executable/cwd/argv");
   state.contractProbe?.guard();
-  const exactContractProbe = !!state.contractProbe &&
-    JSON.stringify(args) ===
-      JSON.stringify(["inspect", state.contractProbe.temporaryOwner]);
-  let qualifiedArgs = [...args];
-  const base = profile.native.actualProfiles.join(",");
-  const technicalProfiles = state.probe
-    ? [...profile.native.actualProfiles, state.probe.technical].join(",")
-    : undefined;
-  let exactProbe = false;
-  if (
-    state.probe && target === profile.native.executable &&
-    JSON.stringify(args) === JSON.stringify([
-        "inspect",
-        state.probe.temporaryInput,
-        "--profile",
-        technicalProfiles,
-      ])
-  ) {
-    exactProbe = true;
-    qualifiedArgs = [
+  const base = runtime.profiles.join(","),
+    technical = state.probe
+      ? [...runtime.profiles, state.probe.technical].join(",")
+      : undefined;
+  const aggregate = !!state.contractProbe &&
+    equal(args, ["inspect", state.contractProbe.temporaryOwner]);
+  const probe = !!state.probe &&
+    equal(args, [
       "inspect",
-      state.probe.originalInput,
-      ...(base ? ["--profile", base] : []),
-    ];
-  }
+      state.probe.temporaryInput,
+      "--profile",
+      technical,
+    ]);
+  const ownerInspect = equal(args, [
+    "inspect",
+    root,
+    ...(base ? ["--profile", base] : []),
+  ]);
+  const localInspect = args[0] === "inspect" &&
+    args[1]?.startsWith(root + "/") && resolve(args[1]) === args[1] &&
+    equal(args, ["inspect", args[1], ...(base ? ["--profile", base] : [])]);
+  const render = !!state.token &&
+    equal(args, [
+      "render",
+      "--output-dir",
+      relative(root, runtime.outputDirectory),
+      "--profile",
+      base,
+    ]);
+  const pandoc = args[0] === "pandoc" && (
+    equal(args, [
+      "pandoc",
+      "--from",
+      "markdown",
+      "--to",
+      "json",
+      "--wrap=none",
+    ]) ||
+    equal(args, ["pandoc", "--from", "json", "--to", "gfm", "--wrap=none"]) ||
+    args.length === 5 &&
+      equal(args.slice(0, 4), [
+        "pandoc",
+        "--from=json",
+        "--to=json",
+        "--citeproc",
+      ]) &&
+      args[4].startsWith("--resource-path=") &&
+      (args[4] === "--resource-path=" + root ||
+        args[4].slice(16).startsWith(root + "/")) &&
+      resolve(args[4].slice(16)) === args[4].slice(16)
+  );
   if (
-    !exactContractProbe &&
-    !profile.native.renders.some((allowed) =>
-      JSON.stringify(allowed) === JSON.stringify(qualifiedArgs)
-    )
-  ) {
-    changed("Native argv вне точного квалифицированного перечня");
-  }
-  const fixed = { ...profile.native.environment };
-  if (Object.hasOwn(fixed, "COURSE_CORE_CAPTURE_TOKEN")) {
-    changed("Correlation не является фиксированным profile environment");
-  }
+    !aggregate && !probe && !ownerInspect && !localInspect && !render && !pandoc
+  ) changed("Native command вне existing Core call site");
+  const fixed = { ...runtime.environment };
   for (const [key, value] of Object.entries(env)) {
     if (key === "QUARTO_PROFILE") {
-      if (
-        exactContractProbe
-          ? value !== ""
-          : value !== base && !(exactProbe && value === technicalProfiles)
-      ) {
-        changed("Неквалифицированный child profiles");
+      if (value !== (aggregate ? "" : probe ? technical : base)) {
+        changed("Чужой native profiles");
       }
     } else if (key === "COURSE_CORE_CAPTURE_TOKEN") {
-      if (!state.token || value !== state.token) {
+      if (!state.token || value !== state.token || !render) {
         changed("Чужой child correlation");
       }
-    } else if (fixed[key] !== value) {
-      changed("Неквалифицированный child environment " + key);
-    }
+    } else if (fixed[key] !== value) changed("Чужой native environment " + key);
     fixed[key] = value;
   }
   return {
-    executable: target,
+    executable: runtime.executable,
     options: { args: [...args], cwd, env: fixed, clearEnv: true as const },
   };
 }
-/** Private implementation of the existing capture command seam. */
 export function runAssignmentCaptureChild(
   token: string,
   command: NativeCaptureCommand,
 ) {
   return withAssignmentCaptureChild(token, async () => {
-    const profile = execution()!.profile;
-    const qualified = assignmentChild("quarto", command.args, profile.root, {
+    const state = execution()!, base = state.runtime.profiles.join(",");
+    const expected = [
+      "render",
+      "--output-dir",
+      relative(state.root, state.runtime.outputDirectory),
+    ];
+    if (!equal(command.args, expected)) {
+      changed("Capture command требует точный owner render/output");
+    }
+    const args = [...expected, "--profile", base];
+    const qualified = assignmentChild("quarto", args, state.root, {
       COURSE_CORE_CAPTURE_TOKEN: token,
-      QUARTO_PROFILE: profile.native.actualProfiles.join(","),
+      QUARTO_PROFILE: base,
     })!;
     await assignmentBeforeChild();
     const result = await new Deno.Command(qualified.executable, {
@@ -240,22 +244,22 @@ export function runAssignmentCaptureChild(
     if (!result.success) {
       fail(
         "OPERATION_INCOMPLETE",
-        "Native capture child failed: " + result.code,
+        "Native capture child failed: " + result.code +
+          ((command.stderr ?? "piped") === "piped"
+            ? "\n" + new TextDecoder().decode(result.stderr)
+            : ""),
       );
     }
     return result;
   });
 }
-/** Existing helper scratch data stays in an approved service area before child fences. */
 export async function assignmentServiceDirectory(
   root: string,
   kind: "citations" | "validation",
 ) {
-  const profile = current.getStore()?.profile;
-  if (!profile) return undefined;
-  if (root !== profile.root) {
-    fail("BODY.PRODUCER_INPUT_CHANGED", "Чужой assignment service owner");
-  }
+  const state = execution();
+  if (!state) return undefined;
+  if (root !== state.root) changed("Чужой assignment service owner");
   const { safeParent } = await import("../artifacts/files.ts");
   const directory = root + "/_generated/course-spec/assignment-work/" + kind;
   await safeParent(directory);

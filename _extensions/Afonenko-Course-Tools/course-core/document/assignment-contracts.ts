@@ -16,7 +16,6 @@ export const NativeResponseSlotSchema = z.strictObject({
 export type NativeResponseSlot = z.output<typeof NativeResponseSlotSchema>;
 export const AssignmentEarlySchema = z.strictObject({
   source: z.string().min(1),
-  producerProfile: z.string().min(1),
   assessments: z.array(
     z.strictObject({ source: z.string().min(1), id: z.string().min(1) }),
   ),
@@ -74,6 +73,5 @@ export const AssignmentFinalSchema = AssignmentEarlySchema.omit({
 export type AssignmentEarly = z.output<typeof AssignmentEarlySchema>;
 export type AssignmentNormalization = {
   source: string;
-  producerProfile: string;
   assessments: readonly { source: string; id: string }[];
 };

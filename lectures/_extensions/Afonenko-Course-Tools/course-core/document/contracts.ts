@@ -52,18 +52,6 @@ export const EarlyDocumentSchema = z.strictObject({
   occurrences: z.array(OccurrenceSchema).max(4096),
   release: NativeReleaseFactsSchema.optional(),
   assignment: AssignmentEarlySchema.optional(),
-  authorityCost: z.record(
-    z.enum([
-      "authorityDataReads",
-      "authorityHashBytes",
-      "authorityGraphHashReads",
-      "authorityGraphHashBytes",
-      "authorityPathReads",
-      "authorityDirectoryReads",
-      "authorityTopologyBytes",
-    ]),
-    z.number().int().nonnegative(),
-  ).optional(),
 });
 export type EarlyDocument = z.output<typeof EarlyDocumentSchema>;
 export const LateOccurrenceSchema = z.strictObject({

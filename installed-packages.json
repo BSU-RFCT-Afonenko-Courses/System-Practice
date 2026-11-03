@@ -103,8 +103,8 @@
           "mode": 420
         },
         "capture.ts": {
-          "sha256": "571ac9e8e9302093688f940774c320eb800d1abae77eddd26aa29c4bcfa66bbe",
-          "size": 1998,
+          "sha256": "346517d0b9c69e60e009b6faa8b8be798e486cc3ada276e4fce54f7cf003a49a",
+          "size": 2063,
           "mode": 420
         },
         "contract-vocabulary.json": {
@@ -143,8 +143,8 @@
           "mode": 420
         },
         "document/assignment-contracts.ts": {
-          "sha256": "fc2330b98e7d9c920cb56722d96eb59a3b48f2643bb5ce2338c86e5ce5c1d064",
-          "size": 2265,
+          "sha256": "fc4c50e17565c2181961f1f6919beb61b6ac7e11a928d92546c878369fbfca9b",
+          "size": 2200,
           "mode": 420
         },
         "document/assignment-finalize.ts": {
@@ -158,8 +158,8 @@
           "mode": 420
         },
         "document/assignment-producer.ts": {
-          "sha256": "807e10bc556bc1c8271b0021d668ba9aa9def74c18d11183e14927b76653e85b",
-          "size": 4240,
+          "sha256": "5309ccd5fba9b68307b64c516cd4259c46e46ac40dca7482c2a7a4e2e1f2733c",
+          "size": 3801,
           "mode": 420
         },
         "document/catalogue-cite.ts": {
@@ -173,8 +173,8 @@
           "mode": 420
         },
         "document/contracts.ts": {
-          "sha256": "1da1a3f7f6b2cddd856eebbbaad1f1fd7d502450e4a3831b7f74ab726995c232",
-          "size": 5225,
+          "sha256": "4157a41ab1a7805d5241bedfce051c9baf8435db9614ba728fa80ad2100f542a",
+          "size": 4910,
           "mode": 420
         },
         "document/finalize.ts": {
@@ -188,8 +188,8 @@
           "mode": 420
         },
         "document/normalize.ts": {
-          "sha256": "cb48adae6eb7b3749088f9f22e263e8e0a53f27081aa142d738d428b65a35850",
-          "size": 17445,
+          "sha256": "ccc9594707b7b1aa430305a8c78d1a62378048e6353009c5a9e06e7050f7f435",
+          "size": 17389,
           "mode": 420
         },
         "document/project-capture.ts": {
@@ -293,8 +293,8 @@
           "mode": 493
         },
         "native-ts/early-filter.ts": {
-          "sha256": "bfba9afcfd9bc6a19e5ddb891ed9b51a769209aa2e7ed8f3fc95f651dafcc21f",
-          "size": 4299,
+          "sha256": "9698a37a50f1f5ae43727d05145f4789aaebe1b76e82efbfbc122ac5428f5602",
+          "size": 3944,
           "mode": 420
         },
         "native-ts/late-filter.lua": {
@@ -353,13 +353,8 @@
           "mode": 420
         },
         "runtime/assignment-admission.ts": {
-          "sha256": "aa6e95e617f50b2be4e3ee298683a8f13567d10d1401a753e62df67776799a20",
-          "size": 16119,
-          "mode": 420
-        },
-        "runtime/assignment-authority.ts": {
-          "sha256": "3bc78a8722568b3b944416713b029c3c09e24f47bc4371378bf32db0616d388e",
-          "size": 17281,
+          "sha256": "1e267471f286ac0edc73ff757e22dd7c42c5b77187cf938bbdd5aa4aa00e92fa",
+          "size": 9637,
           "mode": 420
         },
         "runtime/assignment-condition.ts": {
@@ -368,8 +363,8 @@
           "mode": 420
         },
         "runtime/assignment-declarations.ts": {
-          "sha256": "f8b55c6fb70de5a6219731e4b9aaf91d176be0c1cba4eb7262f68fd3111c01eb",
-          "size": 6697,
+          "sha256": "2f52d74643f04a13d09896f59de131a4419de36b0567fc7eea246bf7ee6f20d8",
+          "size": 6843,
           "mode": 420
         },
         "runtime/assignment-delivery.ts": {
@@ -378,13 +373,8 @@
           "mode": 420
         },
         "runtime/assignment-execution.ts": {
-          "sha256": "aa62198e28c583dad63610e1e1e20c139b65b74eefda7b17f22552bbaf19265b",
-          "size": 8977,
-          "mode": 420
-        },
-        "runtime/assignment-producer-profiles.ts": {
-          "sha256": "fbe94abe47899a2082feff2d08563652e68b9e46382c1c0b06047c938d2fc2ac",
-          "size": 3804,
+          "sha256": "b4f549084de6c10f1a49e520316ad100fdd4b7ccb8de96d478e4fed4a0bbff76",
+          "size": 8929,
           "mode": 420
         },
         "runtime/assignment-provenance.ts": {
@@ -403,13 +393,13 @@
           "mode": 420
         },
         "runtime/contracts.ts": {
-          "sha256": "d8ffe39a76523f325b873fe860803ff5f89a34012b002e8174cf329fadc5a624",
-          "size": 6910,
+          "sha256": "d9a36aeaf7ba4fb7370fed3cc6292d0d177d19c3dccf3a2403c411e0755b5236",
+          "size": 6513,
           "mode": 420
         },
         "runtime/operation.ts": {
-          "sha256": "d099181332c61625fcf65fb2f191e0b89caab7b7612e4621fc263889b83cfc07",
-          "size": 111786,
+          "sha256": "385d2d8f6162d5c019b9a6b7fd8f19509d09a9a7e6c38cfa2b36d8e859b6413e",
+          "size": 115075,
           "mode": 420
         },
         "runtime/prepared-operation.ts": {
@@ -1503,7 +1493,17 @@
           "mode": 420
         }
       },
-      "extensionTree": "ad36c98c3a498f0d8852b284b6e6293959dd367a"
+      "extensionTree": "ad36c98c3a498f0d8852b284b6e6293959dd367a",
+      "candidate": {
+        "status": "local-unpublished",
+        "baseCommit": "a478d2cc0dfb19e0bebd99108815ac8ef1fe85a8",
+        "commit": "332ea585d7b09f07c3f3886943d58a97a528078a",
+        "patch": "tools/provider-patches/core-release-20261110.patch",
+        "patchSha256": "179538fc0aa2a53f2b463bbd6b24e8241ef37ad70c6f833b5f7c09952e79c723",
+        "packageHashes": {
+          "course-core": "1e5c1e9ddce4398718e3b01ae2416aa4197f7678cf69e2307068d30ad8236e7f"
+        }
+      }
     },
     "course-presentation": {
       "repository": "Afonenko-Course-Tools/quarto-course",
@@ -2623,8 +2623,8 @@
           "mode": 420
         },
         "application/native-entry.ts": {
-          "sha256": "57cca557560e780122ff95f7acca8d067704729b9f41d3641a2e86a92397bcb9",
-          "size": 12155,
+          "sha256": "9a67f64d85805873752350c069f561f48b12a4d909531a4c1e331ac597007937",
+          "size": 12322,
           "mode": 420
         },
         "application/native-input.ts": {
@@ -3882,11 +3882,11 @@
       "candidate": {
         "status": "local-unpublished",
         "baseCommit": "1c41f03f83b26adfe58415b4d89958a3663fabf2",
-        "commit": "35496cdd547d6ad2263fe171e451fb251c793c83",
+        "commit": "3a6c1c14254f1ca547c3bc2577d80007c83bdcf0",
         "patch": "tools/provider-patches/pl-release-20261110.patch",
-        "patchSha256": "21c748d16697b178ea4ac45c8c0215cd1ca4983f74b4549e54716c4c0449c3a7",
+        "patchSha256": "85e73500673b1ab622bdb4335bdd899beee59ba294542e1c0f857100e318bc6e",
         "packageHashes": {
-          "course-prairielearn": "24ddeb7ddbb4200ba6fc0c6fddd495a10142ae5a664b5e99b79c504753fba93c"
+          "course-prairielearn": "baaaa83165a56cf081e46a0184de4a199882dd5654722a089a6d4837071f953b"
         }
       }
     },

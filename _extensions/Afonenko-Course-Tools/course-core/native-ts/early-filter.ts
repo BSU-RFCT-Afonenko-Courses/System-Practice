@@ -1,8 +1,5 @@
 import { collectNativeProjectFacts } from "../document/project-capture.ts";
-import {
-  nativeAssignmentOwner,
-  nativeAssignmentProfile,
-} from "../runtime/assignment-admission.ts";
+import { assertNativeAssignmentCapture } from "../runtime/operation.ts";
 import { qualifyAssignmentProducer } from "../document/assignment-producer.ts";
 import { normalizeDocument } from "../public.ts";
 import { decodeDocumentContext } from "../document/contracts.ts";
@@ -62,21 +59,13 @@ if (JSON.stringify(nativeContext) !== JSON.stringify(context)) {
   fail("DOCUMENT_BINDING", "Native context не соответствует request");
 }
 delete ast.meta["course-core-ts-context"];
-let authorityCost, assignmentOwner: string | undefined;
+let assignmentOwner: string | undefined;
 if (request.assignment) {
-  const native = await nativeAssignmentProfile(
-    request.assignment.producerProfile,
-    nativeAssignmentOwner(
-      context.input,
-      request.assignment.source,
-      request.capture,
-      context.operation,
-    ),
-    request.assignment.authority,
+  assignmentOwner = await assertNativeAssignmentCapture(
+    context,
+    request.assignment,
+    request.capture,
   );
-  const profile = native.profile;
-  assignmentOwner = profile.root;
-  authorityCost = native.cost;
   const evidence = ast.meta["course-core-producer-evidence"];
   if (evidence?.t !== "MetaString") {
     fail(
@@ -84,11 +73,10 @@ if (request.assignment) {
       "Нет actual native producer evidence",
     );
   }
-  qualifyAssignmentProducer(ast, context, profile, JSON.parse(evidence.c));
+  qualifyAssignmentProducer(ast, context, JSON.parse(evidence.c));
   delete ast.meta["course-core-producer-evidence"];
 }
 const early = normalizeDocument(ast, context, request.assignment);
-if (authorityCost) early.authorityCost = authorityCost;
 try {
   await Deno.writeTextFile(
     request.capture + ".early.json",
