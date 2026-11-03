@@ -44,6 +44,19 @@ filters:
 - project-download
 reference-catalog:
   namespace: system-practice-tasks
+  imports:
+    system-practice-theory:
+      source: ../theory/_output/student/reference-catalog-local.json
+      namespace: system-practice-theory
+      base-url: https://bsu-rfct-afonenko-courses.github.io/System-Practice/theory/
+    system-practice-practice:
+      source: ../practice/_output/student/reference-catalog-local.json
+      namespace: system-practice-practice
+      base-url: https://bsu-rfct-afonenko-courses.github.io/System-Practice/practice/
+    system-practice-handbook:
+      source: ../handbook/_output/student/reference-catalog-local.json
+      namespace: system-practice-handbook
+      base-url: https://bsu-rfct-afonenko-courses.github.io/System-Practice/handbook/
 profile:
   default: student
   group:
