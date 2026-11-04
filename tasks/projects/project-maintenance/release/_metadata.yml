@@ -6,4 +6,6 @@ course-project:
       path: student/README.md
   build:
     files:
-      project-maintenance-start.zip: ../../../materials/project-maintenance-start.zip
+      project-maintenance-start.zip:
+        path: ../../../materials/project-maintenance-start.zip
+        base: config
