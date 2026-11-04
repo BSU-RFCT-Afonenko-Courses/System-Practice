@@ -79,10 +79,15 @@ profile:
   - - student
     - full
 subprojects:
-- theory
-- lectures
-- tasks
-- practice
-- handbook
+- path: theory
+  to: default
+- path: lectures
+  to: default
+- path: tasks
+  to: default
+- path: practice
+  to: default
+- path: handbook
+  to: default
 course-core-runtime: native-ts
 course-core-projection: student
