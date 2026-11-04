@@ -6,7 +6,6 @@ project:
   resources:
   - '!tools/**'
   - '!providers.json'
-  - '!installed-packages.json'
   - '!tests/**'
   - '!**/projects/**'
   - '!**/__pycache__/**'

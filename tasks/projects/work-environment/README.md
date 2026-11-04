@@ -1,14 +1,13 @@
 # Техническая поставка «Рабочей среды»
 
 Учебный контракт принадлежит [каноническому условию](../../labs/work-environment.qmd).
-`materials.json` содержит данные двух ZIP, `materials-hashes.json` — результат
-детерминированной упаковки. Книги в эти архивы не входят.
+`materials.json` содержит данные двух ZIP. Упаковщик создаёт архивы
+из этих данных и общих сценариев. Книги в эти архивы не входят.
 
 Из корня репозитория:
 
 ```bash
-python3 tools/build_materials.py --write
-python3 tools/build_materials.py --check
+python3 tools/build_materials.py
 python3 -m unittest discover -s tests -v
 python3 tools/check_work_environment.py /путь/к/результату.zip
 ```

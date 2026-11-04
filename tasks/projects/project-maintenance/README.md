@@ -5,24 +5,21 @@
 продолжает latency A/B/C/S/T/M/N: work/main=N, shared/main=U, поступивший
 CHECKS.md и входной guide.patch по README из N. Starter `maintenance`
 содержит report A/M/F и русский review.patch по A. `initial-state.json`
-фиксирует созданные ID, refs, HEAD/status и hash патча; готового решения
+фиксирует созданные ID, refs, HEAD/status и имя патча; готового решения
 добровольного проекта в поставке нет. Служебный каталог исключён из
 публичного дерева Quarto правилом `**/projects/**`.
 
 Из корня проекта:
 
 ```sh
-python3 tools/build_maintenance_materials.py --write
-python3 tools/build_maintenance_materials.py --check
-python3 tools/materialize_public_materials.py --write
+python3 tools/build_maintenance_materials.py
+python3 tools/materialize_public_materials.py
 ```
 
-Снимки/объекты, refs, индекс и архивные метаданные детерминированы.
-`--check` не записывает; повторная запись идентичного набора сохраняет mtime.
-Предварительная проверка всех назначений защищает неожиданную локальную
-правку от перезаписи и не оставляет частично обновлённые назначения.
-Публичные demo theory/practice/handbook совпадают побайтно; общий materializer
-сохраняет прежние bytes чужих наборов.
+Генератор создаёт объявленную Git-историю и ZIP, затем копирует публичные
+наборы в theory/handbook. Назначения проверяются на безопасные пути перед
+записью. Нужные локальные изменения сохраняют перед генерацией.
+Hash manifests и обязательная побайтовая сверка generated-файлов удалены.
 
 Проверка предназначена для локальной Linux-среды преподавателя с Git/Python.
 Она читает всю сдачу ZIP/tar.gz как данные без извлечения путей или исполнения

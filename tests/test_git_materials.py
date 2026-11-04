@@ -19,10 +19,8 @@ class GitMaterials(unittest.TestCase):
         p = self.root / 'tasks/projects/version-control/seed.json'; p.parent.mkdir(parents=True)
         shutil.copyfile(ROOT / 'tasks/projects/version-control/seed.json', p)
 
-    def test_repeatable_starter_contains_only_three_ordinary_project_files(self):
-        first = build(self.root, write=True); before = {n: (self.root/n).read_bytes() for n in first}
-        self.assertEqual(first, build(self.root, write=True)); self.assertEqual(before, {n: (self.root/n).read_bytes() for n in first})
-        build(self.root, write=False)
+    def test_starter_contains_only_three_ordinary_project_files(self):
+        build(self.root)
         with zipfile.ZipFile(self.root/'tasks/materials/version-control-start.zip') as z:
             self.assertEqual({'versioning/project/README.md': README.encode(),
                               'versioning/project/criteria.txt': b'latency_limit = 25 ms\n',
@@ -32,13 +30,6 @@ class GitMaterials(unittest.TestCase):
                               'latency-demo/criteria.txt': b'latency_limit = 10 ms\n',
                               'latency-demo/measurements.tsv': b'sensor\tlatency_ms\nnorth\t8\nsouth\t18\n'}, {n:z.read(n) for n in z.namelist()})
 
-    def test_check_is_read_only_and_local_archive_edit_is_preserved(self):
-        with self.assertRaises(ValueError): build(self.root, write=False)
-        self.assertFalse((self.root/'practice').exists())
-        build(self.root, write=True); p=self.root/'tasks/materials/version-control-start.zip';p.write_bytes(b'local change')
-        other=self.root/'practice/materials/version-control-demo.zip';before=other.read_bytes()
-        with self.assertRaises(ValueError): build(self.root, write=True)
-        self.assertEqual(b'local change',p.read_bytes());self.assertEqual(before,other.read_bytes())
 
 
 if __name__ == '__main__': unittest.main()

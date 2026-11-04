@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
-"""Детерминированная упаковка объявленных учебных данных."""
+"""Упаковка объявленных учебных данных в ZIP."""
 import argparse
-import hashlib
 import io
 import json
 import os
@@ -54,7 +53,7 @@ def atomic_write(path, data):
             temporary.unlink()
 
 
-def build(root, write=False, project="work-environment"):
+def build(root, project="work-environment"):
     root = Path(root).resolve(strict=True)
     if not re.fullmatch(r'[a-z][a-z0-9-]*', project):
         raise ValueError('Недопустимое имя проекта материалов')
@@ -68,45 +67,24 @@ def build(root, write=False, project="work-environment"):
                 if member in data[archive]:
                     raise ValueError('Повторный источник общего счётчика: ' + member)
                 data[archive][member] = target(root, 'tasks/common/work-environment/' + script).read_bytes()
-    index = target(root, directory + '/materials-hashes.json')
-    previous = json.loads(index.read_text()) if index.exists() else {}
-    planned = {}
+    planned = []
     for name, entries in data.items():
         if not name.startswith(('practice/materials/', 'tasks/materials/')) or not name.endswith('.zip'):
             raise ValueError(f'Не объявлен каталог публикации материала: {name}')
-        path = target(root, name)
-        content = packed(entries)
-        expected = hashlib.sha256(content).hexdigest()
-        actual = hashlib.sha256(path.read_bytes()).hexdigest() if path.exists() else None
-        if actual is not None and actual != expected and actual != previous.get(name):
-            raise ValueError(f'Локальная правка ZIP сохранена: {name}')
-        planned[name] = (path, content, expected, actual)
-    if not planned or set(previous) - set(planned):
-        raise ValueError('Пустой или уменьшенный состав материалов требует отдельного рассмотрения')
-    hashes = {name: row[2] for name, row in sorted(planned.items())}
-    if not write:
-        if previous != hashes or any(expected != actual for _, _, expected, actual in planned.values()):
-            raise ValueError('Материалы отсутствуют или устарели; нужна проверенная упаковка --write')
-        return hashes
-    # Проверки всех путей и локальных правок завершены до первой записи.
-    for path, content, expected, actual in planned.values():
-        if expected != actual:
-            atomic_write(path, content)
-    content = (json.dumps(hashes, ensure_ascii=False, indent=2) + '\n').encode()
-    if not index.exists() or index.read_bytes() != content:
-        atomic_write(index, content)
-    return hashes
+        planned.append((name, target(root, name), packed(entries)))
+    if not planned:
+        raise ValueError('Не объявлены материалы')
+    for _, path, content in planned:
+        atomic_write(path, content)
+    return [name for name, _, _ in planned]
 
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--root', type=Path, default=Path(__file__).resolve().parents[1])
     parser.add_argument('--project', default='work-environment')
-    mode = parser.add_mutually_exclusive_group(required=True)
-    mode.add_argument('--write', action='store_true')
-    mode.add_argument('--check', action='store_true')
     args = parser.parse_args()
-    print(json.dumps(build(args.root, write=args.write, project=args.project), ensure_ascii=False, indent=2))
+    print(json.dumps(build(args.root, project=args.project), ensure_ascii=False, indent=2))
 
 
 if __name__ == '__main__':

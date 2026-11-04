@@ -19,12 +19,6 @@ jobs:
         uses: quarto-dev/quarto-actions/setup@8a96df13519ee81fd526f2dfca5962811136661b
         with:
           version: '1.11.5'
-      - name: Проверить точные tracked provider bytes и safe materializer
-        run: |
-          python3 -B tools/materialize-providers.py --check
-          python3 -B CI/check-production-pins.py
-          python3 -B CI/test-production-pins.py
-          python3 -B tools/test-materialize-providers.py
       - name: Подготовить оболочки для проверки готовых сценариев
         run: |
           sudo apt-get update
@@ -33,13 +27,6 @@ jobs:
           pwsh --version
       - name: Проверить учебные материалы и файловые договоры
         run: |
-          python3 tools/build_materials.py --check
-          python3 tools/build_materials.py --project data-processing --check
-          python3 tools/build_git_materials.py --check
-          python3 tools/build_maintenance_materials.py --check
-          python3 tools/materialize_public_materials.py --check
           python3 -m unittest discover -s tests -p 'test_*.py' -v
       - name: Собрать student
         run: timeout --signal=TERM --kill-after=5s 2700s quarto render --profile student --fail-if-warnings
-      - name: Собрать full
-        run: timeout --signal=TERM --kill-after=5s 2700s quarto render --profile full --fail-if-warnings

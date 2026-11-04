@@ -2,21 +2,19 @@
 
 Авторский договор — условие `tasks/labs/data-processing.qmd`. Учебные ZIP
 содержат только объявленные данные двух маршрутов; приватные примеры
-`reference/` не входят в них. `materials.json` задаёт точные UTF-8 байты,
-`materials-hashes.json` — хеши воспроизводимых ZIP.
+`reference/` не входят в них. `materials.json` задаёт UTF-8 данные архивов.
 
 Из корня репозитория:
 
 ```sh
-python3 tools/build_materials.py --project data-processing --write
-python3 tools/build_materials.py --project data-processing --check
+python3 tools/build_materials.py --project data-processing
 python3 -m unittest discover -s tests -p 'test_*.py' -v
 python3 tools/check_data_processing.py submission.zip --route fish
 python3 tools/check_data_processing.py submission.zip --route powershell
 ```
 
-Упаковщик сначала проверяет все назначения и известные хеши, затем пишет
-архивы. Неожиданная локальная правка не перезаписывается.
+Упаковщик проверяет безопасные пути назначений, затем создаёт архивы.
+Нужные локальные изменения в архивах сохраняют перед генерацией.
 
 Проверка ZIP не извлекает и не запускает присланный код. Она устанавливает
 сохранность входов и expected, наличие сценария и пояснения, оба результата,

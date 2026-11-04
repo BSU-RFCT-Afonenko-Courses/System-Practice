@@ -2,18 +2,17 @@
 
 Предметный договор задаёт каноническое условие третьей лабораторной.
 `seed.json` содержит обычные файлы demo/starter; `build_git_materials.py`
-упаковывает их детерминированно. Demo имеет корень latency-demo, starter —
+упаковывает их в ZIP. Demo имеет корень latency-demo, starter —
 versioning/project. Подготовленной .git, индекса, ссылок или истории в ZIP
 нет. `initial-state.json` перечисляет исходные файлы и отсутствие готовой
-истории; `materials-hashes.json` защищает назначения от перезаписи
-неожиданных локальных поправок. Вспомогательные операции Git в модуле сохранены для
+истории. Нужные локальные изменения сохраняют перед генерацией.
+Вспомогательные операции Git в модуле сохранены для
 независимого добровольного проекта сопровождения.
 
 Из корня репозитория:
 
 ```sh
-python3 tools/build_git_materials.py --write
-python3 tools/build_git_materials.py --check
+python3 tools/build_git_materials.py
 python3 -m unittest discover -s tests -p 'test_*.py' -v
 python3 tools/check_version_control.py submission.zip --output result.json
 python3 tools/check_version_control.py submission.tar.gz --output result.json

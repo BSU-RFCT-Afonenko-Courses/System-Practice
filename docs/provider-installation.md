@@ -1,13 +1,36 @@
-# Точная установка общих расширений
+# Установка общих расширений
 
-`providers.json` закрепляет опубликованные immutable tag/version/commit и package scopes; `installed-packages.json` хранит полный состав каждого пакета с SHA-256, размером и нормализованным Git mode. Проверка: `python3 -B tools/materialize-providers.py --check`.
+`providers.json` выбирает Git-источники, packages и каталоги установки.
+Коммиты Git остаются обычными ссылками на версии исходников. Полный inventory
+установленных файлов, content SHA и проверка запрета ручных правок удалены.
+Render и обычный CI используют уже установленные расширения.
 
-Воспроизводимая запись требует локальных release checkouts с точными tags: `python3 -B tools/materialize-providers.py --write --providers-root /путь/к/checkouts`. Совпадение tag/commit, наличие descriptor пакета, состав файлов, candidate patch/hash (если он явно существует) и все старые scopes проверяются до первой записи. Обнаруженная локальная правка останавливает обычную поставку; пользовательские файлы не перезаписываются как якобы старый release.
+Для опубликованного полного bundle доступен штатный Quarto:
 
-Поле provider `version` обозначает версию общего release и его tag. Собственные версии пакетов внутри него могут различаться: release Core9.3.4 включает Presentation и Navigation9.3.2. Их descriptor поставляется из того же точного commit; дополнительное требование равенства номера пакета номеру общего release отклоняло такую корректную поставку.
+```sh
+quarto add Afonenko-Course-Tools/quarto-course@v9.3.4
+quarto update Afonenko-Course-Tools/quarto-course
+```
 
-Modes 420 и 493 в inventory — это десятичные `0644` и `0755`, не количество файлов. Git executable class определяется owner execute bit; опубликованный Git archive сохраняет его, installer нормализует regular files в644/755, directories в755. Physical freeze bits400/500 или444/555 исследовательского пакета не переносятся в установленный курс. Нельзя заменять это blanket chmod644 либо делать все файлы executable. `--check` сравнивает также Git mode, поэтому потерянный executable early-filter.sh обнаруживается без запуска render.
+Эти команды выполняются из нужного Quarto-проекта. Состав версии и обновление
+выбирает автор; автоматического обновления во время render нет.
 
-Разовая принятая интеграция старого owner с ранее разрешёнными незакоммиченными vendor changes связана с отдельным initial source manifest/preflight и резервной копией. Она не ослабляет обычный materializer guard и не превращает unpublished candidate в опубликованный release. Ни provider verification, ни static inventory не объявляют native135/assignment/P/OCI/course qualification завершёнными.
+Текущая интеграция содержит локальные Core/PL patches и выбор разных packages
+для дочерних проектов. Для этой существующей раскладки сохранена простая
+установка из заранее полученных локальных Git repositories:
 
-SP metadata migration закрепляет Core9.3.4 отдельно от прежних Presentation/Navigation9.1.0 (`core-ui`); их scopes и bytes сохранены. PL9.0.7 использует явно обозначенный local-unpublished candidate35496cdd и tracked patch; Download3.5.0 выбирает contract batch. Только tasks owner объявляет `course-core-source-policy: static`. Разная версия соседних packages не требует выравнивания; каждый package inventory привязан к exact commit своего provider release.
+```sh
+python3 tools/materialize-providers.py --write --providers-root /путь/к/checkouts
+```
+
+Команда извлекает `_extensions` выбранного Git commit, применяет объявленный
+patch через `git apply` и копирует полные packages в объявленные каталоги.
+Она заменяет выбранные packages; рабочие изменения в них сохраняют заранее
+обычными средствами Git. Остальные packages не выбираются. Проверки путей,
+symlinks и наличия package descriptor сохраняются; `--check` и обязательной
+побайтовой сверки нет. Разные descriptor versions внутри release допустимы.
+
+Замена этой раскладки исключительно штатными `quarto add/update` требует
+отдельно проверить выбор packages в bundle, namespace и разные версии Core/UI
+в SP. Такая установка здесь не исполнялась. Новая система зависимостей
+или resolver не добавлены.
