@@ -1,3 +1,4 @@
+import { createMetrics as __createMetrics } from "../observability/bridge.ts";
 import { citationResourceGuard } from "../body-export/citation-inputs.ts";
 import { installedNativeAdapters } from "../infrastructure/installed-adapters.ts";
 import { SupportedQuartoVersionSchema } from "../infrastructure/quarto-version.ts";
@@ -960,159 +961,166 @@ export async function beginNativePreHook(root: string) {
   );
 }
 async function beginNativeOperationInternal(root: string, nativeHook: boolean) {
-  root = await Deno.realPath(root);
-  const profiles = decode(
-    NativeOperationExpectationSchema.shape.profiles,
-    (Deno.env.get("QUARTO_PROFILE") || "").split(",").filter(Boolean),
-    "OPERATION_BINDING",
-  );
-  const selection = await nativeFileSelection(
-    root,
-    "QUARTO_PROJECT_INPUT_FILES",
-  );
-  if (nativeHook && nativeProgressEnabled()) {
-    console.error(`Core: Подготовка модели — inputs=${selection.files.length}`);
-  }
-  if (nativeHook && selection.explicitlyEmpty) {
-    await invalidateNoWorkHook(root);
-    return;
-  }
-  const actualInputs = selection.files.map((p) => relative(root, p));
-  if (
-    !actualInputs.length ||
-    new Set(actualInputs).size !== actualInputs.length ||
-    actualInputs.some((p) => !pathSchema.safeParse(p).success)
-  ) {
-    fail("OPERATION_BINDING", "Нет уникальных текущих native inputs");
-  }
-  const token = Deno.env.get("COURSE_CORE_CAPTURE_TOKEN");
-  const previousPointer = token === undefined
-    ? await readOptionalPointer(root)
-    : undefined;
-  let reservation: Reservation | undefined;
-  if (token !== undefined) {
-    reservation = await readReservation(root);
-    const child = activeChild(reservation, token);
-    if (
-      child.used || !same([...child.inputs].sort(), [...actualInputs].sort()) ||
-      resolve(Deno.cwd()) !== root ||
-      resolve(Deno.env.get("QUARTO_PROJECT_OUTPUT_DIR") || "") !==
-        reservation.outputDirectory
-    ) {
-      fail(
-        "OPERATION_BINDING",
-        "Native child inputs/owner/output/token отличаются",
-      );
+  const corePhaseAction = async function beginNativeOperationInternalPhase() {
+    root = await Deno.realPath(root);
+    const profiles = decode(
+      NativeOperationExpectationSchema.shape.profiles,
+      (Deno.env.get("QUARTO_PROFILE") || "").split(",").filter(Boolean),
+      "OPERATION_BINDING",
+    );
+    const selection = await nativeFileSelection(
+      root,
+      "QUARTO_PROJECT_INPUT_FILES",
+    );
+    if (nativeHook && nativeProgressEnabled()) {
+      console.error(`Core: Подготовка модели — inputs=${selection.files.length}`);
     }
-    if (reservation.status === "bound" || reservation.status === "prepared") {
-      const state = decode(
-        stateSchema,
-        await json(join(reservation.directory, "state.json")),
-        "OPERATION_BINDING",
-      );
-      if (
-        state.root !== root || state.directory !== reservation.directory ||
-        state.operation !== reservation.operation ||
-        state.outputDirectory !== reservation.outputDirectory ||
-        state.projection !== reservation.projection ||
-        !same(state.inputs, reservation.expectedSources)
-      ) {
-        fail("OPERATION_BINDING", "Bound state не принадлежит reservation");
-      }
-      if (!same(profiles, state.profiles)) {
-        fail("OPERATION_BINDING", "Native child ordered profiles изменились");
-      }
-      const baselineMetrics = { ...state.metrics };
-      await assertPrivate(state);
-
-      await withWriter(root, async () => {
-        await assertReservationCurrent(reservation!);
-        child.used = true;
-        reservation!.status = "bound";
-        await Deno.writeTextFile(
-          join(state.directory, "pre-" + token + ".metrics.json"),
-          JSON.stringify(
-            Object.fromEntries(
-              Object.entries(state.metrics).map((
-                [key, value],
-              ) => [
-                key,
-                observedDelta(
-                  value,
-                  baselineMetrics[key as keyof typeof baselineMetrics],
-                ),
-              ]),
-            ),
-          ),
-          { createNew: true, mode: 0o600 },
-        );
-        await writePrivate(reservationPath(reservation!), reservation);
-      });
+    if (nativeHook && selection.explicitlyEmpty) {
+      await invalidateNoWorkHook(root);
       return;
     }
-  }
-  const operation = reservation?.operation ?? crypto.randomUUID(),
-    directory = reservation?.directory ?? join(base(root), operation);
-  const inputs = reservation?.expectedSources ?? actualInputs;
-  let outputDirectory = reservation?.outputDirectory ??
-    resolve(root, Deno.env.get("QUARTO_PROJECT_OUTPUT_DIR") || "_site");
-  if (!outputDirectory.startsWith(root + "/")) {
-    fail("OPERATION_BINDING", "Output вне owner");
-  }
-  await safeParent(base(root));
-  await Deno.mkdir(base(root), { recursive: true });
-  if (!reservation) await Deno.mkdir(directory, { mode: 0o700 });
-  const state: State = {
-    schema: "course-native-operation-private-v2",
-    operation,
-    root,
-    directory,
-    outputDirectory,
-    profiles,
-    projection: reservation?.projection ?? "student",
-    captureWitnesses: {},
-    inputs,
-    ownerInputs: [],
-    metrics: {
-      nativeMetadataBytes: 0,
-      childRenders: 0,
-      inspectCalls: 0,
-    },
-  };
-  const owner = await inspectNativeOwner(root, profiles);
-  state.metrics.inspectCalls++;
-  bindOwner(
-    state,
-    owner,
-    !!reservation,
-    Deno.env.get("QUARTO_PROJECT_OUTPUT_DIR"),
-  );
-
-  if (reservation) await assertReservationCurrent(reservation);
-  state.captureWitnesses = Object.fromEntries(
-    inputs.map((source) => [source, crypto.randomUUID()]),
-  );
-  const publish = async () => {
-    if (reservation) await assertReservationCurrent(reservation);
-    else if (!same(await readOptionalPointer(root), previousPointer)) {
-      fail("OPERATION_CHANGED", "Operation pointer изменён во время pre");
+    const actualInputs = selection.files.map((p) => relative(root, p));
+    if (
+      !actualInputs.length ||
+      new Set(actualInputs).size !== actualInputs.length ||
+      actualInputs.some((p) => !pathSchema.safeParse(p).success)
+    ) {
+      fail("OPERATION_BINDING", "Нет уникальных текущих native inputs");
     }
-    await writePendingState(state);
-    if (reservation) {
-      activeChild(reservation, token!).used = true;
-      reservation.status = "bound";
-      await writePrivate(reservationPath(reservation), reservation);
-    } else {
-      if (!same(await readOptionalPointer(root), previousPointer)) {
+    const token = Deno.env.get("COURSE_CORE_CAPTURE_TOKEN");
+    const previousPointer = token === undefined
+      ? await readOptionalPointer(root)
+      : undefined;
+    let reservation: Reservation | undefined;
+    if (token !== undefined) {
+      reservation = await readReservation(root);
+      const child = activeChild(reservation, token);
+      if (
+        child.used || !same([...child.inputs].sort(), [...actualInputs].sort()) ||
+        resolve(Deno.cwd()) !== root ||
+        resolve(Deno.env.get("QUARTO_PROJECT_OUTPUT_DIR") || "") !==
+          reservation.outputDirectory
+      ) {
         fail(
-          "OPERATION_CHANGED",
-          "Operation pointer заменён перед publication",
+          "OPERATION_BINDING",
+          "Native child inputs/owner/output/token отличаются",
         );
       }
-      await writePrivate(pointer(root), { operation, directory });
+      if (reservation.status === "bound" || reservation.status === "prepared") {
+        const state = decode(
+          stateSchema,
+          await json(join(reservation.directory, "state.json")),
+          "OPERATION_BINDING",
+        );
+        if (
+          state.root !== root || state.directory !== reservation.directory ||
+          state.operation !== reservation.operation ||
+          state.outputDirectory !== reservation.outputDirectory ||
+          state.projection !== reservation.projection ||
+          !same(state.inputs, reservation.expectedSources)
+        ) {
+          fail("OPERATION_BINDING", "Bound state не принадлежит reservation");
+        }
+        if (!same(profiles, state.profiles)) {
+          fail("OPERATION_BINDING", "Native child ordered profiles изменились");
+        }
+        const baselineMetrics = { ...state.metrics };
+        await assertPrivate(state);
+
+        await withWriter(root, async () => {
+          await assertReservationCurrent(reservation!);
+          child.used = true;
+          reservation!.status = "bound";
+          await Deno.writeTextFile(
+            join(state.directory, "pre-" + token + ".metrics.json"),
+            JSON.stringify(
+              Object.fromEntries(
+                Object.entries(state.metrics).map((
+                  [key, value],
+                ) => [
+                  key,
+                  observedDelta(
+                    value,
+                    baselineMetrics[key as keyof typeof baselineMetrics],
+                  ),
+                ]),
+              ),
+            ),
+            { createNew: true, mode: 0o600 },
+          );
+          await writePrivate(reservationPath(reservation!), reservation);
+        });
+        return;
+      }
     }
+    const operation = reservation?.operation ?? crypto.randomUUID(),
+      directory = reservation?.directory ?? join(base(root), operation);
+    const inputs = reservation?.expectedSources ?? actualInputs;
+    let outputDirectory = reservation?.outputDirectory ??
+      resolve(root, Deno.env.get("QUARTO_PROJECT_OUTPUT_DIR") || "_site");
+    if (!outputDirectory.startsWith(root + "/")) {
+      fail("OPERATION_BINDING", "Output вне owner");
+    }
+    await safeParent(base(root));
+    await Deno.mkdir(base(root), { recursive: true });
+    if (!reservation) await Deno.mkdir(directory, { mode: 0o700 });
+    const state: State = {
+      schema: "course-native-operation-private-v2",
+      operation,
+      root,
+      directory,
+      outputDirectory,
+      profiles,
+      projection: reservation?.projection ?? "student",
+      captureWitnesses: {},
+      inputs,
+      ownerInputs: [],
+      metrics: {
+        nativeMetadataBytes: 0,
+        childRenders: 0,
+        inspectCalls: 0,
+      },
+    };
+    const owner = await inspectNativeOwner(root, profiles);
+    state.metrics.inspectCalls++;
+    bindOwner(
+      state,
+      owner,
+      !!reservation,
+      Deno.env.get("QUARTO_PROJECT_OUTPUT_DIR"),
+    );
+
+    if (reservation) await assertReservationCurrent(reservation);
+    state.captureWitnesses = Object.fromEntries(
+      inputs.map((source) => [source, crypto.randomUUID()]),
+    );
+    const publish = async () => {
+      if (reservation) await assertReservationCurrent(reservation);
+      else if (!same(await readOptionalPointer(root), previousPointer)) {
+        fail("OPERATION_CHANGED", "Operation pointer изменён во время pre");
+      }
+      await writePendingState(state);
+      if (reservation) {
+        activeChild(reservation, token!).used = true;
+        reservation.status = "bound";
+        await writePrivate(reservationPath(reservation), reservation);
+      } else {
+        if (!same(await readOptionalPointer(root), previousPointer)) {
+          fail(
+            "OPERATION_CHANGED",
+            "Operation pointer заменён перед publication",
+          );
+        }
+        await writePrivate(pointer(root), { operation, directory });
+      }
+    };
+    await withWriter(root, publish);
   };
-  await withWriter(root, publish);
+  return await __createMetrics("course-core").wrapAsync({
+    id: "course-core.runtime.operation.beginNativeOperationInternal",
+    kind: "phase",
+    origin: "manual",
+  }, corePhaseAction)();
 }
 
 function localUses(value: unknown): string[] {
@@ -1130,19 +1138,6 @@ function localUses(value: unknown): string[] {
       if (
         typeof url === "string" && !/^(?:[a-z][a-z0-9+.-]*:|\/\/|#)/i.test(url)
       ) result.add(url.split(/[?#]/)[0]);
-    }
-    if (
-      (node.t === "RawBlock" || node.t === "RawInline") &&
-      Array.isArray(content) && content[0] === "html" &&
-      typeof content[1] === "string"
-    ) {
-      for (
-        const m of content[1].matchAll(/(?:src|href)\s*=\s*["']([^"']+)["']/gi)
-      ) {
-        if (!/^(?:[a-z][a-z0-9+.-]*:|\/\/|#)/i.test(m[1])) {
-          result.add(m[1].split(/[?#]/)[0]);
-        }
-      }
     }
     Object.values(node).forEach(visit);
   }
@@ -1165,424 +1160,431 @@ async function finishNativeOperationInternal(
   root: string,
   nativeHook: boolean,
 ) {
-  root = await Deno.realPath(root);
-  const selection = nativeHook
-    ? await nativeFileSelection(root, "QUARTO_PROJECT_OUTPUT_FILES")
-    : undefined;
-  if (selection && nativeProgressEnabled()) {
-    console.error(
-      `Core: Финализация модели — outputs=${selection.files.length}`,
-    );
-  }
-  if (selection?.explicitlyEmpty) {
-    await invalidateNoWorkHook(root);
-    return;
-  }
-  const active = nativePointer(
-    await json(pointer(root)),
-    root,
-    "Чужой private operation pointer",
-  );
-  const state = decode(
-    stateSchema,
-    await json(join(active.directory, "state.json")),
-    "OPERATION_BINDING",
-  );
-  if (
-    state.root !== root || state.directory !== active.directory ||
-    state.operation !== active.operation
-  ) fail("OPERATION_BINDING", "Чужой native post state");
-  const token = Deno.env.get("COURSE_CORE_CAPTURE_TOKEN");
-  const reservation = token !== undefined
-    ? await readReservation(root)
-    : undefined;
-  const child = reservation ? activeChild(reservation, token!) : undefined;
-  if (child && (!child.used || reservation!.operation !== state.operation)) {
-    fail("OPERATION_BINDING", "Незарегистрированный native post");
-  }
-  if (!reservation) {
-    try {
-      await Deno.lstat(join(state.directory, "reservation.json"));
-      fail("OPERATION_BINDING", "Scope post требует registered token");
-    } catch (e) {
-      if (!(e instanceof Deno.errors.NotFound)) throw e;
-    }
-  }
-  const inputs = child?.inputs ?? state.inputs;
-  if (child) {
-    state.metrics.childRenders++;
-    try {
-      const delta = await json(
-        join(state.directory, "pre-" + token + ".metrics.json"),
+  const corePhaseAction = async function finishNativeOperationInternalPhase() {
+    root = await Deno.realPath(root);
+    const selection = nativeHook
+      ? await nativeFileSelection(root, "QUARTO_PROJECT_OUTPUT_FILES")
+      : undefined;
+    if (selection && nativeProgressEnabled()) {
+      console.error(
+        `Core: Финализация модели — outputs=${selection.files.length}`,
       );
-      if (!record(delta)) {
-        fail("OPERATION_BINDING", "Некорректные child metrics");
-      }
-      for (
-        const key of Object.keys(state.metrics) as (keyof State["metrics"])[]
-      ) {
-        if (
-          typeof delta[key] !== "number" || !Number.isInteger(delta[key]) ||
-          delta[key] < 0
-        ) fail("OPERATION_BINDING", "Некорректные child metrics");
-        if (typeof state.metrics[key] !== "number") {
-          fail("METRICS_UNAVAILABLE", "Incomplete pending counters");
-        }
-        state.metrics[key]! += delta[key];
-      }
-    } catch (e) {
-      if (!(e instanceof Deno.errors.NotFound)) throw e;
     }
-  }
-  await assertPrivate(state);
-  if (
-    !same(
-      state.profiles,
-      (Deno.env.get("QUARTO_PROFILE") || "").split(",").filter(Boolean),
-    )
-  ) fail("OPERATION_BINDING", "Native profiles изменились между hooks");
-  const outputs = selection?.files ??
-    await envFiles(root, "QUARTO_PROJECT_OUTPUT_FILES");
-  if (!outputs.length) {
-    fail("OPERATION_INCOMPLETE", "Нет текущих native outputs");
-  }
-  const documents: z.output<typeof NativePublicDocumentSchema>[] = [],
-    catalogDocuments: z.output<typeof NativeCatalogSchema>["documents"] = [],
-    resources: z.output<typeof completeSchema>["resources"] = [],
-    outputRows: z.output<typeof completeSchema>["outputs"] = [];
-  const declaredOutputs = new Set(outputs);
-  const indexTopics = new Map<string, Record<string, unknown>>();
-  const indexPages = new Map<string, string>();
-  const releaseDocuments: z.output<typeof completeSchema>["releaseDocuments"] =
-    [];
-  for (const sourceInput of inputs) {
-    const index = state.inputs.indexOf(sourceInput);
-    if (index < 0) fail("OPERATION_BINDING", "Чужой child source");
-    const capture = join(state.directory, String(index));
-    const early = decode(
-      EarlyDocumentSchema,
-      await json(capture + ".early.json"),
-      "OPERATION_INCOMPLETE",
+    if (selection?.explicitlyEmpty) {
+      await invalidateNoWorkHook(root);
+      return;
+    }
+    const active = nativePointer(
+      await json(pointer(root)),
+      root,
+      "Чужой private operation pointer",
     );
-    const late = decode(
-      LateDocumentSchema,
-      await json(capture + ".late.json"),
-      "OPERATION_INCOMPLETE",
+    const state = decode(
+      stateSchema,
+      await json(join(active.directory, "state.json")),
+      "OPERATION_BINDING",
     );
-    const native = decode(
-      nativeCaptureSchema,
-      await json(capture + ".native.json"),
-      "OPERATION_INCOMPLETE",
-    );
-    state.metrics.nativeMetadataBytes += new TextEncoder().encode(
-      JSON.stringify(early.release?.nativeMetadata ?? {}),
-    ).length;
-    const captureWitness = state.captureWitnesses[state.inputs[index]];
-    const nativeFormat = NativeWebFormatSchema.safeParse(early.context.format);
     if (
-      early.context.captureWitness !== captureWitness ||
-      !same(early.context.profiles, state.profiles) ||
-      early.context.operation !== state.operation ||
-      early.context.input !== resolve(root, state.inputs[index]) ||
-      !nativeFormat.success ||
-      early.context.projection !== state.projection
-    ) fail("OPERATION_BINDING", "Чужой native capture");
-    const nativeContext = {
-      ...early.context,
-      captureWitness,
-      format: nativeFormat.data,
-    };
-    if (early.context.exerciseBank !== (native.role === "exercise-bank")) {
-      fail("OPERATION_BINDING", "Native role/capture отличаются");
-    }
-    const document = finalizeDocument(early, late);
-    if (document.status !== "complete") {
-      fail("OPERATION_INCOMPLETE", "Неполный late native capture");
-    }
-    const output = resolve(root, native.output);
-    if (
-      !outputs.includes(output) ||
-      !output.startsWith(state.outputDirectory + "/") ||
-      !output.endsWith(".html")
-    ) fail("OPERATION_BINDING", "Документ не принадлежит текущему HTML output");
-    const outputPath = relative(root, output);
-    await regular(root, outputPath);
-    if (outputRows.some((r) => r.path === outputPath)) {
-      fail("OPERATION_BINDING", "Output collision");
-    }
-    if (state.assignment) {
-      const nativeShare = resolve(
-        dirname(state.assignment.runtime.executable),
-        "../share",
-      );
-      assertAssignmentDeclarations(
-        native.assignmentDeclarations,
-        resolve(root, sourceInput),
-        {
-          root,
-          outputDirectory: state.outputDirectory,
-          xdg: state.assignment.runtime.environment.XDG_CACHE_HOME ??
-            join(state.assignment.runtime.environment.HOME ?? root, ".cache"),
-          nativeImplementation: (path: string) => {
-            if (!path.startsWith(nativeShare + "/") || resolve(path) !== path) {
-              return false;
-            }
-            return true;
-          },
-          format: early.context.format,
-          outputs: declaredOutputs,
-        },
-      );
-      state.metrics.nativeMetadataBytes +=
-        new TextEncoder().encode(JSON.stringify(native.assignmentDeclarations))
-          .length;
-    } else if (native.assignmentDeclarations) {
-      fail(
-        "BODY.PRODUCER_DEPENDENCY_UNQUALIFIED",
-        "Unexpected assignment declarations",
-      );
+      state.root !== root || state.directory !== active.directory ||
+      state.operation !== active.operation
+    ) fail("OPERATION_BINDING", "Чужой native post state");
+    const token = Deno.env.get("COURSE_CORE_CAPTURE_TOKEN");
+    const reservation = token !== undefined
+      ? await readReservation(root)
+      : undefined;
+    const child = reservation ? activeChild(reservation, token!) : undefined;
+    if (child && (!child.used || reservation!.operation !== state.operation)) {
+      fail("OPERATION_BINDING", "Незарегистрированный native post");
     }
     if (!reservation) {
-      const outputText = await Deno.readTextFile(output);
-      if (outputText.includes("<!--course-exercise-index")) {
-        indexPages.set(outputPath, outputText);
+      try {
+        await Deno.lstat(join(state.directory, "reservation.json"));
+        fail("OPERATION_BINDING", "Scope post требует registered token");
+      } catch (e) {
+        if (!(e instanceof Deno.errors.NotFound)) throw e;
       }
     }
-    indexTopics.set(state.inputs[index], early.ast.meta);
-    outputRows.push({ path: outputPath });
-    let projectFacts:
-      | z.output<typeof NativeProjectFactsCaptureSchema>
-      | undefined;
-    if (state.assignment) {
-      const projectFactsBytes = await Deno.readFile(
-        capture + ".project-facts.json",
-      );
-      if (projectFactsBytes.length > 16 * 1024 * 1024) {
-        fail("DOCUMENT_LIMIT", "Project facts больше16MiB");
+    const inputs = child?.inputs ?? state.inputs;
+    if (child) {
+      state.metrics.childRenders++;
+      try {
+        const delta = await json(
+          join(state.directory, "pre-" + token + ".metrics.json"),
+        );
+        if (!record(delta)) {
+          fail("OPERATION_BINDING", "Некорректные child metrics");
+        }
+        for (
+          const key of Object.keys(state.metrics) as (keyof State["metrics"])[]
+        ) {
+          if (
+            typeof delta[key] !== "number" || !Number.isInteger(delta[key]) ||
+            delta[key] < 0
+          ) fail("OPERATION_BINDING", "Некорректные child metrics");
+          if (typeof state.metrics[key] !== "number") {
+            fail("METRICS_UNAVAILABLE", "Incomplete pending counters");
+          }
+          state.metrics[key]! += delta[key];
+        }
+      } catch (e) {
+        if (!(e instanceof Deno.errors.NotFound)) throw e;
       }
-      state.metrics.nativeMetadataBytes += projectFactsBytes.length;
-      projectFacts = decode(
-        NativeProjectFactsCaptureSchema,
-        JSON.parse(
-          new TextDecoder("utf-8", { fatal: true }).decode(projectFactsBytes),
-        ),
-        "BODY.PROJECT_FACTS_UNQUALIFIED",
+    }
+    await assertPrivate(state);
+    if (
+      !same(
+        state.profiles,
+        (Deno.env.get("QUARTO_PROFILE") || "").split(",").filter(Boolean),
+      )
+    ) fail("OPERATION_BINDING", "Native profiles изменились между hooks");
+    const outputs = selection?.files ??
+      await envFiles(root, "QUARTO_PROJECT_OUTPUT_FILES");
+    if (!outputs.length) {
+      fail("OPERATION_INCOMPLETE", "Нет текущих native outputs");
+    }
+    const documents: z.output<typeof NativePublicDocumentSchema>[] = [],
+      catalogDocuments: z.output<typeof NativeCatalogSchema>["documents"] = [],
+      resources: z.output<typeof completeSchema>["resources"] = [],
+      outputRows: z.output<typeof completeSchema>["outputs"] = [];
+    const declaredOutputs = new Set(outputs);
+    const indexTopics = new Map<string, Record<string, unknown>>();
+    const indexPages = new Map<string, string>();
+    const releaseDocuments: z.output<typeof completeSchema>["releaseDocuments"] =
+      [];
+    for (const sourceInput of inputs) {
+      const index = state.inputs.indexOf(sourceInput);
+      if (index < 0) fail("OPERATION_BINDING", "Чужой child source");
+      const capture = join(state.directory, String(index));
+      const early = decode(
+        EarlyDocumentSchema,
+        await json(capture + ".early.json"),
+        "OPERATION_INCOMPLETE",
       );
-      const declared = early.release?.declarations.filter((row) =>
-        row.project
-      ) ?? [];
+      const late = decode(
+        LateDocumentSchema,
+        await json(capture + ".late.json"),
+        "OPERATION_INCOMPLETE",
+      );
+      const native = decode(
+        nativeCaptureSchema,
+        await json(capture + ".native.json"),
+        "OPERATION_INCOMPLETE",
+      );
+      state.metrics.nativeMetadataBytes += new TextEncoder().encode(
+        JSON.stringify(early.release?.nativeMetadata ?? {}),
+      ).length;
+      const captureWitness = state.captureWitnesses[state.inputs[index]];
+      const nativeFormat = NativeWebFormatSchema.safeParse(early.context.format);
       if (
-        !same(projectFacts.context, early.context) ||
-        projectFacts.source !== sourceInput ||
-        projectFacts.projects.length !== declared.length ||
-        projectFacts.projects.some((fact) =>
-          fact.source !== sourceInput || !declared.some((row) =>
-            row.id === fact.exerciseId &&
-            row.project === "/" + fact.projectRoot &&
-            row.check === fact.projectCheck
-          )
-        )
-      ) {
+        early.context.captureWitness !== captureWitness ||
+        !same(early.context.profiles, state.profiles) ||
+        early.context.operation !== state.operation ||
+        early.context.input !== resolve(root, state.inputs[index]) ||
+        !nativeFormat.success ||
+        early.context.projection !== state.projection
+      ) fail("OPERATION_BINDING", "Чужой native capture");
+      const nativeContext = {
+        ...early.context,
+        captureWitness,
+        format: nativeFormat.data,
+      };
+      if (early.context.exerciseBank !== (native.role === "exercise-bank")) {
+        fail("OPERATION_BINDING", "Native role/capture отличаются");
+      }
+      const document = finalizeDocument(early, late);
+      if (document.status !== "complete") {
+        fail("OPERATION_INCOMPLETE", "Неполный late native capture");
+      }
+      const output = resolve(root, native.output);
+      if (
+        !outputs.includes(output) ||
+        !output.startsWith(state.outputDirectory + "/") ||
+        !output.endsWith(".html")
+      ) fail("OPERATION_BINDING", "Документ не принадлежит текущему HTML output");
+      const outputPath = relative(root, output);
+      await regular(root, outputPath);
+      if (outputRows.some((r) => r.path === outputPath)) {
+        fail("OPERATION_BINDING", "Output collision");
+      }
+      if (state.assignment) {
+        const nativeShare = resolve(
+          dirname(state.assignment.runtime.executable),
+          "../share",
+        );
+        assertAssignmentDeclarations(
+          native.assignmentDeclarations,
+          resolve(root, sourceInput),
+          {
+            root,
+            outputDirectory: state.outputDirectory,
+            xdg: state.assignment.runtime.environment.XDG_CACHE_HOME ??
+              join(state.assignment.runtime.environment.HOME ?? root, ".cache"),
+            nativeImplementation: (path: string) => {
+              if (!path.startsWith(nativeShare + "/") || resolve(path) !== path) {
+                return false;
+              }
+              return true;
+            },
+            format: early.context.format,
+            outputs: declaredOutputs,
+          },
+        );
+        state.metrics.nativeMetadataBytes +=
+          new TextEncoder().encode(JSON.stringify(native.assignmentDeclarations))
+            .length;
+      } else if (native.assignmentDeclarations) {
         fail(
-          "BODY.PROJECT_FACTS_UNQUALIFIED",
-          "Foreign/incomplete preprojection Core project facts",
+          "BODY.PRODUCER_DEPENDENCY_UNQUALIFIED",
+          "Unexpected assignment declarations",
         );
       }
-    }
-    releaseDocuments.push({
-      ...(projectFacts ? { projectFacts } : {}),
-      source: state.inputs[index],
-      early: {
-        context: nativeContext,
-        definitions: early.definitions,
-        release: early.release,
-      },
-      final: { hasPublicSolution: structuredClone(document.hasPublicSolution) },
-    });
-    const source = state.inputs[index],
-      visibleIds = new Set(
-        document.occurrences.filter((r) => r.kind === "exercise").map((r) =>
-          r.exerciseId
-        ),
+      if (!reservation) {
+        const outputText = await Deno.readTextFile(output);
+        if (outputText.includes("<!--course-exercise-index")) {
+          indexPages.set(outputPath, outputText);
+        }
+      }
+      indexTopics.set(state.inputs[index], early.ast.meta);
+      outputRows.push({ path: outputPath });
+      let projectFacts:
+        | z.output<typeof NativeProjectFactsCaptureSchema>
+        | undefined;
+      if (state.assignment) {
+        const projectFactsBytes = await Deno.readFile(
+          capture + ".project-facts.json",
+        );
+        if (projectFactsBytes.length > 16 * 1024 * 1024) {
+          fail("DOCUMENT_LIMIT", "Project facts больше16MiB");
+        }
+        state.metrics.nativeMetadataBytes += projectFactsBytes.length;
+        projectFacts = decode(
+          NativeProjectFactsCaptureSchema,
+          JSON.parse(
+            new TextDecoder("utf-8", { fatal: true }).decode(projectFactsBytes),
+          ),
+          "BODY.PROJECT_FACTS_UNQUALIFIED",
+        );
+        const declared = early.release?.declarations.filter((row) =>
+          row.project
+        ) ?? [];
+        if (
+          !same(projectFacts.context, early.context) ||
+          projectFacts.source !== sourceInput ||
+          projectFacts.projects.length !== declared.length ||
+          projectFacts.projects.some((fact) =>
+            fact.source !== sourceInput || !declared.some((row) =>
+              row.id === fact.exerciseId &&
+              row.project === "/" + fact.projectRoot &&
+              row.check === fact.projectCheck
+            )
+          )
+        ) {
+          fail(
+            "BODY.PROJECT_FACTS_UNQUALIFIED",
+            "Foreign/incomplete preprojection Core project facts",
+          );
+        }
+      }
+      releaseDocuments.push({
+        ...(projectFacts ? { projectFacts } : {}),
+        source: state.inputs[index],
+        early: {
+          context: nativeContext,
+          definitions: early.definitions,
+          release: early.release,
+        },
+        final: { hasPublicSolution: structuredClone(document.hasPublicSolution) },
+      });
+      const source = state.inputs[index],
+        visibleIds = new Set(
+          document.occurrences.filter((r) => r.kind === "exercise").map((r) =>
+            r.exerciseId
+          ),
+        );
+      document.definitions = Object.fromEntries(
+        Object.entries(document.definitions).filter(([id]) => visibleIds.has(id)),
       );
-    document.definitions = Object.fromEntries(
-      Object.entries(document.definitions).filter(([id]) => visibleIds.has(id)),
-    );
-    document.context = { ...document.context, input: source, defaults: {} };
-    documents.push(
-      decode(NativePublicDocumentSchema, document, "OPERATION_DOCUMENT"),
-    );
-    const role = native.role;
-    if (role !== "exercise-bank" && role !== "page") {
-      fail("OPERATION_UNQUALIFIED", "Не квалифицирована native document role");
-    }
-    catalogDocuments.push({
-      source,
-      output: relative(state.outputDirectory, output),
-      format: nativeFormat.data,
-      role,
-      exercises: document.occurrences.filter((r) => r.kind === "exercise").map(
-        (r) => ({
-          id: r.exerciseId,
-          occurrence: r.key,
-          anchor: r.anchor,
-          hasPublicSolution: document.hasPublicSolution[r.exerciseId] === true,
-          ...(document.definitions[r.exerciseId]?.project
-            ? {
-              project: relative(
-                root,
-                resolve(
-                  document.definitions[r.exerciseId].project!.startsWith("/")
-                    ? root
-                    : dirname(resolve(root, source)),
-                  document.definitions[r.exerciseId].project!.replace(
-                    /^\//,
-                    "",
+      document.context = { ...document.context, input: source, defaults: {} };
+      documents.push(
+        decode(NativePublicDocumentSchema, document, "OPERATION_DOCUMENT"),
+      );
+      const role = native.role;
+      if (role !== "exercise-bank" && role !== "page") {
+        fail("OPERATION_UNQUALIFIED", "Не квалифицирована native document role");
+      }
+      catalogDocuments.push({
+        source,
+        output: relative(state.outputDirectory, output),
+        format: nativeFormat.data,
+        role,
+        exercises: document.occurrences.filter((r) => r.kind === "exercise").map(
+          (r) => ({
+            id: r.exerciseId,
+            occurrence: r.key,
+            anchor: r.anchor,
+            hasPublicSolution: document.hasPublicSolution[r.exerciseId] === true,
+            ...(document.definitions[r.exerciseId]?.project
+              ? {
+                project: relative(
+                  root,
+                  resolve(
+                    document.definitions[r.exerciseId].project!.startsWith("/")
+                      ? root
+                      : dirname(resolve(root, source)),
+                    document.definitions[r.exerciseId].project!.replace(
+                      /^\//,
+                      "",
+                    ),
                   ),
                 ),
-              ),
-            }
-            : {}),
-        }),
-      ),
-    });
-    for (const use of localUses(native.body)) {
-      let decoded: string;
-      try {
-        decoded = decodeURIComponent(use);
-      } catch {
-        fail("RESOURCE_PATH", "Некорректный URL ресурса");
-      }
-      const canonical = relative(
-        root,
-        resolve(
-          use.startsWith("/") ? root : dirname(resolve(root, source)),
-          decoded.replace(/^\//, ""),
+              }
+              : {}),
+          }),
         ),
-      );
-      if (!pathSchema.safeParse(canonical).success) {
-        fail("RESOURCE_PATH", "Ресурс выходит из owner");
-      }
-      if (!ordinary(canonical) || toolCachePath(root, canonical)) continue;
-      // Только фактическое native наблюдение разрешает relocated fallback.
-      const observed = native.resources.find((r) =>
-        resolve(r.source) === resolve(root, canonical)
-      );
-      if (!observed) {
+      });
+      for (const use of localUses(native.body)) {
+        let decoded: string;
         try {
-          await regular(root, canonical);
-        } catch (e) {
-          if (e instanceof Deno.errors.NotFound) continue;
-          throw e;
+          decoded = decodeURIComponent(use);
+        } catch {
+          fail("RESOURCE_PATH", "Некорректный URL ресурса");
         }
+        const canonical = relative(
+          root,
+          resolve(
+            use.startsWith("/") ? root : dirname(resolve(root, source)),
+            decoded.replace(/^\//, ""),
+          ),
+        );
+        if (!pathSchema.safeParse(canonical).success) {
+          fail("RESOURCE_PATH", "Ресурс выходит из owner");
+        }
+        if (!ordinary(canonical) || toolCachePath(root, canonical)) continue;
+        // Только фактическое native наблюдение разрешает relocated fallback.
+        const observed = native.resources.find((r) =>
+          resolve(r.source) === resolve(root, canonical)
+        );
+        if (!observed) {
+          try {
+            await regular(root, canonical);
+          } catch (e) {
+            if (e instanceof Deno.errors.NotFound) continue;
+            throw e;
+          }
+          fail(
+            "RESOURCE_UNQUALIFIED",
+            "Ресурс отсутствует в native path observation",
+          );
+        }
+        const expectedOutput = resolve(state.outputDirectory, canonical);
+        if (resolve(observed.output) !== expectedOutput) {
+          fail("OPERATION_BINDING", "Native resource output отличается");
+        }
+        const existing = resources.find((r) => r.source === canonical);
+        if (existing) {
+          if (!existing.documents.includes(source)) {
+            existing.documents.push(source);
+          }
+          continue;
+        }
+        const finished = await finishedNativeResource(state, canonical);
+        resources.push({
+          source: canonical,
+          documents: [source],
+          ...finished,
+        });
+      }
+    }
+    if (indexPages.size && !reservation) {
+      if (!same([...inputs].sort(), [...state.ownerInputs].sort())) {
         fail(
-          "RESOURCE_UNQUALIFIED",
-          "Ресурс отсутствует в native path observation",
+          "RELEASE.FULL_NATIVE_RUN_REQUIRED",
+          "Указатель требует полной текущей native области",
         );
       }
-      const expectedOutput = resolve(state.outputDirectory, canonical);
-      if (resolve(observed.output) !== expectedOutput) {
-        fail("OPERATION_BINDING", "Native resource output отличается");
-      }
-      const existing = resources.find((r) => r.source === canonical);
-      if (existing) {
-        if (!existing.documents.includes(source)) {
-          existing.documents.push(source);
-        }
-        continue;
-      }
-      const finished = await finishedNativeResource(state, canonical);
-      resources.push({
-        source: canonical,
-        documents: [source],
-        ...finished,
+      const { renderExerciseIndex } = await import(
+        "../../course-navigation/exercise-index.ts"
+      );
+      const catalog = NativeCatalogSchema.parse({
+        identity: {
+          operation: state.operation,
+          profiles: state.profiles,
+          projection: state.projection,
+          runtime: "quarto-1.11.5",
+        },
+        documents: catalogDocuments,
       });
+      for (const [path, html] of indexPages) {
+        const rendered = html.replace(
+          /<!--course-exercise-index(?::(.*?))?-->/g,
+          (_marker, request) =>
+            renderExerciseIndex(
+              documents,
+              catalog,
+              indexTopics,
+              (source, anchor) => {
+                const target = catalog.documents.find((doc) =>
+                  doc.source === source
+                );
+                if (!target) {
+                  fail("OPERATION_BINDING", "Нет current index target");
+                }
+                return relative(
+                  dirname(resolve(root, path)),
+                  resolve(state.outputDirectory, target.output),
+                ).replaceAll("\\", "/") + "#" + anchor;
+              },
+              request ? JSON.parse(request) : {},
+            ),
+        );
+        await Deno.writeTextFile(resolve(root, path), rendered);
+      }
     }
-  }
-  if (indexPages.size && !reservation) {
-    if (!same([...inputs].sort(), [...state.ownerInputs].sort())) {
-      fail(
-        "RELEASE.FULL_NATIVE_RUN_REQUIRED",
-        "Указатель требует полной текущей native области",
-      );
-    }
-    const { renderExerciseIndex } = await import(
-      "../../course-navigation/exercise-index.ts"
-    );
-    const catalog = NativeCatalogSchema.parse({
-      identity: {
-        operation: state.operation,
-        profiles: state.profiles,
-        projection: state.projection,
-        runtime: "quarto-1.11.5",
-      },
-      documents: catalogDocuments,
-    });
-    for (const [path, html] of indexPages) {
-      const rendered = html.replace(
-        /<!--course-exercise-index(?::(.*?))?-->/g,
-        (_marker, request) =>
-          renderExerciseIndex(
-            documents,
-            catalog,
-            indexTopics,
-            (source, anchor) => {
-              const target = catalog.documents.find((doc) =>
-                doc.source === source
-              );
-              if (!target) {
-                fail("OPERATION_BINDING", "Нет current index target");
-              }
-              return relative(
-                dirname(resolve(root, path)),
-                resolve(state.outputDirectory, target.output),
-              ).replaceAll("\\", "/") + "#" + anchor;
-            },
-            request ? JSON.parse(request) : {},
-          ),
-      );
-      await Deno.writeTextFile(resolve(root, path), rendered);
-    }
-  }
-  if (
-    outputs.filter((p) => p.endsWith(".html")).some((p) =>
-      !outputRows.some((r) => resolve(root, r.path) === p)
-    )
-  ) fail("OPERATION_INCOMPLETE", "HTML output без Core capture");
+    if (
+      outputs.filter((p) => p.endsWith(".html")).some((p) =>
+        !outputRows.some((r) => resolve(root, r.path) === p)
+      )
+    ) fail("OPERATION_INCOMPLETE", "HTML output без Core capture");
 
-  const identity = NativeOperationIdentitySchema.parse({
-    operation: state.operation,
-    profiles: state.profiles,
-    projection: state.projection,
-    runtime: "quarto-1.11.5",
-  });
-  const complete = completeSchema.parse({
-    state,
-    catalog: { identity, documents: catalogDocuments },
-    documents,
-    resources,
-    outputs: outputRows,
-    releaseDocuments,
-  });
-  await withWriter(root, async () => {
-    await assertPrivate(state);
-    if (reservation) await assertReservationCurrent(reservation);
-    await Deno.writeTextFile(
-      join(
-        state.directory,
-        reservation ? "child-" + token + ".json" : "complete.json",
-      ),
-      JSON.stringify(complete),
-      { createNew: true, mode: 0o600 },
+    const identity = NativeOperationIdentitySchema.parse({
+      operation: state.operation,
+      profiles: state.profiles,
+      projection: state.projection,
+      runtime: "quarto-1.11.5",
+    });
+    const complete = completeSchema.parse({
+      state,
+      catalog: { identity, documents: catalogDocuments },
+      documents,
+      resources,
+      outputs: outputRows,
+      releaseDocuments,
+    });
+    await withWriter(root, async () => {
+      await assertPrivate(state);
+      if (reservation) await assertReservationCurrent(reservation);
+      await Deno.writeTextFile(
+        join(
+          state.directory,
+          reservation ? "child-" + token + ".json" : "complete.json",
+        ),
+        JSON.stringify(complete),
+        { createNew: true, mode: 0o600 },
+      );
+      if (reservation) {
+        child!.posted = true;
+        await writePrivate(reservationPath(reservation), reservation);
+      }
+    });
+    console.log(
+      `Core: ${documents.length} текущих native-ts ${state.projection} документов`,
     );
-    if (reservation) {
-      child!.posted = true;
-      await writePrivate(reservationPath(reservation), reservation);
-    }
-  });
-  console.log(
-    `Core: ${documents.length} текущих native-ts ${state.projection} документов`,
-  );
+  };
+  return await __createMetrics("course-core").wrapAsync({
+    id: "course-core.runtime.operation.finishNativeOperationInternal",
+    kind: "phase",
+    origin: "manual",
+  }, corePhaseAction)();
 }
 async function sealCaptureScope(reservation: Reservation) {
   const root = reservation.root;

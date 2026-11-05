@@ -11,13 +11,7 @@ function M.uses(doc)
       if target~='' and not seen[target] then result:insert(target);seen[target]=true end
     end
   end
-  local function raw(node)
-    if node.format=='html' then
-      for target in node.text:gmatch('[sS][rR][cC]%s*=%s*["\']([^"\']+)["\']') do add({target=target}) end
-      for target in node.text:gmatch('[hH][rR][eE][fF]%s*=%s*["\']([^"\']+)["\']') do add({target=target}) end
-    end
-  end
-  __perfWalk1(doc,{Image=add,Link=add,RawBlock=raw,RawInline=raw});return result
+  __perfWalk1(doc,{Image=add,Link=add});return result
 end
 -- Служебный cache не является предметным ресурсом даже при прямой ссылке.
 local function tool_cache(root,source)

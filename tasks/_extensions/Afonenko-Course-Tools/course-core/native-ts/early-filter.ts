@@ -1,11 +1,43 @@
 import { collectNativeProjectFacts } from "../document/project-capture.ts";
 import { assertNativeAssignmentCapture } from "../runtime/operation.ts";
-import { qualifyAssignmentProducer } from "../document/assignment-producer.ts";
 import { normalizeDocument } from "../public.ts";
-import { decodeDocumentContext } from "../document/contracts.ts";
+import {
+  boundDocument,
+  decodeDocumentContext,
+  ExerciseDeclarationSchema,
+} from "../document/contracts.ts";
+import { nativeMetadata } from "../release/collect.ts";
 import { NativePendingDocumentContextSchema } from "../runtime/contracts.ts";
 import { decode } from "../document/contracts.ts";
 import { fail } from "../contracts/project.ts";
+/** Quarto наследует отдельные metadata keys; TS декодирует прежние flat defaults. */
+function exerciseDefaults(meta: Record<string, unknown>, input: string) {
+  if (Object.hasOwn(meta, "exercise-defaults")) {
+    fail(
+      "CORE.METADATA_INVALID",
+      "Используйте default-exercise-* вместо exercise-defaults",
+      input,
+    );
+  }
+  const schema = ExerciseDeclarationSchema.omit({ project: true }).partial();
+  const defaults = Object.fromEntries(
+    Object.entries(meta)
+      .filter(([key]) => key.startsWith("default-exercise-"))
+      .map(([key, node]) =>
+        [key.slice("default-exercise-".length), nativeMetadata(node)] as const
+      )
+      .filter(([key, value]) =>
+        value !== false || !Object.hasOwn(schema.shape, key)
+      )
+      .map((
+        [key, value],
+      ) => [
+        key,
+        key === "time" && typeof value === "string" ? Number(value) : value,
+      ]),
+  );
+  return decode(schema, defaults, "CORE.METADATA_INVALID", input);
+}
 const chunks: Uint8Array[] = [];
 let length = 0;
 for await (const chunk of Deno.stdin.readable) {
@@ -22,6 +54,7 @@ for (const chunk of chunks) {
   offset += chunk.length;
 }
 const ast = JSON.parse(new TextDecoder("utf-8", { fatal: true }).decode(bytes));
+boundDocument(ast);
 const requestMetadata = ast.meta?.["course-core-ts-request"];
 const runPath = Deno.env.get("COURSE_CORE_TS_RUN") ??
   (requestMetadata?.t === "MetaString" ? requestMetadata.c : undefined);
@@ -45,7 +78,7 @@ if (transport?.t !== "MetaString") {
   fail("DOCUMENT_BINDING", "Отсутствует native context");
 }
 const nativeContext = decodeDocumentContext(JSON.parse(transport.c));
-const context = decodeDocumentContext(
+const boundContext = decodeDocumentContext(
   Deno.env.get("COURSE_CORE_TS_RUN")
     ? requestedContext
     : decodeDocumentContext({
@@ -55,10 +88,16 @@ const context = decodeDocumentContext(
       defaults: nativeContext.defaults,
     }),
 );
-if (JSON.stringify(nativeContext) !== JSON.stringify(context)) {
+if (JSON.stringify(nativeContext) !== JSON.stringify(boundContext)) {
   fail("DOCUMENT_BINDING", "Native context не соответствует request");
 }
 delete ast.meta["course-core-ts-context"];
+const context = Deno.env.get("COURSE_CORE_TS_RUN")
+  ? boundContext
+  : decodeDocumentContext({
+    ...boundContext,
+    defaults: exerciseDefaults(ast.meta, boundContext.input),
+  });
 let assignmentOwner: string | undefined;
 if (request.assignment) {
   assignmentOwner = await assertNativeAssignmentCapture(
@@ -66,15 +105,6 @@ if (request.assignment) {
     request.assignment,
     request.capture,
   );
-  const evidence = ast.meta["course-core-producer-evidence"];
-  if (evidence?.t !== "MetaString") {
-    fail(
-      "BODY.DELIVERY_PHASE_UNSUPPORTED",
-      "Нет actual native producer evidence",
-    );
-  }
-  qualifyAssignmentProducer(ast, context, JSON.parse(evidence.c));
-  delete ast.meta["course-core-producer-evidence"];
 }
 const early = normalizeDocument(ast, context, request.assignment);
 try {

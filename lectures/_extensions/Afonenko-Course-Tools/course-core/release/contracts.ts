@@ -77,25 +77,11 @@ export const NativeMetadataReadSetSchema = z.array(NativeMetadataSlotSchema)
     "Повторный metadata slot",
   );
 export type NativeMetadataSlot = z.output<typeof NativeMetadataSlotSchema>;
-const nativeMetadataValuesSchema = z.strictObject({
+export const NativeMetadataSchema = z.strictObject({
   configuration: z.unknown().optional(),
   assessment: z.unknown().optional(),
   projectChecks: z.unknown().optional(),
   projectMaterialization: z.unknown().optional(),
-});
-export const NativeMetadataEnvelopeSchema = z.strictObject({
-  readSet: NativeMetadataReadSetSchema,
-  values: nativeMetadataValuesSchema,
-}).superRefine((value, context) => {
-  for (const key of Object.keys(value.values)) {
-    if (!value.readSet.includes(key as NativeMetadataSlot)) {
-      context.addIssue({
-        code: "custom",
-        message: "Незапрошенный metadata slot",
-        path: ["values", key],
-      });
-    }
-  }
 });
 export const NativeReleaseFactsSchema = z.strictObject({
   course: CourseIdentitySchema,
@@ -134,7 +120,7 @@ export const NativeAdapterValidationInputSchema = z.strictObject({
     profiles: z.array(z.string()),
   }),
   course: CourseIdentitySchema,
-  nativeMetadata: NativeMetadataEnvelopeSchema,
+  nativeMetadata: NativeMetadataSchema,
   declarations: z.array(
     z.strictObject({
       id: exerciseId,

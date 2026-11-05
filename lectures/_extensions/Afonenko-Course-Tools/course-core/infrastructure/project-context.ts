@@ -1,3 +1,4 @@
+import { createMetrics as __createMetrics } from "../observability/bridge.ts";
 import { isAbsolute, join, relative, resolve } from "stdlib/path";
 import { decodeProjectRequests, fail } from "../contracts/project.ts";
 import type {
@@ -65,117 +66,124 @@ async function acquire<T>(
   operation?: State["operation"],
   cache = new Map<string, OwnerLoader>(),
 ): Promise<T> {
-  const decoded = decodeProjectRequests(requests);
-  const owners = new Map<
-    string,
-    OwnerLoader & { state: State; before: ProjectLoaderMetrics }
-  >();
-  const groups: ProjectContextGroup[] = [];
-  const keys = new Set<string>();
-  try {
-    for (const request of decoded) {
-      operation?.sync();
-      const { owner, profiles, format } = request;
-      if (
-        resolve(owner) !== owner || await Deno.realPath(owner) !== owner ||
-        new Set(profiles).size !== profiles.length
-      ) {
-        fail(
-          "CONTEXT_REQUEST",
-          "Нужны canonical owner и unique selected profiles",
-          owner,
-        );
-      }
-      let selected = owners.get(owner);
-      if (!selected) {
-        let loader = cache.get(owner);
+  const corePhaseAction = async function acquirePhase(): Promise<T> {
+    const decoded = decodeProjectRequests(requests);
+    const owners = new Map<
+      string,
+      OwnerLoader & { state: State; before: ProjectLoaderMetrics }
+    >();
+    const groups: ProjectContextGroup[] = [];
+    const keys = new Set<string>();
+    try {
+      for (const request of decoded) {
+        operation?.sync();
+        const { owner, profiles, format } = request;
         if (
-          loader && JSON.stringify(loader.profiles) !== JSON.stringify(profiles)
+          resolve(owner) !== owner || await Deno.realPath(owner) !== owner ||
+          new Set(profiles).size !== profiles.length
         ) {
-          fail("CONTEXT_REQUEST", "Другие profiles в той же операции", owner);
-        }
-        if (!loader) {
-          const metrics = emptyProjectMetrics();
-          loader = {
-            profiles,
-            metrics,
-            load: projectLoader(owner, profiles, metrics),
-          };
-          cache.set(owner, loader);
-        }
-        selected = {
-          ...loader,
-          before: { ...loader.metrics },
-          state: { active: true, owner, metrics: loader.metrics, operation },
-        };
-        owners.set(owner, selected);
-      } else if (
-        JSON.stringify(selected.profiles) !== JSON.stringify(profiles)
-      ) {
-        fail(
-          "CONTEXT_REQUEST",
-          "Один owner должен иметь одинаковые selected profiles",
-          owner,
-        );
-      }
-      const contexts: ProjectContext[] = [];
-      for (const directory of request.directories) {
-        if (isAbsolute(directory) || /[\0\\]/.test(directory)) {
           fail(
             "CONTEXT_REQUEST",
-            "Нужен owner-relative code directory",
-            directory,
+            "Нужны canonical owner и unique selected profiles",
+            owner,
           );
         }
-        const path = resolve(owner, directory);
-        assertInside(owner, path);
-        const key = path + "\0" + format;
-        if (keys.has(key)) {
-          fail("CONTEXT_REQUEST", "Повторный code directory/format", path);
-        }
-        keys.add(key);
-        if (
-          !(await Deno.stat(path)).isDirectory ||
-          await Deno.realPath(path) !== path
+        let selected = owners.get(owner);
+        if (!selected) {
+          let loader = cache.get(owner);
+          if (
+            loader && JSON.stringify(loader.profiles) !== JSON.stringify(profiles)
+          ) {
+            fail("CONTEXT_REQUEST", "Другие profiles в той же операции", owner);
+          }
+          if (!loader) {
+            const metrics = emptyProjectMetrics();
+            loader = {
+              profiles,
+              metrics,
+              load: projectLoader(owner, profiles, metrics),
+            };
+            cache.set(owner, loader);
+          }
+          selected = {
+            ...loader,
+            before: { ...loader.metrics },
+            state: { active: true, owner, metrics: loader.metrics, operation },
+          };
+          owners.set(owner, selected);
+        } else if (
+          JSON.stringify(selected.profiles) !== JSON.stringify(profiles)
         ) {
           fail(
-            "CONTEXT_INPUT",
-            "Нужен code directory без символических ссылок",
-            path,
+            "CONTEXT_REQUEST",
+            "Один owner должен иметь одинаковые selected profiles",
+            owner,
           );
         }
-        const contract = await selected.load(path, format);
-        const context: ProjectContext = {
-          owner,
-          input: path,
-          profiles: [...profiles],
-          format,
-          contract,
-        };
-        states.set(context, selected.state);
-        contexts.push(context);
-      }
-      const current = selected.state, before = selected.before;
-      groups.push({
-        contexts,
-        get metrics() {
-          return {
-            yamlFileReads: current.metrics.yamlFileReads - before.yamlFileReads,
-            yamlBytesRead: current.metrics.yamlBytesRead - before.yamlBytesRead,
-            directoryLayers: current.metrics.directoryLayers -
-              before.directoryLayers,
-            sourceFileReads: current.metrics.sourceFileReads -
-              before.sourceFileReads,
-            sourceBytesRead: current.metrics.sourceBytesRead -
-              before.sourceBytesRead,
+        const contexts: ProjectContext[] = [];
+        for (const directory of request.directories) {
+          if (isAbsolute(directory) || /[\0\\]/.test(directory)) {
+            fail(
+              "CONTEXT_REQUEST",
+              "Нужен owner-relative code directory",
+              directory,
+            );
+          }
+          const path = resolve(owner, directory);
+          assertInside(owner, path);
+          const key = path + "\0" + format;
+          if (keys.has(key)) {
+            fail("CONTEXT_REQUEST", "Повторный code directory/format", path);
+          }
+          keys.add(key);
+          if (
+            !(await Deno.stat(path)).isDirectory ||
+            await Deno.realPath(path) !== path
+          ) {
+            fail(
+              "CONTEXT_INPUT",
+              "Нужен code directory без символических ссылок",
+              path,
+            );
+          }
+          const contract = await selected.load(path, format);
+          const context: ProjectContext = {
+            owner,
+            input: path,
+            profiles: [...profiles],
+            format,
+            contract,
           };
-        },
-      });
+          states.set(context, selected.state);
+          contexts.push(context);
+        }
+        const current = selected.state, before = selected.before;
+        groups.push({
+          contexts,
+          get metrics() {
+            return {
+              yamlFileReads: current.metrics.yamlFileReads - before.yamlFileReads,
+              yamlBytesRead: current.metrics.yamlBytesRead - before.yamlBytesRead,
+              directoryLayers: current.metrics.directoryLayers -
+                before.directoryLayers,
+              sourceFileReads: current.metrics.sourceFileReads -
+                before.sourceFileReads,
+              sourceBytesRead: current.metrics.sourceBytesRead -
+                before.sourceBytesRead,
+            };
+          },
+        });
+      }
+      return await use(groups);
+    } finally {
+      for (const selected of owners.values()) selected.state.active = false;
     }
-    return await use(groups);
-  } finally {
-    for (const selected of owners.values()) selected.state.active = false;
-  }
+  };
+  return await __createMetrics("course-core").wrapAsync({
+    id: "course-core.infrastructure.project-context.acquire",
+    kind: "phase",
+    origin: "manual",
+  }, corePhaseAction)();
 }
 async function safeFile(
   context: ProjectContext,

@@ -11,8 +11,7 @@ import type {
 } from "./assignment-contracts.ts";
 import { collectAnswers } from "./answers.ts";
 import { collectReleaseFacts, nativeMetadata } from "../release/collect.ts";
-import { isAlias, parseDocument } from "../body-export/vendor/libraries.js";
-import { boundInput, fail } from "../contracts/project.ts";
+import { fail } from "../contracts/project.ts";
 import {
   boundDocument,
   decode,
@@ -54,43 +53,6 @@ function attr(
     )
   ) fail("DOCUMENT_AST", "Некорректный Attr", source);
   return a as [string, string[], string[][]];
-}
-function yamlMarker(text: string, source: string) {
-  if (text.length > 65536) {
-    fail("CONTRACT_LIMIT", "Слишком большой marker YAML", source);
-  }
-  const doc = parseDocument(text, { uniqueKeys: true, keepSourceTokens: true });
-  if (!doc || doc.errors.length || doc.warnings.length) {
-    fail("EXERCISE_CONTRACT", "Некорректный marker YAML", source);
-  }
-  function check(n: any) {
-    if (isAlias(n) || n?.anchor || n?.tag) {
-      fail(
-        "EXERCISE_CONTRACT",
-        "Aliases/tags marker YAML не поддержаны",
-        source,
-      );
-    }
-    if (Array.isArray(n?.items)) {
-      for (const p of n.items) {
-        if (p && "key" in p) {
-          check(p.key);
-          check(p.value);
-        } else check(p);
-      }
-    }
-  }
-  check(doc.contents);
-  const value = doc.toJSON();
-  boundInput(value, source);
-  if (!object(value)) {
-    fail("EXERCISE_CONTRACT", "Marker YAML должен быть картой", source);
-  }
-  return value;
-}
-function isMarker(v: unknown): boolean {
-  return object(v) && v.t === "CodeBlock" && Array.isArray(v.c?.[0]?.[1]) &&
-    v.c[0][1].includes("course-exercise");
 }
 /** Валидация всех объявлений предшествует любой audience projection. */
 function normalizeDocumentWork(
@@ -151,7 +113,6 @@ function normalizeDocumentWork(
     }
     : undefined;
   const identityNodes = new WeakSet<object>();
-  const acceptedMarkers = new Set<object>();
   let ordinal = 0;
   function collect(v: unknown, parent?: string, conditional = false) {
     if (Array.isArray(v)) {
@@ -234,30 +195,6 @@ function normalizeDocumentWork(
               }
               own[key] = Number(text);
             } else own[key] = text;
-          }
-        }
-        const markers = v.c[1].filter(isMarker);
-        if (markers.length > 1) {
-          fail(
-            "DOCUMENT_DUPLICATE",
-            "Несколько marker blocks",
-            context.input,
-            id,
-          );
-        }
-        if (markers.length) {
-          acceptedMarkers.add(markers[0]);
-          const marker = yamlMarker(markers[0].c[1], context.input);
-          for (const [k, item] of Object.entries(marker)) {
-            if (seen.has(k)) {
-              fail(
-                "DOCUMENT_DUPLICATE",
-                "Attr и marker повторяют поле " + k,
-                context.input,
-                id,
-              );
-            }
-            own[k] = item;
           }
         }
         if (
@@ -345,16 +282,6 @@ function normalizeDocumentWork(
         });
       }
     }
-    if (isMarker(v)) {
-      if (!acceptedMarkers.has(v)) {
-        fail(
-          "EXERCISE_CONTRACT",
-          "Marker допустим непосредственно в упражнении",
-          context.input,
-        );
-      }
-      return;
-    }
     for (const child of Object.values(v)) collect(child, next, conditional);
   }
   collect(ast.blocks);
@@ -417,7 +344,7 @@ function normalizeDocumentWork(
     }
     if (!object(v)) return v;
     const row = rows.get(v);
-    if (row?.remove || isMarker(v)) return undefined;
+    if (row?.remove) return undefined;
     if (
       assignment &&
       assignment.assessments.some((p) => p.source === assignment.source) &&

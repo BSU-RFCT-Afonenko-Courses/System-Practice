@@ -121,7 +121,7 @@ export {
   AssignmentSchema,
   NativeAdapterValidationInputSchema,
   NativeAdapterValidationResultSchema,
-  NativeMetadataEnvelopeSchema,
+  NativeMetadataSchema,
   NativeMetadataReadSetSchema,
   NativeMetadataSlotSchema,
   NativeReleaseRequestSchema,

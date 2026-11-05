@@ -696,19 +696,6 @@ async function materialize(
         ],
       };
     }
-    if (typeof value.t === "string" && value.t.startsWith("Raw")) {
-      // Native figure wrappers have no independent URLs and remain ordinary late AST.
-      if (
-        value.c?.[0] !== "html" ||
-        !/^<\/?(?:figure|figcaption|div|span|i|b|em|strong|br)(?:\s+(?:class|aria-hidden|role)="[^"<>]*")*\s*\/?>$/
-          .test(value.c[1])
-      ) {
-        fail(
-          "CONDITION_UNQUALIFIED",
-          "Непереносимый raw/native node: " + value.t,
-        );
-      }
-    }
     const result: any = {};
     for (const [k, v] of Object.entries(value)) {
       result[k] = await transform(v, base);

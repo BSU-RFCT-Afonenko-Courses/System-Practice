@@ -19,29 +19,6 @@ return {{Pandoc=function(doc)
     assert(projection==context.projection,'DOCUMENT_BINDING: course.view/native projection отличается')
     if native_view~='' then assert(native_view==(projection=='author' and 'full' or 'student'),'DOCUMENT_BINDING: course.view conflict') end
     doc.meta['course-core-projection']=pandoc.MetaString(projection)
-    local fields={target=true,['course-role']=true,['statement-visibility']=true,difficulty=true,time=true,['project-check']=true}
-    context.defaults={}
-    for key,value in pairs(doc.meta) do
-      local field=key:match('^default%-exercise%-(.+)$')
-      if field then
-        assert(fields[field],'CORE.METADATA_INVALID: неизвестный default '..key)
-        if value~=false then
-          local kind=pandoc.utils.type(value)
-          assert(kind=='string' or kind=='Inlines','CORE.METADATA_INVALID: default требует скаляр или false')
-          local text=pandoc.utils.stringify(value)
-          context.defaults[field]=field=='time' and tonumber(text) or text
-        end
-      end
-    end
-    local defaults=doc.meta['exercise-defaults']
-    if defaults then
-      for key,value in pairs(defaults) do
-        local text=pandoc.utils.stringify(value)
-        local actual=key=='time' and tonumber(text) or text
-        assert(context.defaults[key]==nil or context.defaults[key]==actual,'CORE.METADATA_INVALID: conflicting default '..key)
-        context.defaults[key]=actual
-      end
-    end
   end
   local input=quarto.doc.input_file
   if pandoc.path.is_relative(input) then input=pandoc.path.join({assert(quarto.project.directory),input}) end
@@ -57,29 +34,6 @@ return {{Pandoc=function(doc)
   assert(doc.meta['course-core-ts-request']==nil,'DOCUMENT_BINDING: авторский request запрещён')
   doc.meta['course-core-ts-request']=pandoc.MetaString(path)
   doc.meta['course-core-ts-context']=pandoc.MetaString(pandoc.json.encode(context))
-  if request.assignment then
-    assert(doc.meta['course-core-producer-evidence']==nil,'DOCUMENT_BINDING: авторский producer evidence')
-    -- Уже инициализированная таблица Quarto: наблюдаем выбранный handler, не вызываем/не загружаем его.
-    local shortcode_files=pandoc.List(param('shortcodes',{}))
-    local shortcode_handlers,seen=pandoc.List(),{}
-    doc:walk({Span=function(span)
-      if not span.classes:includes('quarto-shortcode__') then return end
-      local name
-      for _,node in ipairs(span.content) do
-        if node.t=='Span' and node.classes:includes('quarto-shortcode__-param') then
-          if node.attributes['data-key']==nil then name=node.attributes['data-value'] end
-          break
-        elseif node.t~='Space' and node.t~='SoftBreak' then break end
-      end
-      if type(name)~='string' or seen[name] then return end
-      seen[name]=true
-      local handler=type(handlerForShortcode)=='function' and handlerForShortcode({name=name}) or nil
-      if type(handler)=='table' and type(handler.handle)=='function' and type(handler.file)=='string' and shortcode_files:includes(handler.file) then
-        shortcode_handlers:insert({name=name,file=handler.file})
-      end
-    end})
-    doc.meta['course-core-producer-evidence']=pandoc.MetaString(pandoc.json.encode({filters=param('quarto-filters'),shortcodes=shortcode_files,shortcodeHandlers=shortcode_handlers,engine=param('execution-engine'),format=native_format}))
-  end
   local projected=pandoc.utils.run_json_filter(doc,pandoc.path.join({dir,'early-filter.sh'}),{FORMAT})
   return projected
 end}}

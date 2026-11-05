@@ -70,7 +70,10 @@ export interface Edit {
   end: number;
   value: string;
 }
-export function replace(html: string, edits: Edit[]): string {
+export const replace = __metrics.wrapSync({
+  id: "course-navigation.html.document.replace",
+  kind: "io",
+}, function replace(html: string, edits: Edit[]): string {
   edits.sort((a, b) => b.start - a.start);
   let end = html.length;
   for (const edit of edits) {
@@ -81,18 +84,10 @@ export function replace(html: string, edits: Edit[]): string {
     end = edit.start;
   }
   return html;
-}
-export function parseHtml(html: string) {
-  return parse(html, { sourceCodeLocationInfo: true }) as unknown as Document;
-}
-
-// @ts-expect-error JS допускает замену function binding; сигнатура публичного API сохраняется.
-replace = __metrics.wrapSync({
-  id: "course-navigation.html.document.replace",
-  kind: "io",
-}, replace);
-// @ts-expect-error JS допускает замену function binding; сигнатура публичного API сохраняется.
-parseHtml = __metrics.wrapSync({
+});
+export const parseHtml = __metrics.wrapSync({
   id: "course-navigation.html.document.parseHtml",
   kind: "io",
-}, parseHtml);
+}, function parseHtml(html: string) {
+  return parse(html, { sourceCodeLocationInfo: true }) as unknown as Document;
+});
