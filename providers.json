@@ -21,14 +21,14 @@
     "site": {
       "repository": "Afonenko-Course-Tools/quarto-project-publish",
       "checkout": "quarto-project-publish",
-      "commit": "2b397815cfdbf0e860405559de68067fe20204b4",
+      "commit": "9a793bcd42aa4aa221133ba1a8016cbbd896f269",
       "packages": {
         "course-site": [
           "."
         ]
       },
       "version": "6.0.1",
-      "sourceZip": "https://github.com/Afonenko-Course-Tools/quarto-project-publish/archive/2b397815cfdbf0e860405559de68067fe20204b4.zip"
+      "sourceZip": "https://github.com/Afonenko-Course-Tools/quarto-project-publish/archive/9a793bcd42aa4aa221133ba1a8016cbbd896f269.zip"
     },
     "qrc": {
       "repository": "Afonenko-Course-Tools/quarto-reference-catalog",
