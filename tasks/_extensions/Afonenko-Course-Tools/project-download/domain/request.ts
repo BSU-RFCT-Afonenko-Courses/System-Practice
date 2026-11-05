@@ -28,7 +28,7 @@ function keys(
     }
   }
 }
-/** Единственный syntax decoder для literal и actual native callbacks. */
+/** Единственный syntax decoder для actual native callbacks. */
 export function decodeDownloadRequest(value: unknown, source: string) {
   const v = record(value, source);
   keys(v, ["positional", "named"], source);

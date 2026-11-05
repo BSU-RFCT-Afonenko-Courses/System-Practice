@@ -10,36 +10,40 @@ local function plain(value)
  if kind=='Inlines' or kind=='MetaInlines' or kind=='Blocks' or kind=='MetaBlocks' then return pandoc.utils.stringify(value) end
  local result={};for key,child in pairs(value or {}) do result[key]=plain(child) end;return result
 end
-return {{Pandoc=function(doc)
+local function isRequest(span)
+ return span.t=='Span' and span.classes:includes('project-download-raw-request')
+end
+-- Quarto уже распознал авторские callout; метка живёт только до замены carrier на Link.
+local inCallout='data-project-download-in-callout'
+return {{Callout=function(node)
+ local mark={Span=function(span)
+  if isRequest(span) then span.attributes[inCallout]='true';return span end
+ end}
+ node.content=node.content:walk(mark)
+ if node.title then node.title=node.title:walk(mark) end
+ return node
+end},{Pandoc=function(doc)
  local context=transport.context();local calls=transport.drain(context.key)
  local root=quarto.project.directory
- local exercises,visible,seen={},{},{}
- local nextOrdinal=#calls
+ local exercises,requests={},pandoc.List()
  doc=walk(doc,{Div=function(div)if div.identifier~='' then exercises[div.identifier]=plain(div.attributes) end end,
  Span=function(span)
-  if span.classes:includes('project-download-raw-request') then
+  if isRequest(span) then
    local raw=span.attributes['data-project-download-ordinal'];local ordinal=tonumber(raw)
-   if not ordinal or ordinal%1~=0 or ordinal<0 or tostring(ordinal)~=raw or not calls[ordinal+1] or seen[ordinal] then fail('Чужой или повторный native ordinal') end
-   seen[ordinal]=true;local call=calls[ordinal+1];call.inline=true;visible[#visible+1]=call
-  elseif span.classes:includes('project-download-request') then
-   local positional,named=pandoc.List({span.attributes.resource}),pandoc.List()
-   for key,value in pairs(span.attributes) do
-    if key=='kind' then named:insert({key=key,value=value}) elseif key~='resource' then fail('Чужой literal request attribute') end
-   end
-   named:insert({key='text',value=pandoc.utils.stringify(span.content)})
-   local call={ordinal=nextOrdinal,positional=positional,named=named,inline=true};nextOrdinal=nextOrdinal+1
-   span.attributes['data-project-download-ordinal']=tostring(call.ordinal);visible[#visible+1]=call;return span
+   if not ordinal or ordinal%1~=0 or ordinal<0 or tostring(ordinal)~=raw or not calls[ordinal+1] or calls[ordinal+1].inline then fail('Чужой или повторный native ordinal') end
+   local call=calls[ordinal+1];call.inline=true;requests:insert(call)
   end
  end})
- local requests=pandoc.List();for _,call in ipairs(visible) do requests:insert(call) end
+ local visibleCount=#requests
  for _,call in ipairs(calls) do if not call.inline then requests:insert(call) end end
  local native=pandoc.utils.stringify(doc.meta['course-core-runtime'] or '')=='native-ts'
  local processed=doc.meta['course-core-processed']==true
- local request={source=context.source,resources=pandoc.List(),configuration=plain(doc.meta['project-download']),native=native}
+ local configuration=plain(doc.meta['project-download'])
+ local request={source=context.source,resources=pandoc.List(),configuration=configuration,native=native}
  if processed then request.courseProcessed=true end
  local decisions={}
  if #requests>0 then
-  local batch={source=context.source,native=native,courseProcessed=processed,configuration=plain(doc.meta['project-download']),exercises=exercises,artifactContext=plain(doc.meta['course-artifact-context']),requests=requests}
+  local batch={source=context.source,native=native,courseProcessed=processed,configuration=configuration,exercises=exercises,artifactContext=plain(doc.meta['course-artifact-context']),requests=requests}
   if doc.meta['project-download']==nil then batch.configuration=nil end
   if doc.meta.course and doc.meta.course.view then batch.view=pandoc.utils.stringify(doc.meta.course.view) end
   local carrier=pandoc.Pandoc({}, {['project-download-native-batch']=pandoc.MetaString(pandoc.json.encode(batch))})
@@ -47,20 +51,29 @@ return {{Pandoc=function(doc)
   local encoded=result.meta['project-download-native-result']
   if not encoded then fail('Отсутствует native Download result') end
   local resolved=pandoc.json.decode(pandoc.utils.stringify(encoded))
-  if resolved.source~=context.source or type(resolved.links)~='table' or type(resolved.request)~='table' or resolved.request.source~=context.source or #resolved.links~=#visible then fail('Чужой или неполный Download result') end
+  if resolved.source~=context.source or type(resolved.links)~='table' or type(resolved.request)~='table' or resolved.request.source~=context.source or #resolved.links~=visibleCount then fail('Чужой или неполный Download result') end
   for _,link in ipairs(resolved.links) do
    if type(link.ordinal)~='number' or decisions[link.ordinal] or type(link.href)~='string' or type(link.text)~='string' then fail('Повреждённый Download result ordinal') end
    decisions[link.ordinal]=link
   end
-  for _,call in ipairs(visible) do if not decisions[call.ordinal] then fail('Пропущен Download result ordinal') end end
+  for i=1,visibleCount do if not decisions[requests[i].ordinal] then fail('Пропущен Download result ordinal') end end
   request=resolved.request
-  doc=walk(doc,{Span=function(span)
-   if not (span.classes:includes('project-download-request') or span.classes:includes('project-download-raw-request')) then return end
+  local function replace(span)
+   if not isRequest(span) then return end
    local ordinal=tonumber(span.attributes['data-project-download-ordinal']);local link=decisions[ordinal]
    if not link then fail('Нет решения для native request') end
    decisions[ordinal]=nil
    return pandoc.Link({pandoc.Str(link.text)},link.href,'',pandoc.Attr('',{'project-download'},{download=''}))
-  end})
+  end
+  local function standalone(block)
+   if not quarto.doc.is_format('html') or #block.content~=1 then return end
+   local span=block.content[1]
+   if not isRequest(span) or span.attributes[inCallout]=='true' then return end
+   local link=replace(span)
+   return quarto.Callout({type='none',appearance='minimal',content={pandoc.Para({pandoc.Str('⤓'),pandoc.Space(),link})}}),false
+  end
+  -- Topdown сохраняет inline и даёт обрамить только отдельный Para/Plain carrier.
+  doc=walk(doc,{traverse='topdown',Para=standalone,Plain=standalone,Span=replace})
   for _ in pairs(decisions) do fail('Неиспользованный Download result') end
  end
  local source=context.source

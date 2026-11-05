@@ -62,14 +62,14 @@
     "download": {
       "repository": "Afonenko-Course-Tools/quarto-project-download",
       "checkout": "quarto-project-download",
-      "commit": "5b1541025157ad4b8f8b01dced1fb78a0ba2eb9b",
+      "commit": "fb20f661dee1be63ed229a32522fae30a658f292",
       "packages": {
         "project-download": [
           "tasks"
         ]
       },
       "version": "3.5.0",
-      "sourceZip": "https://github.com/Afonenko-Course-Tools/quarto-project-download/archive/5b1541025157ad4b8f8b01dced1fb78a0ba2eb9b.zip"
+      "sourceZip": "https://github.com/Afonenko-Course-Tools/quarto-project-download/archive/fb20f661dee1be63ed229a32522fae30a658f292.zip"
     },
     "core-ui": {
       "repository": "Afonenko-Course-Tools/quarto-course",

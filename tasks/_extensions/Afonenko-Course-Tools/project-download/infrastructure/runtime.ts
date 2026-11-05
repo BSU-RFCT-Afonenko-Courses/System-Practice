@@ -9,7 +9,7 @@ import {
 } from "../diagnostics.ts";
 import { dirname, join, relative, resolve } from "stdlib/path";
 import { configuration, RESOURCE_ID } from "../domain/config.ts";
-import { publish, type Request } from "../application/publish.ts";
+import { publish } from "../application/publish.ts";
 import {
   child,
   exists,
@@ -55,14 +55,38 @@ async function inspect(root: string) {
   if (!result.success) throw externalFailure(executable, result);
   if (result.stderr.length) await Deno.stderr.write(result.stderr);
   const value: unknown = JSON.parse(new TextDecoder().decode(result.stdout));
-  if (!record(value) || !record(value.config) || !record(value.files) ||
-      !Array.isArray(value.files.input) ||
-      !value.files.input.every((path): path is string => typeof path === "string")) {
-    throw diagnostic("DOWNLOAD.CONFIG_INVALID", "Неполный результат Quarto inspect", {
-      source: root, field: "config/files.input",
-    });
+  if (
+    !record(value) || !record(value.config) || !record(value.files) ||
+    !Array.isArray(value.files.input) ||
+    !value.files.input.every((path): path is string =>
+      typeof path === "string"
+    ) ||
+    !Array.isArray(value.files.config) ||
+    !value.files.config.every((path): path is string =>
+      typeof path === "string"
+    ) ||
+    !Array.isArray(value.files.configResources) ||
+    !value.files.configResources.every((path): path is string =>
+      typeof path === "string"
+    )
+  ) {
+    throw diagnostic(
+      "DOWNLOAD.CONFIG_INVALID",
+      "Неполный результат Quarto inspect",
+      {
+        source: root,
+        field: "config/files.input/config/configResources",
+      },
+    );
   }
-  return { config: value.config, files: { input: value.files.input } };
+  return {
+    config: value.config,
+    files: {
+      input: value.files.input,
+      config: value.files.config,
+      configResources: value.files.configResources,
+    },
+  };
 }
 function archiveName(name: string): boolean {
   return name.endsWith(".zip") && RESOURCE_ID.test(name.slice(0, -4));
@@ -200,11 +224,28 @@ async function prepareDownloadsInternal(
       sources.map((source: string) => resolve(root, source)),
     );
     if (inspected) {
+      for (const path of inspected.files.config) authoredInputs.add(resolve(root, path));
+      // configResources включает и публичные metadata resources; это не author-only список.
+      // Берём из него только готовые пути явно подключённых filters.
+      for (const declaration of Array.isArray(inspected.config.filters)
+        ? inspected.config.filters : inspected.config.filters ? [inspected.config.filters] : []) {
+        const path = typeof declaration === "string" ? declaration
+          : record(declaration) ? declaration.path : undefined;
+        if (typeof path === "string") {
+          const absolute = resolve(root, path);
+          if (inspected.files.configResources.includes(absolute)) authoredInputs.add(absolute);
+        }
+      }
+      // inspect даёт готовые пути filters, но hook оставляет строкой команды.
+      // Прежнее извлечение путей нужно только для запрета hook-исходников в ZIP.
       for (
         const value of [
-          record(inspected.config.project) ? inspected.config.project["pre-render"] : undefined,
-          record(inspected.config.project) ? inspected.config.project["post-render"] : undefined,
-          inspected.config.filters,
+          record(inspected.config.project)
+            ? inspected.config.project["pre-render"]
+            : undefined,
+          record(inspected.config.project)
+            ? inspected.config.project["post-render"]
+            : undefined,
         ]
       ) {
         for (
@@ -214,18 +255,14 @@ async function prepareDownloadsInternal(
             ? [value]
             : []
         ) {
-          const command = typeof declaration === "string"
-            ? declaration
-            : record(declaration) ? declaration.path : undefined;
-          if (typeof command !== "string") continue;
-          const paths = typeof declaration === "string"
-            ? [
-              command,
-              ...(command.match(/"[^"]*"|'[^']*'|[^\s]+/g) ?? []).map((
-                token: string,
-              ) => token.replace(/^["']|["']$/g, "")),
-            ]
-            : [command];
+          // Native hook schema: string или string[], не filter declaration.path.
+          if (typeof declaration !== "string") continue;
+          const paths = [
+            declaration,
+            ...(declaration.match(/"[^"]*"|'[^']*'|[^\s]+/g) ?? []).map((token) =>
+              token.replace(/^["']|["']$/g, "")
+            ),
+          ];
           for (const path of paths) {
             if (await exists(resolve(root, path))) {
               authoredInputs.add(resolve(root, path));
@@ -235,12 +272,7 @@ async function prepareDownloadsInternal(
       }
     }
     const owned = await inspectOwnedRequests(root, sources);
-    const requests: Request[] = owned.files.map((file) => ({
-      source: file.source,
-      resources: file.resources,
-      ...(file.artifacts ? { artifacts: file.artifacts } : {}),
-      configuration: file.configuration,
-    }));
+    const requests = owned.files;
     const configs = requests.map((request) =>
       configuration(
         request.configuration ?? inspected?.config["project-download"],
@@ -500,10 +532,8 @@ async function prepareDownloadsInternal(
           return files;
         },
         async save(value) {
-          archives = value.map((archive) => ({
-            ...archive,
-            bytes: new Uint8Array(archive.bytes),
-          }));
+          // publish передаёт созданные им ZIP; внешнего владельца bytes здесь нет.
+          archives = value;
         },
       });
     if (!operation) return await pack();
