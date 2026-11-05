@@ -5,8 +5,8 @@ export {
 } from "./contracts/project.ts";
 export type {
   ProjectContract,
-  ProjectContractInput,
   ProjectContractContext,
+  ProjectContractInput,
 } from "./contracts/project.ts";
 export {
   assertProjectContext,
@@ -14,7 +14,6 @@ export {
   readProjectContexts,
 } from "./infrastructure/project-context.ts";
 export type {
-  NativeOrigin,
   ProjectContext,
   ProjectContextGroup,
   ProjectContextRequest,
@@ -43,12 +42,12 @@ export {
   materializationClosure,
   materializeCondition,
   materializeProject,
-  writeArtifactInventory,
+  writeArtifactFiles,
 } from "./artifacts/materialize.ts";
 export {
   ArtifactDestinationSchema,
   ArtifactFileSchema,
-  ArtifactInventorySchema,
+  ArtifactFilesSchema,
   ArtifactWriteResultSchema,
   ConditionViewSchema,
   MaterializableConditionSchema,
@@ -63,7 +62,7 @@ export {
 } from "./artifacts/contracts.ts";
 export type {
   ArtifactFile,
-  ArtifactInventory,
+  ArtifactFiles,
   ArtifactWriteResult,
   ConditionView,
   MaterializableCondition,
@@ -78,6 +77,7 @@ export type {
 } from "./artifacts/contracts.ts";
 export {
   withCurrentNativeOperation,
+  withNativePublication,
   withPendingNativeOperation,
 } from "./runtime/operation.ts";
 export { withNativeCaptureScope } from "./capture.ts";
@@ -94,7 +94,7 @@ export {
   NativePendingOperationExpectationSchema,
   NativePendingOperationSchema,
   NativePublicDocumentSchema,
-  NativeResourceInventorySchema,
+  NativeResourceFilesSchema,
   NativeResourceRequestSchema,
   NativeWebFormatSchema,
 } from "./runtime/contracts.ts";
@@ -110,7 +110,7 @@ export type {
   NativePendingOperation,
   NativePendingOperationExpectation,
   NativePublicDocument,
-  NativeResourceInventory,
+  NativeResourceFiles,
   NativeResourceRequest,
 } from "./runtime/contracts.ts";
 export type { NativeOperation } from "./runtime/operation.ts";
@@ -124,16 +124,16 @@ export {
   NativeMetadataEnvelopeSchema,
   NativeMetadataReadSetSchema,
   NativeMetadataSlotSchema,
-  NativeReleaseProofSchema,
   NativeReleaseRequestSchema,
+  NativeReleaseValidationSchema,
 } from "./release/contracts.ts";
 export type {
   NativeAdapterValidationInput,
   NativeAdapterValidationResult,
   NativeAdapterValidator,
   NativeMetadataSlot,
-  NativeReleaseProof,
   NativeReleaseRequest,
+  NativeReleaseValidation,
 } from "./release/contracts.ts";
 
 export {
@@ -169,3 +169,8 @@ export type {
   NativeOperationProjectContextBatch,
   NativeOperationProjectContextMetrics,
 } from "./infrastructure/project-context.ts";
+
+export type {
+  NativePublication,
+  NativePublicationSelection,
+} from "./release/publication.ts";

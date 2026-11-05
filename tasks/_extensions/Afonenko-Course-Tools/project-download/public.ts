@@ -4,6 +4,11 @@ export { zip } from "./domain/zip.ts";
 export type { ArchiveEntry } from "./domain/zip.ts";
 export {
   finish as finishDownloads,
-  prepare as prepareDownloads,
+  prepareNativeDownloads,
+  resetDownloadRequests,
 } from "./infrastructure/runtime.ts";
-export type { FinishOptions } from "./infrastructure/runtime.ts";
+export type {
+  NativeDownloadOptions,
+  OrdinaryDownloadOptions,
+  PreparedDownloads,
+} from "./infrastructure/runtime.ts";

@@ -3,5 +3,5 @@ export {
   materializationClosure,
   materializeCondition,
   materializeProject,
-  writeArtifactInventory,
+  writeArtifactFiles,
 } from "./project.ts";

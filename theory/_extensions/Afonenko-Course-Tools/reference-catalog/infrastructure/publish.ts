@@ -5,7 +5,7 @@ import type { Catalog, Exports } from "../domain/model.ts";
 import { join, relative, dirname, fromFileUrl, resolve, isAbsolute } from "./files.ts";
 import { readPage } from "./pages.ts";
 import { linkPages, type LinkScope } from "./linker.ts";
-import { updateSearch, searchIndexBase, type SearchIndex } from "./search.ts";
+import { updateSearch, searchIndexBase, type SearchIndex, type SearchRow } from "./search.ts";
 import { exportedTargets } from "../domain/exports.ts";
 import { catalogConfig } from "./config.ts";
 import { importTargets } from "./imports.ts";
@@ -80,12 +80,11 @@ export async function publish(context: CatalogPublication): Promise<void> {
   // Сначала вычисляется полный результат: ошибка ссылки не оставляет половину страниц обновлёнными.
   for (const [path, html] of linked.pages) await Deno.writeTextFile(join(stage, path), html);
   const currentIndexes = indexes.map(index => ({ ...index, path: resolve(root, index.path) }));
-  await updateSearch(stage, currentIndexes, linked.parsedPages);
+  const updatedSearch = await updateSearch(stage, currentIndexes, linked.parsedPages);
   if (context.scope !== "local" && indexes.length) {
-    const rows = new Map<string, Record<string, unknown>>();
-    for (const index of currentIndexes) {
+    const rows = new Map<string, SearchRow>();
+    for (const { index, rows: sourceRows } of updatedSearch) {
       const path = index.path;
-      const sourceRows = JSON.parse(await Deno.readTextFile(path));
       for (const row of sourceRows) {
         const base = searchIndexBase(stage, index);
         const url = new URL(row.href, `https://qrc.invalid/${base}`);

@@ -3,7 +3,9 @@ import { fail } from "../contracts/project.ts";
 import {
   assertProjectContext,
   assertProjectContextGeneration,
+  projectContextSourceIdentities,
 } from "../infrastructure/project-context.ts";
+import { projectPathEntries } from "../infrastructure/course-project-loader.ts";
 import { projectPlanState } from "../artifacts/plan.ts";
 import type { ProjectContextView } from "../contracts/project.ts";
 import type { ProjectPlan } from "../artifacts/contracts.ts";
@@ -18,12 +20,13 @@ export type AssignmentProjectDeclaration = {
   id: string;
   project: string;
 };
-export type AssignmentRole = {
-  path: string;
-  tree: boolean;
-  public: boolean;
-  reason: string;
-};
+import {
+  projectFileRoles,
+  projectRolePredicate as assignmentRolePredicate,
+} from "../domain/project-roles.ts";
+import type { ProjectFileRole as AssignmentRole } from "../domain/project-roles.ts";
+export { projectRolePredicate as assignmentRolePredicate } from "../domain/project-roles.ts";
+export type { ProjectFileRole as AssignmentRole } from "../domain/project-roles.ts";
 const inside = (root: string, path: string) =>
   path === root || path.startsWith(root + "/");
 function invalid(s: string): never {
@@ -39,77 +42,6 @@ export function assignmentProjectRoot(
     definition.project.replace(/^\//, ""),
   );
 }
-/** Pure role intersection; physical origins have already been proven by live A1 contexts. */
-export function assignmentRolePredicate(
-  roles: readonly AssignmentRole[],
-  projectRoots: readonly string[],
-  sourceFiles: readonly { path: string; identity: string }[] = [],
-) {
-  const ordered = [...roles].sort((a, b) => a.path.localeCompare(b.path)),
-    stack: AssignmentRole[] = [];
-  for (const row of ordered) {
-    while (stack.length && !inside(stack.at(-1)!.path, row.path)) stack.pop();
-    for (const ancestor of stack) {
-      if (
-        ancestor.public !== row.public &&
-        (ancestor.tree || ancestor.path === row.path)
-      ) {
-        invalid(
-          "Конфликт публичного и закрытого origin: " + ancestor.path + " / " +
-            row.path,
-        );
-      }
-    }
-    stack.push(row);
-  }
-  const lexicalClosed = (path: string) =>
-    roles.some((r) =>
-      !r.public && (path === r.path || r.tree && inside(r.path, path))
-    );
-  const identities = new Map(
-    sourceFiles.map((row) => [row.path, row.identity]),
-  );
-  const closedIdentities = new Set(
-    sourceFiles.filter((row) => lexicalClosed(row.path)).map((row) =>
-      row.identity
-    ),
-  );
-  for (const row of sourceFiles) {
-    if (
-      closedIdentities.has(row.identity) &&
-      roles.some((r) =>
-        r.public && (row.path === r.path || r.tree && inside(r.path, row.path))
-      )
-    ) {
-      invalid(
-        "Конфликт physical alias публичного и закрытого origin " + row.path,
-      );
-    }
-  }
-  return (path: string) => {
-    if (identities.has(path) && closedIdentities.has(identities.get(path)!)) {
-      fail(
-        "BODY.RESOURCE_PRIVATE_ROLE",
-        "Physical alias закрытого A1 origin " + path,
-      );
-    }
-
-    if (
-      roles.some((r) =>
-        !r.public && (path === r.path || r.tree && inside(r.path, path))
-      )
-    ) fail("BODY.RESOURCE_PRIVATE_ROLE", "Закрытый declared A1 origin " + path);
-    const known = roles.some((r) =>
-      r.public && (path === r.path || r.tree && inside(r.path, path))
-    );
-    if (!known && projectRoots.some((root) => inside(root, path))) {
-      fail(
-        "BODY.RESOURCE_ROLE_UNPROVEN",
-        "Нет публичной роли внутри declared project " + path,
-      );
-    }
-  };
-}
 /** The exact complete plan set is required before the first Body resource lookup. */
 export async function assignmentRoleIndex(
   root: string,
@@ -117,7 +49,7 @@ export async function assignmentRoleIndex(
   documents: readonly { source: string; format: string }[],
   declared: readonly AssignmentProjectDeclaration[],
   pairs: readonly NativeAssignmentProjectPlans[],
-  sourceRows: readonly { path: string; signature: string }[],
+  resources: readonly { path: string; identity: string }[],
   generation: object,
 ) {
   if (
@@ -154,56 +86,46 @@ export async function assignmentRoleIndex(
     ) invalid("Student/full context/format/profiles/owner отличаются");
     assertProjectContextGeneration(context, generation);
     const project = assignmentProjectRoot(root, definition);
-    if (project !== context.input && project !== dirname(context.input)) {
+    if (project !== context.input) {
       invalid("Plan относится к другому declared project");
     }
     plans.set(key, pair);
     contexts.set(context, pair.student);
-    projectRoots.push(dirname(context.input));
+    projectRoots.push(context.input);
   }
   for (const [context, selected] of contexts) {
-    for (const [field, origin] of Object.entries(context.origins)) {
-      if (!origin.resolvedPath) continue;
-      const path = origin.resolvedPath;
+    const paths = projectPathEntries(context.contract);
+    for (const { path } of paths) {
       if (resolve(path) !== path || !inside(root, path)) {
-        invalid("Неканонический physical origin");
+        invalid("Неканонический physical path");
       }
-      let publicRole: boolean, tree: boolean;
-      if (field === "starter.path") {
-        publicRole = true;
-        tree = true;
-      } else if (field.startsWith("solutions.") && field.endsWith(".path")) {
-        publicRole = false;
-        tree = true;
-      } else if (field.startsWith("testsets.") && field.endsWith(".path")) {
-        publicRole = selected.testsets.includes(field.slice(9, -5));
-        tree = true;
-      } else if (field.startsWith("components.") && field.endsWith(".path")) {
-        publicRole = selected.components.includes(field.slice(11, -5));
-        tree = true;
-      } else if (
-        field.startsWith("build.files.") ||
-        field === "instructions.gradle.path" ||
-        field === "instructions.local.path"
-      ) {
-        publicRole = true;
-        tree = false;
-      } else invalid("Неизвестная origin role " + field);
-      roles.push({ path, tree, public: publicRole, reason: field });
     }
+    roles.push(...projectFileRoles(paths, selected));
+  }
+  const identities = resources.map((row) => ({
+    path: resolve(root, row.path),
+    identity: row.identity,
+  }));
+  for (const [context, selected] of contexts) {
+    const state = await projectPlanState(selected);
+    identities.push(
+      ...await projectContextSourceIdentities(
+        context,
+        () => state.metrics.treeWalks++,
+      ),
+    );
   }
   const assertPath = assignmentRolePredicate(
     roles,
     projectRoots,
-    sourceRows.map((row) => ({
-      path: resolve(root, row.path),
-      identity: JSON.stringify(JSON.parse(row.signature).slice(0, 2)),
-    })),
+    identities,
   );
+
   return {
     plans,
     roles: Object.freeze(roles),
     assertPath,
+    assertIdentity: assertPath.assertIdentity,
     async guard() {
       for (const context of contexts.keys()) {
         await assertProjectContext(context);

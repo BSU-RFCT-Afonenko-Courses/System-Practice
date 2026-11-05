@@ -28,9 +28,6 @@ export const NativeAssignmentProvenanceSchema = z.strictObject({
   identity: NativeOperationIdentitySchema,
   ownerInputs: z.array(source).min(1),
   capturedInputs: z.array(source).min(1),
-  sourceRows: z.array(
-    z.strictObject({ source, sha256: z.string().regex(/^[a-f0-9]{64}$/) }),
-  ),
   projects: z.array(
     z.strictObject({
       source,
@@ -68,7 +65,6 @@ export function buildAssignmentProvenance(
   identity: NativeOperationIdentity,
   ownerInputs: readonly string[],
   capturedInputs: readonly string[],
-  rows: readonly { path: string; sha256: string }[],
   documents: readonly Captured[],
 ): NativeAssignmentProvenance {
   const same = (a: unknown, b: unknown) =>
@@ -160,21 +156,11 @@ export function buildAssignmentProvenance(
   for (const document of facts) {
     document.projects = bound.filter((p) => p.source === document.source);
   }
-  if (
-    !unique(rows.map((r) => r.path)) ||
-    capturedInputs.some((s) => !rows.some((r) => r.path === s))
-  ) {
-    fail(
-      "BODY.PROVENANCE_COVERAGE",
-      "Captured source отсутствует в same-S rows",
-    );
-  }
   return immutable(decode(NativeAssignmentProvenanceSchema, {
     schema: "course-native-assignment-provenance-v1",
     identity,
     ownerInputs: [...ownerInputs],
     capturedInputs: [...capturedInputs],
-    sourceRows: rows.map((r) => ({ source: r.path, sha256: r.sha256 })),
     projects,
     documents: facts,
   }, "BODY.PROVENANCE_UNQUALIFIED"));

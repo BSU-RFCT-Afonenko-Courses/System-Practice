@@ -79,17 +79,12 @@ export const NativeResourceRequestSchema = z.strictObject({
     4096,
   ),
 });
-export const NativeResourceInventorySchema = z.strictObject({
-  schema: z.literal("course-native-resource-inventory-v1"),
-  operation: z.uuid(),
+export const NativeResourceFilesSchema = z.strictObject({
   audience: z.enum(["student", "full"]),
   files: z.array(z.strictObject({
+    source: path,
     target: path,
     bytes: z.instanceof(Uint8Array),
-    size: z.number().int().nonnegative().max(128 * 1024 * 1024),
-    sha256: z.string().regex(/^[a-f0-9]{64}$/),
-    audience: z.enum(["student", "full"]),
-    reason: z.literal("native-resource"),
   })).min(1).max(4096),
 });
 export type NativeOperationExpectation = z.input<
@@ -104,32 +99,17 @@ export type NativeConditionRequest = z.input<
   typeof NativeConditionRequestSchema
 >;
 export type NativeResourceRequest = z.input<typeof NativeResourceRequestSchema>;
-export type NativeResourceInventory = z.output<
-  typeof NativeResourceInventorySchema
+export type NativeResourceFiles = z.output<
+  typeof NativeResourceFilesSchema
 >;
 
 export const NativeOperationMetricsSchema = z.strictObject({
   inspectCalls: z.number().int().nonnegative(),
-  fullSourceFences: z.number().int().nonnegative(),
-  localSourceFences: z.number().int().nonnegative(),
-  sourceDirectoryReads: z.number().int().nonnegative(),
-  runtimeHashReads: z.number().int().nonnegative(),
-  runtimeHashBytes: z.number().int().nonnegative(),
-  runtimePathReads: z.number().int().nonnegative(),
-  runtimeDirectoryReads: z.number().int().nonnegative(),
-  outputHashReads: z.number().int().nonnegative(),
   nativeMetadataBytes: z.number().int().nonnegative(),
   childRenders: z.number().int().nonnegative(),
 
-  fullWalks: z.number().int().nonnegative(),
-  sourceHashReads: z.number().int().nonnegative(),
-  sourceHashBytes: z.number().int().nonnegative(),
-  resourceHashReads: z.number().int().nonnegative(),
-  nativeResourceHashReads: z.number().int().nonnegative(),
   resourceByteReads: z.number().int().nonnegative(),
   resourceCacheHits: z.number().int().nonnegative(),
-  fullFences: z.number().int().nonnegative(),
-  currentnessChecks: z.number().int().nonnegative(),
 });
 export type NativeOperationMetrics = z.output<
   typeof NativeOperationMetricsSchema

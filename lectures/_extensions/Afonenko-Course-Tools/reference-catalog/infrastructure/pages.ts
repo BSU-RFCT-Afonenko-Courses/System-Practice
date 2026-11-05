@@ -1,4 +1,3 @@
-import { canonicalizeMetadata } from "./metadata.ts";
 import {createMetrics as __createMetrics} from "../observability/bridge.ts";
 const __metrics=__createMetrics("reference-catalog");
 import { diagnostic } from "../diagnostics.ts";
@@ -20,7 +19,6 @@ function slideOf(node: Element, path: string, key: string): string | undefined {
   }
 }
 export function readPage(path: string, html: string): Page {
-  html = canonicalizeMetadata(html);
   const root = parseHtml(html);
   const nodes = elements(root);
   const probes = nodes.filter((n) => hasClass(n, "qrc-probes"));

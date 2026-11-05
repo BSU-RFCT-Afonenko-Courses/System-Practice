@@ -14,11 +14,10 @@ import {
 export type ArtifactKind = typeof ARTIFACT_KINDS[number];
 type NativeRequest = ReturnType<typeof resolveDownloadRequests>["request"];
 export type ArtifactRequest = NonNullable<NativeRequest["artifacts"]>[number];
-// Старый public port допускает отсутствие native/configuration; типы полей
-// выводятся из исполняемого owner batch, отдельного ручного DTO нет.
-export type Request =
-  & Pick<NativeRequest, "source" | "resources">
-  & Partial<Omit<NativeRequest, "source" | "resources">>;
+/** Проверенные поля заявки; raw configuration разбирает её действующий owner. */
+export type Request = Pick<NativeRequest, "source" | "resources" | "artifacts"> & {
+  configuration?: unknown;
+};
 export interface PublishPorts {
   requests(): Promise<Request[]>;
   courseResource(id: string, source: string): Promise<Resource>;
@@ -35,13 +34,16 @@ export interface PublishPorts {
   files(resource: Resource): Promise<ArchiveEntry[]>;
   save(archives: { name: string; bytes: Uint8Array }[]): Promise<void>;
 }
-export async function publish(
+export const publish = __metrics.wrapAsync({
+  id: "project-download.application.publish.publish",
+  kind: "phase",
+}, async function publish(
   config: Configuration,
   profiles: string[],
   ports: PublishPorts,
 ): Promise<number> {
   return await progress("Сборка материалов и ZIP", () => publishInternal(config, profiles, ports));
-}
+});
 async function publishInternal(config: Configuration, profiles: string[], ports: PublishPorts): Promise<number> {
   const selected = new Map<string, Resource>();
   const model = new Map<
@@ -180,12 +182,6 @@ async function publishInternal(config: Configuration, profiles: string[], ports:
 function equalBytes(a: Uint8Array, b: Uint8Array): boolean {
   return a.length === b.length && a.every((v, i) => v === b[i]);
 }
-
-// @ts-expect-error JS допускает замену function binding; сигнатура публичного API сохраняется.
-publish = __metrics.wrapAsync({
-  id: "project-download.application.publish.publish",
-  kind: "phase",
-}, publish);
 
 function equalFiles(a: ArchiveEntry[], b: ArchiveEntry[]): boolean {
   return a.length === b.length &&

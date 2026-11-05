@@ -7,6 +7,9 @@ local function clean(div)
   div.attributes['data-course-core-native-kind']=nil
   return div
 end
+local function clean_document(doc)
+  return doc:walk({Div=clean,Span=function(span) if span.attributes['data-course-core-native-title'] then return span.content end end})
+end
 return {{
   Div=function(div)
     local key=div.attributes['data-course-core-occurrence']
@@ -59,9 +62,11 @@ return {{
       late.assignment={introductions=introductions}
     else assert(#introductions==0,'BODY.ASSESSMENT_OCCURRENCE_MISMATCH: unexpected introduction') end
     writer:write(pandoc.json.encode(late));writer:close()
+    local cleaned
     if not os.getenv('COURSE_CORE_TS_RUN') then
       local output=quarto.doc.output_file
-      local body=pandoc.json.decode(pandoc.write(doc:walk({Div=clean,Span=function(span) if span.attributes['data-course-core-native-title'] then return span.content end end}),'json')).blocks
+      cleaned=clean_document(doc)
+      local body=pandoc.json.decode(pandoc.write(cleaned,'json')).blocks
       local native=assert(io.open(request.capture..'.native.json','wb'))
       local observedDoc=pandoc.Pandoc(doc.blocks,{course={view=pandoc.MetaString(context.projection=='author' and 'full' or 'student')}})
       local observation=dofile(pandoc.path.join({dir,'../native-resources.lua'})).facts(observedDoc,observedDoc,{})
@@ -82,6 +87,9 @@ return {{
     end
     doc.meta['course-core-ts-binding']=nil
     doc.meta['course-core-processed']=nil
-    return doc:walk({Div=clean,Span=function(span) if span.attributes['data-course-core-native-title'] then return span.content end end})
+    if not cleaned then return clean_document(doc) end
+    cleaned.meta['course-core-ts-binding']=nil
+    cleaned.meta['course-core-processed']=nil
+    return cleaned
   end
 }}

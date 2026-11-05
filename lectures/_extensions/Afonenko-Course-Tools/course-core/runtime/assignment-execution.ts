@@ -9,11 +9,8 @@ type Execution = {
   beforeChild?: () => Promise<void>;
   lives: { active: boolean }[];
   token?: string;
-  probe?: { temporaryInput: string; originalInput: string; technical: string };
-  contractProbe?: { temporaryOwner: string; guard: () => void };
 };
 const current = new AsyncLocalStorage<Execution>();
-const carrierGuard = new AsyncLocalStorage<() => Promise<void>>();
 const equal = (a: unknown, b: unknown) =>
   JSON.stringify(a) === JSON.stringify(b);
 function changed(message: string): never {
@@ -66,60 +63,9 @@ export function withAssignmentCaptureChild<T>(
   if (!state) changed("Нет assignment execution для capture child");
   return enter({ ...state, token }, use);
 }
-export function withAssignmentA1Probe<T>(
-  probe: NonNullable<Execution["probe"]>,
-  use: () => Promise<T>,
-) {
-  const state = execution();
-  if (!state) return use();
-  if (
-    !probe.originalInput.startsWith(state.root + "/") ||
-    resolve(probe.originalInput) !== probe.originalInput ||
-    !probe.temporaryInput.startsWith("/") ||
-    resolve(probe.temporaryInput) !== probe.temporaryInput ||
-    !/^course-a1-[-a-z0-9]+$/.test(probe.technical)
-  ) changed("Чужой A1 probe");
-  return enter({ ...state, probe: { ...probe } }, use);
-}
-export async function withAssignmentContractProbe<T>(probe: {
-  temporaryOwner: string;
-  originalInputs: readonly string[];
-  format: string;
-  guard: () => void;
-  beforeSpawn?: () => Promise<void>;
-}, use: () => Promise<T>) {
-  const state = execution();
-  const run = () =>
-    carrierGuard.run(async () => {
-      probe.guard();
-      await probe.beforeSpawn?.();
-      probe.guard();
-    }, use);
-  if (!state) return await run();
-  probe.guard();
-  if (
-    probe.format !== "html" || !probe.temporaryOwner.startsWith("/") ||
-    resolve(probe.temporaryOwner) !== probe.temporaryOwner ||
-    /[\\\0]/.test(probe.temporaryOwner) ||
-    probe.temporaryOwner === state.root ||
-    probe.temporaryOwner.startsWith(state.root + "/") ||
-    !probe.originalInputs.length ||
-    new Set(probe.originalInputs).size !== probe.originalInputs.length ||
-    probe.originalInputs.some((input) =>
-      !input.startsWith(state.root + "/") || resolve(input) !== input
-    )
-  ) changed("Aggregate probe вне принятых project inputs/format");
-  return await enter({
-    ...state,
-    contractProbe: { temporaryOwner: probe.temporaryOwner, guard: probe.guard },
-  }, run);
-}
 export async function assignmentBeforeChild() {
   const state = execution();
-  state?.contractProbe?.guard();
   await state?.beforeChild?.();
-  state?.contractProbe?.guard();
-  await carrierGuard.getStore()?.();
   execution();
 }
 export function assignmentQuarto() {
@@ -140,28 +86,12 @@ export function assignmentChild(
     cwd !== root ||
     !Array.isArray(args) || args.some((a) => typeof a !== "string")
   ) changed("Чужой native executable/cwd/argv");
-  state.contractProbe?.guard();
-  const base = runtime.profiles.join(","),
-    technical = state.probe
-      ? [...runtime.profiles, state.probe.technical].join(",")
-      : undefined;
-  const aggregate = !!state.contractProbe &&
-    equal(args, ["inspect", state.contractProbe.temporaryOwner]);
-  const probe = !!state.probe &&
-    equal(args, [
-      "inspect",
-      state.probe.temporaryInput,
-      "--profile",
-      technical,
-    ]);
+  const base = runtime.profiles.join(",");
   const ownerInspect = equal(args, [
     "inspect",
     root,
     ...(base ? ["--profile", base] : []),
   ]);
-  const localInspect = args[0] === "inspect" &&
-    args[1]?.startsWith(root + "/") && resolve(args[1]) === args[1] &&
-    equal(args, ["inspect", args[1], ...(base ? ["--profile", base] : [])]);
   const render = !!state.token &&
     equal(args, [
       "render",
@@ -193,12 +123,12 @@ export function assignmentChild(
       resolve(args[4].slice(16)) === args[4].slice(16)
   );
   if (
-    !aggregate && !probe && !ownerInspect && !localInspect && !render && !pandoc
+    !ownerInspect && !render && !pandoc
   ) changed("Native command вне existing Core call site");
   const fixed = { ...runtime.environment };
   for (const [key, value] of Object.entries(env)) {
     if (key === "QUARTO_PROFILE") {
-      if (value !== (aggregate ? "" : probe ? technical : base)) {
+      if (value !== base) {
         changed("Чужой native profiles");
       }
     } else if (key === "COURSE_CORE_CAPTURE_TOKEN") {

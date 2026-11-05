@@ -61,24 +61,31 @@ const target = sourcePath.refine(
 );
 const boolMap = z.record(name, z.boolean());
 const dependencies = z.record(name, z.boolean());
-const component = z.strictObject({
-  path: sourcePath,
+export const ProjectAddressSchema = z.strictObject({
+  path: z.string().min(1).max(4096).refine(
+    (v) => !/[\0\\]/.test(v),
+    "Недопустимый путь",
+  ),
+  base: z.literal("config").optional(),
+});
+const component = ProjectAddressSchema.extend({
   requires: dependencies.default({}),
 });
-const testset = z.strictObject({
-  path: sourcePath,
+const testset = ProjectAddressSchema.extend({
   requires: dependencies.default({}),
 });
 export const ProjectContractSchema = z.strictObject({
   starter: component.optional(),
   instructions: z.strictObject({
-    gradle: z.strictObject({ path: sourcePath }).optional(),
-    local: z.strictObject({ path: sourcePath }).optional(),
+    gradle: ProjectAddressSchema.optional(),
+    local: ProjectAddressSchema.optional(),
   }).optional(),
-  solutions: z.record(name, z.strictObject({ path: sourcePath })).default({}),
+  solutions: z.record(name, ProjectAddressSchema).default({}),
   components: z.record(name, component).default({}),
   testsets: z.record(name, testset).default({}),
-  build: z.strictObject({ files: z.record(target, sourcePath).default({}) })
+  build: z.strictObject({
+    files: z.record(target, ProjectAddressSchema).default({}),
+  })
     .default({ files: {} }),
   delivery: z.strictObject({
     student: z.strictObject({ testsets: boolMap.default({}) }).default({
@@ -106,48 +113,28 @@ export function decodeProjectValue(
 
 export const ProjectContextRequestSchema = z.strictObject({
   owner: z.string().min(1).max(4096),
-  inputs: z.array(z.string().min(1).max(4096)).min(1),
+  directories: z.array(z.string().min(1).max(4096)).min(1),
+  // Фактически выбранные Quarto profiles; загрузчик не выбирает defaults/groups.
   profiles: z.array(z.string().regex(/^[-a-z0-9]+$/)).max(16),
   format: z.string().regex(/^[-a-z0-9]+$/),
 });
 export type ProjectContextRequest = z.output<
   typeof ProjectContextRequestSchema
 >;
-export const NativeOriginSchema = z.strictObject({
-  raw: z.unknown(),
-  effective: z.unknown(),
-  sourceFile: z.string().min(1),
-  range: z.tuple([
-    z.number().int().nonnegative(),
-    z.number().int().nonnegative(),
-  ]).optional(),
-  baseKind: z.enum(["definition", "project"]),
-  resolvedPath: z.string().min(1).optional(),
-  evidence: z.literal("native-scalar-marker"),
-});
-export type NativeOrigin = z.output<typeof NativeOriginSchema>;
 export const ProjectContextSchema = z.strictObject({
   owner: z.string().min(1),
+  // Конечный каталог code-project, а не фиктивный документ.
   input: z.string().min(1),
   profiles: z.array(z.string()),
   format: z.string().min(1),
-  effectiveMetadata: z.record(z.string(), z.unknown()),
-  origins: z.record(z.string(), NativeOriginSchema),
+  contract: ProjectContractSchema,
 });
 export type ProjectContext = Readonly<z.output<typeof ProjectContextSchema>>;
-/** Узкий namespace handle; authority существует только в private lifetime binding. */
-export const ProjectContractContextSchema = ProjectContextSchema.omit({
-  effectiveMetadata: true,
-}).extend({ contract: ProjectContractSchema });
-export type ProjectContractContext = Readonly<
-  z.output<typeof ProjectContractContextSchema>
->;
-export type ProjectContextView = ProjectContext | ProjectContractContext;
+export type ProjectContractContext = ProjectContext;
+export type ProjectContextView = ProjectContext;
 export function decodeProjectRequests(value: unknown): ProjectContextRequest[] {
   boundInput(value);
-  const result = z.array(ProjectContextRequestSchema).min(1).safeParse(
-    value,
-  );
+  const result = z.array(ProjectContextRequestSchema).min(1).safeParse(value);
   if (!result.success) {
     const issue = result.error.issues[0];
     fail("CONTEXT_REQUEST", issue.message, undefined, issue.path.join("."));

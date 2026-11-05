@@ -5,7 +5,10 @@ import { isAbsolute, join, relative, resolve } from "stdlib/path";
 import { globToRegExp } from "stdlib/path";
 import type { ArchiveEntry } from "../domain/zip.ts";
 import { DEFAULT_EXCLUDES, type Resource } from "../domain/config.ts";
-export async function exists(path: string): Promise<boolean> {
+export const exists = __metrics.wrapAsync({
+  id: "project-download.infrastructure.files.exists",
+  kind: "io",
+}, async function exists(path: string): Promise<boolean> {
   try {
     await Deno.lstat(path);
     return true;
@@ -13,8 +16,11 @@ export async function exists(path: string): Promise<boolean> {
     if (e instanceof Deno.errors.NotFound) return false;
     throw e;
   }
-}
-export function child(root: string, path: string): string {
+});
+export const child = __metrics.wrapSync({
+  id: "project-download.infrastructure.files.child",
+  kind: "io",
+}, function child(root: string, path: string): string {
   const value = resolve(root, path), rel = relative(root, value);
   if (
     !rel || rel === ".." || rel.startsWith("../") || rel.startsWith("..\\") ||
@@ -31,8 +37,11 @@ export function child(root: string, path: string): string {
     );
   }
   return value;
-}
-export async function noSymlinks(root: string, path: string): Promise<void> {
+});
+export const noSymlinks = __metrics.wrapAsync({
+  id: "project-download.infrastructure.files.noSymlinks",
+  kind: "io",
+}, async function noSymlinks(root: string, path: string): Promise<void> {
   const rel = relative(root, child(root, path));
   let current = root;
   for (const name of rel.split(/[\\/]/)) {
@@ -45,7 +54,7 @@ export async function noSymlinks(root: string, path: string): Promise<void> {
       );
     }
   }
-}
+});
 /** Git применяет правила игнорирования: вложенные файлы, отрицания и исключения каталогов. */
 async function gitIgnored(root: string, paths: string[]): Promise<Set<string>> {
   if (!paths.length) return new Set();
@@ -210,7 +219,10 @@ export async function resourcePaths(
   return entries;
 }
 
-export async function resourceFiles(
+export const resourceFiles = __metrics.wrapAsync({
+  id: "project-download.infrastructure.files.resourceFiles",
+  kind: "io",
+}, async function resourceFiles(
   root: string,
   resource: Resource,
 ): Promise<ArchiveEntry[]> {
@@ -221,25 +233,4 @@ export async function resourceFiles(
       bytes: await Deno.readFile(join(root, file.source)),
     })),
   );
-}
-
-// @ts-expect-error JS допускает замену function binding; сигнатура публичного API сохраняется.
-exists = __metrics.wrapAsync({
-  id: "project-download.infrastructure.files.exists",
-  kind: "io",
-}, exists);
-// @ts-expect-error JS допускает замену function binding; сигнатура публичного API сохраняется.
-child = __metrics.wrapSync({
-  id: "project-download.infrastructure.files.child",
-  kind: "io",
-}, child);
-// @ts-expect-error JS допускает замену function binding; сигнатура публичного API сохраняется.
-noSymlinks = __metrics.wrapAsync({
-  id: "project-download.infrastructure.files.noSymlinks",
-  kind: "io",
-}, noSymlinks);
-// @ts-expect-error JS допускает замену function binding; сигнатура публичного API сохраняется.
-resourceFiles = __metrics.wrapAsync({
-  id: "project-download.infrastructure.files.resourceFiles",
-  kind: "io",
-}, resourceFiles);
+});

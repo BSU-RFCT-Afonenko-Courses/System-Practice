@@ -10,16 +10,6 @@ export const inside = (parent: string, path: string) => {
       !r.startsWith("..\\");
 };
 export const overlaps = (a: string, b: string) => inside(a, b) || inside(b, a);
-export async function hash(bytes: Uint8Array) {
-  const digest = await crypto.subtle.digest(
-    "SHA-256",
-    new Uint8Array(bytes).buffer,
-  );
-  return Array.from(
-    new Uint8Array(digest),
-    (x) => x.toString(16).padStart(2, "0"),
-  ).join("");
-}
 export async function absent(path: string) {
   try {
     await Deno.lstat(path);

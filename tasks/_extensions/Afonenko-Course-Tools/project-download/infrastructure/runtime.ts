@@ -1,15 +1,13 @@
 import { createMetrics as __createMetrics } from "../observability/bridge.ts";
 const __metrics = __createMetrics("project-download");
 import { inspectOwnedRequests } from "../ownership.ts";
-import { diagnostic, externalFailure, progress, reportProgress } from "../diagnostics.ts";
 import {
-  dirname,
-  fromFileUrl,
-  join,
-  relative,
-  resolve,
-  toFileUrl,
-} from "stdlib/path";
+  diagnostic,
+  externalFailure,
+  progress,
+  reportProgress,
+} from "../diagnostics.ts";
+import { dirname, join, relative, resolve } from "stdlib/path";
 import { configuration, RESOURCE_ID } from "../domain/config.ts";
 import { publish, type Request } from "../application/publish.ts";
 import {
@@ -19,14 +17,20 @@ import {
   resourceFiles,
   resourcePaths,
 } from "./files.ts";
+import { sibling } from "./siblings.ts";
+import type {
+  NativePublication,
+  ProjectContractContext,
+  ProjectPlan,
+  SiblingModules,
+} from "./siblings.ts";
 const manifestName = ".project-download-manifest.json";
-async function sha256(bytes: Uint8Array): Promise<string> {
-  return Array.from(
-    new Uint8Array(
-      await crypto.subtle.digest("SHA-256", new Uint8Array(bytes)),
-    ),
-    (v) => v.toString(16).padStart(2, "0"),
-  ).join("");
+function record(value: unknown): value is Record<string, unknown> {
+  return !!value && typeof value === "object" && !Array.isArray(value);
+}
+function outputDirectory(config: Record<string, unknown>): string {
+  const output = record(config.project) ? config.project["output-dir"] : undefined;
+  return typeof output === "string" ? output : ".";
 }
 async function inspect(root: string) {
   const executable = Deno.env.get("QUARTO") ||
@@ -50,12 +54,23 @@ async function inspect(root: string) {
   }
   if (!result.success) throw externalFailure(executable, result);
   if (result.stderr.length) await Deno.stderr.write(result.stderr);
-  return JSON.parse(new TextDecoder().decode(result.stdout));
+  const value: unknown = JSON.parse(new TextDecoder().decode(result.stdout));
+  if (!record(value) || !record(value.config) || !record(value.files) ||
+      !Array.isArray(value.files.input) ||
+      !value.files.input.every((path): path is string => typeof path === "string")) {
+    throw diagnostic("DOWNLOAD.CONFIG_INVALID", "Неполный результат Quarto inspect", {
+      source: root, field: "config/files.input",
+    });
+  }
+  return { config: value.config, files: { input: value.files.input } };
 }
 function archiveName(name: string): boolean {
   return name.endsWith(".zip") && RESOURCE_ID.test(name.slice(0, -4));
 }
-export async function clearOwned(root: string, output: string): Promise<void> {
+export const clearOwned = __metrics.wrapAsync({
+  id: "project-download.infrastructure.runtime.clearOwned",
+  kind: "io",
+}, async function clearOwned(root: string, output: string): Promise<void> {
   const outputRoot = resolve(root, output);
   const directory = child(outputRoot, "_downloads");
   if (!await exists(directory)) return;
@@ -70,10 +85,10 @@ export async function clearOwned(root: string, output: string): Promise<void> {
   const manifest = join(directory, manifestName);
   if (!await exists(manifest)) return;
   await noSymlinks(outputRoot, manifest);
-  const files = JSON.parse(await Deno.readTextFile(manifest));
+  const files: unknown = JSON.parse(await Deno.readTextFile(manifest));
   if (
     !Array.isArray(files) ||
-    files.some((name) => typeof name !== "string" || !archiveName(name))
+    !files.every((name): name is string => typeof name === "string" && archiveName(name))
   ) {
     throw diagnostic(
       "DOWNLOAD.REQUEST_INVALID",
@@ -89,64 +104,34 @@ export async function clearOwned(root: string, output: string): Promise<void> {
     }
   }
   await Deno.remove(manifest);
-}
-export async function prepare(root: string): Promise<void> {
-  return await progress(`Подготовка материалов: ${root}`, () => prepareInternal(root));
-}
-async function prepareInternal(root: string): Promise<void> {
-  const inspected = Deno.env.get("QUARTO_PROJECT_OUTPUT_DIR")
-    ? undefined
-    : await inspect(root);
-  if (inspected) configuration(inspected.config["project-download"]);
-  const output = Deno.env.get("QUARTO_PROJECT_OUTPUT_DIR") ||
-    inspected?.config.project?.["output-dir"] || ".";
-  await clearOwned(root, output);
-  const receipt = child(
-    root,
-    "_generated/project-download/artifacts-receipt.json",
-  );
-  if (await exists(receipt)) {
-    await noSymlinks(root, receipt);
-    const value = JSON.parse(await Deno.readTextFile(receipt));
-    if (
-      !["project-download-artifacts-v1", "project-download-artifacts-v2"]
-        .includes(value?.schema)
-    ) {
-      throw diagnostic(
-        "DOWNLOAD.OUTPUT_CONFLICT",
-        "Чужой файл на пути receipt",
-        { source: receipt, field: "receipt" },
-      );
-    }
-    await Deno.remove(receipt);
-  }
+});
+/** Удаляет только временные заявки перед новым render. */
+export const resetDownloadRequests = __metrics.wrapAsync({
+  id: "project-download.infrastructure.runtime.resetDownloadRequests",
+  kind: "io",
+}, async function resetDownloadRequests(root: string): Promise<void> {
   const requests = child(root, "_generated/project-download/requests");
   if (await exists(requests)) {
     await noSymlinks(root, requests);
     await Deno.remove(requests, { recursive: true });
   }
-}
-export interface FinishOptions {
-  native?: boolean;
-  observeOperation?(catalog: unknown, release: unknown): void | Promise<void>;
-  projection?: "student" | "author";
-  profiles?: string[];
-  expectedDocuments?: { source: string; format: "html" | "revealjs" }[];
-  outputDirectory?: string;
+});
+/** Адреса и содержимое выдачи; Native context принадлежит Core. */
+export interface NativeDownloadOptions {
   destinationDirectory?: string;
   baseUrl?: string;
   catalogBaseUrl?: string;
   referenceCatalog?: unknown;
-  submission?: {
-    files: { name: string; starterPath?: string }[];
-    instructions: string;
-  };
+  submission?: Parameters<SiblingModules["course-core"]["materializeProject"]>[2]["submission"];
 }
-async function sibling(name: string) {
-  const extension = dirname(dirname(fromFileUrl(import.meta.url)));
-  return await import(
-    toFileUrl(join(dirname(extension), name, "public.ts")).href
-  );
+export interface OrdinaryDownloadOptions {
+  destinationDirectory?: string;
+  profiles?: string[];
+  outputDirectory?: string;
+}
+export interface PreparedDownloads {
+  publish(): Promise<number>;
+  discard(): Promise<void>;
 }
 async function inputFiles(root: string) {
   const file = Deno.env.get("QUARTO_USE_FILE_FOR_PROJECT_INPUT_FILES");
@@ -156,82 +141,60 @@ async function inputFiles(root: string) {
       Boolean,
     ).map((path) => relative(root, resolve(root, path)).replaceAll("\\", "/"));
 }
-/** Публичная текущая операция Core; публикация выполняется после её final fence. */
-async function validateRelease(operation: any, Core: any) {
-  let PL: any;
-  const extension = dirname(dirname(fromFileUrl(import.meta.url)));
-  const path = join(dirname(extension), "course-prairielearn", "public.ts");
-  try {
-    await Deno.stat(path);
-    PL = await import(toFileUrl(path).href);
-  } catch (cause) {
-    if (!(cause instanceof Deno.errors.NotFound)) throw cause;
-  }
-  const request = {
-    expectedSources: operation.catalog.documents.map((d: any) => d.source),
-  };
-  const before = operation.metrics;
-  let proof;
-  if (PL) {
-    const publication = await PL.inspectPublication(Core, operation, request);
-    proof = Core.NativeReleaseProofSchema.parse(publication.proof);
-  } else {
-    proof = await operation.validateRelease(request, []);
-  }
-  return {
-    proof,
-    validationPasses: 1,
-    metricsBefore: before,
-    metricsAfter: operation.metrics,
-  };
-}
-export async function finish(
+export const finish = __metrics.wrapAsync({
+  id: "project-download.infrastructure.runtime.finish",
+  kind: "io",
+}, async function finish(
   root: string,
-  options: FinishOptions = {},
+  options: OrdinaryDownloadOptions = {},
 ): Promise<number> {
   return await progress(`Финализация материалов: ${root}`, async () => {
     const count = await finishInternal(root, options);
     reportProgress(`Финализация материалов — archives=${count}`);
     return count;
   });
+});
+/** Все Core-bound helpers завершаются до возврата Download-owned draft. */
+export async function prepareNativeDownloads(
+  publication: NativePublication,
+  options: NativeDownloadOptions = {},
+): Promise<PreparedDownloads> {
+  const Core = await sibling("course-core");
+  return await prepareDownloadsInternal(publication.root, options,
+    [...publication.identity.profiles], publication.outputDirectory, { publication, Core });
 }
-async function finishInternal(root: string, options: FinishOptions): Promise<number> {
-  const directory = join(root, "_generated/project-download/requests");
-  let native = options.native === true;
-  if (await exists(directory)) {
-    await noSymlinks(root, directory);
-    for await (const file of Deno.readDir(directory)) {
-      const path = join(directory, file.name);
-      await noSymlinks(root, path);
-      const request = JSON.parse(await Deno.readTextFile(path));
-      native ||= request.native === true || request.courseProcessed === true;
-    }
+async function finishInternal(root: string, options: OrdinaryDownloadOptions): Promise<number> {
+  const draft = await prepareDownloadsInternal(root, options,
+    options.profiles ?? (Deno.env.get("QUARTO_PROFILE") || "").split(",").filter(Boolean),
+    options.outputDirectory || Deno.env.get("QUARTO_PROJECT_OUTPUT_DIR"));
+  try {
+    return await draft.publish();
+  } catch (cause) {
+    try { await draft.discard(); } catch { /* Исходная ошибка публикации важнее cleanup. */ }
+    throw cause;
   }
-  let archives: { name: string; bytes: Uint8Array }[] = [],
-    receiptText = "",
-    ownedSignature = "";
-  const output = options.outputDirectory ||
-    Deno.env.get("QUARTO_PROJECT_OUTPUT_DIR");
-  const profiles = options.profiles ??
-    (Deno.env.get("QUARTO_PROFILE") || "").split(",").filter(
-      Boolean,
-    );
-  let resolvedOutput = output;
-  const collect = async (operation?: any, Core?: any): Promise<number> => {
-    const release = operation
-      ? await validateRelease(operation, Core)
-      : undefined;
-    if (operation) await options.observeOperation?.(operation.catalog, release);
-    let sources = operation?.catalog.documents.map((d: any) => d.source) ??
+}
+async function prepareDownloadsInternal(
+  root: string,
+  options: NativeDownloadOptions,
+  profiles: string[],
+  sourceOutput?: string,
+  current?: { publication: NativePublication; Core: SiblingModules["course-core"] },
+): Promise<PreparedDownloads> {
+  let archives: { name: string; bytes: Uint8Array }[] = [];
+  let resolvedOutput = sourceOutput;
+  const collect = async (): Promise<number> => {
+    const operation = current?.publication;
+    let sources = operation?.catalog.documents.map((d) => d.source) ??
       await inputFiles(root);
     let inspected: Awaited<ReturnType<typeof inspect>> | undefined;
     // Standalone без native hook env сохраняет обычный independent сценарий.
-    if (!operation || !sources.length || !resolvedOutput) {
+    if (!operation) {
       inspected = await inspect(root);
       sources = inspected.files.input.map((path: string) =>
         relative(root, path).replaceAll("\\", "/")
       );
-      resolvedOutput ||= inspected.config.project?.["output-dir"] || ".";
+      resolvedOutput ||= outputDirectory(inspected.config);
     }
     const authoredInputs = new Set<string>(
       sources.map((source: string) => resolve(root, source)),
@@ -239,8 +202,8 @@ async function finishInternal(root: string, options: FinishOptions): Promise<num
     if (inspected) {
       for (
         const value of [
-          inspected.config.project?.["pre-render"],
-          inspected.config.project?.["post-render"],
+          record(inspected.config.project) ? inspected.config.project["pre-render"] : undefined,
+          record(inspected.config.project) ? inspected.config.project["post-render"] : undefined,
           inspected.config.filters,
         ]
       ) {
@@ -253,7 +216,7 @@ async function finishInternal(root: string, options: FinishOptions): Promise<num
         ) {
           const command = typeof declaration === "string"
             ? declaration
-            : declaration?.path;
+            : record(declaration) ? declaration.path : undefined;
           if (typeof command !== "string") continue;
           const paths = typeof declaration === "string"
             ? [
@@ -272,11 +235,12 @@ async function finishInternal(root: string, options: FinishOptions): Promise<num
       }
     }
     const owned = await inspectOwnedRequests(root, sources);
-    ownedSignature = JSON.stringify(owned);
-    const requests: Request[] = [];
-    for (const file of owned.files) {
-      requests.push(JSON.parse(await Deno.readTextFile(file.path)));
-    }
+    const requests: Request[] = owned.files.map((file) => ({
+      source: file.source,
+      resources: file.resources,
+      ...(file.artifacts ? { artifacts: file.artifacts } : {}),
+      configuration: file.configuration,
+    }));
     const configs = requests.map((request) =>
       configuration(
         request.configuration ?? inspected?.config["project-download"],
@@ -321,7 +285,8 @@ async function finishInternal(root: string, options: FinishOptions): Promise<num
         },
       );
     }
-    const contexts = new Map<string, any>(), plans = new Map<string, any>();
+    const contexts = new Map<string, ProjectContractContext>(),
+      plans = new Map<string, ProjectPlan>();
     const pack = async () =>
       await publish(config, profiles, {
         requests: () => Promise.resolve(requests),
@@ -333,13 +298,14 @@ async function finishInternal(root: string, options: FinishOptions): Promise<num
           ));
         },
         async modelArtifact(request, source) {
-          if (!operation || !Core) {
+          if (!current) {
             throw diagnostic(
               "DOWNLOAD.CONFIG_INVALID",
               "Модельный комплект требует текущую публичную операцию Core",
               { source, field: "course-model" },
             );
           }
+          const { publication: operation, Core } = current;
           if (
             !configs[requests.findIndex((r) => r.source === source)]
               ?.["course-model"]
@@ -370,12 +336,14 @@ async function finishInternal(root: string, options: FinishOptions): Promise<num
               { source, id: request.exerciseId, field: "kind" },
             );
           }
-          const catalogDocument = operation.catalog.documents.find((d: any) =>
+          // Core строит catalog из тех же visible occurrences: успешные
+          // document/condition выше уже установили наличие source и exercise.
+          const catalogDocument = operation.catalog.documents.find((d) =>
             d.source === source
-          );
-          const exercise = catalogDocument.exercises.find((e: any) =>
+          )!;
+          const exercise = catalogDocument.exercises.find((e) =>
             e.id === request.exerciseId
-          );
+          )!;
           const context = contexts.get(
             catalogDocument.format + ":" + exercise?.project,
           );
@@ -392,8 +360,10 @@ async function finishInternal(root: string, options: FinishOptions): Promise<num
               : "student",
             key = catalogDocument.format + ":" + exercise.project + ":" +
               audience;
-          if (!plans.has(key)) {
-            plans.set(key, await Core.planProject(context, { audience }));
+          let plan = plans.get(key);
+          if (!plan) {
+            plan = await Core.planProject(context, { audience });
+            plans.set(key, plan);
           }
           const QRC = await sibling("reference-catalog");
           const baseUrl = options.baseUrl ||
@@ -408,7 +378,7 @@ async function finishInternal(root: string, options: FinishOptions): Promise<num
             );
           }
           const closure = await Core.materializationClosure(
-            plans.get(key),
+            plan,
             condition,
           );
           const destination = {
@@ -421,7 +391,7 @@ async function finishInternal(root: string, options: FinishOptions): Promise<num
             baseUrl,
             catalogBaseUrl: options.catalogBaseUrl,
             sources: Object.fromEntries(
-              operation.catalog.documents.map((d: any) => [d.source, d.output]),
+              operation.catalog.documents.map((d) => [d.source, d.output]),
             ),
           };
           const linksBySource: Record<string, Record<string, string>> = {};
@@ -455,7 +425,7 @@ async function finishInternal(root: string, options: FinishOptions): Promise<num
             }
             const refs = Object.fromEntries(
               fragment.references.map((
-                r: any,
+                r,
               ) => [r.token, { key: r.key, style: r.style }]),
             );
             linksBySource[fragment.source] = QRC.bindConditionLinks({
@@ -464,7 +434,7 @@ async function finishInternal(root: string, options: FinishOptions): Promise<num
             }, { ...destination, urls, resourceLinks, references: refs });
             referencesBySource[fragment.source] = Object.fromEntries(
               fragment.references.map((
-                r: any,
+                r,
               ) => [
                 r.token,
                 references.resolve(r.key, r.style, fragment.source),
@@ -474,7 +444,7 @@ async function finishInternal(root: string, options: FinishOptions): Promise<num
           const materialize = request.kind === "conditions"
             ? Core.materializeCondition
             : Core.materializeProject;
-          const inventory = await materialize(plans.get(key), condition, {
+          const artifact = await materialize(plan, condition, {
             linksBySource,
             referencesBySource,
             submission: options.submission ??
@@ -489,23 +459,23 @@ async function finishInternal(root: string, options: FinishOptions): Promise<num
           );
           return {
             kind: request.kind,
-            files: inventory.files.map((f: any) => ({
+            files: artifact.files.map((f) => ({
               name: f.target,
               bytes: f.bytes,
             })),
-            package: () => packageArtifact(inventory),
+            package: () => packageArtifact(artifact),
           };
         },
         async files(resource) {
           if (operation) {
             const selected = await resourcePaths(root, resource);
-            const inventory = await operation.resourceInventory({
+            const resources = await operation.resourceFiles({
               files: selected.map((f) => ({
                 source: f.source,
                 target: f.name,
               })),
             });
-            return inventory.files.map((f: any) => ({
+            return resources.files.map((f) => ({
               name: f.target,
               bytes: f.bytes,
             }));
@@ -534,65 +504,28 @@ async function finishInternal(root: string, options: FinishOptions): Promise<num
             ...archive,
             bytes: new Uint8Array(archive.bytes),
           }));
-          const entries = [];
-          for (const archive of archives) {
-            const request = artifacts.find((a) =>
-              a.exerciseId + "-" + a.kind + ".zip" === archive.name
-            );
-            entries.push({
-              name: archive.name,
-              sha256: await sha256(archive.bytes),
-              audience: operation
-                ? (operation.identity.projection === "author"
-                  ? "full"
-                  : "student")
-                : null,
-              ...request,
-            });
-          }
-          receiptText = JSON.stringify(
-            {
-              schema: "project-download-artifacts-v2",
-              audience: operation
-                ? (operation.identity.projection === "author"
-                  ? "full"
-                  : "student")
-                : null,
-              audiences: operation
-                ? [
-                  operation.identity.projection === "author"
-                    ? "full"
-                    : "student",
-                ]
-                : [],
-              profiles,
-              operation: operation?.identity.operation ?? null,
-              identity: operation?.identity ?? null,
-              release,
-              archives: entries,
-            },
-            null,
-            2,
-          ) + "\n";
         },
       });
+    if (!operation) return await pack();
     const projectRequests = new Map<string, Set<string>>();
     for (const artifact of artifacts) {
-      const doc = operation?.catalog.documents.find((d: any) =>
+      const doc = operation.catalog.documents.find((d) =>
         d.source === artifact.source
       );
-      for (
-        const exercise of doc?.exercises.filter((e: any) =>
-          e.id === artifact.exerciseId
-        ) ?? []
-      ) {
-        if (exercise.project) {
-          if (!projectRequests.has(doc.format)) {
-            projectRequests.set(doc.format, new Set());
+      if (doc) {
+        for (
+          const exercise of doc.exercises.filter((e) =>
+            e.id === artifact.exerciseId
+          )
+        ) {
+          if (exercise.project) {
+            let inputs = projectRequests.get(doc.format);
+            if (!inputs) {
+              inputs = new Set();
+              projectRequests.set(doc.format, inputs);
+            }
+            inputs.add(exercise.project);
           }
-          projectRequests.get(doc.format)!.add(
-            exercise.project + "/native-input.qmd",
-          );
         }
       }
     }
@@ -600,16 +533,16 @@ async function finishInternal(root: string, options: FinishOptions): Promise<num
       return await operation.withProjectContracts(
         [...projectRequests].map(([format, inputs]) => ({
           owner: root,
-          inputs: [...inputs],
+          directories: [...inputs],
           profiles,
           format,
         })),
-        async (batch: any) => {
+        async (batch) => {
           for (const group of batch.groups) {
             for (const context of group.contexts) {
               contexts.set(
                 context.format + ":" +
-                  relative(root, dirname(context.input)).replaceAll("\\", "/"),
+                  relative(root, context.input).replaceAll("\\", "/"),
                 context,
               );
             }
@@ -620,76 +553,46 @@ async function finishInternal(root: string, options: FinishOptions): Promise<num
     }
     return await pack();
   };
-  let count: number;
-  if (native) {
-    if (!resolvedOutput) {
-      throw diagnostic(
-        "DOWNLOAD.REQUEST_INVALID",
-        "Native hook не передал текущий output",
-        { source: root, field: "outputDirectory" },
-      );
-    }
-    const Core = await sibling("course-core");
-    count = await Core.withCurrentNativeOperation({
-      root,
-      profiles,
-      projection: options.projection ?? "student",
-      ...(options.expectedDocuments
-        ? { expectedDocuments: options.expectedDocuments }
-        : {}),
-      outputDirectory: resolve(root, resolvedOutput),
-    }, async (operation: any) => await collect(operation, Core));
-  } else count = await collect();
-  const sources = JSON.parse(ownedSignature).files.map((f: any) => f.source);
-  if (
-    JSON.stringify(await inspectOwnedRequests(root, sources)) !== ownedSignature
-  ) {
-    throw diagnostic(
-      "DOWNLOAD.REQUEST_INVALID",
-      "Заявки изменены перед публикацией",
-      { source: root, field: "requests" },
-    );
-  }
-  await publishArchives(
-    root,
-    options.destinationDirectory || resolvedOutput!,
-    archives,
-    receiptText,
-  );
-  return count;
+  const count = await collect();
+  return preparedDownloads(root, options.destinationDirectory || resolvedOutput!,
+    archives, count);
+}
+/** Замыкание draft содержит только Download-owned данные, без borrowed Core/PL. */
+function preparedDownloads(
+  root: string,
+  output: string,
+  archives: { name: string; bytes: Uint8Array }[],
+  count: number,
+): PreparedDownloads {
+  let state: "prepared" | "publishing" | "published" | "failed" | "discarded" = "prepared";
+  const invalid = () => diagnostic("DOWNLOAD.REQUEST_INVALID",
+    `Черновик загрузок уже использован: ${state}`, { source: root, field: "draft" });
+  return {
+    async publish() {
+      if (state !== "prepared") throw invalid();
+      state = "publishing";
+      try {
+        await publishArchives(root, output, archives);
+        state = "published";
+        archives = [];
+        return count;
+      } catch (cause) {
+        state = "failed";
+        throw cause;
+      }
+    },
+    async discard() {
+      if (state === "publishing") throw invalid();
+      if (state === "prepared") state = "discarded";
+      archives = [];
+    },
+  };
 }
 async function publishArchives(
   root: string,
   output: string,
   archives: { name: string; bytes: Uint8Array }[],
-  receiptText: string,
 ) {
-  const receiptPath = child(
-    root,
-    "_generated/project-download/artifacts-receipt.json",
-  );
-  // Даже отсутствующий receipt не разрешает запись через linked parent.
-  let receiptParent = dirname(receiptPath);
-  while (!await exists(receiptParent)) {
-    receiptParent = dirname(receiptParent);
-  }
-  if (resolve(receiptParent) !== resolve(root)) {
-    await noSymlinks(root, receiptParent);
-  }
-  if (await exists(receiptPath)) {
-    await noSymlinks(root, receiptPath);
-    const previous = JSON.parse(await Deno.readTextFile(receiptPath));
-    if (
-      !["project-download-artifacts-v1", "project-download-artifacts-v2"]
-        .includes(previous?.schema)
-    ) {
-      throw diagnostic(
-        "DOWNLOAD.OUTPUT_CONFLICT",
-        "Чужой файл на пути receipt",
-        { source: receiptPath, field: "receipt" },
-      );
-    }
-  }
   let existingParent = resolve(root, output);
   while (!await exists(existingParent)) {
     existingParent = dirname(existingParent);
@@ -743,39 +646,4 @@ async function publishArchives(
       createNew: true,
     });
   }
-  await Deno.mkdir(dirname(receiptPath), { recursive: true });
-  if (await exists(receiptPath)) {
-    await noSymlinks(root, receiptPath);
-    const previous = JSON.parse(await Deno.readTextFile(receiptPath));
-    if (
-      !["project-download-artifacts-v1", "project-download-artifacts-v2"]
-        .includes(previous?.schema)
-    ) {
-      throw diagnostic(
-        "DOWNLOAD.OUTPUT_CONFLICT",
-        "Чужой файл на пути receipt",
-        { source: receiptPath, field: "receipt" },
-      );
-    }
-    await Deno.remove(receiptPath);
-  }
-  await Deno.writeTextFile(receiptPath, receiptText, {
-    createNew: true,
-  });
 }
-
-// @ts-expect-error JS binding сохраняет публичную сигнатуру для Performance ABI.
-clearOwned = __metrics.wrapAsync({
-  id: "project-download.infrastructure.runtime.clearOwned",
-  kind: "io",
-}, clearOwned);
-// @ts-expect-error JS binding сохраняет публичную сигнатуру для Performance ABI.
-prepare = __metrics.wrapAsync({
-  id: "project-download.infrastructure.runtime.prepare",
-  kind: "io",
-}, prepare);
-// @ts-expect-error JS binding сохраняет публичную сигнатуру для Performance ABI.
-finish = __metrics.wrapAsync({
-  id: "project-download.infrastructure.runtime.finish",
-  kind: "io",
-}, finish);

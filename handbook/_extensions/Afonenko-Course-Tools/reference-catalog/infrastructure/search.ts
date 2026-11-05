@@ -3,7 +3,13 @@ const __metrics=__createMetrics("reference-catalog");
 import { attr, elements, hasClass, type Element, type Node } from "./html.ts";
 import type { Page } from "./pages.ts";
 import { relative, isAbsolute } from "./files.ts";
+import { isRecord } from "./import-config.ts";
 export interface SearchIndex { path: string; mount?: string }
+export interface SearchRow extends Record<string, unknown> { href: string; text: string }
+export interface UpdatedSearchIndex { index: SearchIndex; rows: SearchRow[] }
+function isSearchRow(row: unknown): row is SearchRow {
+  return isRecord(row) && typeof row.href === "string" && typeof row.text === "string";
+}
 export function searchIndexBase(root: string, index: SearchIndex): string {
   if (index.mount === undefined) return relative(root, index.path).replaceAll("\\", "/");
   const mount = index.mount.replaceAll("\\", "/");
@@ -16,16 +22,23 @@ export function readable(node: Node): string {
   return "childNodes" in node ? node.childNodes.map(readable).join(" ") : "";
 }
 /** Штатные индексы созданы до post-render; обновляем их текст из окончательного HTML. */
-export async function updateSearch(root: string, indexFiles: (string | SearchIndex)[], pages: Map<string, Page>): Promise<void> {
+export async function updateSearch(root: string, indexFiles: (string | SearchIndex)[], pages: Map<string, Page>): Promise<UpdatedSearchIndex[]> {
   // Linking updates the current tree; no second HTML parse is needed.
   const parsed = new Map<string, { main?: Element; ids: Map<string, Element> }>();
+  const updated: UpdatedSearchIndex[] = [];
+  const rowsByPath = new Map<string, SearchRow[]>();
   for (const value of indexFiles) {
     const index = typeof value === "string" ? { path: value } : value;
     const file = index.path;
-    const rows = JSON.parse(await Deno.readTextFile(file));
+    const rows: unknown = JSON.parse(await Deno.readTextFile(file));
     if (!Array.isArray(rows)) throw new Error(`QRC неподдерживаемый поисковый индекс ${file}`);
-    for (const row of rows) {
-      if (typeof row.href !== "string" || typeof row.text !== "string") throw new Error(`QRC неподдерживаемая запись поискового индекса ${file}`);
+    const sourceRows: readonly unknown[] = rows;
+    const finalRows = rowsByPath.get(file) ?? [];
+    finalRows.length = 0;
+    rowsByPath.set(file, finalRows);
+    for (const row of sourceRows) {
+      if (!isSearchRow(row)) throw new Error(`QRC неподдерживаемая запись поискового индекса ${file}`);
+      finalRows.push(row);
       const url = new URL(row.href, "https://qrc.invalid/" + searchIndexBase(root, index));
       const path = decodeURIComponent(url.pathname).slice(1);
       const page = pages.get(path);
@@ -45,8 +58,10 @@ export async function updateSearch(root: string, indexFiles: (string | SearchInd
       const selected = fragment ? selection.ids.get(fragment) : selection.main;
       if (selected) row.text = readable(selected).replace(/\s+/g, " ").trim();
     }
-    await Deno.writeTextFile(file, JSON.stringify(rows, null, 2) + "\n");
+    await Deno.writeTextFile(file, JSON.stringify(finalRows, null, 2) + "\n");
+    updated.push({ index, rows: finalRows });
   }
+  return updated;
 }
 
 // @ts-expect-error JS допускает замену function binding; сигнатура публичного API сохраняется.

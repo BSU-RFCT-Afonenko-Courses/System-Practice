@@ -17,18 +17,35 @@ import {
   toFileUrl,
 } from "../infrastructure/files.ts";
 import {
-  inspectDocuments,
+  inspectProject,
   validateAudience,
-  validateAudienceOutputs,
   workspace,
 } from "../infrastructure/config.ts";
 import { profileArguments, quarto } from "../infrastructure/process.ts";
 import { publicOutputs, readCollection } from "../infrastructure/collection.ts";
+import type {
+  NativeCatalog,
+  PreparedDownloads,
+  PublicationInspection,
+  NativeSiteRecord,
+  SiblingModuleMap,
+} from "./sibling-contracts.ts";
 const siblings = dirname(dirname(dirname(fromFileUrl(import.meta.url))));
 function ownerSiblings(root: string) {
   const parts = siblings.split("/");
   return join(root, ...parts.slice(parts.lastIndexOf("_extensions")));
 }
+function module<Name extends keyof SiblingModuleMap>(
+  name: Name,
+  path: "public.ts",
+  owner?: string,
+): Promise<SiblingModuleMap[Name]>;
+// Остальные публичные соседи пока сохраняют прежнюю нетипизированную границу.
+function module(
+  name: "reference-catalog" | "course-navigation",
+  path: "public.ts",
+  owner?: string,
+): Promise<any>;
 async function module(
   name: string,
   path: string,
@@ -113,146 +130,143 @@ async function coreHook(root: string, config: any, phase: "pre" | "post") {
       {},
       true,
     );
-    if (phase === "pre") {
-      const path = join(siblings, "course-prairielearn", "public.ts");
-      let PL: any;
-      try {
-        await Deno.stat(path);
-        PL = await import(toFileUrl(path).href);
-      } catch (cause) {
-        if (!(cause instanceof Deno.errors.NotFound)) throw cause;
-      }
-      if (PL) {
-        await PL.prepareNativeAdapter(
-          await module("course-core", "public.ts"),
-          {
-            root,
-            profiles: (Deno.env.get("QUARTO_PROFILE") || "").split(",").filter(
-              Boolean,
-            ),
-            projection: projection(config),
-            outputDirectory: resolve(
-              root,
-              Deno.env.get("QUARTO_PROJECT_OUTPUT_DIR") ||
-                config.project?.["output-dir"] || "_site",
-            ),
-          },
-        );
-      }
-    }
   }
 }
 function projection(config: any): "student" | "author" {
   return config["course-core-projection"] ??
     (config.course?.view === "full" ? "author" : "student");
 }
-async function ownerRelease(root: string, operation: any, Core: any) {
-  let PL: any;
-  const path = join(ownerSiblings(root), "course-prairielearn", "public.ts");
-  try {
-    await Deno.stat(path);
-    PL = await import(toFileUrl(path).href);
-  } catch (cause) {
-    if (!(cause instanceof Deno.errors.NotFound)) throw cause;
-  }
-  const adapter = PL?.createNativeAdapter({ root, core: Core });
-  const request = {
-      expectedSources: operation.catalog.documents.map((d: any) => d.source),
-    },
-    before = operation.metrics;
-  let proof = await operation.validateRelease(
-      request,
-      adapter ? [adapter] : [],
-    ),
-    validationPasses = 1;
-  if (proof.validatedAdapters.includes("prairielearn")) {
-    proof = await adapter.validateCourse(operation, request);
-    validationPasses++;
-  }
-  return {
-    proof,
-    validationPasses,
-    metricsBefore: before,
-    metricsAfter: operation.metrics,
-  };
-}
-function catalogCoverage(catalog: any, record: any) {
-  const actual = catalog.documents.map((d: any) =>
-    resolve(record.outputDir, d.output)
+function catalogCoverage(catalog: NativeCatalog, record: NativeSiteRecord) {
+  const documents = catalog.documents;
+  const sources = new Set(documents.map((document) => document.source));
+  const expectedSources = record.selectedSources &&
+    new Set(record.selectedSources);
+  const outputs = documents.map((document) =>
+    resolve(record.outputDir, document.output)
   );
-  const expected = record.nativeOutputs.filter((p: string) =>
-    p.endsWith(".html")
+  const actual = new Set(outputs);
+  const expected = new Set(
+    record.nativeOutputs.filter((path: string) => path.endsWith(".html")),
   );
   if (
-    new Set(actual).size !== actual.length ||
-    expected.some((p: string) => !actual.includes(p)) ||
-    actual.some((p: string) => !expected.includes(p))
+    sources.size !== documents.length ||
+    (expectedSources &&
+      (sources.size !== expectedSources.size ||
+        [...sources].some((source) => !expectedSources.has(source)))) ||
+    actual.size !== outputs.length || actual.size !== expected.size ||
+    [...actual].some((path) => !expected.has(path))
   ) {
     throw diagnostic(
       "SITE.CURRENT_RESULT_MISSING",
-      "Публичный каталог Core не совпадает с текущими native outputs",
-      { source: record.projectRoot, field: "output/source coverage" },
+      "Публичный каталог Core не совпадает с native selection или outputs",
+      {
+        source: record.projectRoot,
+        field: "selectedSources/output",
+        hint:
+          "Проверьте неизменность native selection и текущие outputs компонента.",
+      },
     );
   }
 }
+async function progress<T>(
+  stage: string,
+  project: string,
+  action: () => Promise<T>,
+): Promise<T> {
+  const started = performance.now();
+  console.error(`course-site: ${stage}: ${project} — начало`);
+  try {
+    const value = await action();
+    console.error(
+      `course-site: ${stage}: ${project} — готово (${
+        ((performance.now() - started) / 1000).toFixed(1)
+      } с)`,
+    );
+    return value;
+  } catch (error) {
+    console.error(
+      `course-site: ${stage}: ${project} — ошибка (${
+        ((performance.now() - started) / 1000).toFixed(1)
+      } с)`,
+    );
+    throw error;
+  }
+}
 async function finalizeDownloads(
+  ...args: Parameters<typeof finalizeDownloadsImpl>
+) {
+  return await progress(
+    "Проверка и загрузки",
+    args[0],
+    () => finalizeDownloadsImpl(...args),
+  );
+}
+async function finalizeDownloadsImpl(
   root: string,
   config: any,
-  record: any,
+  record: NativeSiteRecord,
   baseUrl: string | undefined,
   referenceCatalog: unknown,
   catalogBaseUrl: string | undefined,
   destinationDirectory?: string,
 ) {
-  let catalog, release;
-  const observeOperation = (value: any, proof: unknown) => {
-    catalogCoverage(value, record);
-    catalog = value;
-    release = proof;
-  };
-  if (config["project-download"]) {
-    const Download = await module("project-download", "public.ts", root);
-    await Download.finishDownloads(root, {
-      native: nativeCore(config),
-      outputDirectory: record.outputDir,
-      projection: projection(config),
-      profiles: record.profiles,
-      ...(record.expectedDocuments
-        ? { expectedDocuments: record.expectedDocuments }
-        : {}),
-      baseUrl,
-      referenceCatalog,
-      catalogBaseUrl,
-      observeOperation,
-      destinationDirectory,
-    });
-  } else if (nativeCore(config)) {
-    const Core = await module("course-core", "public.ts", root);
-    await Core.withCurrentNativeOperation(
-      {
-        root,
+  if (!nativeCore(config)) {
+    if (config["project-download"]) {
+      const Download = await module("project-download", "public.ts", root);
+      await Download.finishDownloads(root, {
         profiles: record.profiles,
-        projection: projection(config),
-        ...(record.expectedDocuments
-          ? { expectedDocuments: record.expectedDocuments }
-          : {}),
         outputDirectory: record.outputDir,
-      },
-      async (operation: any) =>
-        observeOperation(
-          operation.catalog,
-          await ownerRelease(root, operation, Core),
-        ),
-    );
+        destinationDirectory,
+      });
+    }
+    return undefined;
   }
-  return catalog ? { catalog, release } : undefined;
+  const Core = await module("course-core", "public.ts", root);
+  const pending: { draft?: PreparedDownloads } = {};
+  try {
+    const snapshot = await Core.withNativePublication({
+      root,
+      profiles: record.profiles,
+      projection: projection(config),
+      outputDirectory: record.outputDir,
+    }, record.selectedSources ? { expectedSources: record.selectedSources } : undefined,
+    async (publication) => {
+      catalogCoverage(publication.catalog, record);
+      let inspection: PublicationInspection | undefined;
+      if (publication.course.adapters.includes("prairielearn")) {
+        const PL = await module("course-prairielearn", "public.ts", root);
+        inspection = await PL.inspectPublication(publication);
+      }
+      if (config["project-download"]) {
+        const Download = await module("project-download", "public.ts", root);
+        // Сохранить handle до await outer closing: catch должен видеть draft.
+        pending.draft = await Download.prepareNativeDownloads(publication, {
+          destinationDirectory,
+          baseUrl,
+          referenceCatalog,
+          catalogBaseUrl,
+        });
+      }
+      return {
+        catalog: publication.catalog,
+        course: publication.course,
+        ...(inspection ? { inspection } : {}),
+      };
+    });
+    await pending.draft?.publish();
+    return snapshot;
+  } catch (cause) {
+    try { await pending.draft?.discard(); } catch { /* Cleanup не маскирует primary cause. */ }
+    throw cause;
+  }
 }
+
 export async function pre(root = Deno.cwd()): Promise<void> {
   const state = statePath(root);
   await safePath(root, state);
   await Deno.mkdir(dirname(state), { recursive: true });
   await remove(state);
-  const ws = await workspace(root);
+  const ws = await progress("Планирование корня", root, () => workspace(root));
   releaseQualification(ws.config, root);
   const audience = validateAudience(
     root,
@@ -262,7 +276,7 @@ export async function pre(root = Deno.cwd()): Promise<void> {
   );
   if (Deno.env.get("QUARTO_PROJECT_RENDER_ALL") !== "1") {
     if (ws.config["project-download"]) {
-      await (await module("project-download", "public.ts")).prepareDownloads(
+      await (await module("project-download", "public.ts")).resetDownloadRequests(
         root,
       );
     }
@@ -271,14 +285,6 @@ export async function pre(root = Deno.cwd()): Promise<void> {
   }
   const run = join(dirname(state), "runs", crypto.randomUUID());
   await Deno.mkdir(run, { recursive: true });
-  await validateAudienceOutputs(
-    root,
-    ws.profiles,
-    ws.output,
-    ws.config.course?.view,
-    nativeCore(ws.config) ? projection(ws.config) : undefined,
-    audience,
-  );
   const publicationBase = ws.config.website?.["site-url"] ||
     ws.config["course-navigation"]?.["course-url"];
   if (ws.config["project-download"]?.["course-model"] && !publicationBase) {
@@ -291,7 +297,9 @@ export async function pre(root = Deno.cwd()): Promise<void> {
   const inspected = [];
   // Validate all selected destinations before deleting any output.
   for (const project of ws.projects) {
-    const plan = await inspectDocuments(project.path, ws.profiles);
+    const plan = await progress("Планирование компонента", project.path, () =>
+      inspectProject(project.path, ws.profiles)
+    );
     const config = plan.config;
     releaseQualification(config, project.path);
     if (config["project-download"]?.["course-model"] && !publicationBase) {
@@ -320,10 +328,9 @@ export async function pre(root = Deno.cwd()): Promise<void> {
       project.path,
       config.project["output-dir"],
     );
-    await validateAudienceOutputs(
+    validateAudience(
       project.path,
       ws.profiles,
-      output,
       config.course?.view,
       nativeCore(config) ? projection(config) : undefined,
       nativeCore(config) ? audience : undefined,
@@ -368,27 +375,20 @@ export async function pre(root = Deno.cwd()): Promise<void> {
     ...inspected.flatMap(({ plan }) => plan.resources || []),
   ]);
   if (ws.config["project-download"]) {
-    await (await module("project-download", "public.ts")).prepareDownloads(
+    await (await module("project-download", "public.ts")).resetDownloadRequests(
       root,
     );
   }
   const records = [];
   for (const { project, config, output, plan } of inspected) {
     await cleanOutput(project.path, output, plan.resources);
-    const calls = plan.renderTo === null
-      ? plan.documents.map(
-        (document) => ["render", document.source, "--to", document.format],
-      )
-      : [["render", ".", ...(plan.renderTo ? ["--to", plan.renderTo] : [])]];
-    const collected: Awaited<ReturnType<typeof readCollection>>[] = [];
-    const capture = async (index: number, token?: string) => {
-      const collection = join(run, `${project.id}-${index}.json`);
-      await quarto(
-        [...calls[index], ...profileArguments(ws.profiles)],
+    const collection = join(run, `${project.id}-0.json`);
+    await progress("Рендер", project.path, () =>
+      quarto(
+        ["render", ".", ...profileArguments(ws.profiles)],
         project.path,
         {
           COURSE_SITE_COLLECTION: collection,
-          ...(token ? { COURSE_CORE_CAPTURE_TOKEN: token } : {}),
           COURSE_SITE_PROJECT: project.id,
           COURSE_SITE_DEFER_DOWNLOADS: "1",
           ...(publicationBase
@@ -401,75 +401,25 @@ export async function pre(root = Deno.cwd()): Promise<void> {
             : {}),
         },
         true,
-      );
-      collected.push(
-        await readCollection(
-          collection,
-          project.id,
-          project.path,
-          output,
-          ws.profiles,
-          true,
-        ),
-      );
-    };
-    if (nativeCore(config) && calls.length > 1) {
-      const Core = await module("course-core", "public.ts", project.path);
-      await Core.withNativeCaptureScope(
-        {
-          root: project.path,
-          projection: projection(config),
-          outputDirectory: output,
-        },
-        { expectedSources: plan.documents.map((d: any) => d.source) },
-        async (scope: any) => {
-          for (let index = 0; index < calls.length; index++) {
-            await scope.captureInputs(
-              [plan.documents[index].source],
-              async (token: string) => await capture(index, token),
-            );
-          }
-        },
-      );
-    } else {for (let index = 0; index < calls.length; index++) {
-        await capture(index);
-      }}
+      ));
+    const collected = await readCollection(
+      collection,
+      project.id,
+      project.path,
+      output,
+      ws.profiles,
+      true,
+    );
     const record = {
       id: project.id,
       projectRoot: project.path,
       outputDir: output,
-      profiles: collected[0].profiles,
-      nativeOutputs: [
-        ...new Set(collected.flatMap((record) => record.nativeOutputs)),
-      ],
-      files: [...new Set(collected.flatMap((record) => record.files))],
-      expectedDocuments: plan.documents.map((d: any) => ({
-        source: d.source,
-        format: d.baseFormat,
-      })),
+      profiles: collected.profiles,
+      nativeOutputs: collected.nativeOutputs,
+      files: collected.files,
+      selectedSources: plan.selectedSources,
     };
-    if (
-      collected.some((value) =>
-        JSON.stringify(value.profiles) !== JSON.stringify(record.profiles)
-      )
-    ) {
-      throw diagnostic(
-        "SITE.COLLECTION_INVALID",
-        "Профили текущих рендеров документов не согласованы",
-        {
-          source: project.path,
-          id: project.id,
-          field: "profiles",
-          hint: "Используйте одинаковые профили документов компонента.",
-        },
-      );
-    }
-    records.push({
-      project,
-      config,
-      record,
-      documents: plan.documents,
-    });
+    records.push({ project, config, record });
   }
   await Deno.writeTextFile(state, JSON.stringify({ ws, records, run }));
   await coreHook(root, ws.config, "pre");
@@ -544,9 +494,9 @@ export async function post(root = Deno.cwd()): Promise<void> {
   if (rootFiles.includes(rootSearch)) {
     searchIndexes.push({ path: rootSearch, mount: "" });
   }
-  const nativeOperations: any[] = [];
+  const nativeOperations: (NonNullable<Awaited<ReturnType<typeof finalizeDownloads>>> & { project: string })[] = [];
   const members = [];
-  for (const { project, config, record, documents } of records) {
+  for (const { project, config, record } of records) {
     const mount = join(ws.output, project.mount);
     if (rootFiles.some((path: string) => inside(mount, path))) {
       throw diagnostic(
@@ -578,7 +528,9 @@ export async function post(root = Deno.cwd()): Promise<void> {
     if (config["reference-catalog"]) {
       members.push({
         namespace: config["reference-catalog"].namespace,
-        format: documents?.some((document: any) => document.web)
+        format: record.nativeOutputs.some((path: string) =>
+            path.endsWith(".html")
+          )
           ? "html"
           : "nonweb",
       });
@@ -613,8 +565,8 @@ export async function post(root = Deno.cwd()): Promise<void> {
       title: ws.config.website?.title || "Курс",
       members: [
         { id: "root", mount: "", title: ws.config.website?.title || "Курс" },
-        ...records.filter(({ documents }: any) =>
-          documents.some((document: any) => document.web)
+        ...records.filter(({ record }: any) =>
+          record.nativeOutputs.some((path: string) => path.endsWith(".html"))
         ).map(({ project, config }: any) => ({
           id: project.id,
           mount: project.mount,
@@ -660,6 +612,7 @@ export async function post(root = Deno.cwd()): Promise<void> {
       outputDir: ws.output,
       profiles: ws.profiles,
       nativeOutputs: rootOutputs,
+      selectedSources: ws.selectedSources,
     },
     baseUrl,
     referenceCatalog,

@@ -1,7 +1,5 @@
 import { withAssignmentExecution } from "./runtime/assignment-execution.ts";
 /** Existing capture scope: реальная owner operation и explicit assignment intent. */
-import { assertAssignmentRuntime } from "./runtime/assignment-admission.ts";
-import { assertSources } from "./runtime/source-snapshot.ts";
 import { prepareAssignment } from "./runtime/assignment-admission.ts";
 import type { AssignmentPreparation } from "./runtime/assignment-admission.ts";
 import type {
@@ -30,14 +28,6 @@ export async function withNativeCaptureScope<T>(
           prepared,
           fixedReservation,
           use,
-        );
-      },
-      async () => {
-        await assertSources(prepared.source, [], false);
-        await assertAssignmentRuntime(
-          prepared.runtime,
-          prepared.source.root,
-          prepared,
         );
       },
     );

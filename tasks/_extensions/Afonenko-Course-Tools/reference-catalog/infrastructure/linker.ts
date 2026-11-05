@@ -1,4 +1,3 @@
-import { canonicalizeMetadata } from "./metadata.ts";
 import {createMetrics as __createMetrics} from "../observability/bridge.ts";
 const __metrics=__createMetrics("reference-catalog");
 import { diagnostic } from "../diagnostics.ts";
@@ -105,7 +104,7 @@ export function linkPages(pages: Page[], navigationScript: string, imports: Targ
       }
       edits.push({ start: body.startOffset, end: body.startOffset, value: `<script data-qrc-navigation>${navigationScript}</script>\n` });
     }
-    result.set(page.path, canonicalizeMetadata(replace(page.html, edits)));
+    result.set(page.path, replace(page.html, edits));
   }
   return { pages: result, parsedPages: new Map(pages.map(page => [page.path, page])), targets, links, deferred };
 }

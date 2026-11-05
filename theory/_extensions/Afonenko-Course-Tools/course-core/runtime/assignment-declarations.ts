@@ -101,7 +101,6 @@ function paginationOutput(row: any, link: any, context?: PresentationContext) {
 export function assertAssignmentDeclarations(
   rows: unknown,
   input: string,
-  known: ReadonlySet<string>,
   presentation?: PresentationContext,
 ) {
   const invalid = (s: string): never =>
@@ -115,13 +114,14 @@ export function assertAssignmentDeclarations(
     }
     const name = v as string;
     if (/^(?:[a-z][a-z0-9+.-]*:|\/\/)/i.test(name)) {
-      invalid("Внешний declared resource вне frozen inputs");
+      invalid("Внешний declared resource");
     }
     const absolute = resolve(dirname(input), name);
     if (
-      !known.has(absolute) && !presentation?.nativeImplementation?.(absolute)
+      (!presentation || !absolute.startsWith(presentation.root + "/")) &&
+      !presentation?.nativeImplementation?.(absolute)
     ) {
-      invalid("Неизвестный declared data/resource " + name);
+      invalid("Declared data/resource вне владельца " + name);
     }
   };
   for (const row of rows as any[]) {
@@ -140,10 +140,9 @@ export function assertAssignmentDeclarations(
           invalid("Повреждённый HTML dependency " + field);
         }
         for (const file of c[field] ?? []) {
-          // Не добавляет path в S/K и не разрешает CSS как AST/resource payload.
+          // Служебный CSS не разрешается как содержимое AST/resource.
           if (
             field === "stylesheets" && typeof file?.path === "string" &&
-            !known.has(resolve(dirname(input), file.path)) &&
             presentationStylesheet(row, file, presentation)
           ) continue;
           path(file?.path);

@@ -63,7 +63,10 @@ return {{Pandoc=function(doc)
   end})
   for _ in pairs(decisions) do fail('Неиспользованный Download result') end
  end
- local directory=root..'/_generated/project-download/requests';pandoc.system.make_directory(directory,true)
- local file=assert(io.open(directory..'/'..pandoc.utils.sha1(context.source)..'.json','w'));file:write(pandoc.json.encode(request));file:close()
+ local source=context.source
+ if type(source)~='string' or source=='' or source:find('\\',1,true) or source:match('^/') or source:match('^%a:') or source:find('//',1,true) or source:match('/$') then fail('Неканонический source заявки') end
+ for part in source:gmatch('[^/]+') do if part=='.' or part=='..' then fail('Source заявки выходит из проекта') end end
+ local directory=root..'/_generated/project-download/requests/'..source;pandoc.system.make_directory(directory,true)
+ local file=assert(io.open(directory..'/request.json','w'));file:write(pandoc.json.encode(request));file:close()
  return doc
 end}}

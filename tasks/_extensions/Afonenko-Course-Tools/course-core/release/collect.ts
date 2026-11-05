@@ -1,6 +1,7 @@
 import type { AnswerFacts } from "../document/answer-contracts.ts";
 import { fail } from "../contracts/project.ts";
 import { decode } from "../document/contracts.ts";
+import { visibleTitle } from "../document/title.ts";
 import type {
   DocumentContext,
   ExerciseDeclaration,
@@ -10,16 +11,6 @@ import type { NativeReleaseFacts } from "./contracts.ts";
 type Node = { t?: string; c?: unknown };
 const obj = (v: unknown): v is Record<string, unknown> =>
   !!v && typeof v === "object" && !Array.isArray(v);
-function text(v: unknown): string {
-  if (typeof v === "string") return v;
-  if (Array.isArray(v)) return v.map(text).join("");
-  if (obj(v)) {
-    if (v.t === "Str") return String(v.c);
-    if (v.t === "Space" || v.t === "SoftBreak") return " ";
-    return text(v.c);
-  }
-  return "";
-}
 export function nativeMetadata(v: unknown): unknown {
   if (!obj(v)) return v;
   switch (v.t) {
@@ -36,7 +27,7 @@ export function nativeMetadata(v: unknown): unknown {
       return v.c;
     case "MetaInlines":
     case "MetaBlocks":
-      return text(v.c);
+      return visibleTitle(v.c);
     default:
       return v;
   }
@@ -55,7 +46,7 @@ function adapterMetadata(v: unknown): unknown {
     v.t === "MetaString" && typeof v.c === "string"
   ) return v.c;
   if ((v.t === "MetaInlines" || v.t === "MetaBlocks") && Array.isArray(v.c)) {
-    return text(v.c);
+    return visibleTitle(v.c);
   }
   fail("CORE.ADAPTER_METADATA", "Неподдержанная native metadata форма");
 }
@@ -110,7 +101,7 @@ export function collectReleaseFacts(
             ? {
               head: {
                 level: (first.c as unknown[])[0] as number,
-                title: text((first.c as unknown[])[2]).trim(),
+                title: visibleTitle((first.c as unknown[])[2]).trim(),
               },
             }
             : {};
@@ -176,12 +167,12 @@ export function collectReleaseFacts(
         "theory-time требует положительное число минут",
       );
     }
-    let title = text(ast.meta.title);
+    let title = visibleTitle(ast.meta.title).trim();
     let id = typeof config.id === "string" ? config.id : "";
     visit(ast.blocks, (n) => {
       if (n.t === "Header") {
         const c = n.c as unknown[];
-        if (!title) title = text(c[2]);
+        if (!title) title = visibleTitle(c[2]).trim();
         if (!id) id = (c[1] as [string])[0];
       }
     });

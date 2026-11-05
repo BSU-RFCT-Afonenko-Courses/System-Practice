@@ -28,5 +28,7 @@ jobs:
       - name: Проверить учебные материалы и файловые договоры
         run: |
           python3 -m unittest discover -s tests -p 'test_*.py' -v
+      - name: Проверить пути установленного Core на семи проектах
+        run: quarto run tests/project-paths.ts
       - name: Собрать student
         run: timeout --signal=TERM --kill-after=5s 2700s quarto render --profile student --fail-if-warnings

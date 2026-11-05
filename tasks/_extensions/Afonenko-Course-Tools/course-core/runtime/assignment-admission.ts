@@ -1,7 +1,5 @@
 import { basename, dirname, join, relative, resolve } from "stdlib/path";
 import { fail } from "../contracts/project.ts";
-import { assertSources, signature, snapshot } from "./source-snapshot.ts";
-import type { SourceSnapshotState } from "./source-snapshot.ts";
 import type { NativeCaptureReservation } from "./contracts.ts";
 import type { NativeOwnerInspection } from "./operation.ts";
 export type AssignmentIntent = { source: string; id: string }[];
@@ -22,20 +20,18 @@ export type AssignmentRuntimeWitness = {
   profiles: string[];
   outputDirectory: string;
   inputs: string[];
-  implementationFiles: { path: string; signature: string }[];
 };
 export type AssignmentAdmission = {
-  source: SourceSnapshotState;
+  source: {
+    root: string;
+    outputDirectory: string;
+    ownerInputs?: readonly string[];
+  };
   operation: string;
   owner: NativeOwnerInspection;
   inputs: string[];
   assessments: AssignmentIntent;
   runtime: AssignmentRuntimeWitness;
-  invocation: string;
-  runtimeHashReads: number;
-  runtimeHashBytes: number;
-  runtimePathReads: number;
-  runtimeDirectoryReads: number;
   inspectCalls: number;
 };
 const admitted = new WeakSet<object>();
@@ -75,52 +71,6 @@ export function nativeAssignmentOwner(
   ) invalid("Native capture/owner/operation binding отличается");
   return root;
 }
-/** Только уже наблюдённые rows: без discovery/IO; несовпадение необратимо проваливает seal. */
-export function mergeAssignmentImplementationFiles(
-  previous: readonly Readonly<{ path: string; signature: string }>[],
-  observed: readonly Readonly<{ path: string; signature: string }>[],
-): { path: string; signature: string }[] {
-  const rows = new Map<string, { path: string; signature: string }>();
-  for (const row of [...previous, ...observed]) {
-    const known = rows.get(row.path);
-    if (known && known.signature !== row.signature) {
-      fail(
-        "BODY.PRODUCER_INPUT_CHANGED",
-        "Child native implementation dependency изменена " + row.path,
-      );
-    }
-    if (!known) rows.set(row.path, { ...row });
-  }
-  return [...rows.values()];
-}
-export async function assertAssignmentRuntime(
-  witness: AssignmentRuntimeWitness,
-  root: string,
-  metrics?: { runtimePathReads: number; runtimeDirectoryReads: number },
-  full = false,
-) {
-  if (
-    !witness.outputDirectory.startsWith(root + "/_generated/") ||
-    !witness.profiles.includes("full")
-  ) {
-    invalid("Чужая assignment runtime binding");
-  }
-  if (!full) return;
-  for (const row of witness.implementationFiles) {
-    if (metrics) metrics.runtimePathReads++;
-    const info = await Deno.lstat(row.path);
-    if (
-      !info.isFile || info.isSymlink ||
-      await Deno.realPath(row.path) !== row.path ||
-      signature(info) !== row.signature
-    ) {
-      fail(
-        "BODY.PRODUCER_INPUT_CHANGED",
-        "Изменена наблюдённая native implementation dependency " + row.path,
-      );
-    }
-  }
-}
 export function consumeAssignmentAdmission(value: AssignmentAdmission) {
   if (!admitted.delete(value)) {
     fail("OPERATION_BINDING", "Чужая/повторная assignment preparation");
@@ -157,27 +107,34 @@ export async function prepareAssignment(
     !reservation.outputDirectory.startsWith(reservation.root + "/_generated/")
   ) invalid("Assignment требует canonical owner, author и служебный output");
   const profiles = [...requested, "full"];
-  const source: SourceSnapshotState = {
+  const source = {
     root: reservation.root,
     outputDirectory: reservation.outputDirectory,
-    rows: [],
-    memberships: {},
-    relevantInputs: [],
-    metrics: {
-      fullWalks: 0,
-      sourceDirectoryReads: 0,
-      sourceHashReads: 0,
-      sourceHashBytes: 0,
-      fullSourceFences: 0,
-      localSourceFences: 0,
-    },
+    ownerInputs: [] as string[],
   };
-  const { nativeRuntimeIdentity, inspectNativeOwner } = await import(
-    "./operation.ts"
-  );
-  const metrics = { runtimeHashReads: 0, runtimeHashBytes: 0 };
-  const invocation = await nativeRuntimeIdentity(source.root, true, metrics);
-  const executable = JSON.parse(invocation).physical as string;
+  const { inspectNativeOwner } = await import("./operation.ts");
+  const { quartoExecutable } = await import("../infrastructure/process.ts");
+  const requestedExecutable = quartoExecutable();
+  const candidates = /[\\/]/.test(requestedExecutable)
+    ? [resolve(source.root, requestedExecutable)]
+    : (Deno.env.get("PATH") ?? "").split(
+      Deno.build.os === "windows" ? ";" : ":",
+    )
+      .map((directory) =>
+        resolve(source.root, directory || ".", requestedExecutable)
+      );
+  let executable: string | undefined;
+  for (const candidate of candidates) {
+    try {
+      if ((await Deno.stat(candidate)).isFile) {
+        executable = await Deno.realPath(candidate);
+        break;
+      }
+    } catch (error) {
+      if (!(error instanceof Deno.errors.NotFound)) throw error;
+    }
+  }
+  if (!executable) invalid("Quarto executable не найден");
   const environment = { ...Deno.env.toObject() };
   // Quarto child создаёт собственный project/script transport; host CLI не переносит его.
   for (const key of Object.keys(environment)) {
@@ -193,16 +150,24 @@ export async function prepareAssignment(
     DENO_NO_PACKAGE_JSON: "1",
   });
   delete environment.COURSE_CORE_CAPTURE_TOKEN;
-  await snapshot(source);
   const owner = await inspectNativeOwner(
     source.root,
     profiles,
     executable,
     environment,
   );
-  await assertSources(source);
-  if (await nativeRuntimeIdentity(source.root, true, metrics) !== invocation) {
-    fail("OPERATION_CHANGED", "Runtime изменён во время preparation");
+  source.ownerInputs = owner.files.input.map((path) =>
+    relative(source.root, resolve(source.root, path))
+  );
+  if (
+    !source.ownerInputs.length ||
+    new Set(source.ownerInputs).size !== source.ownerInputs.length ||
+    source.ownerInputs.some((path) =>
+      !path || path.startsWith("/") || /[\\\0]/.test(path) ||
+      path.split("/").some((part) => !part || part === "." || part === "..")
+    )
+  ) {
+    invalid("Некорректный native owner input scope");
   }
   if (
     owner.config?.["course-core-runtime"] !== "native-ts" ||
@@ -234,17 +199,12 @@ export async function prepareAssignment(
       !/^[a-z][a-z0-9-]*$/.test(p.id)
     )
   ) invalid("Неверный assignment intent");
-  await assertSources(source);
   const result: AssignmentAdmission = {
     source,
     operation: crypto.randomUUID(),
     owner,
     inputs: [...selection.expectedSources],
     assessments: selection.assessments.map((p) => ({ ...p })),
-    invocation,
-    ...metrics,
-    runtimePathReads: 0,
-    runtimeDirectoryReads: 0,
     inspectCalls: 1,
     runtime: {
       executable,
@@ -252,7 +212,6 @@ export async function prepareAssignment(
       profiles,
       outputDirectory: reservation.outputDirectory,
       inputs: [...selection.expectedSources],
-      implementationFiles: [],
     },
   };
   admitted.add(result);

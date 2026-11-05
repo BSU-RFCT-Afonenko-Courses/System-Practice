@@ -8,6 +8,7 @@ const guards = new WeakMap<
     resource?: (
       source: string,
       target: string,
+      assertIdentity?: (identity: string) => void,
     ) => Promise<Uint8Array | undefined>;
   }
 >();
@@ -18,6 +19,7 @@ export function bindNativeValue(
   resource?: (
     source: string,
     target: string,
+    assertIdentity?: (identity: string) => void,
   ) => Promise<Uint8Array | undefined>,
 ) {
   guards.set(value, { root, assert, resource });
@@ -49,8 +51,13 @@ export async function readNativeResource(
   root: string,
   source: string,
   target: string,
+  assertIdentity?: (identity: string) => void,
 ) {
   await assertNativeValue(value, root);
-  const bytes = await guards.get(value)!.resource?.(source, target);
+  const bytes = await guards.get(value)!.resource?.(
+    source,
+    target,
+    assertIdentity,
+  );
   return bytes ? new Uint8Array(bytes) : undefined;
 }

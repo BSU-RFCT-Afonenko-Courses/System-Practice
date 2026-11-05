@@ -171,9 +171,7 @@ export type NativeAdapterValidator = {
     input: NativeAdapterValidationInput,
   ) => NativeAdapterValidationResult | Promise<NativeAdapterValidationResult>;
 };
-export const NativeReleaseProofSchema = z.strictObject({
-  schema: z.literal("course-native-release-proof-v1"),
-  operation: z.uuid(),
+export const NativeReleaseValidationSchema = z.strictObject({
   course: CourseIdentitySchema,
   projection: z.enum(["student", "author"]),
   profiles: z.array(z.string()),
@@ -187,4 +185,6 @@ export const NativeReleaseProofSchema = z.strictObject({
   assessmentIds: z.array(z.string()),
   validatedAdapters: z.array(z.string()),
 });
-export type NativeReleaseProof = z.output<typeof NativeReleaseProofSchema>;
+export type NativeReleaseValidation = z.output<
+  typeof NativeReleaseValidationSchema
+>;

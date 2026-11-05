@@ -110,34 +110,18 @@ export type MaterializationBindings = z.input<
 >;
 export const ArtifactFileSchema = z.strictObject({
   target: ArtifactTargetSchema,
-  // Exact unchanged raw copy only; data, never a source-reading capability.
-  rawSource: ArtifactTargetSchema.optional(),
-  sha256: z.string().regex(/^[a-f0-9]{64}$/),
-  size: z.number().int().nonnegative().max(128 * 1024 * 1024),
   audience: z.enum(["student", "full"]),
   reason: z.string().min(1).max(1024),
   bytes: z.instanceof(Uint8Array).refine((v) =>
     v.byteLength <= 128 * 1024 * 1024
   ),
-}).superRefine((file, ctx) => {
-  if (file.rawSource === undefined) return;
-  const policy = artifactTargetIssue(file.rawSource, file.audience);
-  if (policy) {
-    ctx.addIssue({
-      code: "custom",
-      path: ["rawSource"],
-      message: policy.code + ": " + policy.message,
-    });
-  }
 });
-export const ArtifactInventoryDataSchema = z.strictObject({
-  schema: z.literal("course-artifact-inventory-v1"),
-  operation: z.uuid(),
+export const ArtifactFilesDataSchema = z.strictObject({
   exerciseId: z.string().min(1),
   audience: z.enum(["student", "full"]),
   files: z.array(ArtifactFileSchema).min(1).max(4096),
 });
-export const ArtifactInventorySchema = ArtifactInventoryDataSchema.superRefine(
+export const ArtifactFilesSchema = ArtifactFilesDataSchema.superRefine(
   (inventory, ctx) => {
     const targets = new Set<string>();
     inventory.files.forEach((file, index) => {
@@ -180,13 +164,12 @@ export const ArtifactInventorySchema = ArtifactInventoryDataSchema.superRefine(
     });
   },
 );
-export type ArtifactInventory = z.output<typeof ArtifactInventorySchema>;
+export type ArtifactFiles = z.output<typeof ArtifactFilesSchema>;
 export type ArtifactFile = z.output<typeof ArtifactFileSchema>;
 
 export const ProjectPlanMetricsSchema = z.strictObject({
   treeWalks: z.number().int().nonnegative(),
   fileReads: z.number().int().nonnegative(),
-  hashReads: z.number().int().nonnegative(),
   pandocCalls: z.number().int().nonnegative(),
   cacheHits: z.number().int().nonnegative(),
 });
@@ -199,7 +182,6 @@ export const ArtifactDestinationSchema = z.string().min(1).max(4096).refine(
 export const ArtifactWriteResultSchema = z.strictObject({
   files: z.number().int().nonnegative(),
   bytes: z.number().int().nonnegative(),
-  hashReads: z.number().int().nonnegative(),
 });
 export type ArtifactWriteResult = z.output<typeof ArtifactWriteResultSchema>;
 

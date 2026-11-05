@@ -44,11 +44,19 @@ const work = z.strictObject({
     c.addIssue({code: "custom", message: "Некорректный work key или повторная позиция/кандидат"});
   }
 });
+export const BodyResourceSchema = z.strictObject({
+  owner,
+  source: z.string().min(1),
+  effectiveBase: z.string().min(1),
+  target: z.string().min(1),
+  data: z.string(),
+  visibility: z.literal("public"),
+});
 export const BodyPackageSchema = z.strictObject({
   schema: z.literal("course-body-package-v2"), owner, release: z.string().min(1),
   apiVersion: z.array(z.number().int().nonnegative()).min(1),
   questions: z.array(BodyQuestionSchema).min(1), works: z.array(work).min(1),
-  resources: z.array(z.any()),
+  resources: z.array(BodyResourceSchema),
 }).superRefine((p, c) => {
   const issue = (message: string, path: (string | number)[] = []) => c.addIssue({code: "custom", message, path});
   const questions = new Map(p.questions.map((q) => [q.key, q]));
@@ -74,5 +82,6 @@ export const BodyPackageSchema = z.strictObject({
   }
   for (const [i, q] of p.questions.entries()) if (!used.has(q.key)) issue("Неиспользованный вопрос", ["questions", i]);
 });
+export type BodyResource = z.output<typeof BodyResourceSchema>;
 export type BodyQuestion = z.output<typeof BodyQuestionSchema>;
 export type BodyPackage = z.output<typeof BodyPackageSchema>;

@@ -1,10 +1,10 @@
-import { dirname, fromFileUrl, join, toFileUrl } from "stdlib/path";
+import { sibling } from "../infrastructure/siblings.ts";
 import { diagnostic } from "../diagnostics.ts";
 import { zip } from "../domain/zip.ts";
 
 /**
- * Один ZIP из публичного inventory Core без чтения проекта и изменения README.
- * Currentness и финальный source fence принадлежат вызывающей композиции Core.
+ * Один ZIP из функционального набора файлов Core без чтения проекта и изменения README.
+ * Размеры и CRC вычисляются по переданным bytes.
  */
 export async function packageArtifact(value: unknown): Promise<Uint8Array> {
   let supplied;
@@ -13,41 +13,36 @@ export async function packageArtifact(value: unknown): Promise<Uint8Array> {
     supplied = structuredClone(value);
   } catch (cause) {
     throw diagnostic(
-      "DOWNLOAD.INVENTORY_INVALID",
-      "Inventory нельзя зафиксировать",
-      { field: "inventory" },
+      "DOWNLOAD.FILES_INVALID",
+      "Невозможно получить собственную копию файлов",
+      { field: "artifact" },
       cause,
     );
   }
-  const extension = dirname(dirname(fromFileUrl(import.meta.url)));
-  const core = await import(
-    toFileUrl(join(dirname(extension), "course-core/public.ts")).href
-  );
-  let inventory;
+  const core = await sibling("course-core");
+  let artifact;
   try {
-    inventory = core.ArtifactInventorySchema.parse(supplied);
+    artifact = core.ArtifactFilesSchema.parse(supplied);
   } catch (cause) {
     throw diagnostic(
-      "DOWNLOAD.INVENTORY_INVALID",
-      "Core inventory не соответствует публичной схеме",
-      { field: "inventory" },
+      "DOWNLOAD.FILES_INVALID",
+      "Файлы Core не соответствуют публичной схеме",
+      { field: "artifact" },
       cause,
     );
   }
-  // Все заимствованные bytes фиксируются до первого await проверки хешей.
-  const files = inventory.files.map((file: {
-    target: string;
-    bytes: Uint8Array;
-    size: number;
-    sha256: string;
-    audience: string;
-  }) => ({ ...file, bytes: new Uint8Array(file.bytes) }));
+  // Обычные bytes уже принадлежат ранней копии; shared memory отделяется ниже.
+  const files = artifact.files;
   const names = new Set<string>();
   for (const file of files) {
-    if (names.has(file.target) || file.audience !== inventory.audience) {
+    // structuredClone сохраняет общую память SAB: оставляем прежнюю позднюю ownership copy.
+    if (file.bytes.buffer instanceof SharedArrayBuffer) {
+      file.bytes = new Uint8Array(file.bytes);
+    }
+    if (names.has(file.target) || file.audience !== artifact.audience) {
       throw diagnostic(
-        "DOWNLOAD.INVENTORY_INVALID",
-        "Повторный target или чужая аудитория файла inventory",
+        "DOWNLOAD.FILES_INVALID",
+        "Повторный target или чужая аудитория файла artifact",
         { id: file.target, field: "target/audience" },
       );
     }
@@ -59,30 +54,15 @@ export async function packageArtifact(value: unknown): Promise<Uint8Array> {
       parts.pop();
       if (names.has(parts.join("/"))) {
         throw diagnostic(
-          "DOWNLOAD.INVENTORY_INVALID",
-          "Файл inventory пересекается с каталогом другого файла",
+          "DOWNLOAD.FILES_INVALID",
+          "Файл artifact пересекается с каталогом другого файла",
           { id: name, field: "target" },
         );
       }
     }
   }
-  for (const file of files) {
-    const digest = Array.from(
-      new Uint8Array(await crypto.subtle.digest("SHA-256", file.bytes)),
-      (byte) => byte.toString(16).padStart(2, "0"),
-    ).join("");
-    if (file.bytes.byteLength !== file.size || digest !== file.sha256) {
-      throw diagnostic(
-        "DOWNLOAD.INVENTORY_INVALID",
-        "Размер или SHA256 файла inventory не совпадает с байтами",
-        { id: file.target, field: "size/sha256" },
-      );
-    }
-  }
-  files.sort((a: { target: string }, b: { target: string }) =>
-    a.target < b.target ? -1 : a.target > b.target ? 1 : 0
-  );
-  return zip(files.map((file: { target: string; bytes: Uint8Array }) => ({
+  files.sort((a, b) => a.target < b.target ? -1 : a.target > b.target ? 1 : 0);
+  return zip(files.map((file) => ({
     name: file.target,
     bytes: file.bytes,
   })));

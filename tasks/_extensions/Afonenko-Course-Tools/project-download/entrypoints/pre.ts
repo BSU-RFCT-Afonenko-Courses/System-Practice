@@ -1,6 +1,6 @@
-import { prepare } from "../infrastructure/runtime.ts";
+import { resetDownloadRequests } from "../infrastructure/runtime.ts";
 try {
-  await prepare(await Deno.realPath(Deno.cwd()));
+  await resetDownloadRequests(await Deno.realPath(Deno.cwd()));
 } catch (error) {
   if (error instanceof Error && ["ExtensionDiagnostic", "ExternalToolFailure"].includes(error.name)) {
     console.error(error.message);

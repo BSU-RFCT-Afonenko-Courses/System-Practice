@@ -12,7 +12,6 @@ local function __perfFilters(filters)
  return filters
 end
 local diagnostics = require("./diagnostics")
-local attributes = require("./attributes")
 local targets = require("./targets")
 local constants = require("./constants")
 local function finish(doc)
@@ -32,12 +31,12 @@ local function finish(doc)
       local attrs = {["data-qrc-id"]=id, ["data-qrc-style"]=style}
       local title = targets.heading_title(id)
       if style == "default" and title and title ~= "" then attrs["data-qrc-title"] = title end
-      rows:insert(pandoc.Div({pandoc.Para({ref})}, pandoc.Attr("", {"qrc-probe"}, attributes.sorted(attrs))))
+      rows:insert(pandoc.Div({pandoc.Para({ref})}, pandoc.Attr("", {"qrc-probe"}, attrs)))
     end
   end
   doc.blocks:insert(pandoc.Div(rows, pandoc.Attr("", {"qrc-probes"},
-    attributes.sorted({["hidden"]="", ["aria-hidden"]="true", ["data-qrc-namespace"]=ns,
-     ["data-qrc-source"]=quarto.doc.input_file}))))
+    {["hidden"]="", ["aria-hidden"]="true", ["data-qrc-namespace"]=ns,
+     ["data-qrc-source"]=quarto.doc.input_file})))
   return doc
 end
 return __perfFilters({
