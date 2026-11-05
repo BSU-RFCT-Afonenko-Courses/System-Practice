@@ -6,7 +6,7 @@ project-materialization:
       - source: /materials/project-maintenance-start.zip
         target: student/project-maintenance-start.zip
         audience: student
-exercise-defaults: {project-check: false}
+default-exercise-project-check: false
 ---
 
 # Сопровождение проекта {#sec-project-maintenance-task}

@@ -17,7 +17,7 @@ project-materialization:
       - source: /common/work-environment/count.ps1
         target: student/survey/tools/count.ps1
         audience: student
-exercise-defaults: {project-check: false}
+default-exercise-project-check: false
 assessment:
   id: sec-lab-work-environment
   kind: lab

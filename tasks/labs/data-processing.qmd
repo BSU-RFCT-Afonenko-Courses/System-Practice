@@ -3,7 +3,7 @@ project-materialization:
   projects:
     exr-data-processing-two-result-pipeline:
       common-files: []
-exercise-defaults: {project-check: false}
+default-exercise-project-check: false
 assessment:
   id: sec-lab-data-processing
   kind: lab
