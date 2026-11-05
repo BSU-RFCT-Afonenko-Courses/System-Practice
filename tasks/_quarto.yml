@@ -30,6 +30,7 @@ project:
 format:
   html:
     theme: cosmo
+    number-sections: false
     include-in-header: ../includes/book-tables.html
     toc: true
     code-copy: true
