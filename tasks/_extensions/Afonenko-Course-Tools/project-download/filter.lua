@@ -70,7 +70,7 @@ end},{Pandoc=function(doc)
    local span=block.content[1]
    if not isRequest(span) or span.attributes[inCallout]=='true' then return end
    local link=replace(span)
-   return quarto.Callout({type='none',appearance='minimal',content={pandoc.Para({pandoc.Str('⤓'),pandoc.Space(),link})}}),false
+   return quarto.Callout({type='none',appearance='minimal',attr=pandoc.Attr('',{'project-download'}),content={pandoc.Para({pandoc.Str('⤓'),pandoc.Space(),link})}}),false
   end
   -- Topdown сохраняет inline и даёт обрамить только отдельный Para/Plain carrier.
   doc=walk(doc,{traverse='topdown',Para=standalone,Plain=standalone,Span=replace})

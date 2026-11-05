@@ -68,8 +68,11 @@ function partition(value: any, banks: Node[], solutions: Node[]): any {
   }
   if (!value || typeof value !== "object") return value;
   if (quartoMarkdownEnvelope(value)) return omitted;
-  // Contextual Download links depend on the rendered page/audience. A full ZIP
-  // must never become a public question resource, even when it exists on disk.
+  // Контекстный Download зависит от страницы/audience. Full ZIP не становится
+  // публичным ресурсом вопроса, даже если файл существует на диске.
+  if (value.t === "Div" && classes(value).includes("project-download")) {
+    return omitted;
+  }
   if (
     value.t === "Link" &&
     classes(value).some((role: string) =>

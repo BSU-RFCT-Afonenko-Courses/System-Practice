@@ -4,7 +4,7 @@
     "core": {
       "repository": "Afonenko-Course-Tools/quarto-course",
       "checkout": "quarto-course",
-      "commit": "90b353369cda808f7dd7e7602c9d70d9246663e6",
+      "commit": "c950a962a76a26dc61378fdc16bb80533800596e",
       "packages": {
         "course-core": [
           ".",
@@ -32,7 +32,7 @@
         ]
       },
       "version": "9.3.4",
-      "sourceZip": "https://github.com/Afonenko-Course-Tools/quarto-course/archive/90b353369cda808f7dd7e7602c9d70d9246663e6.zip"
+      "sourceZip": "https://github.com/Afonenko-Course-Tools/quarto-course/archive/c950a962a76a26dc61378fdc16bb80533800596e.zip"
     },
     "site": {
       "repository": "Afonenko-Course-Tools/quarto-project-publish",
@@ -78,14 +78,14 @@
     "download": {
       "repository": "Afonenko-Course-Tools/quarto-project-download",
       "checkout": "quarto-project-download",
-      "commit": "fb20f661dee1be63ed229a32522fae30a658f292",
+      "commit": "9e9a55c483d2b547f047a64fdebc5a5b3f379380",
       "packages": {
         "project-download": [
           "tasks"
         ]
       },
       "version": "3.5.0",
-      "sourceZip": "https://github.com/Afonenko-Course-Tools/quarto-project-download/archive/fb20f661dee1be63ed229a32522fae30a658f292.zip"
+      "sourceZip": "https://github.com/Afonenko-Course-Tools/quarto-project-download/archive/9e9a55c483d2b547f047a64fdebc5a5b3f379380.zip"
     }
   }
 }
