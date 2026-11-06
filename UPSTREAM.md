@@ -10,10 +10,10 @@
 отдельными штатными командами соответствующего владельца. Успешная сборка
 сайта сама по себе не подтверждает эти результаты.
 
-[CI/toolchain.json](CI/toolchain.json) и отдельные `check-production-pins.py`
-пока описывают прежний Platform release/OCI-контракт. В default CI они больше
-не вызываются. Переход этого внешнего контракта согласуется с владельцем
-Platform; собственный vendor inventory курса удалён.
+[CI/toolchain.json](CI/toolchain.json) сохраняет версии инструментов,
+Platform source/release refs, native OCI identities и адреса функциональных
+assets. Отключённая проверка `CI/check-production-pins.py` и собственные
+runner/asset proof-поля удалены. Собственный vendor inventory курса удалён.
 
 История прежних поставок доступна в Git и `docs/provider-history/`.
 Её hashes, receipts и команды `--check` относятся к прежним этапам.
