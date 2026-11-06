@@ -66,14 +66,14 @@
     "prairielearn": {
       "repository": "Afonenko-Course-Tools/quarto-course-prairielearn",
       "checkout": "quarto-course-prairielearn",
-      "commit": "324056b1218b3b69f1eb9f5a09dde510a442ad4b",
+      "commit": "087a60b00a6865dd4703d0fa6ef6378f85798f2a",
       "packages": {
         "course-prairielearn": [
           "tasks"
         ]
       },
       "version": "9.0.7",
-      "sourceZip": "https://github.com/Afonenko-Course-Tools/quarto-course-prairielearn/archive/324056b1218b3b69f1eb9f5a09dde510a442ad4b.zip"
+      "sourceZip": "https://github.com/Afonenko-Course-Tools/quarto-course-prairielearn/archive/087a60b00a6865dd4703d0fa6ef6378f85798f2a.zip"
     },
     "download": {
       "repository": "Afonenko-Course-Tools/quarto-project-download",
