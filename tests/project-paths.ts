@@ -35,6 +35,7 @@ await readProjectContexts([{
   profiles: ["student"],
   format: "html",
 }], async ([group]) => {
+  if (!group) throw Error("Не получена группа действительных проектов SP");
   for (const context of group.contexts) {
     const contract = decodeProjectContract(context);
     const paths = [
@@ -52,6 +53,7 @@ await readProjectContexts([{
     }
     if (context.input === join(owner, "projects/project-maintenance/release")) {
       const archive = contract.build.files["project-maintenance-start.zip"];
+      if (!archive) throw Error("Не объявлен стартовый архив сопровождения");
       if (
         archive.path !== join(owner, "materials/project-maintenance-start.zip")
       ) {

@@ -13,7 +13,7 @@ SOURCE = Path(__file__).resolve().parents[1] / 'tasks/projects/work-environment/
 
 
 class MaterialsTests(unittest.TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.temporary = tempfile.TemporaryDirectory(prefix='system-materials-')
         self.addCleanup(self.temporary.cleanup)
         self.root = Path(self.temporary.name)
@@ -25,7 +25,7 @@ class MaterialsTests(unittest.TestCase):
         for script in ['count.fish', 'count.ps1']:
             shutil.copyfile(SOURCE.parents[2] / 'common/work-environment' / script, common / script)
 
-    def test_zip_contains_author_data(self):
+    def test_zip_contains_author_data(self) -> None:
         build(self.root)
         paths = [self.root / 'practice/materials/work-environment-demo.zip',
                  self.root / 'tasks/materials/work-environment-start.zip']
@@ -44,7 +44,7 @@ class MaterialsTests(unittest.TestCase):
                               'survey/tools/count.fish': demo_tools['count.fish']},
                              {n: archive.read(n) for n in archive.namelist()})
 
-    def test_projects_preserve_other_archives(self):
+    def test_projects_preserve_other_archives(self) -> None:
         build(self.root)
         baseline = (self.root / 'practice/materials/work-environment-demo.zip').read_bytes()
         data = self.root / 'tasks/projects/data-processing/materials.json'

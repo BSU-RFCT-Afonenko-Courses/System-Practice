@@ -5,12 +5,13 @@ import json
 import sys
 from pathlib import Path
 from build_materials import target,atomic_write
+from system_support import read_json, json_object, json_strings
 
 
-def build(root):
+def build(root: str | Path) -> list[str]:
     root=Path(root).resolve(strict=True)
-    mapping=json.loads(target(root,'tools/public-materials.json').read_text())
-    planned=[];destinations=set()
+    mapping={name: json_strings(names) for name, names in json_object(read_json(target(root,'tools/public-materials.json'))).items()}
+    planned: list[tuple[Path, bytes]] = [];destinations: set[str] = set()
     for source,names in mapping.items():
         if not source.startswith('practice/materials/') or not source.endswith('.zip'):
             raise ValueError('Не объявлен публичный источник ZIP')
@@ -25,10 +26,14 @@ def build(root):
     return sorted(destinations)
 
 
-def main():
+class Options(argparse.Namespace):
+    root: Path
+
+
+def main() -> None:
     p=argparse.ArgumentParser(description=__doc__)
     p.add_argument('--root',type=Path,default=Path(__file__).resolve().parents[1])
-    a=p.parse_args()
+    a=p.parse_args(namespace=Options())
     print(json.dumps(build(a.root),ensure_ascii=False,indent=2))
 if __name__=='__main__':
     try:main()

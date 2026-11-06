@@ -12,12 +12,12 @@ import system_support
 
 
 class TarArchiveTests(unittest.TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.temp = tempfile.TemporaryDirectory(prefix='system-tar-reader-')
         self.addCleanup(self.temp.cleanup)
         self.path = Path(self.temp.name) / 'submission.tar.gz'
 
-    def write(self, entries):
+    def write(self, entries: list[tuple[str, bytes, bytes]]) -> None:
         with tarfile.open(self.path, 'w:gz') as archive:
             for name, data, kind in entries:
                 entry = tarfile.TarInfo(name)
@@ -28,12 +28,12 @@ class TarArchiveTests(unittest.TestCase):
                     entry.size = len(data)
                 archive.addfile(entry, io.BytesIO(data) if entry.size else None)
 
-    def read(self, **limits):
+    def read(self, **limits: int) -> system_support.Archive:
         self.assertTrue(callable(getattr(system_support, 'read_tar_gz', None)),
                         'Published tar.gz submissions need a safe data reader')
         return system_support.read_tar_gz(self.path, **limits)
 
-    def test_preserves_hidden_git_files_and_unicode_paths(self):
+    def test_preserves_hidden_git_files_and_unicode_paths(self) -> None:
         self.write([
             ('versioning/', b'', tarfile.DIRTYPE),
             ('versioning/project/.git/HEAD', b'ref: refs/heads/main\n', tarfile.REGTYPE),
@@ -49,14 +49,14 @@ class TarArchiveTests(unittest.TestCase):
         self.assertIn('versioning/project/.git/objects/ab', result.directories)
         self.assertEqual([self.path], list(Path(self.temp.name).iterdir()))
 
-    def test_rejects_traversal_absolute_paths_and_duplicate_members(self):
+    def test_rejects_traversal_absolute_paths_and_duplicate_members(self) -> None:
         for names in [('../outside',), ('/outside',), ('versioning/a', 'versioning/a')]:
             with self.subTest(names=names):
                 self.write([(name, b'data', tarfile.REGTYPE) for name in names])
                 with self.assertRaises(system_support.ArchiveError):
                     self.read()
 
-    def test_rejects_links_and_special_members(self):
+    def test_rejects_links_and_special_members(self) -> None:
         for kind in [tarfile.SYMTYPE, tarfile.LNKTYPE, tarfile.CHRTYPE,
                      tarfile.BLKTYPE, tarfile.FIFOTYPE, tarfile.GNUTYPE_SPARSE]:
             with self.subTest(kind=kind):
@@ -64,7 +64,7 @@ class TarArchiveTests(unittest.TestCase):
                 with self.assertRaises(system_support.ArchiveError):
                     self.read()
 
-    def test_file_cannot_also_be_a_parent_directory(self):
+    def test_file_cannot_also_be_a_parent_directory(self) -> None:
         for names in [('versioning/a', 'versioning/a/b'),
                       ('versioning/a/b', 'versioning/a')]:
             with self.subTest(names=names):
@@ -72,7 +72,7 @@ class TarArchiveTests(unittest.TestCase):
                 with self.assertRaises(system_support.ArchiveError):
                     self.read()
 
-    def test_member_count_and_expanded_file_bytes_are_bounded(self):
+    def test_member_count_and_expanded_file_bytes_are_bounded(self) -> None:
         self.write([('versioning/a', b'12345', tarfile.REGTYPE),
                     ('versioning/b', b'67890', tarfile.REGTYPE)])
         for limits in [{'max_entries': 1}, {'max_bytes': 9}]:
@@ -80,12 +80,12 @@ class TarArchiveTests(unittest.TestCase):
                 with self.assertRaises(system_support.ArchiveError):
                     self.read(**limits)
 
-    def test_decompressed_container_size_is_bounded_before_tar_parsing(self):
+    def test_decompressed_container_size_is_bounded_before_tar_parsing(self) -> None:
         self.path.write_bytes(gzip.compress(b'\0' * 100000))
         with self.assertRaises(system_support.ArchiveError):
             self.read(max_entries=1, max_bytes=1)
 
-    def test_corrupt_or_truncated_gzip_is_a_readable_archive_error(self):
+    def test_corrupt_or_truncated_gzip_is_a_readable_archive_error(self) -> None:
         for content in [b'not gzip', gzip.compress(b'not tar')[:-4]]:
             with self.subTest(content=content):
                 self.path.write_bytes(content)

@@ -1,12 +1,101 @@
 """Общая файловая поддержка проверок; учебные данные хранятся отдельно."""
 from dataclasses import dataclass
+from typing import Literal, NotRequired, TypeGuard, TypedDict
+from collections.abc import Mapping, Sequence
+import json
 import gzip
 import io
-from pathlib import PurePosixPath
+from pathlib import Path, PurePosixPath
 import stat
 import tarfile
 import zipfile
 import zlib
+
+
+def read_json(path: Path) -> object:
+    return json.loads(path.read_text())
+
+
+def _object_container(value: object) -> TypeGuard[Mapping[object, object]]:
+    return isinstance(value, dict)
+
+
+def _list_container(value: object) -> TypeGuard[Sequence[object]]:
+    return isinstance(value, list)
+
+
+def json_object(value: object) -> dict[str, object]:
+    if not _object_container(value):
+        raise ValueError('JSON: ожидался объект')
+    result: dict[str, object] = {}
+    for key, item in value.items():
+        if not isinstance(key, str):
+            raise ValueError('JSON: ожидался строковый ключ')
+        result[key] = item
+    return result
+
+
+def json_string(value: object) -> str:
+    if not isinstance(value, str):
+        raise ValueError('JSON: ожидалась строка')
+    return value
+
+
+def json_strings(value: object) -> list[str]:
+    if not _list_container(value):
+        raise ValueError('JSON: ожидался список строк')
+    return [json_string(item) for item in value]
+
+
+def json_texts(value: object) -> dict[str, str]:
+    return {key: json_string(item) for key, item in json_object(value).items()}
+
+
+class ProviderCandidate(TypedDict):
+    patch: str
+    status: NotRequired[str]
+    commit: NotRequired[str]
+    baseCommit: NotRequired[str]
+
+
+class Provider(TypedDict):
+    checkout: str
+    commit: str
+    packages: dict[str, list[str]]
+    candidate: NotRequired[ProviderCandidate]
+    repository: NotRequired[str]
+    version: NotRequired[str]
+    tag: NotRequired[str]
+    sourceZip: NotRequired[str]
+
+
+class ProviderManifest(TypedDict):
+    namespace: str
+    providers: dict[str, Provider]
+
+
+def read_providers(path: Path) -> ProviderManifest:
+    manifest = json_object(read_json(path))
+    providers: dict[str, Provider] = {}
+    for name, raw in json_object(manifest['providers']).items():
+        value = json_object(raw)
+        provider: Provider = {
+            'checkout': json_string(value['checkout']), 'commit': json_string(value['commit']),
+            'packages': {package: json_strings(scopes) for package, scopes in json_object(value['packages']).items()},
+        }
+        if 'candidate' in value:
+            candidate = json_object(value['candidate'])
+            provider['candidate'] = {'patch': json_string(candidate['patch'])}
+        providers[name] = provider
+    return {'namespace': json_string(manifest['namespace']), 'providers': providers}
+
+
+class CheckResult(TypedDict):
+    automated: Literal['pass', 'fail', 'manual']
+    errors: list[str]
+    manualRequired: list[str]
+    toolLimited: NotRequired[bool]
+    diagnostics: NotRequired[list[str]]
 
 
 class ArchiveError(ValueError):
@@ -18,7 +107,7 @@ class ArchiveLimit(ArchiveError):
     pass
 
 
-def safe_archive_name(name):
+def safe_archive_name(name: str) -> str:
     path = PurePosixPath(name)
     if (not name or '\0' in name or not path.parts or '\\' in name or ':' in name or path.is_absolute()
             or '..' in path.parts or name.rstrip('/') != path.as_posix()):
@@ -32,9 +121,11 @@ class Archive:
     directories: set[str]
 
 
-def read_zip(path, max_entries=1000, max_bytes=8 * 1024 * 1024):
+def read_zip(path: str | Path, max_entries: int = 1000, max_bytes: int = 8 * 1024 * 1024) -> Archive:
     """Прочитать обычные файлы ZIP без распаковки и исполнения."""
-    files, directories, seen = {}, set(), set()
+    files: dict[str, bytes] = {}
+    directories: set[str] = set()
+    seen: set[str] = set()
     try:
         with zipfile.ZipFile(path) as archive:
             entries = archive.infolist()
@@ -67,14 +158,16 @@ def read_zip(path, max_entries=1000, max_bytes=8 * 1024 * 1024):
     return Archive(files, directories)
 
 
-def read_tar_gz(path, max_entries=1000, max_bytes=8 * 1024 * 1024):
+def read_tar_gz(path: str | Path, max_entries: int = 1000, max_bytes: int = 8 * 1024 * 1024) -> Archive:
     """Прочитать обычные файлы tar.gz как данные без извлечения и ссылок."""
-    files, directories, seen = {}, set(), set()
+    files: dict[str, bytes] = {}
+    directories: set[str] = set()
+    seen: set[str] = set()
     # Ограничиваем также контейнер: заголовки gzip/PAX и заполнение входят в предел.
     # Оставляем место для обычных заголовков tar, имён и завершающего заполнения.
     container_limit = max_bytes + max_entries * 4096 + 10240
     try:
-        with gzip.open(path, 'rb') as compressed:
+        with gzip.GzipFile(filename=path, mode='rb') as compressed:
             expanded = compressed.read(container_limit + 1)
         if len(expanded) > container_limit:
             raise ArchiveLimit('Превышен лимит распакованного tar.gz; передайте архив преподавателю для отдельной проверки')

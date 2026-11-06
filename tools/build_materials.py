@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 """Упаковка объявленных учебных данных в ZIP."""
+from collections.abc import Mapping
 import argparse
 import io
 import json
@@ -10,10 +11,10 @@ import stat
 import sys
 import tempfile
 import zipfile
-from system_support import safe_archive_name
+from system_support import safe_archive_name, read_json, json_object, json_texts
 
 
-def target(root, relative):
+def target(root: Path, relative: str) -> Path:
     safe_archive_name(relative)
     current = root
     parts = PurePosixPath(relative).parts
@@ -26,7 +27,7 @@ def target(root, relative):
     return current
 
 
-def packed(entries):
+def packed(entries: Mapping[str, object]) -> bytes:
     output = io.BytesIO()
     with zipfile.ZipFile(output, 'w', compression=zipfile.ZIP_STORED) as archive:
         for name, text in sorted(entries.items()):
@@ -40,7 +41,7 @@ def packed(entries):
     return output.getvalue()
 
 
-def atomic_write(path, data):
+def atomic_write(path: Path, data: bytes) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     temporary = None
     try:
@@ -53,12 +54,17 @@ def atomic_write(path, data):
             temporary.unlink()
 
 
-def build(root, project="work-environment"):
+def read_materials(path: Path) -> dict[str, dict[str, str]]:
+    return {name: json_texts(entries) for name, entries in json_object(read_json(path)).items()}
+
+
+def build(root: str | Path, project: str = "work-environment") -> list[str]:
     root = Path(root).resolve(strict=True)
     if not re.fullmatch(r'[a-z][a-z0-9-]*', project):
         raise ValueError('Недопустимое имя проекта материалов')
     directory = f'tasks/projects/{project}'
-    data = json.loads(target(root, directory + '/materials.json').read_text())
+    data: dict[str, dict[str, str | bytes]] = {name: dict[str, str | bytes](entries)
+        for name, entries in read_materials(target(root, directory + '/materials.json')).items()}
     if project == 'work-environment':
         for archive, prefix in [('practice/materials/work-environment-demo.zip', 'lab'),
                                 ('tasks/materials/work-environment-start.zip', 'survey')]:
@@ -67,7 +73,7 @@ def build(root, project="work-environment"):
                 if member in data[archive]:
                     raise ValueError('Повторный источник общего счётчика: ' + member)
                 data[archive][member] = target(root, 'tasks/common/work-environment/' + script).read_bytes()
-    planned = []
+    planned: list[tuple[str, Path, bytes]] = []
     for name, entries in data.items():
         if not name.startswith(('practice/materials/', 'tasks/materials/')) or not name.endswith('.zip'):
             raise ValueError(f'Не объявлен каталог публикации материала: {name}')
@@ -79,11 +85,16 @@ def build(root, project="work-environment"):
     return [name for name, _, _ in planned]
 
 
-def main():
+class Options(argparse.Namespace):
+    root: Path
+    project: str
+
+
+def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--root', type=Path, default=Path(__file__).resolve().parents[1])
     parser.add_argument('--project', default='work-environment')
-    args = parser.parse_args()
+    args = parser.parse_args(namespace=Options())
     print(json.dumps(build(args.root, project=args.project), ensure_ascii=False, indent=2))
 
 

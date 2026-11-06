@@ -1,5 +1,4 @@
 """Публикуемые starter/demo содержат обычные файлы; историю создаёт студент."""
-import json
 from pathlib import Path
 import shutil
 import sys
@@ -13,13 +12,13 @@ ROOT = Path(__file__).resolve().parents[1]
 
 
 class GitMaterials(unittest.TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.tmp = tempfile.TemporaryDirectory(prefix='git material files ')
         self.addCleanup(self.tmp.cleanup); self.root = Path(self.tmp.name)
         p = self.root / 'tasks/projects/version-control/seed.json'; p.parent.mkdir(parents=True)
         shutil.copyfile(ROOT / 'tasks/projects/version-control/seed.json', p)
 
-    def test_starter_contains_only_three_ordinary_project_files(self):
+    def test_starter_contains_only_three_ordinary_project_files(self) -> None:
         build(self.root)
         with zipfile.ZipFile(self.root/'tasks/materials/version-control-start.zip') as z:
             self.assertEqual({'versioning/project/README.md': README.encode(),

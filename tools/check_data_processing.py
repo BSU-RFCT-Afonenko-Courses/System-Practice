@@ -5,12 +5,13 @@ import csv
 import io
 import json
 from pathlib import Path
-from system_support import ArchiveError, read_zip
+from system_support import ArchiveError, ArchiveLimit, CheckResult, read_zip
+from build_materials import read_materials
 
 MATERIALS = Path(__file__).resolve().parents[1] / 'tasks/projects/data-processing/materials.json'
 
 
-def csv_rows(data):
+def csv_rows(data: bytes) -> list[list[str]]:
     text = data.decode('utf-8')
     if '\r' in text.replace('\r\n', '') or text.startswith('\ufeff'):
         raise ValueError('CSV: нужны UTF-8 без BOM и переводы LF/CRLF')
@@ -20,14 +21,14 @@ def csv_rows(data):
     return rows
 
 
-def check_archive(path, route):
+def check_archive(path: str | Path, route: str) -> CheckResult:
     if route not in ('fish', 'powershell'):
         raise ValueError('Выберите fish или powershell')
-    errors = []
+    errors: list[str] = []
     manual = ['Сценарий выполняет собственный содержательный конвейер для каждого из двух представлений; данные между стадиями объяснены.',
               'Среда, команды, stdout/stderr и коды трёх процессов подтверждаются разбором и запуском в проверенной среде.',
               'Объяснены числовой порядок, пустая выборка, ошибка входа и сравнение результата.']
-    data = json.loads(MATERIALS.read_text())['tasks/materials/data-processing-start.zip']
+    data = read_materials(MATERIALS)['tasks/materials/data-processing-start.zip']
     ext = 'txt' if route == 'fish' else 'csv'
     script = 'select.fish' if route == 'fish' else 'Select-Readings.ps1'
     try:
@@ -74,21 +75,30 @@ def check_archive(path, route):
             missing = f'processing/results/{stem}.{ext}'
             if missing in members or any(n.startswith(missing + '/') for n in members):
                 errors.append(f'После ошибки выходной файл должен отсутствовать: {stem}.{ext}')
+    except ArchiveLimit as problem:
+        return {'automated': 'manual', 'toolLimited': True, 'errors': [],
+                'diagnostics': [str(problem)], 'manualRequired': manual}
     except ArchiveError as problem:
         errors.append(str(problem))
     return {'automated': 'fail' if errors else 'pass', 'errors': errors, 'manualRequired': manual}
 
 
-def main():
+class Options(argparse.Namespace):
+    archive: Path
+    route: str
+    output: Path | None
+
+
+def main() -> int | bool:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('archive', type=Path)
     parser.add_argument('--route', choices=['fish','powershell'], required=True)
     parser.add_argument('--output', type=Path)
-    args = parser.parse_args()
+    args = parser.parse_args(namespace=Options())
     result = check_archive(args.archive, args.route)
     text = json.dumps(result,ensure_ascii=False,indent=2)+'\n'
     if args.output:args.output.write_text(text)
     print(text,end='')
-    return result['automated'] != 'pass'
+    return 2 if result['automated'] == 'manual' else result['automated'] != 'pass'
 
 if __name__ == '__main__':raise SystemExit(main())
