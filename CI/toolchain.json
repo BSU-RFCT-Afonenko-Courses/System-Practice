@@ -10,8 +10,6 @@
     "javaImage": "ghcr.io/afonenko-course-tools/java25-grader@sha256:17122d53f52500f817a5ca9e554bd92ca276b0284972e69f887be7e2cf9e1278",
     "fishImage": "ghcr.io/afonenko-course-tools/fish-git-grader@sha256:06a445e1d3323783f9882344692b62f13977662b5ca4618d04edb935db2c7488",
     "communityImage": "ghcr.io/afonenko-course-tools/prairielearn-community-gateway@sha256:728f0fbd53d6d5af56016638b7dbd8e554bd22264b843620d5ccb58ce7e9646f",
-    "sourceTree": "a68c73340820f7c846a8b84180c53f10ea21ab18",
-    "tagObject": "2bcfb6f94d62f3b11871fd9b8c50d3b1830f9716",
     "javaImageConfig": "sha256:c2120bfd1aedf143e8dbfa81a66960865a4a8e8996e06e17f027138b51e4cb90",
     "fishImageConfig": "sha256:65cff613dc87ce50e6ce54da7b3ec0aa91634ba036c3fcbaee7cbb5b8e69734b",
     "workspaceImage": "ghcr.io/afonenko-course-tools/sp-git-workspace@sha256:a547a7419726857eb391476edcf8906ee4acc062250e1c29acaee4733d9de930"
@@ -20,10 +18,6 @@
   "imagePublication": {
     "run": 41286341377,
     "buildSource": "626b665d1c8d18b61480ce91c7bc8f7d41f99bdb",
-    "runnerSourceHash": "9c1f720ea1beddd35054e9a8f4b26d9897e4a7fff5e4c62bfb2141f561f8aaa0",
-    "runtimeProfilesSha256": "1d62cd44bc854a3f4234e80afae38cb9db8a46c22587350353a90d46da2336e8",
-    "receiptSha256": "95528f10c7a473186894bef4b48a603523188ea74338a8529b1748ce086b0322",
-    "toolchainLockSha256": "c44c6f648e0bafbd2f87871813a8c5b2095315c465ddbf14e1b6282acae574ca",
     "release": {
       "id": 430454491,
       "url": "https://github.com/Afonenko-Course-Tools/prairielearn-platform/releases/tag/v2.5.2",
@@ -31,25 +25,16 @@
     },
     "assets": {
       "published-runtime-profiles.json": {
-        "url": "https://github.com/Afonenko-Course-Tools/prairielearn-platform/releases/download/v2.5.2/published-runtime-profiles.json",
-        "bytes": 10172,
-        "sha256": "1d62cd44bc854a3f4234e80afae38cb9db8a46c22587350353a90d46da2336e8"
-      },
-      "published-toolchain-lock.json": {
-        "url": "https://github.com/Afonenko-Course-Tools/prairielearn-platform/releases/download/v2.5.2/published-toolchain-lock.json",
-        "bytes": 197547,
-        "sha256": "c44c6f648e0bafbd2f87871813a8c5b2095315c465ddbf14e1b6282acae574ca"
+        "url": "https://github.com/Afonenko-Course-Tools/prairielearn-platform/releases/download/v2.5.2/published-runtime-profiles.json"
       },
       "runtime-image.json": {
-        "url": "https://github.com/Afonenko-Course-Tools/prairielearn-platform/releases/download/v2.5.2/runtime-image.json",
-        "bytes": 837,
-        "sha256": "95528f10c7a473186894bef4b48a603523188ea74338a8529b1748ce086b0322"
+        "url": "https://github.com/Afonenko-Course-Tools/prairielearn-platform/releases/download/v2.5.2/runtime-image.json"
       }
     }
   },
   "githubCi": {
     "status": "pending",
     "scope": "public-source-published-providers-and-site",
-    "reason": "Новый exact course HEAD с published910/530 и исправленным consumer post-hook order ещё не прошёл hosted CI; full135/unfiltered delivery/container receipt после independent prior P остаётся обязательным gate."
+    "reason": "Фактический результат hosted CI для текущего course HEAD проверяется отдельно."
   }
 }
