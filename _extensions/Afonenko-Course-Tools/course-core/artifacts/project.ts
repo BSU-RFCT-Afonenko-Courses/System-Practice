@@ -5,7 +5,7 @@ import {
 } from "../document/catalogue-cite.ts";
 import {
   assignmentBeforeChild,
-  assignmentChild,
+  assignmentPandocChild,
 } from "../runtime/assignment-execution.ts";
 import {
   assertAssignmentArtifactSource,
@@ -82,7 +82,7 @@ async function pandoc(
   state.metrics.pandocCalls++;
   const args = ["pandoc", "--from", from, "--to", to, "--wrap=none"];
   await assignmentBeforeChild();
-  const qualified = assignmentChild(
+  const qualified = await assignmentPandocChild(
     quartoExecutable(),
     args,
     state.context.owner,

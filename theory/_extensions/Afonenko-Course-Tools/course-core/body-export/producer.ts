@@ -12,12 +12,30 @@ import { assertReferenceTargets, resolveReferences } from "./references.ts";
 import { type BodyReferenceContext, publicLinks } from "./links.ts";
 import { BodyPackageSchema } from "./package-contracts.ts";
 export type { BodyPackage, PublicBodyPackage } from "./model.ts";
-const attr = (n: Node) =>
-  n.t === "Header"
+const isNode = (value: unknown): value is Node =>
+  value !== null && typeof value === "object" && "t" in value &&
+  typeof value.t === "string";
+const nodes = (value: unknown): value is Node[] =>
+  Array.isArray(value) && value.every(isNode);
+type Attributes = [string, string[], [string, string][]];
+const attributes = (value: unknown): value is Attributes =>
+  Array.isArray(value) && typeof value[0] === "string" &&
+  Array.isArray(value[1]) && value[1].every((v: unknown) =>
+    typeof v === "string"
+  ) &&
+  Array.isArray(value[2]) && value[2].every((v: unknown) =>
+    Array.isArray(v) && v.length === 2 &&
+    v.every((x: unknown) => typeof x === "string")
+  );
+const attr = (n: Node): Attributes | undefined => {
+  if (!Array.isArray(n.c)) return;
+  const value: unknown = n.t === "Header"
     ? n.c[1]
     : ["Div", "Span", "CodeBlock", "Code", "Link", "Image"].includes(n.t)
     ? n.c[0]
     : undefined;
+  return attributes(value) ? value : undefined;
+};
 const classes = (n: Node) => attr(n)?.[1] || [];
 function titleTargets(value: any): Node[] {
   if (Array.isArray(value)) return value.flatMap(titleTargets);
@@ -37,13 +55,13 @@ const solution = (n: Node) =>
 function quartoMarkdownEnvelope(node: Node): boolean {
   const outer = attr(node);
   if (
-    node.t !== "Div" ||
+    node.t !== "Div" || !outer ||
     !["quarto-navigation-envelope", "quarto-meta-markdown"].includes(
-      outer?.[0],
+      outer[0],
     ) ||
     outer[1]?.length !== 1 || outer[1][0] !== "hidden" ||
     outer[2]?.length !== 0 ||
-    !Array.isArray(node.c?.[1])
+    !Array.isArray(node.c) || !nodes(node.c[1])
   ) return false;
   const holder = (value: Node) => {
     const a = attr(value);
@@ -52,11 +70,12 @@ function quartoMarkdownEnvelope(node: Node): boolean {
       a[1].includes("quarto-markdown-envelope-contents") &&
       a[2]?.length === 1 && a[2][0][0] === "render-id" &&
       typeof a[2][0][1] === "string" && a[2][0][1].length > 0 &&
-      Array.isArray(value.c?.[1]);
+      Array.isArray(value.c) && nodes(value.c[1]);
   };
   return node.c[1].every((block: Node) =>
     block?.t === "Div" ? holder(block) : ["Para", "Plain"].includes(block?.t) &&
-      block.c?.length === 1 && holder(block.c[0])
+      Array.isArray(block.c) && block.c.length === 1 && isNode(block.c[0]) &&
+      holder(block.c[0])
   );
 }
 const omitted = Symbol("omitted");
@@ -271,23 +290,28 @@ export function publicCondition(blocks: Node[], hasCanonicalTitle: boolean) {
   const authoredCondition = blocks.filter((n: Node) =>
     !(n.t === "Div" && classes(n).includes("course-metadata"))
   );
-  const opening = authoredCondition[0], prefix = opening?.c?.[0];
+  const opening = authoredCondition[0];
+  const inlines = nodes(opening?.c) ? opening.c : undefined;
+  const prefix = inlines?.[0];
+  const prefixAttr = prefix && attr(prefix);
   let prefixTargets: Node[] = [];
   let nativeTitleConsumed = false;
   // Quarto's crossref writer prepends this anonymous caption to the first
   // paragraph. Strip only that native prefix, keeping any authored tail.
   if (
     ["Para", "Plain"].includes(opening?.t) && prefix?.t === "Span" &&
-    prefix.c[0][0] === "" && prefix.c[0][1].length === 1 &&
-    prefix.c[0][1][0] === "theorem-title" && prefix.c[0][2].length === 0 &&
+    prefixAttr?.[0] === "" && prefixAttr[1].length === 1 &&
+    prefixAttr[1][0] === "theorem-title" && prefixAttr[2].length === 0 &&
+    Array.isArray(prefix.c) && nodes(prefix.c[1]) &&
     prefix.c[1].length === 1 && prefix.c[1][0].t === "Strong"
   ) {
     nativeTitleConsumed = true;
     prefixTargets = titleTargets(prefix);
-    const tail: Node[] = opening.c.slice(1);
+    const tail = inlines!.slice(1);
     while (
       tail.length && (["Space", "SoftBreak", "LineBreak"].includes(tail[0].t) ||
-        tail[0].t === "Str" && !tail[0].c.trim())
+        tail[0].t === "Str" && typeof tail[0].c === "string" &&
+          !tail[0].c.trim())
     ) tail.shift();
     if (tail.length) authoredCondition[0] = { ...opening, c: tail };
     else authoredCondition.shift();
@@ -300,8 +324,9 @@ export function publicCondition(blocks: Node[], hasCanonicalTitle: boolean) {
   ) {
     const heading = authoredCondition.shift()!;
     // Preserve genuine fragment targets without repeating the book title.
-    if (heading.c[1][0]) {
-      authoredCondition.unshift({ t: "Div", c: [heading.c[1], []] });
+    const headingAttr = attr(heading);
+    if (headingAttr?.[0]) {
+      authoredCondition.unshift({ t: "Div", c: [headingAttr, []] });
     }
   }
   if (prefixTargets.length) {

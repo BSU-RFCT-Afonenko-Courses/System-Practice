@@ -6,16 +6,12 @@ import {
   NativeWebFormatSchema,
 } from "./contracts.ts";
 import type { NativeOperationIdentity } from "./contracts.ts";
+import type { EarlyDocument } from "../document/contracts.ts";
 import {
-  decode,
-  DocumentContextSchema,
-  EarlyDocumentSchema,
-} from "../document/contracts.ts";
-import {
-  NativeProjectFactsCaptureSchema,
   NativeProjectFactSchema,
   NativeProjectMaterializationSchema,
 } from "../document/project-facts.ts";
+import type { NativeProjectFactsCaptureSchema } from "../document/project-facts.ts";
 import { bindProjectMaterializations } from "../domain/project-materialization.ts";
 import { immutable } from "../document/condition.ts";
 import { fail } from "../contracts/project.ts";
@@ -52,13 +48,15 @@ export const NativeAssignmentProvenanceSchema = z.strictObject({
 export type NativeAssignmentProvenance = z.output<
   typeof NativeAssignmentProvenanceSchema
 >;
-const capturedEarly = EarlyDocumentSchema.omit({
-  ast: true,
-  occurrences: true,
-});
+/** Уже декодированные completeSchema releaseDocuments; shape boundary — у reader. */
 type Captured = {
   source: string;
-  early: z.output<typeof capturedEarly>;
+  early: Pick<EarlyDocument, "definitions" | "release"> & {
+    context: EarlyDocument["context"] & {
+      captureWitness: string;
+      format: z.output<typeof NativeWebFormatSchema>;
+    };
+  };
   projectFacts?: z.output<typeof NativeProjectFactsCaptureSchema>;
 };
 export function buildAssignmentProvenance(
@@ -94,27 +92,18 @@ export function buildAssignmentProvenance(
         "Отсутствует native project facts producer",
       );
     }
-    const parsed = decode(
-      NativeProjectFactsCaptureSchema,
-      frame,
-      "BODY.PROVENANCE_UNQUALIFIED",
-    );
-    const ctx = decode(
-        DocumentContextSchema,
-        doc.early.context,
-        "BODY.PROVENANCE_UNQUALIFIED",
-      ),
+    const ctx = doc.early.context,
       declared = (doc.early.release?.declarations ?? []).filter((d) =>
         d.project
       );
     if (
-      !same(parsed.context, ctx) || parsed.source !== doc.source ||
+      !same(frame.context, ctx) || frame.source !== doc.source ||
       ctx.operation !== identity.operation ||
       ctx.projection !== identity.projection ||
       !same(ctx.profiles, identity.profiles) ||
-      parsed.projects.length !== declared.length ||
-      !unique(parsed.projects.map((p) => p.exerciseId)) || declared.some((d) =>
-        !parsed.projects.some((p) =>
+      frame.projects.length !== declared.length ||
+      !unique(frame.projects.map((p) => p.exerciseId)) || declared.some((d) =>
+        !frame.projects.some((p) =>
           p.exerciseId === d.id && p.source === doc.source &&
           "/" + p.projectRoot === d.project && p.projectCheck === d.check
         )
@@ -125,11 +114,7 @@ export function buildAssignmentProvenance(
         "Project facts не принадлежат тому же полному preprojection capture",
       );
     }
-    const format = decode(
-      NativeWebFormatSchema,
-      ctx.format,
-      "BODY.PROVENANCE_UNQUALIFIED",
-    );
+    const format = ctx.format;
     for (const row of declared) {
       projects.push({
         source: doc.source,
@@ -145,23 +130,25 @@ export function buildAssignmentProvenance(
       ...(doc.early.release?.course?.id
         ? { courseId: doc.early.release.course.id }
         : {}),
-      projects: parsed.projects,
+      projects: frame.projects,
       ...(doc.early.release?.nativeMetadata.projectChecks !== undefined
         ? { projectChecks: doc.early.release.nativeMetadata.projectChecks }
         : {}),
-      projectMaterializations: parsed.projectMaterializations,
+      projectMaterializations: frame.projectMaterializations,
     });
   }
   const bound = bindProjectMaterializations(facts);
   for (const document of facts) {
     document.projects = bound.filter((p) => p.source === document.source);
   }
-  return immutable(decode(NativeAssignmentProvenanceSchema, {
+  const value: NativeAssignmentProvenance = {
     schema: "course-native-assignment-provenance-v1",
     identity,
     ownerInputs: [...ownerInputs],
     capturedInputs: [...capturedInputs],
     projects,
     documents: facts,
-  }, "BODY.PROVENANCE_UNQUALIFIED"));
+  };
+  // immutable не клонирует: raw plane и прочие private input references отделяются.
+  return immutable(structuredClone(value));
 }

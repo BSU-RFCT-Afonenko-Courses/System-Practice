@@ -1,3 +1,4 @@
+import type { NativePandocBinding } from "./pandoc-binding.ts";
 import type { NativeCaptureCommand } from "./prepared-operation.ts";
 import type { AssignmentRuntimeWitness } from "./assignment-admission.ts";
 import { AsyncLocalStorage } from "node:async_hooks";
@@ -6,6 +7,7 @@ import { fail } from "../contracts/project.ts";
 type Execution = {
   runtime: AssignmentRuntimeWitness;
   root: string;
+  pandocBinding?: () => Promise<NativePandocBinding | undefined>;
   beforeChild?: () => Promise<void>;
   lives: { active: boolean }[];
   token?: string;
@@ -49,10 +51,16 @@ export function withAssignmentBeforeChild<T>(
   beforeChild: () => Promise<void>,
   use: () => Promise<T>,
   life: { active: boolean },
+  pandocBinding?: () => Promise<NativePandocBinding | undefined>,
 ) {
   const state = execution();
   return state
-    ? enter({ ...state, beforeChild, lives: [...state.lives, life] }, use)
+    ? enter({
+      ...state,
+      beforeChild,
+      lives: [...state.lives, life],
+      pandocBinding: pandocBinding ?? state.pandocBinding,
+    }, use)
     : use();
 }
 export function withAssignmentCaptureChild<T>(
@@ -143,6 +151,40 @@ export function assignmentChild(
   return {
     executable: runtime.executable,
     options: { args: [...args], cwd, env: fixed, clearEnv: true as const },
+  };
+}
+/** Тот же проверенный child, с existing operation Pandoc binding при наличии. */
+export async function assignmentPandocChild(
+  executable: string,
+  args: readonly string[],
+  cwd: string,
+  env: Record<string, string> = {},
+) {
+  const qualified = assignmentChild(executable, args, cwd, env);
+  const state = execution();
+  const binding = await state?.pandocBinding?.();
+  execution();
+  if (!binding || !qualified) return qualified;
+  // Только эквивалентный frozen snapshot может заменить launcher.
+  // Любое отличие host transport или runtime controls сохраняет fallback.
+  const environment = qualified.options.env;
+  if (
+    binding.diagnosticTool !== qualified.executable ||
+    binding.cwd !== qualified.options.cwd ||
+    Object.keys(binding.environment).length !==
+      Object.keys(environment).length ||
+    Object.entries(binding.environment).some(([key, value]) =>
+      environment[key] !== value
+    )
+  ) return qualified;
+  return {
+    executable: binding.executable,
+    options: {
+      args: [...args.slice(1)],
+      cwd,
+      env: qualified.options.env,
+      clearEnv: true as const,
+    },
   };
 }
 export function runAssignmentCaptureChild(

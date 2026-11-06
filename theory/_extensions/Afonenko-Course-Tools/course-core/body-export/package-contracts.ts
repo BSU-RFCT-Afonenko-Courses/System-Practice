@@ -7,7 +7,7 @@ const exercise = z.string().regex(/^exr-[a-z0-9][a-z0-9-]*$/);
 const qualifiedExercise = z.string().regex(/^[a-z][a-z0-9-]*\/exr-[a-z0-9][a-z0-9-]*$/);
 const unique = (items: string[]) => new Set(items).size === items.length;
 // Тело — native Pandoc payload: этот договор не становится вторым AST-парсером.
-const body = z.array(z.any());
+const body = z.array(z.object({ t: z.string(), c: z.unknown().optional() }).passthrough());
 export const BodyQuestionSchema = z.strictObject({
   owner: z.string(), id: exercise, key: z.string(), source: z.string().min(1),
   title: z.string().min(1).optional(),

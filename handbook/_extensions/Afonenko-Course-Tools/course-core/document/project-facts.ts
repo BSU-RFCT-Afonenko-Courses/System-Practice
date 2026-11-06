@@ -98,9 +98,6 @@ export const NativeProjectFactSchema = z.strictObject({
     conditions: z.boolean(),
   }),
   projectCheck: z.string().regex(/^[a-z][a-z0-9-]*$/).optional(),
-  // Только старое inert DATA; actual Core producer не выдаёт normalized check.
-  // C обязан проверить parity со своим каноном до использования и вычисления hashes.
-  check: z.unknown().optional(),
   materialization: NativeProjectMaterializationSchema.optional(),
 });
 export type NativeProjectFact = z.output<typeof NativeProjectFactSchema>;

@@ -14,6 +14,13 @@ export function postConfiguration(inspection: unknown, root: string): PostInspec
   return { config, namespace };
 }
 
+export function postQuartoVersion(inspection: unknown, root: string): string {
+  const quarto = isRecord(inspection) && isRecord(inspection.quarto) ? inspection.quarto : undefined;
+  const version = quarto?.version;
+  if (typeof version !== "string" || !version.trim()) throw diagnostic("QRC.CONFIG_INVALID", "Quarto inspect не вернул версию Quarto", { source: root, field: "quarto.version" });
+  return version.trim();
+}
+
 export function postOutputDirectory(config: Record<string, unknown>, override: string | undefined, root: string): string {
   const project = isRecord(config.project) ? config.project : undefined;
   const output = override ?? project?.["output-dir"] ?? "_site";

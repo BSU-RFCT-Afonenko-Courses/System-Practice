@@ -14,11 +14,33 @@ export async function validateAnswer(source: string, context: {source?: string; 
   }
 }
 
-export async function projectChoice(b: Node, context: {source?: string; id?: string} = {}) {
+export async function projectChoice(
+  b: Node,
+  context: { source?: string; id?: string } = {},
+) {
+  const content = b.c;
+  const attrs: unknown = Array.isArray(content) && Array.isArray(content[0])
+    ? content[0][2]
+    : undefined;
+  const blocks: unknown = Array.isArray(content) ? content[1] : undefined;
+  const list: unknown = Array.isArray(blocks) && blocks.length === 1
+    ? blocks[0]
+    : undefined;
   if (
-    !b.c[0][2].some((x: any) => x[0] === "type" && x[1] === "single-choice") ||
-    b.c[1].length !== 1 || b.c[1][0].t !== "BulletList"
-  ) throw diagnostic("ADAPTER", "Компонент Core/projectChoice: неподдерживаемая структура ответа single-choice", {...context, field: "answer"});
+    !Array.isArray(attrs) ||
+    !attrs.some((x: unknown) =>
+      Array.isArray(x) && x[0] === "type" && x[1] === "single-choice"
+    ) ||
+    !list || typeof list !== "object" || !("t" in list) ||
+    list.t !== "BulletList" ||
+    !("c" in list) || !Array.isArray(list.c)
+  ) {
+    throw diagnostic(
+      "ADAPTER",
+      "Компонент Core/projectChoice: неподдерживаемая структура ответа single-choice",
+      { ...context, field: "answer" },
+    );
+  }
   let correct = -1, count = 0;
   const strip = (v: any, index: number): any => {
     if (Array.isArray(v)) {
@@ -38,10 +60,19 @@ export async function projectChoice(b: Node, context: {source?: string; id?: str
     }
     return v;
   };
-  const clean = b.c[1][0].c.map((c: any, i: number) => strip(c, i));
-  const parsed = AnswerFactsSchema.safeParse({type: "single-choice", count: clean.length, correct});
+  const clean = list.c.map((c: any, i: number) => strip(c, i));
+  const parsed = AnswerFactsSchema.safeParse({
+    type: "single-choice",
+    count: clean.length,
+    correct,
+  });
   if (count !== 1 || !parsed.success) {
-    throw diagnostic("ANSWER_INVALID", "single-choice требует ровно один correct и не менее двух вариантов", {...context, field: "answer"}, parsed.success ? undefined : parsed.error);
+    throw diagnostic(
+      "ANSWER_INVALID",
+      "single-choice требует ровно один correct и не менее двух вариантов",
+      { ...context, field: "answer" },
+      parsed.success ? undefined : parsed.error,
+    );
   }
   return {
     answerType: "single-choice",

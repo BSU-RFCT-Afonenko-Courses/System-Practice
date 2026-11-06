@@ -2117,6 +2117,7 @@ async function withCapturedOperation<T>(
         }
       },
       callbackLife,
+      () => operation.pandocBinding(),
     );
     if (projectBatches.active || projectBatches.failed) {
       fail("OPERATION_INCOMPLETE", "A1 batch failed/not awaited");
@@ -2392,12 +2393,6 @@ function publicOperation(
             "Требуется current validation",
           );
         }
-        buildAssignmentProvenance(
-          catalog.identity,
-          complete.state.ownerInputs,
-          complete.state.inputs,
-          complete.releaseDocuments,
-        );
       }
       boundInput(requestsValue);
       const requests = decode(
@@ -2605,6 +2600,14 @@ function publicOperation(
           () => guard(),
         );
         await guard();
+        if (complete.state.assignment) {
+          buildAssignmentProvenance(
+            catalog.identity,
+            complete.state.ownerInputs,
+            complete.state.inputs,
+            complete.releaseDocuments,
+          );
+        }
         releaseValidated = true;
         return proof;
       } catch (error) {
@@ -2665,12 +2668,6 @@ function publicOperation(
           "Требуется успешная текущая owner validation",
         );
       }
-      buildAssignmentProvenance(
-        catalog.identity,
-        complete.state.ownerInputs,
-        complete.state.inputs,
-        complete.releaseDocuments,
-      );
       const request = decode(
         NativeAssignmentRequestSchema,
         requestValue,
