@@ -10,7 +10,10 @@ import { operationProjectContextReuse } from "../infrastructure/project-context.
 import type { NativeOperationProjectContextBatch } from "../infrastructure/project-context.ts";
 import { ProjectContextRequestSchema } from "../contracts/project.ts";
 import type { ProjectContextRequest } from "../contracts/project.ts";
-import { buildAssignmentProvenance } from "./assignment-provenance.ts";
+import {
+  buildAssignmentProvenance,
+  validateAssignmentProvenance,
+} from "./assignment-provenance.ts";
 import {
   finishedNativeResource,
   nativeResourceHandleIdentity,
@@ -2601,7 +2604,7 @@ function publicOperation(
         );
         await guard();
         if (complete.state.assignment) {
-          buildAssignmentProvenance(
+          validateAssignmentProvenance(
             catalog.identity,
             complete.state.ownerInputs,
             complete.state.inputs,
