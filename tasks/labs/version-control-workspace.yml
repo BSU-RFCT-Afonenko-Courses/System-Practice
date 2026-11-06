@@ -3,7 +3,7 @@ prairielearn:
     submission:
       mode: workspace
       workspaceOptions:
-        image: ghcr.io/afonenko-course-tools/sp-git-workspace@sha256:a547a7419726857eb391476edcf8906ee4acc062250e1c29acaee4733d9de930
+        image: ghcr.io/afonenko-course-tools/sp-git-workspace@sha256:465bf16061c3a44afdc61c77d1dd853216be35b0203072cb8e7c69a51a1bf31a
         home: /home/coder/workspace
         port: 8080
         rewriteUrl: true
