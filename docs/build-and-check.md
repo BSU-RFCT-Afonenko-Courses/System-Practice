@@ -25,6 +25,35 @@ go-task render
 правки generated-файлов удалены; render/preview не зависят от такой проверки.
 Учебный договор перед изменением данных требует авторского согласования.
 
+После изменения рецептов, исходных данных или `student/README.md` двух
+готовых Git-входов сначала регенерируйте материалы из корня репозитория:
+
+```sh
+python3 tools/build_git_materials.py
+```
+
+Уже указанная `go-task materials:write` включает эту подготовку. Инструмент
+вызывает существующие `generate(destination, empty_template)` из
+`tasks/projects/version-control/github-ssh/seed_recipe.py` и
+`tasks/projects/version-control/restore-selected-state/seed_recipe.py`;
+оба материала подготавливаются до записи публичных назначений. Эти два
+вызова включают суммарно 27 дочерних команд Git. Предыдущие ZIP и результаты
+render/native export для регенерации не нужны. Сохраните обновлённые материалы
+перед сборкой; обычные render/preview копируют готовые ресурсы и Git не запускают.
+
+Результаты — `tasks/materials/version-control-github-ssh-start.zip` и
+`tasks/materials/version-control-restore-selected-state-start.zip`. Это
+самостоятельные предоставленные ZIP с точным исходным README и обычным
+репозиторием под `versioning/project/` либо `work/`, включая `.git`. Полный
+native PL `starter.zip` формируется отдельно. Полные условия сохраняются
+в книге, conditions ZIP/README и PL condition/README.
+
+На каждом профиле `student`/`full` выдаются 5 contextual model ZIP,
+7 conditions model ZIP и 2 предоставленных Git ZIP: всего 7 стартовых входов
+и 7 полных условий. Общий состав исходных материалов увеличивается с 14 до
+16 ZIP. Прежние две неверные contextual выдачи каждого профиля удаляются
+штатной очисткой Download; новую выдачу проверяют по фактическим файлам и ссылкам.
+
 `test:materials` запускает существующий unittest suite: содержимое ZIP,
 реальные Git index/trees/history, допустимые решения, отрицательные случаи
 и готовые fish/PowerShell scripts по файлам, stdout и exit codes. Проверки

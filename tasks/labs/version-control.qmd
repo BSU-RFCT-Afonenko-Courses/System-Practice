@@ -306,7 +306,7 @@ verification и explanation.md. Сохраните оба каталога `.git
 {{< xref system-practice-handbook sec-reference-git-remote "удалённый репозиторий" >}}
 и {{< xref system-practice-handbook sec-reference-git-package "упаковка обеих копий" >}}.
 
-{{< project-download exr-version-control-github-ssh >}}
+[Скачать заготовку](../materials/version-control-github-ssh-start.zip)
 
 ::: {.public-tests}
 
@@ -355,7 +355,7 @@ GitHub и транспорт SSH.
 
 {{< project-download exr-version-control-restore-selected-state kind="conditions" text="Скачать условие для локального просмотра" >}}
 
-{{< project-download exr-version-control-restore-selected-state >}}
+[Скачать заготовку](../materials/version-control-restore-selected-state-start.zip)
 
 Добровольная задача о содержимом коммита, индекса и рабочего дерева.
 Сохраните исправление названия проекта отдельным коммитом и восстановите
