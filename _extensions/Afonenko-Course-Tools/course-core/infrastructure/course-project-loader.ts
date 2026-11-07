@@ -46,7 +46,7 @@ function merge(
   const address = field.length === 1 && field[0] === "starter" ||
     field.length === 2 &&
       ["components", "testsets", "solutions", "instructions"].includes(
-        field[0],
+        field[0] ?? "",
       ) ||
     field.length === 3 && field[0] === "build" && field[1] === "files";
   if (
@@ -92,7 +92,7 @@ export function projectPathEntries(
     }
   }
   for (const [name, address] of Object.entries(contract.instructions ?? {})) {
-    rows.push({ field: `instructions.${name}.path`, path: address.path });
+    if (address) rows.push({ field: `instructions.${name}.path`, path: address.path });
   }
   for (const [target, address] of Object.entries(contract.build.files)) {
     rows.push({ field: `build.files.${target}`, path: address.path });
@@ -129,10 +129,11 @@ export function projectLoader(
         const text = await Deno.readTextFile(path);
         metrics.yamlFileReads++;
         metrics.yamlBytesRead += new TextEncoder().encode(text).length;
-        const document = parseDocument(text);
-        if (!document) fail("PROJECT_YAML", "Не удалось прочитать YAML", path);
+        const document: unknown = parseDocument(text);
+        if (!record(document) || !Array.isArray(document.errors) || typeof document.toJS !== "function") fail("PROJECT_YAML", "Не удалось прочитать YAML", path);
         if (document.errors.length) {
-          fail("PROJECT_YAML", document.errors[0].message, path);
+          const first: unknown = document.errors[0];
+          fail("PROJECT_YAML", record(first) && typeof first.message === "string" ? first.message : "Повреждённый YAML", path);
         }
         const parsed: unknown = document.toJS();
         if (parsed === null) return {};
@@ -156,6 +157,7 @@ export function projectLoader(
             if (!(e instanceof Deno.errors.NotFound)) throw e;
           }
         }
+        return undefined;
       })();
       selected.set(base, value);
     }

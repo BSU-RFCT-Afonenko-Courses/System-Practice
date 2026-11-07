@@ -31,7 +31,8 @@ import {
   readProjectContextFile,
 } from "../infrastructure/project-context.ts";
 import { quartoExecutable } from "../infrastructure/process.ts";
-import { boundDocument, decode } from "../document/contracts.ts";
+import { isRecord, isContainer, isLink, nodeAttributes, requireNodes } from "../document/native-ast.ts";
+import { boundDocument, decode, PandocDocumentSchema } from "../document/contracts.ts";
 import {
   ArtifactDestinationSchema,
   ArtifactFilesDataSchema,
@@ -114,16 +115,11 @@ async function pandoc(
 function nativeReference(
   value: unknown,
 ): { token: string; key: string; style: string } | undefined {
-  if (!value || typeof value !== "object") return;
-  const node = value as { t?: string; c?: unknown[] };
-  if (node.t !== "Link" && node.t !== "Span") return;
-  const attr = node.c?.[0] as
-    | [string, string[], [string, string][]]
-    | undefined;
-  const key = attr?.[2]?.find((p) => p[0] === "data-qrc-ref")?.[1];
-  if (!key) return;
-  const style = attr?.[2]?.find((p) => p[0] === "data-qrc-style")?.[1] ??
-    "default";
+  if ((!isLink(value) && !isContainer(value)) || (value.t !== "Link" && value.t !== "Span")) return undefined;
+  const attr = value.c[0];
+  const key = attr[2].find(([name]) => name === "data-qrc-ref")?.[1];
+  if (!key) return undefined;
+  const style = attr[2].find(([name]) => name === "data-qrc-style")?.[1] ?? "default";
   return catalogueReference(key, style);
 }
 function assertSourcePath(
@@ -177,8 +173,9 @@ async function parsedFragment(
       "Quarto shortcode в Markdown fragment требует native разрешения",
     );
   }
-  const doc = JSON.parse(await pandoc(state, "markdown", "json", text));
-  boundDocument(doc);
+  const raw: unknown = JSON.parse(await pandoc(state, "markdown", "json", text));
+  boundDocument(raw);
+  const doc = decode(PandocDocumentSchema, raw, "DOCUMENT_AST", path);
   state.fragments.set(path, structuredClone(doc.blocks));
   return doc.blocks;
 }
@@ -492,7 +489,7 @@ async function materialize(
     if (base && !/^(?:[a-z][a-z0-9+.-]*:|\/\/|#)/i.test(url)) {
       let local: string;
       try {
-        local = decodeURIComponent(url.split(/[?#]/)[0]);
+        local = decodeURIComponent((url.split(/[?#]/)[0] ?? ""));
       } catch {
         fail("RESOURCE_PATH", "Некорректный URL ресурса");
       }
@@ -509,7 +506,7 @@ async function materialize(
       : undefined;
     if (!image && scoped) return checkedLink(scoped);
     if (!image && Object.hasOwn(bindings.links, url)) {
-      return checkedLink(bindings.links[url]);
+      return checkedLink(bindings.links[url]!);
     }
     if (url.startsWith("course-reference:")) {
       fail("CONDITION_LINK", "Нет конечного owner binding ссылки каталога");
@@ -620,15 +617,15 @@ async function materialize(
     fail("CONDITION_LINK", "Недопустимый конечный link target");
   }
   const transform = async (
-    value: any,
+    value: unknown,
     base: string | undefined,
-  ): Promise<any> => {
+  ): Promise<unknown> => {
     if (Array.isArray(value)) {
       const out = [];
       for (const v of value) out.push(await transform(v, base));
       return out;
     }
-    if (!value || typeof value !== "object") return value;
+    if (!isRecord(value)) return value;
     const citations = catalogueCitations(value);
     if (citations) {
       const resolved = new Map<string, { href: string; label: string }>();
@@ -668,11 +665,12 @@ async function materialize(
     }
     const ref = nativeReference(value);
     if (ref) {
+      if (!isLink(value) && !isContainer(value)) fail("DOCUMENT_AST", "Повреждённый native reference");
       const attr = structuredClone(value.c[0]);
       attr[1] = attr[1].filter((c: string) =>
         !["qrc-reference", "qrc-link"].includes(c)
       );
-      attr[2] = attr[2].filter((p: string[]) => !p[0].startsWith("data-qrc-"));
+      attr[2] = attr[2].filter((p) => !p[0].startsWith("data-qrc-"));
       const binding = base
         ? bindings.referencesBySource[relative(context.owner, base)]
           ?.[ref.token]
@@ -696,15 +694,16 @@ async function materialize(
         ],
       };
     }
-    const result: any = {};
+    const result: Record<string, unknown> = {};
     for (const [k, v] of Object.entries(value)) {
       result[k] = await transform(v, base);
     }
-    if (result.t === "Link" || result.t === "Image") {
+    nodeAttributes(result);
+    if (isLink(result)) {
       result.c[2][0] = await mapUrl(result.c[2][0], base, result.t === "Image");
     }
-    if (["Header", "Div", "Span", "CodeBlock"].includes(result.t)) {
-      const attr = result.t === "Header" ? result.c[1] : result.c[0];
+    if (typeof result.t === "string" && ["Header", "Div", "Span", "CodeBlock"].includes(result.t)) {
+      const attr = nodeAttributes(result);
       if (Array.isArray(attr) && typeof attr[0] === "string" && attr[0]) {
         if (!attr[0] || /[\u0000-\u0020'"<>&]/u.test(attr[0])) {
           fail("CONDITION_ANCHOR", "Непереносимый anchor");
@@ -733,7 +732,7 @@ async function materialize(
     }
     return result;
   };
-  const blocks = await transform(condition.body, conditionSource);
+  const blocks = requireNodes(await transform(condition.body, conditionSource));
   if (condition.anchor) {
     if (
       /[\u0000-\u0020'"<>&]/u.test(condition.anchor) ||
@@ -752,29 +751,31 @@ async function materialize(
   }
   const fragment = async (path: string) => {
     assertAssignmentArtifactSource(conditionValue, path);
-    return await transform(
+    return requireNodes(await transform(
       await parsedFragment(state, plan.audience, path),
       path,
-    );
+    ));
   };
   if (state.gradle) blocks.push(...await fragment(state.gradle));
   if (state.local) blocks.push(...await fragment(state.local));
-  const submissionDoc = JSON.parse(
+  const rawSubmission: unknown = JSON.parse(
     await pandoc(state, "markdown", "json", bindings.submission.instructions),
   );
+  boundDocument(rawSubmission);
+  const submissionDoc = decode(PandocDocumentSchema, rawSubmission, "DOCUMENT_AST");
   blocks.push(
-    await transform({
+    ...requireNodes([await transform({
       t: "Header",
       c: [2, ["submission", [], []], [{ t: "Str", c: "Сдача" }]],
-    }, undefined),
+    }, undefined)]),
   );
   blocks.push(
-    ...await transform(
+    ...requireNodes(await transform(
       submissionDoc.blocks,
       bindings.submissionBase
         ? resolve(context.owner, bindings.submissionBase)
         : undefined,
-    ),
+    )),
   );
   for (const item of bindings.submission.files) {
     if (

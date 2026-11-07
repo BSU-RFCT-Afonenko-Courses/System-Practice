@@ -3,7 +3,14 @@ local __metrics=require("../observability/bridge").create_metrics("reference-cat
 local M = {}
 local diagnostics = require("./diagnostics")
 local constants = require("./constants")
+---@param v pandoc.MetaValue|pandoc.Inline|pandoc.Block|nil
+---@return string
 local function text(v) return v and pandoc.utils.stringify(v) or "" end
+---@param namespace string
+---@param id string
+---@param style string
+---@param label string
+---@return pandoc.Link|pandoc.Span
 function M.link(namespace, id, style, label)
   assert(namespace:match("^[%a][%w_-]*$"), diagnostics.message("QRC.REFERENCE_INVALID", "некорректное пространство имён: " .. namespace, namespace .. ":" .. id, "namespace"))
   assert(id ~= "" and not id:match("[%s:#]"), diagnostics.message("QRC.REFERENCE_INVALID", "некорректный ID цели: " .. id, namespace .. ":" .. id, "id"))

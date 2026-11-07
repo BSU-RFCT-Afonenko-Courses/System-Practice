@@ -1,3 +1,4 @@
+import { isRecord } from "./import-config.ts";
 import { diagnostic } from "../diagnostics.ts";
 function selection(ids: unknown, invalid: () => never) {
   if (ids === "*") return ids;
@@ -41,10 +42,10 @@ export function parseExports(raw: unknown, namespaces: string[]) {
 export function parsePublication(raw: unknown): { title: string } | undefined {
   if (raw === undefined) return undefined;
   if (
-    !raw || typeof raw !== "object" || Array.isArray(raw) ||
+    !isRecord(raw) ||
     Object.keys(raw).some((key) => key !== "title") ||
-    typeof (raw as { title?: unknown }).title !== "string" ||
-    !(raw as { title: string }).title.trim()
+    typeof raw.title !== "string" ||
+    !raw.title.trim()
   ) {
     throw diagnostic(
       "QRC.CONFIG_INVALID",
@@ -52,5 +53,5 @@ export function parsePublication(raw: unknown): { title: string } | undefined {
       { field: "reference-catalog.publication.title" },
     );
   }
-  return { title: (raw as { title: string }).title.trim() };
+  return { title: raw.title.trim() };
 }

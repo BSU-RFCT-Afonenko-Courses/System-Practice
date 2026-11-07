@@ -70,7 +70,7 @@ function bind(documents: Captured[]): NativeProjectFact[] {
     if (matches.length !== 1) {
       fail("Materialization требует ровно один действующий project: " + id);
     }
-    const fact = matches[0];
+    const fact = matches[0]!;
     if (
       fact.materialization && stable(fact.materialization) !== stable(value)
     ) fail("Project fact расходится с captured declaration: " + id);

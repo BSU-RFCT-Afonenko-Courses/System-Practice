@@ -5,31 +5,31 @@ import type {
   AssignmentEarly,
   NativeResponseSlot,
 } from "./assignment-contracts.ts";
+import { isBulletList, isRecord, nodeAttributes as attr } from "./native-ast.ts";
+import type { Node } from "./native-ast.ts";
 export const assignmentAnswerAttribute = "data-course-core-answer";
 export const assignmentAnchorAttribute = "data-course-core-answer-anchor";
 export const assignmentIntroductionAttribute = "data-course-core-assessment";
-const attr = (v: any) =>
-  ["Div", "Span", "CodeBlock"].includes(v?.t) ? v.c?.[0] : undefined;
 const para = (s: string) => ({ t: "Para", c: [{ t: "Str", c: s }] });
 /** Labels/placeholder anchors carry only public identity, never canonical keys. */
 export function assignmentAnswerTransport(
   id: string,
   facts: AnswerFacts | undefined,
-  blocks: any[],
+  blocks: Node[],
   context: DocumentContext,
   record: AssignmentEarly["answers"],
 ) {
   const base = `course-response-${context.operation}-${id}`,
     key = `${context.operation}:${context.captureWitness}:answer:${id}`;
   const anchors: string[] = [], responseSlots: NativeResponseSlot[] = [];
-  const span = (anchor: string, body: any[]) => {
+  const span = (anchor: string, body: Node[]) => {
     anchors.push(anchor);
     return {
       t: "Span",
       c: [[anchor, [], [[assignmentAnchorAttribute, anchor]]], body],
     };
   };
-  const label = (anchor: string, body: any[]) => {
+  const label = (anchor: string, body: Node[]) => {
     anchors.push(anchor);
     return {
       t: "Div",
@@ -57,9 +57,10 @@ export function assignmentAnswerTransport(
       placeholder(name, type, labelAnchor ? { labelAnchor } : {}),
     ],
   });
-  let body: any[];
+  let body: Node[];
   if (facts?.type === "single-choice") {
-    const items = blocks[0]?.t === "BulletList" ? blocks[0].c : undefined;
+    const first = blocks[0];
+    const items = isBulletList(first) ? first.c : undefined;
     if (!Array.isArray(items) || items.length !== facts.count) {
       fail(
         "BODY.ANSWER_OCCURRENCE_MISMATCH",
@@ -68,7 +69,7 @@ export function assignmentAnswerTransport(
     }
     body = [{
       t: "BulletList",
-      c: items.map((item: any[], ordinal: number) => {
+      c: items.map((item, ordinal) => {
         const labelAnchor = base + "-option-" + ordinal,
           wrapped = label(labelAnchor, item);
         return [wrapped, {
@@ -134,18 +135,18 @@ export function assignmentAnswerTransport(
 }
 /** Audience is projected once before Quarto ConditionalBlock destroys reader content. */
 export function assignmentPrivacy(
-  value: any,
+  value: unknown,
   context: DocumentContext,
   identityNodes: WeakSet<object>,
-): any {
+): unknown {
   if (Array.isArray(value)) {
     return value.map((v) => assignmentPrivacy(v, context, identityNodes))
       .filter((v) => v !== undefined);
   }
-  if (!value || typeof value !== "object") return value;
+  if (!isRecord(value)) return value;
   const a = attr(value);
   if (a) {
-    const pairs: string[][] = a[2], classes: string[] = a[1];
+    const pairs = a[2], classes = a[1];
     if (
       classes.includes("content-visible") && classes.includes("content-hidden")
     ) fail("BODY.DELIVERY_PHASE_UNSUPPORTED", "Неоднозначный audience gate");
@@ -183,7 +184,7 @@ export function assignmentPrivacy(
       const visible = classes.includes("content-visible"),
         hidden = classes.includes("content-hidden");
       if (effective === 0) {
-        if (!a[2].some(([k]: string[]) => /^when-|^unless-/.test(k))) {
+        if (!a[2].some(([k]) => /^when-|^unless-/.test(k))) {
           a[1] = classes.filter((c) =>
             c !== "content-visible" && c !== "content-hidden"
           );
@@ -198,13 +199,13 @@ export function assignmentPrivacy(
         if (
           visible && !p ||
           hidden && p &&
-            !a[2].some(([k]: string[]) => /^when-|^unless-/.test(k))
+            !a[2].some(([k]) => /^when-|^unless-/.test(k))
         ) return undefined;
         if (hidden && !p) {
-          a[2] = a[2].filter(([k]: string[]) => !/^when-|^unless-/.test(k));
+          a[2] = a[2].filter(([k]) => !/^when-|^unless-/.test(k));
         }
         const keep = (visible && p || hidden && p) &&
-          a[2].some(([k]: string[]) => /^when-|^unless-/.test(k));
+          a[2].some(([k]) => /^when-|^unless-/.test(k));
         if (!keep) {
           a[1] = classes.filter((c) =>
             c !== "content-visible" && c !== "content-hidden"

@@ -128,6 +128,9 @@ export {
   NativeReleaseValidationSchema,
 } from "./release/contracts.ts";
 export type {
+  Assignment,
+  AssessmentSlot,
+  AssessmentComposition,
   NativeAdapterValidationInput,
   NativeAdapterValidationResult,
   NativeAdapterValidator,
@@ -174,3 +177,6 @@ export type {
   NativePublication,
   NativePublicationSelection,
 } from "./release/publication.ts";
+
+export type { BodyResource, PublicBodyPackage } from "./body-export/model.ts";
+export { NativeResponseSlotSchema } from "./document/assignment-contracts.ts";

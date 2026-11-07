@@ -91,7 +91,7 @@ export function decode<T>(
   const parsed = schema.safeParse(value);
   if (!parsed.success) {
     const issue = parsed.error.issues[0];
-    fail(code, issue.message, source, issue.path.join("."));
+    fail(code, issue?.message ?? "Некорректный договор", source, issue?.path.join(".") ?? "");
   }
   return parsed.data;
 }

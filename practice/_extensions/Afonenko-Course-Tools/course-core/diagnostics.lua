@@ -1,7 +1,18 @@
 local __metrics=require("./observability/bridge").create_metrics("course-core",1)
 
 -- Локальное оформление guard: входной документ, объект и поле, без span.
+---@class CourseDiagnosticRelated
+---@field source? string
+---@field id? string
+---@field field? string
+---@class CourseDiagnosticContext: CourseDiagnosticRelated
+---@field related? CourseDiagnosticRelated[]
+---@field hint? string
 local M = {}
+---@param code string
+---@param message string
+---@param context? CourseDiagnosticContext
+---@return string
 function M.format(code, message, context)
   context = context or {}
   local parts = {code .. ': ' .. message}
@@ -9,7 +20,10 @@ function M.format(code, message, context)
   if source and source ~= '' then parts[#parts+1] = 'источник=' .. source end
   if context.id and context.id ~= '' then parts[#parts+1] = 'объект=' .. context.id end
   if context.field then parts[#parts+1] = 'поле=' .. context.field end
-  for _,related in ipairs(context.related or {}) do
+  local relatedRows=context.related or {}
+  ---@cast relatedRows CourseDiagnosticRelated[]
+  for _,related in ipairs(relatedRows) do
+    ---@type string[]
     local values = {}
     if related.source then values[#values+1] = 'источник=' .. related.source end
     if related.id then values[#values+1] = 'объект=' .. related.id end
@@ -19,7 +33,10 @@ function M.format(code, message, context)
   if context.hint then parts[#parts+1] = 'подсказка=' .. context.hint end
   return table.concat(parts, '; ')
 end
-function M.fail(code, message, context) assert(false, M.format(code, message, context)) end
+---@param code string
+---@param message string
+---@param context? CourseDiagnosticContext
+function M.fail(code, message, context) error(M.format(code, message, context)) end
 M.format=__metrics.wrap_sync({id="course-core.diagnostics.format",kind='phase'},M.format)
 M.fail=__metrics.wrap_sync({id="course-core.diagnostics.fail",kind='phase'},M.fail)
 return M

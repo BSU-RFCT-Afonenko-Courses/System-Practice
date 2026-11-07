@@ -1,4 +1,4 @@
-import { sibling } from "../infrastructure/siblings.ts";
+import { sibling, type SiblingModules } from "../infrastructure/siblings.ts";
 import { diagnostic } from "../diagnostics.ts";
 import { zip } from "../domain/zip.ts";
 
@@ -7,7 +7,7 @@ import { zip } from "../domain/zip.ts";
  * Размеры и CRC вычисляются по переданным bytes.
  */
 export async function packageArtifact(value: unknown): Promise<Uint8Array> {
-  let supplied;
+  let supplied: unknown;
   try {
     // До lazy import тоже нельзя отдавать caller право изменить будущий ZIP.
     supplied = structuredClone(value);
@@ -20,7 +20,7 @@ export async function packageArtifact(value: unknown): Promise<Uint8Array> {
     );
   }
   const core = await sibling("course-core");
-  let artifact;
+  let artifact: ReturnType<SiblingModules["course-core"]["ArtifactFilesSchema"]["parse"]>;
   try {
     artifact = core.ArtifactFilesSchema.parse(supplied);
   } catch (cause) {

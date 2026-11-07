@@ -12,6 +12,7 @@ import type {
 import { collectAnswers } from "./answers.ts";
 import { collectReleaseFacts, nativeMetadata } from "../release/collect.ts";
 import { fail } from "../contracts/project.ts";
+import { diagnostic } from "../domain/diagnostics.ts";
 import {
   boundDocument,
   decode,
@@ -36,23 +37,12 @@ const ownKeys = new Set([
   "target",
   "project-check",
 ]);
-const object = (v: unknown): v is Record<string, any> =>
-  !!v && typeof v === "object" && !Array.isArray(v);
-function attr(
-  node: Record<string, any>,
-  source: string,
-): [string, string[], string[][]] {
-  const a = node.c?.[0];
-  if (
-    !Array.isArray(a) || a.length !== 3 || typeof a[0] !== "string" ||
-    !Array.isArray(a[1]) || a[1].some((x) => typeof x !== "string") ||
-    !Array.isArray(a[2]) ||
-    a[2].some((x) =>
-      !Array.isArray(x) || x.length !== 2 ||
-      x.some((y) => typeof y !== "string")
-    )
-  ) fail("DOCUMENT_AST", "Некорректный Attr", source);
-  return a as [string, string[], string[][]];
+import { isRecord as object, isContainer, isHeader, nodeAttributes, requireNodes } from "./native-ast.ts";
+import type { Attributes } from "./native-ast.ts";
+function attr(node: unknown, source: string): Attributes {
+  const value = nodeAttributes(node, source);
+  if (!value) fail("DOCUMENT_AST", "Некорректный Attr", source);
+  return value;
 }
 /** Валидация всех объявлений предшествует любой audience projection. */
 function normalizeDocumentWork(
@@ -120,10 +110,10 @@ function normalizeDocumentWork(
       return;
     }
     if (!object(v)) return;
+    nodeAttributes(v, context.input);
     let next = parent;
     if (
-      (v.t === "Div" || v.t === "Span" || v.t === "CodeBlock") &&
-      Array.isArray(v.c)
+      v.t === "Div" || v.t === "Span" || v.t === "CodeBlock"
     ) {
       const a = attr(v, context.input), [id, classes, pairs] = a;
       conditional ||= classes.includes("content-visible") ||
@@ -316,8 +306,20 @@ function normalizeDocumentWork(
     definitions,
     answerData.answers,
   );
+  for (const [id, declaration] of Object.entries(definitions)) {
+    const project = declaration.project;
+    if (!project?.startsWith("/projects/")) continue;
+    const expected = "exr-" + project.slice("/projects/".length).replaceAll("/", "-");
+    if (id !== expected) {
+      console.warn("WARNING: " + diagnostic(
+        "CORE.PROJECT_ID_MISMATCH",
+        `ID упражнения отличается от project: project=${project}; expected=${expected}`,
+        { source: context.input, id, field: "project" },
+      ).message);
+    }
+  }
   if (assignment) {
-    function mark(value: any, parents: object[] = []) {
+    function mark(value: unknown, parents: object[] = []) {
       if (Array.isArray(value)) {
         value.forEach((v) => mark(v, parents));
         return;
@@ -348,14 +350,14 @@ function normalizeDocumentWork(
     if (
       assignment &&
       assignment.assessments.some((p) => p.source === assignment.source) &&
-      v.t === "Div" &&
-      v.c?.[0]?.[1]?.some((c: string) =>
+      isContainer(v) && v.t === "Div" &&
+      v.c[0][1].some((c) =>
         c === "task-items" || c === "assessment-preview"
       )
     ) return undefined;
     if (
-      context.projection === "student" && v.t === "Div" &&
-      Array.isArray(v.c?.[0]?.[1]) && v.c[0][1].includes("grading-notes")
+      context.projection === "student" && isContainer(v) && v.t === "Div" &&
+      v.c[0][1].includes("grading-notes")
     ) return undefined;
     if (row) {
       const key = context.operation + ":" + (++ordinal);
@@ -370,7 +372,10 @@ function normalizeDocumentWork(
         publicSolution: row.publicSolution,
       });
     }
-    if (assignment && row?.kind === "solution") v.c[1] = [];
+    if (assignment && row?.kind === "solution") {
+      if (!isContainer(v)) fail("DOCUMENT_AST", "Некорректное solution body", context.input);
+      v.c[1] = [];
+    }
     const result = Object.fromEntries(
       Object.entries(v).map(([k, c]) => [k, project(c)]),
     );
@@ -378,7 +383,8 @@ function normalizeDocumentWork(
       assignment && row?.kind === "exercise" &&
       !Object.hasOwn(assignment.answers, row.exerciseId)
     ) {
-      (result as any).c[1].push(
+      if (!isContainer(result)) fail("DOCUMENT_AST", "Некорректное exercise body", context.input);
+      result.c[1].push(
         ...assignmentAnswerTransport(
           row.exerciseId,
           undefined,
@@ -388,25 +394,37 @@ function normalizeDocumentWork(
         ),
       );
     }
+    // Raw ответы и release facts уже проверены выше. Заголовок не должен
+    // скрыть недопустимый answer/correct в авторском исходном Header.
+    if (isContainer(result) && result.t === "Div" && result.c[0][1].includes("public-tests")) {
+      const body = result.c[1];
+      const index = body.findIndex(isHeader);
+      const previous = index >= 0 ? body[index] : undefined;
+      const heading = isHeader(previous)
+        ? { ...previous, c: [3, previous.c[1], [{ t: "Str", c: "Открытые примеры" }]] }
+        : { t: "Header", c: [3, ["", [], []], [{ t: "Str", c: "Открытые примеры" }]] };
+      if (index >= 0) body.splice(index, 1);
+      body.unshift(heading);
+    }
     if (identityNodes.has(v)) identityNodes.add(result);
     return result;
   }
-  ast.blocks = project(ast.blocks) as unknown[];
+  ast.blocks = requireNodes(project(ast.blocks), context.input);
   if (assignment) {
-    ast.blocks = assignmentPrivacy(ast.blocks, context, identityNodes);
+    ast.blocks = requireNodes(assignmentPrivacy(ast.blocks, context, identityNodes), context.input);
     const selected = assignment.assessments.filter((p) =>
       p.source === assignment.source
     );
     if (selected.length) {
-      if (selected.length !== 1 || release?.assessment?.id !== selected[0].id) {
+      if (selected.length !== 1 || release?.assessment?.id !== selected[0]!.id) {
         fail(
           "BODY.ASSESSMENT_BINDING",
           "Selected native composition отличается",
         );
       }
       const key = context.operation + ":" + context.captureWitness +
-        ":assessment:" + selected[0].id;
-      assignment.introductions.push({ key, id: selected[0].id });
+        ":assessment:" + selected[0]!.id;
+      assignment.introductions.push({ key, id: selected[0]!.id });
       ast.blocks = [{
         t: "Div",
         c: [["", [], [[assignmentIntroductionAttribute, key]]], ast.blocks],
@@ -474,8 +492,6 @@ export function normalizeDocument(
   return metrics.wrapSync({
     id: "course-core.document.normalizeDocument",
     kind: "phase",
-    document_id: args[1] && typeof args[1].input === "string"
-      ? args[1].input
-      : undefined,
+    ...(args[1] && typeof args[1].input === "string" ? { document_id: args[1].input } : {}),
   }, () => normalizeDocumentWork(...args))();
 }

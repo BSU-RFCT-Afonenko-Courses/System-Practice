@@ -5,10 +5,10 @@ import {
 } from "../runtime/assignment-execution.ts";
 import { createMetrics as __createMetrics } from "../observability/bridge.ts";
 const __metrics = __createMetrics("course-core");
-export function quartoExecutable(): string {
+function quartoExecutableWork(): string {
   return assignmentQuarto() ?? Deno.env.get("QUARTO") ?? "quarto";
 }
-export async function command(
+async function commandWork(
   executable: string,
   args: string[],
   cwd: string,
@@ -17,7 +17,7 @@ export async function command(
   return await execute(executable, args, cwd, env);
 }
 /** Внутренний transport JSON через stdin; публичный command API неизменён. */
-export async function commandInput(
+async function commandInputWork(
   executable: string,
   args: string[],
   cwd: string,
@@ -115,19 +115,12 @@ async function execute(
   return stdout;
 }
 
-// @ts-expect-error JS допускает замену function binding; сигнатура публичного API сохраняется.
-quartoExecutable = __metrics.wrapSync({
-  id: "course-core.infrastructure.process.quartoExecutable",
-  kind: "command",
-}, quartoExecutable);
-// @ts-expect-error JS допускает замену function binding; сигнатура публичного API сохраняется.
-command = __metrics.wrapAsync({
-  id: "course-core.infrastructure.process.command",
-  kind: "command",
-}, command);
-
-// @ts-expect-error JS допускает замену function binding; это внутренний transport того же command phase.
-commandInput = __metrics.wrapAsync({
-  id: "course-core.infrastructure.process.command",
-  kind: "command",
-}, commandInput);
+export const quartoExecutable = __metrics.wrapSync({
+  id: "course-core.infrastructure.process.quartoExecutable", kind: "command",
+}, quartoExecutableWork);
+export const command = __metrics.wrapAsync({
+  id: "course-core.infrastructure.process.command", kind: "command",
+}, commandWork);
+export const commandInput = __metrics.wrapAsync({
+  id: "course-core.infrastructure.process.command", kind: "command",
+}, commandInputWork);

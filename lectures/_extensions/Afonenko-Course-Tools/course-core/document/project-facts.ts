@@ -36,7 +36,7 @@ export const NativeProjectMaterializationSchema = z.strictObject({
         ? !file.target.startsWith("student/") ||
           file.target.split("/").some((p) => privateNames.has(p))
         : file.target.startsWith("student/")) ||
-      (!["student", "reference", "tests"].includes(file.target.split("/")[0]) &&
+      (!["student", "reference", "tests"].includes(file.target.split("/")[0] ?? "") &&
         !["rubric.md", "contract.md"].includes(file.target))
     ) {
       context.addIssue({
@@ -57,7 +57,7 @@ const materializationEntryInput = (source?: string) =>
       }),
     ),
     "include-git": NativeProjectMaterializationSchema.shape.includeGit,
-  }).transform((value) => ({
+  }).transform((value): z.input<typeof NativeProjectMaterializationSchema> => ({
     commonFiles: value["common-files"].map((file) => ({
       ...file,
       source: source === undefined ? file.source : posix.normalize(

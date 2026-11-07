@@ -3,23 +3,31 @@
  * исключённые ядром материалы преподавателя не восстанавливаются. */
 (() => {
   'use strict';
+  /** @type {HTMLDetailsElement[]} */
   let openedForPrint = [];
+  /** @type {Element[]} */
   let expandedForPrint = [];
   const parameters = new URLSearchParams(window.location.search);
   const printPdf = parameters.has('print-pdf');
   const initialHash = location.hash;
+  /** @type {'lecture' | 'study'} */
   let mode = parameters.get('course-mode') === 'lecture' ? 'lecture' : 'study';
-  let reveal, modeButton, notesBeforePrint, printing = false;
+  /** @type {CourseReveal | undefined} */ let reveal;
+  /** @type {HTMLButtonElement | undefined} */ let modeButton;
+  /** @type {CourseRevealConfig["showNotes"]} */ let notesBeforePrint;
+  let printing = false;
 
   function localizeQuartoLabels() {
     if (!document.documentElement.lang.startsWith('ru')) return;
+    /** @type {[string, string, string][]} */
     const labels = [
       ['#quarto-search .aa-Autocomplete[aria-label="Search"]', 'aria-label', 'Поиск'],
       ['#quarto-search button[title="Search"]', 'title', 'Поиск'],
       ['.anchorjs-link[aria-label="Anchor"]', 'aria-label', 'Ссылка на раздел'],
     ];
+    /** @param {Node} root */
     const localize = root => {
-      if (root.nodeType !== Node.ELEMENT_NODE) return;
+      if (!(root instanceof Element)) return;
       for (const [selector, attribute, text] of labels) {
         if (root.matches(selector)) root.setAttribute(attribute, text);
         root.querySelectorAll(selector).forEach(node => node.setAttribute(attribute, text));
@@ -43,10 +51,12 @@
       placeholder.textContent = 'Заметок к этому слайду нет.';
     }
     panel.querySelectorAll('[id]').forEach(node => {
-      node.dataset.courseNoteId = node.id; node.removeAttribute('id');
+      node.setAttribute('data-course-note-id', node.id); node.removeAttribute('id');
     });
   }
+  /** @param {'lecture' | 'study'} next */
   function setMode(next) {
+    if (!modeButton || !reveal) return;
     mode = next;
     document.body.dataset.courseMode = mode;
     const ru = !document.documentElement.lang.startsWith('en');
@@ -56,6 +66,7 @@
     normalizeNotes();
     document.dispatchEvent(new CustomEvent('course-mode-change', {detail: {mode}}));
   }
+  /** @param {Element} target */
   function exposeNote(target) {
     if (!reveal || !target.closest('aside.notes')) return null;
     const slide = target.closest('section');
@@ -69,6 +80,7 @@
     return identified && panel?.querySelector(`[data-course-note-id="${CSS.escape(identified.id)}"]`) || panel;
   }
   window.CoursePresentation = {exposeNote};
+  /** @param {CourseReveal} deck */
   function initializeReveal(deck) {
     reveal = deck;
     if (printPdf || reveal.isSpeakerNotes()) { reveal.configure({showNotes: false}); return; }
@@ -92,10 +104,10 @@
     if (panel) {
       new MutationObserver(normalizeNotes).observe(panel, {childList: true, subtree: true});
       panel.addEventListener('toggle', event => {
-        if (event.target.tagName !== 'DETAILS') return;
+        if (!(event.target instanceof HTMLDetailsElement)) return;
         const index = Array.from(panel.querySelectorAll('details')).indexOf(event.target);
-        const original = reveal.getCurrentSlide()?.querySelectorAll('aside.notes details')[index];
-        if (original) original.open = event.target.open;
+        const original = deck.getCurrentSlide()?.querySelectorAll('aside.notes details')[index];
+        if (original instanceof HTMLDetailsElement) original.open = event.target.open;
       }, true);
     }
     setMode(mode);
@@ -107,7 +119,7 @@
     document.querySelectorAll('.panel-tabset > .tab-content > div').forEach((panel) => {
       if (panel.querySelector(':scope > .course-print-tab-title')) return;
       const label = panel.getAttribute('aria-labelledby');
-      const tab = (label && document.getElementById(label)) || [...panel.parentElement.parentElement.querySelectorAll('a[href]')].find((link) => link.hash === '#' + panel.id);
+      const tab = (label && document.getElementById(label)) || [...(panel.parentElement?.parentElement?.querySelectorAll('a[href]') || [])].find((link) => link instanceof HTMLAnchorElement && link.hash === '#' + panel.id);
       if (!tab) return;
       const title = document.createElement('div');
       title.className = 'course-print-tab-title';
@@ -121,6 +133,7 @@
     printing = true;
     if (reveal) { notesBeforePrint = reveal.getConfig().showNotes; reveal.configure({showNotes: false}); }
     document.querySelectorAll('details:not([open])').forEach((element) => {
+      if (!(element instanceof HTMLDetailsElement)) return;
       openedForPrint.push(element);
       element.open = true;
     });

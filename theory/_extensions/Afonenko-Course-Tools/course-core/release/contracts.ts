@@ -174,3 +174,7 @@ export const NativeReleaseValidationSchema = z.strictObject({
 export type NativeReleaseValidation = z.output<
   typeof NativeReleaseValidationSchema
 >;
+
+export type Assignment = z.output<typeof AssignmentSchema>;
+export type AssessmentSlot = z.output<typeof AssessmentSlotSchema>;
+export type AssessmentComposition = z.output<typeof AssessmentCompositionSchema>;

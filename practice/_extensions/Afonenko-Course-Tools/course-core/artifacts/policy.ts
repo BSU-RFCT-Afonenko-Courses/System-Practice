@@ -59,4 +59,5 @@ export function artifactTargetIssue(
       };
     }
   }
+  return undefined;
 }

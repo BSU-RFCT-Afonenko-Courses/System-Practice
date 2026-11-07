@@ -3,8 +3,9 @@ const __metrics=__createMetrics("course-core");
 import { diagnostic } from "../domain/diagnostics.ts";
 import { decodeAnswerYaml, projectAnswer } from "../document/answers.ts";
 import { AnswerFactsSchema } from "../document/answer-contracts.ts";
+import { isBulletList, isContainer, isRecord, requireNodes } from "../document/native-ast.ts";
 import type { Node } from "./model.ts";
-export async function validateAnswer(source: string, context: {source?: string; id?: string} = {}) {
+async function validateAnswerWork(source: string, context: {source?: string; id?: string} = {}) {
   try {
     const data = decodeAnswerYaml(source, context.source ?? "answer");
     return {publicAnswer: projectAnswer(data), closedKey: data, answerType: data.type};
@@ -14,27 +15,12 @@ export async function validateAnswer(source: string, context: {source?: string; 
   }
 }
 
-export async function projectChoice(
+async function projectChoiceWork(
   b: Node,
   context: { source?: string; id?: string } = {},
 ) {
-  const content = b.c;
-  const attrs: unknown = Array.isArray(content) && Array.isArray(content[0])
-    ? content[0][2]
-    : undefined;
-  const blocks: unknown = Array.isArray(content) ? content[1] : undefined;
-  const list: unknown = Array.isArray(blocks) && blocks.length === 1
-    ? blocks[0]
-    : undefined;
-  if (
-    !Array.isArray(attrs) ||
-    !attrs.some((x: unknown) =>
-      Array.isArray(x) && x[0] === "type" && x[1] === "single-choice"
-    ) ||
-    !list || typeof list !== "object" || !("t" in list) ||
-    list.t !== "BulletList" ||
-    !("c" in list) || !Array.isArray(list.c)
-  ) {
+  const list = isContainer(b) && b.c[1].length === 1 ? b.c[1][0] : undefined;
+  if (!isContainer(b) || !b.c[0][2].some(([key, value]) => key === "type" && value === "single-choice") || !isBulletList(list)) {
     throw diagnostic(
       "ADAPTER",
       "Компонент Core/projectChoice: неподдерживаемая структура ответа single-choice",
@@ -42,25 +28,32 @@ export async function projectChoice(
     );
   }
   let correct = -1, count = 0;
-  const strip = (v: any, index: number): any => {
+  const strip = (v: unknown, index: number): unknown => {
     if (Array.isArray(v)) {
       return v.flatMap((x) => {
-        if (x?.t === "Span" && x.c[0][1].includes("correct")) {
-          correct = index;
-          count++;
-          return strip(x.c[1], index);
+        if (isRecord(x) && x.t === "Span") {
+          if (!isContainer(x)) {
+            throw diagnostic("ANSWER_INVALID", "Повреждённый native Span в single-choice", {
+              ...context, field: "answer",
+            });
+          }
+          if (x.c[0][1].includes("correct")) {
+            correct = index;
+            count++;
+            return strip(x.c[1], index);
+          }
         }
         return [strip(x, index)];
       });
     }
-    if (v && typeof v === "object") {
+    if (isRecord(v)) {
       return Object.fromEntries(
         Object.entries(v).map(([k, x]) => [k, strip(x, index)]),
       );
     }
     return v;
   };
-  const clean = list.c.map((c: any, i: number) => strip(c, i));
+  const clean = list.c.map((c, i) => requireNodes(strip(c, i)));
   const parsed = AnswerFactsSchema.safeParse({
     type: "single-choice",
     count: clean.length,
@@ -81,7 +74,5 @@ export async function projectChoice(
   };
 }
 
-// @ts-expect-error JS допускает замену function binding; сигнатура публичного API сохраняется.
-validateAnswer=__metrics.wrapAsync({id:"course-core.body-export.answer.validateAnswer",kind:"phase"},validateAnswer);
-// @ts-expect-error JS допускает замену function binding; сигнатура публичного API сохраняется.
-projectChoice=__metrics.wrapAsync({id:"course-core.body-export.answer.projectChoice",kind:"phase"},projectChoice);
+export const validateAnswer = __metrics.wrapAsync({id:"course-core.body-export.answer.validateAnswer",kind:"phase"}, validateAnswerWork);
+export const projectChoice = __metrics.wrapAsync({id:"course-core.body-export.answer.projectChoice",kind:"phase"}, projectChoiceWork);

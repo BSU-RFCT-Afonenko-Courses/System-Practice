@@ -10,32 +10,23 @@ import type {
 } from "./contracts.ts";
 import type { AssignmentEarly } from "./assignment-contracts.ts";
 const bad = (s: string): never => fail("BODY.ANSWER_OCCURRENCE_MISMATCH", s);
-const attr = (n: any) =>
-  ["Div", "Span", "CodeBlock"].includes(n?.t) ? n.c?.[0] : undefined;
-const field = (n: any, key: string) =>
-  attr(n)?.[2]?.find(([k]: string[]) => k === key)?.[1];
-function walk(v: any, visit: (v: any) => void) {
+import { isRecord, isContainer, nodeAttributes as attr, requireNodes } from "./native-ast.ts";
+import type { ContainerNode } from "./native-ast.ts";
+const field = (n: unknown, key: string) => attr(n)?.[2].find(([k]) => k === key)?.[1];
+function walk(v: unknown, visit: (v: Record<string, unknown>) => void) {
   if (Array.isArray(v)) v.forEach((x) => walk(x, visit));
-  else if (v && typeof v === "object") {
+  else if (isRecord(v)) {
     visit(v);
     Object.values(v).forEach((x) => walk(x, visit));
   }
 }
-function clean(v: any, removeAnswer = false): any {
-  if (Array.isArray(v)) {
-    return v.map((x) => clean(x, removeAnswer)).filter((x) => x !== undefined);
-  }
-  if (!v || typeof v !== "object") return v;
+function clean(v: unknown, removeAnswer = false): unknown {
+  if (Array.isArray(v)) return v.map((x) => clean(x, removeAnswer)).filter((x) => x !== undefined);
+  if (!isRecord(v)) return v;
   if (removeAnswer && field(v, assignmentAnswerAttribute)) return undefined;
-  const out = Object.fromEntries(
-    Object.entries(v).map(([k, x]) => [k, clean(x, removeAnswer)]),
-  );
+  const out = Object.fromEntries(Object.entries(v).map(([k, x]) => [k, clean(x, removeAnswer)]));
   const a = attr(out);
-  if (a) {
-    a[2] = a[2].filter(([k]: string[]) =>
-      k !== assignmentAnchorAttribute && k !== assignmentAnswerAttribute
-    );
-  }
+  if (a) a[2] = a[2].filter(([k]) => k !== assignmentAnchorAttribute && k !== assignmentAnswerAttribute);
   return out;
 }
 export function finalizeAssignment(
@@ -66,7 +57,7 @@ export function finalizeAssignment(
       );
     }
     found.add(row.key);
-    introductions[row.id] = clean(row.body);
+    introductions[row.id] = requireNodes(clean(row.body));
   }
   if (found.size !== early.assignment.introductions.length) {
     fail(
@@ -90,17 +81,19 @@ export function finalizeAssignment(
     if (candidates.length !== 1) {
       bad("Требуется ровно один exercise occurrence " + id);
     }
-    const row = candidates[0], wrappers: any[] = [];
+    const row = candidates[0]!;
+    const wrappers: ContainerNode[] = [];
     walk(row.body, (v) => {
       const key = field(v, assignmentAnswerAttribute);
       if (key !== undefined) {
-        if (v.t !== "Div" || key !== expected.key) bad("Чужой answer witness");
+        if (!isContainer(v) || v.t !== "Div" || key !== expected.key) return bad("Чужой answer witness");
         wrappers.push(v);
       }
     });
     if (wrappers.length !== 1) bad("Missing/duplicate answer wrapper " + id);
+    const wrapper = wrappers[0]!;
     const anchors: string[] = [];
-    walk(wrappers[0].c[1], (v) => {
+    walk(wrapper.c[1], (v) => {
       const key = field(v, assignmentAnchorAttribute);
       if (key !== undefined) {
         if (attr(v)?.[0] !== key) bad("Answer anchor/identity mismatch");
@@ -112,14 +105,14 @@ export function finalizeAssignment(
     }
     for (const slot of expected.responseSlots) {
       if (slot.labelAnchor) {
-        let label: any;
-        walk(wrappers[0].c[1], (v) => {
-          if (attr(v)?.[0] === slot.labelAnchor) label = v;
+        let label: ContainerNode | undefined;
+        walk(wrapper.c[1], (v) => {
+          if (attr(v)?.[0] === slot.labelAnchor && isContainer(v)) label = v;
         });
         let content = false;
         walk(label?.c?.[1], (v) => {
           if (
-            ["Str", "Image", "Math", "Code", "CodeBlock"].includes(v.t) &&
+            typeof v.t === "string" && ["Str", "Image", "Math", "Code", "CodeBlock"].includes(v.t) &&
             v.c !== "" && JSON.stringify(v.c) !== "[]"
           ) content = true;
         });
@@ -131,10 +124,10 @@ export function finalizeAssignment(
     answers[id] = {
       type: expected.type,
       declared: expected.declared,
-      publicAnswer: clean(wrappers[0].c[1]),
+      publicAnswer: requireNodes(clean(wrapper.c[1])),
       responseSlots: structuredClone(expected.responseSlots),
     };
-    row.body = clean(row.body, true);
+    row.body = requireNodes(clean(row.body, true));
   }
   const { introductions: _earlyIntro, answers: _earlyAnswers, ...rest } =
     early.assignment;

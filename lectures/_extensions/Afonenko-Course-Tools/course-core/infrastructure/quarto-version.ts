@@ -14,6 +14,6 @@ export const SupportedQuartoVersionSchema = z.string().refine((value) => {
       /^\d+$/.test(part) && part.length > 1 && part.startsWith("0")
     )
   ) return false;
-  const order = parts[0] - 1 || parts[1] - 11 || parts[2] - 5;
+  const order = parts[0]! - 1 || parts[1]! - 11 || parts[2]! - 5;
   return order > 0 || (order === 0 && !match[4]);
 }, "Требуется версия Quarto >=1.11.5");

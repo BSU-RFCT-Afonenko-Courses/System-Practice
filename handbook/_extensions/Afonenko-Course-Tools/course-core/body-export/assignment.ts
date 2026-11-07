@@ -16,6 +16,7 @@ import {
 } from "./producer.ts";
 import type { BodyReferenceContext } from "./links.ts";
 import type { BodyPackage, Node, PublicBodyPackage } from "./model.ts";
+import { isRecord, isLink, nodeAttributes, requireNodes } from "../document/native-ast.ts";
 export type AssignmentBodyCache = {
   questions: Map<string, { condition: Node[]; publicAnswer: Node[] }>;
   introductions: Map<string, Node[]>;
@@ -25,13 +26,13 @@ type Resource = { bytes: Uint8Array; identity: string };
 export async function buildAssignmentBody(input: {
   root: string;
   owner: string;
-  cache?: AssignmentBodyCache;
+  cache?: AssignmentBodyCache | undefined;
   work: {
     source: string;
     composition: NonNullable<NativeReleaseFacts["assessment"]>;
   };
   documents: readonly NativePublicDocument[];
-  references?: BodyReferenceContext;
+  references?: BodyReferenceContext | undefined;
   assertPublicResource: (absolute: string) => void;
   assertCitationResource: (
     source: string,
@@ -70,7 +71,7 @@ export async function buildAssignmentBody(input: {
   let overview = input.cache?.introductions.get(introKey);
   if (!overview) {
     overview = await preparePublicIntroduction(
-      workDoc.assignment.introductions[composition.id] as Node[],
+      requireNodes(workDoc.assignment.introductions[composition.id]),
       await documentMeta(workDoc),
       root,
       { source: work.source, id: composition.id },
@@ -100,7 +101,7 @@ export async function buildAssignmentBody(input: {
         "Кандидат не принадлежит одному native bank " + id,
       );
     }
-    const doc = docs[0],
+    const doc = docs[0]!,
       rows = doc.occurrences.filter((r) =>
         r.kind === "exercise" && r.exerciseId === id
       ),
@@ -109,8 +110,8 @@ export async function buildAssignmentBody(input: {
       fail("BODY.ANSWER_OCCURRENCE_MISMATCH", "Нет exact late candidate " + id);
     }
     const source = doc.context.input,
-      declaration = doc.definitions[id],
-      row = rows[0];
+      declaration = doc.definitions[id]!,
+      row = rows[0]!;
     if (
       JSON.stringify(doc.pandocApiVersion) !== JSON.stringify(pkg.apiVersion)
     ) {
@@ -120,8 +121,8 @@ export async function buildAssignmentBody(input: {
     let prepared = input.cache?.questions.get(questionKey);
     if (!prepared) {
       prepared = await preparePublicQuestion(
-        publicCondition(row.body as Node[], !!row.title?.length),
-        answer.publicAnswer as Node[],
+        publicCondition(requireNodes(row.body), !!row.title?.length),
+        requireNodes(answer.publicAnswer),
         await documentMeta(doc),
         root,
         { source, id },
@@ -133,15 +134,16 @@ export async function buildAssignmentBody(input: {
     prepared = structuredClone(prepared);
     const links = new Set<string>(), resources = new Set<string>();
     const body = [...prepared.condition, ...prepared.publicAnswer];
-    function uses(v: any) {
+    function uses(v: unknown) {
       if (Array.isArray(v)) {
         v.forEach(uses);
         return;
       }
-      if (!v || typeof v !== "object") {
+      if (!isRecord(v)) {
         return;
       }
-      if (v.t === "Link" || v.t === "Image") {
+      nodeAttributes(v);
+      if (isLink(v)) {
         (v.t === "Link" ? links : resources).add(v.c[2][0]);
       }
       Object.values(v).forEach(uses);
@@ -227,7 +229,7 @@ export async function buildAssignmentBody(input: {
     collect(question.condition, question.source);
     collect(question.publicAnswer, question.source);
   }
-  collect(pkg.works[0].introduction!, work.source);
+  collect(pkg.works[0]!.introduction!, work.source);
   const targets = new Map<string, string>(),
     physical = new Map<string, string>();
   for (const [path, source] of uses) {
@@ -266,7 +268,7 @@ export async function buildAssignmentBody(input: {
     );
   }
   publicResourceUses(
-    pkg.works[0].introduction!,
+    pkg.works[0]!.introduction!,
     root,
     work.source,
     dirname(resolve(root, work.source)),

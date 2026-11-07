@@ -2,10 +2,12 @@ import type { NativePublicDocument, NativeCatalog } from "../course-core/public.
 import { nativeMetadata } from "../course-core/release/collect.ts";
 const esc=(s:string)=>s.replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]!));
 export interface ExerciseIndexRequest {role?:"demonstration"|"discussion"|"independent-study"|"control";groupBy?:("semester"|"difficulty")[]}
-const text = (v: any): string => Array.isArray(v) ? v.map(text).join("") : v && typeof v === "object" ? v.t === "Str" ? String(v.c) : ["Space","SoftBreak","LineBreak"].includes(v.t) ? " " : text(v.c) : typeof v === "string" ? v : "";
+import { isRecord } from "../course-core/document/native-ast.ts";
+const text = (v: unknown): string => Array.isArray(v) ? v.map(text).join("") : isRecord(v) ? v.t === "Str" ? String(v.c) : typeof v.t === "string" && ["Space","SoftBreak","LineBreak"].includes(v.t) ? " " : text(v.c) : typeof v === "string" ? v : "";
 /** Указатель — представление фактически выживших native occurrences, не второй Course. */
-export function renderExerciseIndex(documents: readonly NativePublicDocument[], catalog: NativeCatalog, topics: ReadonlyMap<string, Record<string, unknown>>, link:(source:string,anchor:string)=>string,request:ExerciseIndexRequest={}):string{
- if(Object.keys(request).some(k=>!['role','groupBy'].includes(k)) || request.role&&!['demonstration','discussion','independent-study','control'].includes(request.role))throw Error('Unknown course-exercise-index parameter/role');
+export function renderExerciseIndex(documents: readonly NativePublicDocument[], catalog: NativeCatalog, topics: ReadonlyMap<string, Record<string, unknown>>, link:(source:string,anchor:string)=>string,request:unknown={}):string{
+ if(!isRecord(request))throw Error('Invalid course-exercise-index request');
+ if(Object.keys(request).some(k=>!['role','groupBy'].includes(k)) || request.role!==undefined&&(typeof request.role!=='string'||!['demonstration','discussion','independent-study','control'].includes(request.role)))throw Error('Unknown course-exercise-index parameter/role');
  const groupBy=request.groupBy??['semester','difficulty'];
  if(!Array.isArray(groupBy)||!groupBy.length||new Set(groupBy).size!==groupBy.length||groupBy.some(g=>g!=='semester'&&g!=='difficulty'))throw Error('Invalid course-exercise-index group-by');
  const rows=documents.flatMap(doc=>{
@@ -21,7 +23,7 @@ export function renderExerciseIndex(documents: readonly NativePublicDocument[], 
    const captured=catalog.documents.find(row=>row.source===source&&row.format===doc.context.format)?.exercises.find(row=>row.occurrence===occ.key);
    if(!captured)throw Error('Index occurrence absent in current catalog');
    const title=text(occ.title)||occ.exerciseId;
-   return [{id:occ.exerciseId,source,anchor:captured.anchor,title,difficulty:d.difficulty,time:d.time,semester:semester??'',categories:(categories??[]) as string[]}];
+   return [{id:occ.exerciseId,source,anchor:captured.anchor,title,difficulty:d.difficulty,time:d.time,semester:semester??'',categories:Array.isArray(categories) ? categories.filter((v): v is string => typeof v === 'string') : []}];
   });
  });
  const grouped=new Map<string,typeof rows>();

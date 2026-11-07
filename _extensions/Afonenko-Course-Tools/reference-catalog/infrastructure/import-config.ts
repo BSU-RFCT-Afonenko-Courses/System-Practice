@@ -1,17 +1,13 @@
 import { diagnostic, type DiagnosticContext } from "../diagnostics.ts";
-import type { ReferenceStyle } from "../domain/model.ts";
 import { normalizeCatalogSource } from "./catalog-source.ts";
 
 import {
   importKeys,
+  isReferenceStyle,
   namespacePattern,
   referenceStyles,
 } from "../domain/contract.ts";
 export { referenceStyles };
-function isReferenceStyle(value: unknown): value is ReferenceStyle {
-  const values: readonly unknown[] = referenceStyles;
-  return values.includes(value);
-}
 export function isRecord(value: unknown): value is Record<string, unknown> {
   return value !== null && typeof value === "object" && !Array.isArray(value);
 }
@@ -90,7 +86,7 @@ export function parseImports(
       );
     }
     for (const key of Object.keys(item)) {
-      if (!(importKeys as readonly string[]).includes(key)) {
+      if (!importKeys.some(name => name === key)) {
         throw invalid(
           `неизвестное свойство импорта ${namespace}.${key}`,
           `${key}`,

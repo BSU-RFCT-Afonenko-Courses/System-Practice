@@ -45,7 +45,7 @@ async function currentFiles(root: string, stage: string, outputs: string[] | und
   } catch (error) { if (!(error instanceof Deno.errors.NotFound)) throw error; }
   return paths;
 }
-export async function publish(context: CatalogPublication): Promise<void> {
+async function publishImpl(context: CatalogPublication): Promise<void> {
   const { root, stage, quarto, members } = context;
   const extension = dirname(dirname(fromFileUrl(import.meta.url)));
   const htmlMembers = members.filter(member => member.format === "html" || member.format === "revealjs");
@@ -96,10 +96,9 @@ export async function publish(context: CatalogPublication): Promise<void> {
     }
     await Deno.writeTextFile(join(stage, "search.json"), JSON.stringify([...rows.values()], null, 2) + "\n");
   }
-  const catalog: Catalog = { schema: "quarto-reference-catalog", generator: { quarto }, publication: config.publication, targets: exported };
+  const catalog: Catalog = { schema: "quarto-reference-catalog", generator: { quarto }, ...(config.publication === undefined ? {} : { publication: config.publication }), targets: exported };
   await Deno.writeTextFile(join(stage, context.scope === "local" ? "reference-catalog-local.json" : "reference-catalog.json"), JSON.stringify(catalog, null, 2) + "\n");
   console.log(`QRC разрешено ссылок: ${linked.links}; отложено ссылок: ${linked.deferred}; целей: ${linked.targets.size}; страниц: ${pages.length}`);
 }
 
-// @ts-expect-error JS допускает замену function binding; сигнатура публичного API сохраняется.
-publish=__metrics.wrapAsync({id:"reference-catalog.infrastructure.publish.publish",kind:"io"},publish);
+export const publish = __metrics.wrapAsync({id:"reference-catalog.infrastructure.publish.publish",kind:"io"},publishImpl);

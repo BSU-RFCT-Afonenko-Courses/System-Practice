@@ -9,6 +9,7 @@ function chapterSpan(value: unknown, name: string): unknown[] | undefined {
     Array.isArray(attr[1]) && attr[1].length === 1 && attr[1][0] === name &&
     Array.isArray(attr[2]) && attr[2].length === 0 && Array.isArray(body)
   ) return body;
+  return undefined;
 }
 
 const whitespace = (value: unknown): boolean =>

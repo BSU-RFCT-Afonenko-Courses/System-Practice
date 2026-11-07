@@ -12,50 +12,28 @@ import { assertReferenceTargets, resolveReferences } from "./references.ts";
 import { type BodyReferenceContext, publicLinks } from "./links.ts";
 import { BodyPackageSchema } from "./package-contracts.ts";
 export type { BodyPackage, PublicBodyPackage } from "./model.ts";
-const isNode = (value: unknown): value is Node =>
-  value !== null && typeof value === "object" && "t" in value &&
-  typeof value.t === "string";
-const nodes = (value: unknown): value is Node[] =>
-  Array.isArray(value) && value.every(isNode);
-type Attributes = [string, string[], [string, string][]];
-const attributes = (value: unknown): value is Attributes =>
-  Array.isArray(value) && typeof value[0] === "string" &&
-  Array.isArray(value[1]) && value[1].every((v: unknown) =>
-    typeof v === "string"
-  ) &&
-  Array.isArray(value[2]) && value[2].every((v: unknown) =>
-    Array.isArray(v) && v.length === 2 &&
-    v.every((x: unknown) => typeof x === "string")
-  );
-const attr = (n: Node): Attributes | undefined => {
-  if (!Array.isArray(n.c)) return;
-  const value: unknown = n.t === "Header"
-    ? n.c[1]
-    : ["Div", "Span", "CodeBlock", "Code", "Link", "Image"].includes(n.t)
-    ? n.c[0]
-    : undefined;
-  return attributes(value) ? value : undefined;
-};
-const classes = (n: Node) => attr(n)?.[1] || [];
-function titleTargets(value: any): Node[] {
+import { isNode, isNodes as nodes, isRecord, isContainer, isLink, nodeAttributes as attr, requireNodes } from "../document/native-ast.ts";
+import type { ContainerNode } from "../document/native-ast.ts";
+const classes = (n: unknown) => attr(n)?.[1] || [];
+function titleTargets(value: unknown): Node[] {
   if (Array.isArray(value)) return value.flatMap(titleTargets);
-  if (!value || typeof value !== "object") return [];
+  if (!isRecord(value)) return [];
   const id = attr(value)?.[0];
   return [
     ...(id ? [{ t: "Span", c: [[id, [], []], []] }] : []),
     ...Object.values(value).flatMap(titleTargets),
   ];
 }
-const solution = (n: Node) =>
-  n.t === "Div" &&
-  (classes(n).includes("solution") || attr(n)?.[0]?.startsWith("sol-"));
+const solution = (n: unknown): n is ContainerNode =>
+  isContainer(n) && n.t === "Div" &&
+  (classes(n).includes("solution") || n.c[0][0].startsWith("sol-"));
 /** Quarto 1.11.5 HTML markdown pipelines transport navigation/social metadata
  * through these two hidden envelopes. They are not authored public body blocks.
  * Match the pinned writer's whole holder shape; ordinary hidden content stays. */
-function quartoMarkdownEnvelope(node: Node): boolean {
+function quartoMarkdownEnvelope(node: unknown): boolean {
   const outer = attr(node);
   if (
-    node.t !== "Div" || !outer ||
+    !isContainer(node) || node.t !== "Div" || !outer ||
     !["quarto-navigation-envelope", "quarto-meta-markdown"].includes(
       outer[0],
     ) ||
@@ -68,8 +46,8 @@ function quartoMarkdownEnvelope(node: Node): boolean {
     return ["Span", "Div"].includes(value?.t) && a?.[0] === "" &&
       a[1]?.length === 2 && a[1].includes("hidden") &&
       a[1].includes("quarto-markdown-envelope-contents") &&
-      a[2]?.length === 1 && a[2][0][0] === "render-id" &&
-      typeof a[2][0][1] === "string" && a[2][0][1].length > 0 &&
+      a[2]?.length === 1 && a[2][0]?.[0] === "render-id" &&
+      typeof a[2][0]?.[1] === "string" && a[2][0][1].length > 0 &&
       Array.isArray(value.c) && nodes(value.c[1]);
   };
   return node.c[1].every((block: Node) =>
@@ -79,13 +57,13 @@ function quartoMarkdownEnvelope(node: Node): boolean {
   );
 }
 const omitted = Symbol("omitted");
-function partition(value: any, banks: Node[], solutions: Node[]): any {
+function partition(value: unknown, banks: Node[], solutions: Node[]): unknown {
   if (Array.isArray(value)) {
     return value.map((v) => partition(v, banks, solutions)).filter((v) =>
       v !== omitted
     );
   }
-  if (!value || typeof value !== "object") return value;
+  if (!isRecord(value)) return value;
   if (quartoMarkdownEnvelope(value)) return omitted;
   // Контекстный Download зависит от страницы/audience. Full ZIP не становится
   // публичным ресурсом вопроса, даже если файл существует на диске.
@@ -102,6 +80,7 @@ function partition(value: any, banks: Node[], solutions: Node[]): any {
     value.t === "CodeBlock" && classes(value).includes("answer-spec") ||
     value.t === "Div" && classes(value).includes("answer")
   ) {
+    if (!isNode(value)) throw diagnostic("DOCUMENT_AST", "Повреждённый банк ответа", {});
     banks.push(value);
     return omitted;
   }
@@ -116,11 +95,11 @@ function partition(value: any, banks: Node[], solutions: Node[]): any {
     Object.entries(value).map(([k, v]) => [k, partition(v, banks, solutions)]),
   );
 }
-function introduction(value: any): any {
+function introduction(value: unknown): unknown {
   if (Array.isArray(value)) {
     return value.map(introduction).filter((v) => v !== omitted);
   }
-  if (!value || typeof value !== "object") return value;
+  if (!isRecord(value)) return value;
   if (
     value.t === "Div" && (attr(value)?.[0]?.startsWith("exr-") ||
       classes(value).some((c: string) =>
@@ -135,12 +114,12 @@ const supported = new Set(
   "Str Space SoftBreak LineBreak Emph Strong Underline Strikeout Superscript Subscript SmallCaps Quoted Code Math Link Image Span Para Plain BlockQuote OrderedList BulletList DefinitionList HorizontalRule Table Figure Header Div CodeBlock AlignLeft AlignRight AlignCenter AlignDefault ColWidth ColWidthDefault Decimal DefaultStyle DefaultDelim Period OneParen TwoParens InlineMath DisplayMath SingleQuote DoubleQuote"
     .split(" "),
 );
-function assertSupported(value: any, context: DiagnosticContext) {
+function assertSupported(value: unknown, context: DiagnosticContext) {
   if (Array.isArray(value)) {
     value.forEach((v) => assertSupported(v, context));
     return;
   }
-  if (!value || typeof value !== "object") return;
+  if (!isRecord(value)) return;
   const reference = attr(value)?.[2]?.find((pair: string[]) =>
     pair[0] === "data-qrc-ref"
   )?.[1];
@@ -151,7 +130,7 @@ function assertSupported(value: any, context: DiagnosticContext) {
       context,
     );
   }
-  if (value.t && !supported.has(value.t)) {
+  if (typeof value.t === "string" && !supported.has(value.t)) {
     throw diagnostic(
       "BODY.CAPABILITY_UNSUPPORTED",
       "Body не поддерживает этот тип узла: " + value.t,
@@ -176,7 +155,7 @@ function assertSupported(value: any, context: DiagnosticContext) {
 export async function preparePublicQuestion(
   condition: Node[],
   publicAnswer: Node[],
-  document: any,
+  document: unknown,
   root: string,
   context: DiagnosticContext,
   references?: BodyReferenceContext,
@@ -196,9 +175,11 @@ export async function preparePublicQuestion(
     { ...context, field: "condition/publicAnswer" },
     effectiveBase,
   );
+  const conditionFragment = fragments[0], answerFragment = fragments[1];
+  if (!isContainer(conditionFragment) || !isContainer(answerFragment)) throw diagnostic("DOCUMENT_AST", "Потеряна оболочка публичного фрагмента", context);
   const result = {
-    condition: [...fragments[0].c[1], ...fragments.slice(2)],
-    publicAnswer: fragments[1].c[1],
+    condition: [...conditionFragment.c[1], ...fragments.slice(2)],
+    publicAnswer: answerFragment.c[1],
   };
   assertReferenceTargets([...result.condition, ...result.publicAnswer], {
     ...context,
@@ -210,14 +191,14 @@ export async function preparePublicQuestion(
 }
 export async function preparePublicIntroduction(
   blocks: Node[],
-  document: any,
+  document: unknown,
   root: string,
   context: DiagnosticContext,
   references?: BodyReferenceContext,
   effectiveBase?: string,
 ) {
   const result = await resolveReferences(
-    await publicLinks(introduction(partition(blocks, [], [])), {
+    await publicLinks(requireNodes(introduction(partition(blocks, [], []))), {
       ...context,
       field: "introduction",
     }, references),
@@ -230,32 +211,33 @@ export async function preparePublicIntroduction(
   assertSupported(result, { ...context, field: "introduction" });
   return result;
 }
-export async function assertBodyPackage(pkg: BodyPackage, root: string) {
+export async function assertBodyPackage(pkg: unknown, root: string) {
   const parsed = BodyPackageSchema.safeParse(pkg);
   if (!parsed.success) {
     const issue = parsed.error.issues[0];
-    throw diagnostic("BODY.PACKAGE_INVALID", issue.message, {
+    throw diagnostic("BODY.PACKAGE_INVALID", (issue?.message ?? "Некорректный Body package"), {
       source: root,
-      field: issue.path.join("."),
+      field: issue?.path.join(".") ?? "",
     }, parsed.error);
   }
 }
 
 export function publicResourceUses(
-  value: any,
+  value: unknown,
   root: string,
   source: string,
   effectiveBase?: string,
   targets?: Map<string, string>,
 ): string[] {
   const selected: string[] = [];
-  function scan(v: any) {
+  function scan(v: unknown) {
     if (Array.isArray(v)) {
       v.forEach(scan);
       return;
     }
-    if (!v || typeof v !== "object") return;
-    if (["Image", "Link"].includes(v.t)) {
+    if (!isRecord(v)) return;
+    attr(v);
+    if (isLink(v)) {
       const url = v.c[2][0];
       if (
         !/^(?:[a-z][a-z0-9+.-]*:|\/\/|#)/i.test(url) &&
@@ -268,14 +250,14 @@ export function publicResourceUses(
             { source, field: "resource" },
           );
         }
-        const path = decodeURIComponent(url.split(/[?#]/)[0]);
+        const path = decodeURIComponent(url.split(/[?#]/)[0] ?? "");
         const absolute = path.startsWith("/")
           ? resolve(root, path.slice(1))
           : resolve(effectiveBase, path);
         if (targets) {
           const target = targets.get(absolute);
           if (target) {
-            v.c[2][0] = target + url.slice(url.split(/[?#]/)[0].length);
+            v.c[2][0] = target + url.slice((url.split(/[?#]/)[0] ?? "").length);
           }
         } else selected.push(relative(root, absolute));
       }
@@ -299,17 +281,17 @@ export function publicCondition(blocks: Node[], hasCanonicalTitle: boolean) {
   // Quarto's crossref writer prepends this anonymous caption to the first
   // paragraph. Strip only that native prefix, keeping any authored tail.
   if (
-    ["Para", "Plain"].includes(opening?.t) && prefix?.t === "Span" &&
+    opening && ["Para", "Plain"].includes(opening.t) && prefix?.t === "Span" &&
     prefixAttr?.[0] === "" && prefixAttr[1].length === 1 &&
     prefixAttr[1][0] === "theorem-title" && prefixAttr[2].length === 0 &&
     Array.isArray(prefix.c) && nodes(prefix.c[1]) &&
-    prefix.c[1].length === 1 && prefix.c[1][0].t === "Strong"
+    prefix.c[1].length === 1 && prefix.c[1][0]?.t === "Strong"
   ) {
     nativeTitleConsumed = true;
     prefixTargets = titleTargets(prefix);
     const tail = inlines!.slice(1);
     while (
-      tail.length && (["Space", "SoftBreak", "LineBreak"].includes(tail[0].t) ||
+      tail[0] && (["Space", "SoftBreak", "LineBreak"].includes(tail[0].t) ||
         tail[0].t === "Str" && typeof tail[0].c === "string" &&
           !tail[0].c.trim())
     ) tail.shift();
@@ -332,5 +314,5 @@ export function publicCondition(blocks: Node[], hasCanonicalTitle: boolean) {
   if (prefixTargets.length) {
     authoredCondition.unshift({ t: "Plain", c: prefixTargets });
   }
-  return partition(authoredCondition, [], []);
+  return requireNodes(partition(authoredCondition, [], []));
 }

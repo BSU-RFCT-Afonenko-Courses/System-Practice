@@ -1,9 +1,9 @@
 export interface DiagnosticContext {
-  source?: string;
-  id?: string;
-  field?: string;
-  related?: { source?: string; id?: string; field?: string }[];
-  hint?: string;
+  source?: string | undefined;
+  id?: string | undefined;
+  field?: string | undefined;
+  related?: { source?: string | undefined; id?: string | undefined; field?: string }[];
+  hint?: string | undefined;
 }
 /** Progress project scripts идёт только в stderr и не требует новых env permissions. */
 export function reportProgress(message: string): boolean {
@@ -33,7 +33,7 @@ export function diagnostic(
   context: DiagnosticContext = {},
   cause?: unknown,
 ): Error & { code: string } {
-  const place = (value: { source?: string; id?: string; field?: string }) =>
+  const place = (value: Pick<DiagnosticContext, "source" | "id" | "field">) =>
     [
       value.source && `файл: ${value.source}`,
       value.id && `ID: ${value.id}`,

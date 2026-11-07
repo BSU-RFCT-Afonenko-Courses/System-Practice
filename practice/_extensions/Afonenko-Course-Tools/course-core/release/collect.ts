@@ -8,22 +8,39 @@ import type {
 } from "../document/contracts.ts";
 import { NativeReleaseFactsSchema } from "./contracts.ts";
 import type { NativeReleaseFacts } from "./contracts.ts";
-type Node = { t?: string; c?: unknown };
-const obj = (v: unknown): v is Record<string, unknown> =>
-  !!v && typeof v === "object" && !Array.isArray(v);
+import { isRecord as obj, isContainer, isHeader, isCite, isBulletList, isNode, isNodes, nodeAttributes } from "../document/native-ast.ts";
+import type { Node, ContainerNode } from "../document/native-ast.ts";
+function body(value: unknown): Node[] {
+  if (!isContainer(value)) fail("DOCUMENT_AST", "Повреждённый native container");
+  return value.c[1];
+}
+function citations(value: unknown) {
+  if (!isCite(value)) fail("CORE.ASSESSMENT_INVALID", "Повреждённый native Cite");
+  return value.c[0];
+}
+function listItems(value: unknown): Node[][] {
+  if (isBulletList(value)) return value.c;
+  if (isNode(value) && value.t === "OrderedList" && Array.isArray(value.c) && value.c.length === 2 && Array.isArray(value.c[0]) && value.c[0].length === 3 && typeof value.c[0][0] === "number" && isNode(value.c[0][1]) && isNode(value.c[0][2]) && Array.isArray(value.c[1]) && value.c[1].every(isNodes)) return value.c[1];
+  fail("CORE.ASSESSMENT_INVALID", "Повреждённый native список");
+}
 export function nativeMetadata(v: unknown): unknown {
   if (!obj(v)) return v;
   switch (v.t) {
     case "MetaMap":
+      if (!obj(v.c)) fail("CORE.METADATA_INVALID", "Повреждённый MetaMap");
       return Object.fromEntries(
-        Object.entries(v.c as Record<string, unknown>).map((
+        Object.entries(v.c).map((
           [k, x],
         ) => [k, nativeMetadata(x)]),
       );
     case "MetaList":
-      return (v.c as unknown[]).map(nativeMetadata);
+      if (!Array.isArray(v.c)) fail("CORE.METADATA_INVALID", "Повреждённый MetaList");
+      return v.c.map(nativeMetadata);
     case "MetaBool":
+      if (typeof v.c !== "boolean") fail("CORE.METADATA_INVALID", "Повреждённый MetaBool");
+      return v.c;
     case "MetaString":
+      if (typeof v.c !== "string") fail("CORE.METADATA_INVALID", "Повреждённый MetaString");
       return v.c;
     case "MetaInlines":
     case "MetaBlocks":
@@ -51,8 +68,8 @@ function adapterMetadata(v: unknown): unknown {
   fail("CORE.ADAPTER_METADATA", "Неподдержанная native metadata форма");
 }
 const attrs = (v: Record<string, unknown>) => {
-  const c = v.c as unknown[];
-  const a = c[0] as [string, string[], [string, string][]];
+  const a = nodeAttributes(v);
+  if (!a) fail("DOCUMENT_AST", "У native узла нет Attr");
   return { id: a[0], classes: a[1], values: Object.fromEntries(a[2]) };
 };
 function visit(v: unknown, use: (node: Record<string, unknown>) => void) {
@@ -80,47 +97,49 @@ export function collectReleaseFacts(
     fail("CORE.COURSE_INVALID", "course.assessment-time требует boolean");
   }
   const config = nativeMetadata(ast.meta.assessment);
-  const containers: Record<string, unknown>[] = [];
+  const containers: ContainerNode[] = [];
   const declarations = new Map<
     string,
     NativeReleaseFacts["declarations"][number]
   >();
   visit(ast.blocks, (node) => {
     if (node.t !== "Div") return;
+    if (!isContainer(node)) fail("DOCUMENT_AST", "Повреждённый Div");
     const a = attrs(node);
     if (a.classes.includes("task-items")) containers.push(node);
     if (Object.hasOwn(definitions, a.id)) {
+      const declaration = definitions[a.id]!;
       const previous = declarations.get(a.id);
       const next = {
         id: a.id,
         hasSolution: false,
         ...(answers[a.id] ? { answer: answers[a.id] } : {}),
         ...(() => {
-          const first = ((node.c as unknown[])[1] as Node[])[0];
-          return first?.t === "Header"
+          const first = body(node)[0];
+          return isHeader(first)
             ? {
               head: {
-                level: (first.c as unknown[])[0] as number,
-                title: visibleTitle((first.c as unknown[])[2]).trim(),
+                level: first.c[0],
+                title: visibleTitle(first.c[2]).trim(),
               },
             }
             : {};
         })(),
-        ...(definitions[a.id].target
-          ? { target: definitions[a.id].target }
+        ...(declaration.target
+          ? { target: declaration.target }
           : {}),
-        ...(definitions[a.id].project
-          ? { project: definitions[a.id].project }
+        ...(declaration.project
+          ? { project: declaration.project }
           : {}),
-        ...(definitions[a.id]["project-check"]
-          ? { check: definitions[a.id]["project-check"] }
+        ...(declaration["project-check"]
+          ? { check: declaration["project-check"] }
           : {}),
         // Core владеет effective defaults; adapter получает их без второго resolver.
         // Остальные authored/native attrs сохраняются, включая adapter-prefixed поля.
         attributes: {
           ...a.values,
           ...Object.fromEntries(
-            Object.entries(definitions[a.id]).filter(([, value]) =>
+            Object.entries(declaration).filter(([, value]) =>
               value !== undefined
             ).map(([key, value]) => [key, String(value)]),
           ),
@@ -171,9 +190,10 @@ export function collectReleaseFacts(
     let id = typeof config.id === "string" ? config.id : "";
     visit(ast.blocks, (n) => {
       if (n.t === "Header") {
-        const c = n.c as unknown[];
+        if (!isHeader(n)) fail("DOCUMENT_AST", "Повреждённый Header");
+        const c = n.c;
         if (!title) title = visibleTitle(c[2]).trim();
-        if (!id) id = (c[1] as [string])[0];
+        if (!id) id = c[1][0];
       }
     });
     const slots: unknown[] = [],
@@ -181,10 +201,10 @@ export function collectReleaseFacts(
       memberSizes: number[] = [];
     for (const container of containers) {
       const a = attrs(container),
-        body = (container.c as unknown[])[1] as Node[];
+        members = body(container);
       if (
-        body.length !== 1 ||
-        !["BulletList", "OrderedList"].includes(body[0].t ?? "")
+        members.length !== 1 ||
+        !members[0] || !["BulletList", "OrderedList"].includes(members[0].t)
       ) fail("CORE.ASSESSMENT_INVALID", "task-items требует один список");
       for (const k of Object.keys(a.values)) {
         if (
@@ -206,14 +226,12 @@ export function collectReleaseFacts(
           );
         }
       }
-      memberKinds.push(body[0].t!);
-      const items = body[0].t === "OrderedList"
-        ? (body[0].c as unknown[])[1] as unknown[]
-        : body[0].c as unknown[];
+      memberKinds.push(members[0]!.t);
+      const items = listItems(members[0]);
       for (const item of items) {
         if (
           !Array.isArray(item) || item.length !== 1 ||
-          !["Plain", "Para"].includes((item[0] as Node).t ?? "")
+          !item[0] || !["Plain", "Para"].includes(item[0].t)
         ) fail("CORE.ASSESSMENT_INVALID", "Позиция требует один абзац");
         let group: ReturnType<typeof attrs> | undefined,
           groupNode: Record<string, unknown> | undefined;
@@ -221,12 +239,7 @@ export function collectReleaseFacts(
         let requirement: string | undefined, workMode: string | undefined;
         visit(item, (node) => {
           if (node.t === "Cite") {
-            for (
-              const cite of (node.c as unknown[])[0] as Record<
-                string,
-                unknown
-              >[]
-            ) candidates.push(String(cite.citationId));
+            for (const cite of citations(node)) candidates.push(String(cite.citationId));
           }
           if (node.t === "Span") {
             const span = attrs(node);
@@ -244,14 +257,14 @@ export function collectReleaseFacts(
               groupNode = node;
               if (
                 !/^alt-[a-z0-9][a-z0-9-]*$/.test(span.id) ||
-                !["random", "choice"].includes(span.values.selection)
+                !["random", "choice"].includes(span.values.selection ?? "")
               ) {
                 fail(
                   "CORE.ASSESSMENT_INVALID",
                   "Группа требует alt-* и selection=random|choice",
                 );
               }
-              visit((node.c as unknown[])[1], (candidate) => {
+              visit(body(node), (candidate) => {
                 if (candidate.t === "Span") {
                   const values = attrs(candidate).values;
                   if (
@@ -271,9 +284,9 @@ export function collectReleaseFacts(
               span.values["work-mode"] !== undefined
             ) {
               let count = 0;
-              visit((node.c as unknown[])[1], (child) => {
+              visit(body(node), (child) => {
                 if (child.t === "Cite") {
-                  count += ((child.c as unknown[])[0] as unknown[]).length;
+                  count += citations(child).length;
                 }
               });
               if (!span.classes.includes("task-alternatives") && count !== 1) {
@@ -321,11 +334,9 @@ export function collectReleaseFacts(
         });
         if (group) {
           const inside: string[] = [];
-          visit((groupNode!.c as unknown[])[1], (x) => {
+          visit(body(groupNode), (x) => {
             if (x.t === "Cite") {
-              for (
-                const cite of (x.c as unknown[])[0] as Record<string, unknown>[]
-              ) inside.push(String(cite.citationId));
+              for (const cite of citations(x)) inside.push(String(cite.citationId));
             }
           });
           if (inside.length !== candidates.length) {

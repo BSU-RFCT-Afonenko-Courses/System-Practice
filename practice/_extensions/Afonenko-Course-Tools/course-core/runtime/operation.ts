@@ -248,7 +248,8 @@ export async function inspectNativeOwner(
   return decodeNativeOwnerInspection(value, root);
 }
 async function json(path: string): Promise<unknown> {
-  return JSON.parse(await Deno.readTextFile(path));
+  const value: unknown = JSON.parse(await Deno.readTextFile(path));
+  return value;
 }
 function nativePointer(value: unknown, root: string, message: string) {
   if (!record(value)) fail("OPERATION_BINDING", message);
@@ -834,22 +835,22 @@ export function bindOwner(
 async function writePendingState(state: State) {
   const { inputs, root, directory, operation } = state;
   for (let index = 0; index < inputs.length; index++) {
-    await regular(root, inputs[index]);
+    await regular(root, inputs[index]!);
     await Deno.writeTextFile(
       join(directory, `${index}.request.json`),
       JSON.stringify({
         context: {
           operation,
-          captureWitness: state.captureWitnesses[inputs[index]],
+          captureWitness: state.captureWitnesses[inputs[index]!],
           profiles: state.profiles,
-          input: resolve(root, inputs[index]),
+          input: resolve(root, inputs[index]!),
           projection: state.projection,
         },
         capture: join(directory, String(index)),
         ...(state.assignment
           ? {
             assignment: {
-              source: inputs[index],
+              source: inputs[index]!,
               assessments: state.assignment.assessments,
             },
           }
@@ -869,7 +870,7 @@ async function writePendingState(state: State) {
 export async function assertNativeAssignmentCapture(
   context: {
     operation: string;
-    captureWitness?: string;
+    captureWitness?: string | undefined;
     input: string;
     profiles: string[];
     projection: string;
@@ -1140,7 +1141,7 @@ function localUses(value: unknown): string[] {
         url = Array.isArray(target) ? target[0] : undefined;
       if (
         typeof url === "string" && !/^(?:[a-z][a-z0-9+.-]*:|\/\/|#)/i.test(url)
-      ) result.add(url.split(/[?#]/)[0]);
+      ) result.add((url.split(/[?#]/)[0] ?? ""));
     }
     Object.values(node).forEach(visit);
   }
@@ -1276,13 +1277,14 @@ async function finishNativeOperationInternal(
       state.metrics.nativeMetadataBytes += new TextEncoder().encode(
         JSON.stringify(early.release?.nativeMetadata ?? {}),
       ).length;
-      const captureWitness = state.captureWitnesses[state.inputs[index]];
+      const captureWitness = state.captureWitnesses[state.inputs[index]!];
+      if (!captureWitness) fail("OPERATION_BINDING", "Нет native capture witness");
       const nativeFormat = NativeWebFormatSchema.safeParse(early.context.format);
       if (
         early.context.captureWitness !== captureWitness ||
         !same(early.context.profiles, state.profiles) ||
         early.context.operation !== state.operation ||
-        early.context.input !== resolve(root, state.inputs[index]) ||
+        early.context.input !== resolve(root, state.inputs[index]!) ||
         !nativeFormat.success ||
         early.context.projection !== state.projection
       ) fail("OPERATION_BINDING", "Чужой native capture");
@@ -1347,7 +1349,7 @@ async function finishNativeOperationInternal(
           indexPages.set(outputPath, outputText);
         }
       }
-      indexTopics.set(state.inputs[index], early.ast.meta);
+      indexTopics.set(state.inputs[index]!, early.ast.meta);
       outputRows.push({ path: outputPath });
       let projectFacts:
         | z.output<typeof NativeProjectFactsCaptureSchema>
@@ -1390,7 +1392,7 @@ async function finishNativeOperationInternal(
       }
       releaseDocuments.push({
         ...(projectFacts ? { projectFacts } : {}),
-        source: state.inputs[index],
+        source: state.inputs[index]!,
         early: {
           context: nativeContext,
           definitions: early.definitions,
@@ -1398,7 +1400,7 @@ async function finishNativeOperationInternal(
         },
         final: { hasPublicSolution: structuredClone(document.hasPublicSolution) },
       });
-      const source = state.inputs[index],
+      const source = state.inputs[index]!,
         visibleIds = new Set(
           document.occurrences.filter((r) => r.kind === "exercise").map((r) =>
             r.exerciseId
@@ -1431,10 +1433,10 @@ async function finishNativeOperationInternal(
                 project: relative(
                   root,
                   resolve(
-                    document.definitions[r.exerciseId].project!.startsWith("/")
+                    document.definitions[r.exerciseId]!.project!.startsWith("/")
                       ? root
                       : dirname(resolve(root, source)),
-                    document.definitions[r.exerciseId].project!.replace(
+                    document.definitions[r.exerciseId]!.project!.replace(
                       /^\//,
                       "",
                     ),
@@ -1722,7 +1724,7 @@ async function sealCaptureScope(reservation: Reservation) {
   const complete = completeSchema.parse({
     state,
     catalog: {
-      identity: children[0].catalog.identity,
+      identity: children[0]!.catalog.identity,
       documents: catalogDocuments,
     },
     documents,
@@ -2197,7 +2199,7 @@ function publicOperation(
   const bodyCaches = new WeakMap<
     object,
     {
-      namespace?: string;
+      namespace?: string | undefined;
       resolve?: unknown;
       sourceUrl?: unknown;
       cache: AssignmentBodyCache;
@@ -2311,7 +2313,7 @@ function publicOperation(
           { files: [{ source, target }] },
           assertIdentity,
         ))
-          .files[0].bytes;
+          .files[0]!.bytes;
       },
     );
   }
@@ -2787,7 +2789,7 @@ function publicOperation(
       }
       const built = await buildAssignmentBody({
         root: complete.state.root,
-        owner: complete.releaseDocuments[0].early.release?.course.id ?? "",
+        owner: complete.releaseDocuments[0]!.early.release?.course.id ?? "",
         work: { source: request.source, composition: work },
         documents: complete.documents,
         references: options.references,
@@ -2816,7 +2818,7 @@ function publicOperation(
           const file = (await resourceFiles(
             { files: [{ source, target }] },
             roles.assertIdentity,
-          )).files[0];
+          )).files[0]!;
           return {
             bytes: file.bytes,
             identity: observed.identity,
@@ -2864,7 +2866,7 @@ function publicOperation(
                 roles.assertIdentity(identity);
                 assertIdentity?.(identity);
               },
-            )).files[0].bytes;
+            )).files[0]!.bytes;
           },
         );
       }

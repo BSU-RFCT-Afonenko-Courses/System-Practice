@@ -25,7 +25,7 @@ type State = {
   active: boolean;
   owner: string;
   metrics: ProjectLoaderMetrics;
-  operation?: { generation: object; sync: () => void };
+  operation?: { generation: object; sync: () => void } | undefined;
 };
 const states = new WeakMap<object, State>();
 function state(context: unknown): State {
@@ -325,7 +325,7 @@ export function operationProjectContextReuse(
           use({
             groups,
             get metrics() {
-              return groups[0].metrics;
+              return groups[0]!.metrics;
             },
           }),
         { generation: source.generation, sync: source.sync },

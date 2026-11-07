@@ -1,23 +1,31 @@
+// @ts-check
+/// <reference path="../../../typecheck/browser.d.ts" />
 // Опубликованные цели сохраняют штатные ID Quarto. Обработчик раскрывает
 // существующее представление документа, не вводя учебных ролей и новых ID.
 (() => {
   if (new URL(location.href).searchParams.has("print-pdf")) return;
   let navigation = 0;
 
+  /** @param {URL} url */
   function hashId(url) {
     try { return decodeURIComponent(url.hash.replace(/^#\/?/, "")); }
     catch { return ""; } // Некорректный фрагмент внешней ссылки не должен нарушать работу страницы.
   }
 
+  /** @param {Element} target */
   function ancestors(target) {
+    /** @type {Element[]} */
     const nodes = [];
-    for (let node = target; node; node = node.parentElement) nodes.push(node);
+    /** @type {Element | null} */
+    let node = target;
+    for (; node; node = node.parentElement) nodes.push(node);
     return nodes.reverse();
   }
 
+  /** @param {Element[]} nodes @param {() => void} scroll */
   function openDisclosures(nodes, scroll) {
     for (const node of nodes) {
-      if (node.matches("details")) node.open = true;
+      if (node instanceof HTMLDetailsElement) node.open = true;
       if (!node.matches(".collapse:not(.show)")) continue;
 
       // Bootstrap управляет анимацией и состоянием переключателя.
@@ -30,7 +38,7 @@
         node.classList.add("show");
         if (!node.id) continue;
         for (const trigger of document.querySelectorAll("[aria-controls]")) {
-          if (!trigger.getAttribute("aria-controls").split(/\s+/).includes(node.id)) continue;
+          if (!(trigger.getAttribute("aria-controls") ?? "").split(/\s+/).includes(node.id)) continue;
           trigger.setAttribute("aria-expanded", "true");
           trigger.classList.remove("collapsed");
         }
@@ -38,6 +46,7 @@
     }
   }
 
+  /** @param {string} id */
   function revealTarget(id) {
     const target = id && document.getElementById(id);
     if (!target) return;
@@ -80,8 +89,8 @@
   window.addEventListener("hashchange", () => revealTarget(hashId(new URL(location.href))));
   document.addEventListener("click", event => {
     if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey || event.defaultPrevented) return;
-    const link = event.target.closest?.("a[href]");
-    if (!link || link.hasAttribute("download") || (link.target && link.target !== "_self")) return;
+    const link = event.target instanceof Element ? event.target.closest("a[href]") : null;
+    if (!(link instanceof HTMLAnchorElement) || link.hasAttribute("download") || (link.target && link.target !== "_self")) return;
     const url = new URL(link.href, location.href);
     if (url.origin !== location.origin || url.pathname !== location.pathname || url.search !== location.search) return;
     // Повторный переход по тому же фрагменту URL не вызывает hashchange.

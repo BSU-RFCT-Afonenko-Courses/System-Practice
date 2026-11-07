@@ -17,8 +17,14 @@ function slideOf(node: Element, path: string, key: string): string | undefined {
     }
     current = current.parentNode && "tagName" in current.parentNode ? current.parentNode : undefined;
   }
+  return undefined;
 }
-export function readPage(path: string, html: string): Page {
+function readPageImpl(path: string, html: string): Page {
+  function required(node: Element, field: string): string {
+    const value = attr(node, field);
+    if (!value) throw diagnostic("QRC.OUTPUT_INVALID", `отсутствует обязательный атрибут ${field}`, { source: `HTML-результат ${path}`, field });
+    return value;
+  }
   const root = parseHtml(html);
   const nodes = elements(root);
   const probes = nodes.filter((n) => hasClass(n, "qrc-probes"));
@@ -30,13 +36,13 @@ export function readPage(path: string, html: string): Page {
   }
   const targets: Target[] = [];
   for (const container of probes) {
-    const namespace = attr(container, "data-qrc-namespace")!;
+    const namespace = required(container, "data-qrc-namespace");
     const rows = elements(container).filter((n) => hasClass(n, "qrc-probe"));
     const paired = new Map<string, Map<string, { html: string; text: string }>>();
     const titles = new Map<string, string>();
     for (const row of rows) {
-      const id = attr(row, "data-qrc-id")!;
-      const style = attr(row, "data-qrc-style")!;
+      const id = required(row, "data-qrc-id");
+      const style = required(row, "data-qrc-style");
       const title = attr(row, "data-qrc-title");
       if (title !== undefined) titles.set(id, title);
       const pair = paired.get(id) ?? new Map();
@@ -45,11 +51,11 @@ export function readPage(path: string, html: string): Page {
         pair.set(style, { html: "", text: "" }); paired.set(id, pair); continue;
       }
       const links = elements(row).filter((n) => n.tagName === "a" && (hasClass(n, "quarto-xref") || hasClass(n, "qrc-anchor")));
-      if (links.length !== 1 || !content(links[0]).trim()) {
+      const [link] = links;
+      if (links.length !== 1 || !link || !content(link).trim()) {
         throw diagnostic("QRC.OUTPUT_INVALID", `Quarto не разрешил штатную ссылку ${namespace}:${id}/${style} в ${path}`, { source: `HTML-результат ${path}`, id: `${namespace}:${id}`, field: "native probe" });
       }
-      const link = links[0];
-      const url = new URL(attr(link, "href")!, `https://qrc.invalid/${path}`);
+      const url = new URL(required(link, "href"), `https://qrc.invalid/${path}`);
       if (decodeURIComponent(url.pathname).slice(1) !== path || decodeURIComponent(url.hash.slice(1)).replace(/^\//, "") !== id) {
         throw diagnostic("QRC.OUTPUT_INVALID", `изменился адрес штатной ссылки для ${namespace}:${id}: ${attr(link, "href")}`, { source: `HTML-результат ${path}`, id: `${namespace}:${id}`, field: "native probe" });
       }
@@ -57,21 +63,21 @@ export function readPage(path: string, html: string): Page {
     }
     for (const [id, pair] of paired) {
       const anchor = ids.get(id);
-      if (anchor?.length !== 1) throw diagnostic("QRC.OUTPUT_INVALID", `для цели ${namespace}:${id} найдено HTML-якорей: ${anchor?.length ?? 0}; файл ${path}`, { source: `HTML-результат ${path}`, id: `${namespace}:${id}`, field: "native probe" });
+      const firstAnchor = anchor?.[0];
+      if (anchor?.length !== 1 || !firstAnchor) throw diagnostic("QRC.OUTPUT_INVALID", `для цели ${namespace}:${id} найдено HTML-якорей: ${anchor?.length ?? 0}; файл ${path}`, { source: `HTML-результат ${path}`, id: `${namespace}:${id}`, field: "native probe" });
       const label = pair.get("default"), number = pair.get("number");
       if (!label || !number) throw diagnostic("QRC.OUTPUT_INVALID", `неполная штатная ссылка-проба ${namespace}:${id}`, { source: `HTML-результат ${path}`, id: `${namespace}:${id}`, field: "native probe" });
-      const slide = reveal ? slideOf(anchor[0], path, `${namespace}:${id}`) : undefined;
+      const slide = reveal ? slideOf(firstAnchor, path, `${namespace}:${id}`) : undefined;
       if (reveal && !slide) throw diagnostic("QRC.OUTPUT_INVALID", `цель ${id} находится вне слайда в ${path}`, { source: `HTML-результат ${path}`, id: `${namespace}:${id}`, field: "native probe" });
-      targets.push({ namespace, id, page: path, fragment: id, slide,
+      const title = titles.get(id);
+      targets.push({ namespace, id, page: path, fragment: id, ...(slide === undefined ? {} : { slide }),
         labelHtml: label.html, numberHtml: number.html, label: label.text, number: number.text,
-        ...(titles.has(id) ? { title: titles.get(id)! } : {}) });
+        ...(title === undefined ? {} : { title }) });
     }
   }
   return { path, html, nodes, targets, probes, ids, reveal, root };
 }
 
-const readPageImpl = readPage;
-// @ts-expect-error JS допускает замену function binding; сигнатура публичного API сохраняется.
-readPage = (path: string, html: string): Page => __metrics.wrapSync({
+export const readPage = (path: string, html: string): Page => __metrics.wrapSync({
   id: "reference-catalog.infrastructure.pages.readPage", kind: "io", document_id: path,
 }, readPageImpl)(path, html);

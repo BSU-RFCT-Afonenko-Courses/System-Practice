@@ -106,7 +106,7 @@ export function decodeProjectValue(
   const result = ProjectContractSchema.safeParse(value);
   if (!result.success) {
     const issue = result.error.issues[0];
-    fail("PROJECT_CONTRACT", issue.message, source, issue.path.join("."));
+    fail("PROJECT_CONTRACT", issue?.message ?? "Некорректный договор", source, issue?.path.join(".") ?? "");
   }
   return result.data;
 }
@@ -137,7 +137,7 @@ export function decodeProjectRequests(value: unknown): ProjectContextRequest[] {
   const result = z.array(ProjectContextRequestSchema).min(1).safeParse(value);
   if (!result.success) {
     const issue = result.error.issues[0];
-    fail("CONTEXT_REQUEST", issue.message, undefined, issue.path.join("."));
+    fail("CONTEXT_REQUEST", issue?.message ?? "Некорректный договор", undefined, issue?.path.join(".") ?? "");
   }
   return result.data;
 }

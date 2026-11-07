@@ -1,3 +1,4 @@
+import { isRecord } from "../course-core/document/native-ast.ts";
 /** Общее меню: состав Course Site и нативные заголовки страниц Quarto. */
 import {
   attr,
@@ -79,7 +80,7 @@ function nativeTitle(page: Page): string | undefined {
 export async function composeNavigation(
   context: NavigationComposition,
 ): Promise<void> {
-  if (!context.members.length || context.members[0].mount !== "") {
+  if (!context.members.length || context.members[0]!.mount !== "") {
     fail("Первым участником должен быть корневой портал");
   }
   const ids = new Set<string>(), mounts = new Set<string>();
@@ -145,7 +146,7 @@ export async function composeNavigation(
     const title = !member.mount ? "Курс" : nativeTitle(entry) || member.title;
     return { ...member, page: entry.path, text: title };
   });
-  if (!entries.length || entries[0].mount !== "") {
+  if (!entries.length || entries[0]!.mount !== "") {
     fail("Первым участником должен быть корневой портал");
   }
   const presentations = new Set(
@@ -168,10 +169,12 @@ export async function composeNavigation(
       attr(n, "id") === "course-navigation-context"
     );
     if (page.reveal) {
-      const existing = json ? JSON.parse(content(json)) : { links: [] };
-      const repositories = (existing.links || []).filter((
-        link: { scope?: string },
-      ) => link.scope === "repository");
+      const existing: unknown = json ? JSON.parse(content(json)) : { links: [] };
+      if (!isRecord(existing) || !Array.isArray(existing.links)) throw Error("Некорректный navigation context");
+      const repositories = existing.links.filter((link: unknown) => {
+        if (!isRecord(link) || typeof link.href !== "string" || typeof link.text !== "string") throw Error("Некорректная navigation link");
+        return link.scope === "repository";
+      });
       const payload = JSON.stringify({ links: [...links, ...repositories] })
         .replaceAll("<", "\\u003c");
       const script =
@@ -213,7 +216,7 @@ export async function composeNavigation(
             start: tag.startOffset,
             end: tag.endOffset,
             value: "<a" + attrs + ' href="' +
-              escape(pageHref(page.path, entries[0].page)) + '">',
+              escape(pageHref(page.path, entries[0]!.page)) + '">',
           });
         }
         const title = page.nodes.find((n) =>

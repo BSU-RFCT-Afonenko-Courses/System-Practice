@@ -2,6 +2,7 @@ import {
   catalogueCitations,
   catalogueCiteInlines,
 } from "../document/catalogue-cite.ts";
+import { isRecord, isContainer, isLink, nodeAttributes as attr, requireNodes } from "../document/native-ast.ts";
 import type { Node } from "./model.ts";
 import { diagnostic, type DiagnosticContext } from "../domain/diagnostics.ts";
 import { nativeAttributes } from "./references.ts";
@@ -22,29 +23,23 @@ export async function publicLinks(
   references?: BodyReferenceContext,
 ): Promise<Node[]> {
   const ids = new Set<string>();
-  const attr = (v: any) =>
-    v?.t === "Header"
-      ? v.c[1]
-      : ["Div", "Span", "CodeBlock", "Code", "Link", "Image", "Figure"]
-          .includes(v?.t)
-      ? v.c[0]
-      : undefined;
-  const index = (v: any) => {
+  const index = (v: unknown) => {
     if (Array.isArray(v)) v.forEach(index);
-    else if (v && typeof v === "object") {
+    else if (isRecord(v)) {
       for (const a of nativeAttributes(v)) if (a?.[0]) ids.add(a[0]);
       Object.values(v).forEach(index);
     }
   };
   index(blocks);
-  async function rewrite(value: any): Promise<any> {
+  async function rewrite(value: unknown): Promise<unknown> {
     if (Array.isArray(value)) {
-      const result = [];
-      for (let child of value) {
+      const result: unknown[] = [];
+      for (const entry of value) {
+        let child: unknown = entry;
         const citations = catalogueCitations(child);
         if (citations) {
           result.push(
-            ...await rewrite(
+            ...requireNodes(await rewrite(
               catalogueCiteInlines(
                 citations,
                 (ref) => ({
@@ -55,14 +50,15 @@ export async function publicLinks(
                   ]]], []],
                 }),
               ),
-            ),
+            )),
           );
           continue;
         }
         const a = attr(child);
         const key = a?.[2]?.find((pair: string[]) => pair[0] === "data-qrc-ref")
           ?.[1];
-        if (key) {
+        if (key && a) {
+          if (!isContainer(child) && !isLink(child)) throw diagnostic("DOCUMENT_AST", "QRC reference требует native inline/container", context);
           if (!references) {
             throw diagnostic(
               "BODY.QRC_REFERENCE_UNRESOLVED",
@@ -76,7 +72,7 @@ export async function publicLinks(
                 pair[0] === "data-qrc-custom" && pair[1] === "true"
               )
             ) {
-              result.push(...await rewrite(child.c[1]));
+              result.push(...requireNodes(await rewrite(child.c[1])));
             }
             continue;
           }
@@ -92,7 +88,7 @@ export async function publicLinks(
             a[1].filter((c: string) =>
               !["qrc-reference", "qrc-link"].includes(c)
             ),
-            a[2].filter((p: string[]) => !p[0].startsWith("data-qrc-")),
+            a[2].filter((p) => !p[0].startsWith("data-qrc-")),
           ];
           result.push({
             t: "Link",
@@ -106,7 +102,7 @@ export async function publicLinks(
           });
           continue;
         }
-        if (child?.t === "Link") {
+        if (isLink(child) && child.t === "Link") {
           const href = child.c[2][0];
           const relative = !/^(?:[a-z][a-z0-9+.-]*:|\/\/)/i.test(href);
           const materialPage = !relative || href.startsWith("#") ||
@@ -120,7 +116,7 @@ export async function publicLinks(
                 ? decodeURIComponent(href.slice(1))
                 : undefined;
               if (fragment === context.id) {
-                result.push(...await rewrite(child.c[1]));
+                result.push(...requireNodes(await rewrite(child.c[1])));
                 continue;
               }
               if (
@@ -137,7 +133,7 @@ export async function publicLinks(
             }
             const own = new URL(await sourceUrl(context.source!));
             let target = new URL(href, own);
-            const path = href.split(/[?#]/)[0];
+            const path = href.split(/[?#]/)[0] ?? "";
             if (relative && /\.qmd$/i.test(path)) {
               const source = path.startsWith("/")
                 ? decodeURIComponent(path.slice(1))
@@ -160,13 +156,14 @@ export async function publicLinks(
               (fragment === context.id ||
                 target.searchParams.get("qrc-target") === context.id)
             ) {
-              result.push(...await rewrite(child.c[1]));
+              result.push(...requireNodes(await rewrite(child.c[1])));
               continue;
             }
-            child = structuredClone(child);
-            child.c[2][0] = same && ids.has(fragment)
+            const copy = structuredClone(child);
+            copy.c[2][0] = same && ids.has(fragment)
               ? "#" + target.hash.slice(1)
               : target.href;
+            child = copy;
           } else if (!/^(?:[a-z][a-z0-9+.-]*:|\/\/)/i.test(href)) {
             const native = new URL(
               href,
@@ -178,7 +175,7 @@ export async function publicLinks(
             if (
               same && decodeURIComponent(native.hash.slice(1)) === context.id
             ) {
-              result.push(...await rewrite(child.c[1]));
+              result.push(...requireNodes(await rewrite(child.c[1])));
               continue;
             }
           }
@@ -187,7 +184,7 @@ export async function publicLinks(
       }
       return result;
     }
-    if (!value || typeof value !== "object") return value;
+    if (!isRecord(value)) return value;
     return Object.fromEntries(
       await Promise.all(
         Object.entries(value).map(async (
@@ -196,5 +193,5 @@ export async function publicLinks(
       ),
     );
   }
-  return await rewrite(structuredClone(blocks));
+  return requireNodes(await rewrite(structuredClone(blocks)));
 }

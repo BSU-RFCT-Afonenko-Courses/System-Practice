@@ -28,8 +28,9 @@ export function bindConditionLinks(
     // Полный набор локальных IDs и их проверка принадлежат Core writer.
     if (link.startsWith("#")) continue;
     if (destination.resourceLinks?.includes(link)) continue;
-    const reference = Object.hasOwn(destination.references ?? {}, link)
-      ? destination.references![link]
+    const references = destination.references;
+    const reference = references && Object.hasOwn(references, link)
+      ? references[link]
       : undefined;
     if (reference) {
       result[link] = resolver.resolve(
@@ -39,8 +40,9 @@ export function bindConditionLinks(
       ).href;
       continue;
     }
-    const explicit = Object.hasOwn(destination.urls ?? {}, link)
-      ? destination.urls![link]
+    const urls = destination.urls;
+    const explicit = urls && Object.hasOwn(urls, link)
+      ? urls[link]
       : undefined;
     let nativeOutput: string | undefined;
     if (

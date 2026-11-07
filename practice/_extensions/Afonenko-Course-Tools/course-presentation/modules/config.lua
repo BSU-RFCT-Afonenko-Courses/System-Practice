@@ -2,24 +2,46 @@ local __metrics=require("../observability/bridge").create_metrics("course-presen
 
 -- Профили и course.view определяют публикуемое содержимое; этот модуль
 -- задаёт способ его отображения после отбора.
+---@class CoursePresentationConfig
+---@field answers string
+---@field reveal boolean
+---@field html boolean
+---@field bank boolean
+---@field assessmentTime boolean
+---@field ru boolean
+---@field defaults table<string,string>
+---@field solutionOwners table<string,string>
 local M = {}
+---@param detail string
+---@param field? string
+---@return string
 local function message(detail, field)
   return 'PRESENTATION.CONFIG_INVALID: '..detail..'; источник='..quarto.doc.input_file..'; поле='..(field or 'course-presentation')
 end
 local vocabulary = require("./vocabulary")
+---@param values string[]
+---@param value string
+---@return boolean
 local function allowed(values, value) for _, item in ipairs(values) do if item == value then return true end end; return false end
+---@param value? pandoc.MetaValue
+---@return string|nil
 local function string(value) return value and pandoc.utils.stringify(value) or nil end
+---@param meta pandoc.Meta
+---@return CoursePresentationConfig
 function M.read(meta)
   local input = meta["course-presentation"]
   if input == nil then input = {} end
   if type(input) ~= "table" or input.t == "MetaList" or input.t == "MetaInlines" then
       assert(false, message("course-presentation должен содержать YAML-словарь с параметром answers"))
   end
+  assert(type(input)=="table")
+  ---@cast input pandoc.MetaMap
   for key, _ in pairs(input) do
     if key ~= "answers" then
       assert(false, message("Неизвестный параметр course-presentation: " .. tostring(key)))
     end
   end
+  ---@cast input pandoc.MetaMap
   local reveal = quarto.doc.is_format("revealjs")
   local html = reveal or quarto.doc.is_format("html")
   local answers = string(input.answers) or "auto"
@@ -29,7 +51,11 @@ function M.read(meta)
   local lang = string(meta.lang) or "ru"
   local pedagogy = meta["course-pedagogy"] or {}
   if type(pedagogy) ~= "table" then assert(false, message("course-pedagogy должен содержать YAML-словарь параметров", "course-pedagogy")) end
-  return {answers = answers, reveal = reveal, html = html,bank=meta["exercise-bank"]==true,
+  assert(type(pedagogy)=="table")
+  ---@cast pedagogy pandoc.MetaMap
+  for key in pairs(pedagogy) do assert(type(key)=="string", message("course-pedagogy должен содержать YAML-словарь параметров", "course-pedagogy")) end
+  ---@cast pedagogy pandoc.MetaMap
+  return {solutionOwners={}, answers = answers, reveal = reveal, html = html,bank=meta["exercise-bank"]==true,
     assessmentTime = not (type(meta.course) == "table" and meta.course["assessment-time"] == false),
     ru = lang:match("^ru") ~= nil,
     defaults = pedagogy["document-defaults"] == true and {

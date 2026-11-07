@@ -57,7 +57,7 @@ const privateParts =
   /(^|\/)(?:private|reference|solution|solutions|grading-notes|rubric\.md|contract\.md|closed-tests|tests)(\/|$)/i;
 /** Разрешение внешнего файла не распространяется на другие ресурсы или targets. */
 export function citationResourceGuard(
-  owner: { root: string; outputDirectory: string; cacheDirectory?: string },
+  owner: { root: string; outputDirectory: string; cacheDirectory?: string | undefined },
   documents: readonly Pick<NativePublicDocument, "context" | "assignment">[],
   roles: {
     assertPath: (path: string) => void;

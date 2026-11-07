@@ -6,11 +6,8 @@ import { boundInput, fail } from "../contracts/project.ts";
 import { AnswerFactsSchema, AnswerSpecSchema } from "./answer-contracts.ts";
 import type { AnswerFacts, AnswerSpec } from "./answer-contracts.ts";
 import { decode } from "./contracts.ts";
-type Node = { t: string; c: any };
-const object = (v: unknown): v is Record<string, any> =>
-  !!v && typeof v === "object" && !Array.isArray(v);
-const attr = (v: Node) =>
-  ["Div", "Span", "CodeBlock"].includes(v.t) ? v.c?.[0] : undefined;
+import { isRecord as object, isContainer, isCode, isBulletList, nodeAttributes as attr } from "./native-ast.ts";
+import type { Node } from "./native-ast.ts";
 const para = (s: string): Node => ({ t: "Para", c: [{ t: "Str", c: s }] });
 export function projectAnswer(a: AnswerSpec): Node[] {
   if (a.type === "numeric") return [para("Ответ: ____________________")];
@@ -32,27 +29,26 @@ export function decodeAnswerYaml(source: string, input: string): AnswerSpec {
   if (source.length > 65536) {
     fail("ANSWER_YAML", "Слишком большой YAML ответа", input);
   }
-  const doc = parseDocument(source, { uniqueKeys: true, version: "1.2" });
-  if (!doc || doc.errors.length || doc.warnings.length) {
+  const raw: unknown = parseDocument(source, { uniqueKeys: true, version: "1.2" });
+  if (!object(raw) || !Array.isArray(raw.errors) || !Array.isArray(raw.warnings) || typeof raw.toJS !== "function") fail("ANSWER_YAML", "Повреждённый YAML document", input);
+  if (raw.errors.length || raw.warnings.length) {
     fail(
       "ANSWER_YAML",
       "Требуется один YAML-словарь без повторных ключей",
       input,
     );
   }
-  function check(v: any) {
-    if (!v || typeof v !== "object") return;
+  function check(v: unknown) {
+    if (!object(v)) return;
     if (isAlias(v) || v.anchor || v.tag) {
       fail("ANSWER_YAML", "Aliases/anchors/tags ответа запрещены", input);
     }
-    for (const x of v.items ?? []) {
-      check(x);
-      check(x.key);
-      check(x.value);
-    }
+    if (Array.isArray(v.items)) for (const x of v.items) check(x);
+    check(v.key);
+    check(v.value);
   }
-  check(doc.contents);
-  const value = doc.toJS({ maxAliasCount: 0 });
+  check(raw.contents);
+  const value: unknown = raw.toJS({ maxAliasCount: 0 });
   boundInput(value, input);
   return decode(AnswerSpecSchema, value, "ANSWER_INVALID", input);
 }
@@ -64,7 +60,7 @@ export function collectAnswers(
 ) {
   const answers: Record<string, AnswerFacts> = {},
     replacements = new Map<object, unknown[]>();
-  function put(id: string, answer: AnswerFacts, node: object, body: unknown[]) {
+  function put(id: string, answer: AnswerFacts, node: object, body: Node[]) {
     if (Object.hasOwn(answers, id)) {
       fail(
         "ANSWER_INVALID",
@@ -80,7 +76,7 @@ export function collectAnswers(
         ? assignmentAnswerTransport(
           id,
           answer,
-          body as any[],
+          body,
           transport.context,
           transport.answers,
         )
@@ -99,16 +95,16 @@ export function collectAnswers(
       return;
     }
     if (!object(v)) return;
-    const a = attr(v as Node), classes: string[] = a?.[1] ?? [];
+    const a = attr(v, input), classes = a?.[1] ?? [];
     let next = owner, nextRole = role;
-    if (v.t === "Div" && String(a?.[0]).startsWith("exr-")) next = a[0];
+    if (v.t === "Div" && a?.[0].startsWith("exr-")) next = a[0];
     if (
       v.t === "Div" &&
       (classes.includes("solution") || String(a?.[0]).startsWith("sol-"))
     ) nextRole = "solution";
     if (classes.includes("correct")) {
       if (
-        v.t !== "Span" || role !== "answer" || choiceIndex === undefined ||
+        !isContainer(v) || v.t !== "Span" || role !== "answer" || choiceIndex === undefined ||
         !marks
       ) {
         fail(
@@ -134,7 +130,7 @@ export function collectAnswers(
         );
       }
       if (classes.includes("answer-spec")) {
-        if (v.t !== "CodeBlock" || typeof v.c[1] !== "string") {
+        if (!isCode(v) || v.t !== "CodeBlock") {
           fail(
             "ANSWER_INVALID",
             "Банк ответов должен быть CodeBlock",
@@ -147,9 +143,8 @@ export function collectAnswers(
         return;
       }
       if (
-        v.t !== "Div" || Object.fromEntries(a[2]).type !== "single-choice" ||
-        v.c[1]?.length !== 1 || v.c[1][0].t !== "BulletList" ||
-        !Array.isArray(v.c[1][0].c)
+        !isContainer(v) || v.t !== "Div" || Object.fromEntries(v.c[0][2]).type !== "single-choice" ||
+        v.c[1].length !== 1 || !isBulletList(v.c[1][0])
       ) {
         fail(
           "ANSWER_INVALID",
@@ -158,7 +153,9 @@ export function collectAnswers(
           next,
         );
       }
-      const items: unknown[][] = v.c[1][0].c, marked: number[] = [];
+      const list = v.c[1][0];
+      if (!isBulletList(list)) fail("ANSWER_INVALID", "Некорректный BulletList", input, next);
+      const items = list.c, marked: number[] = [];
       items.forEach((item, index) => walk(item, next, "answer", index, marked));
       if (marked.length !== 1) {
         fail(

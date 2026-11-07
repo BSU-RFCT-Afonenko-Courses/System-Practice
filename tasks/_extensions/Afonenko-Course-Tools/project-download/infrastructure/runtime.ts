@@ -142,16 +142,16 @@ export const resetDownloadRequests = __metrics.wrapAsync({
 });
 /** Адреса и содержимое выдачи; Native context принадлежит Core. */
 export interface NativeDownloadOptions {
-  destinationDirectory?: string;
-  baseUrl?: string;
-  catalogBaseUrl?: string;
+  destinationDirectory?: string | undefined;
+  baseUrl?: string | undefined;
+  catalogBaseUrl?: string | undefined;
   referenceCatalog?: unknown;
   submission?: Parameters<SiblingModules["course-core"]["materializeProject"]>[2]["submission"];
 }
 export interface OrdinaryDownloadOptions {
-  destinationDirectory?: string;
-  profiles?: string[];
-  outputDirectory?: string;
+  destinationDirectory?: string | undefined;
+  profiles?: string[] | undefined;
+  outputDirectory?: string | undefined;
 }
 export interface PreparedDownloads {
   publish(): Promise<number>;
@@ -183,7 +183,7 @@ export async function prepareNativeDownloads(
   publication: NativePublication,
   options: NativeDownloadOptions = {},
 ): Promise<PreparedDownloads> {
-  const Core = await sibling("course-core");
+  const Core = await progress("Подключение Core", () => sibling("course-core"));
   return await prepareDownloadsInternal(publication.root, options,
     [...publication.identity.profiles], publication.outputDirectory, { publication, Core });
 }
@@ -209,17 +209,20 @@ async function prepareDownloadsInternal(
   let resolvedOutput = sourceOutput;
   const collect = async (): Promise<number> => {
     const operation = current?.publication;
-    let sources = operation?.catalog.documents.map((d) => d.source) ??
-      await inputFiles(root);
+    let sources: string[] = [];
     let inspected: Awaited<ReturnType<typeof inspect>> | undefined;
-    // Standalone без native hook env сохраняет обычный independent сценарий.
-    if (!operation) {
-      inspected = await inspect(root);
-      sources = inspected.files.input.map((path: string) =>
-        relative(root, path).replaceAll("\\", "/")
-      );
-      resolvedOutput ||= outputDirectory(inspected.config);
-    }
+    await progress("Чтение проекта", async () => {
+      sources = operation?.catalog.documents.map((d) => d.source) ??
+        await inputFiles(root);
+      // Standalone без native hook env сохраняет обычный independent сценарий.
+      if (!operation) {
+        inspected = await inspect(root);
+        sources = inspected.files.input.map((path: string) =>
+          relative(root, path).replaceAll("\\", "/")
+        );
+        resolvedOutput ||= outputDirectory(inspected.config);
+      }
+    });
     const authoredInputs = new Set<string>(
       sources.map((source: string) => resolve(root, source)),
     );
@@ -271,7 +274,7 @@ async function prepareDownloadsInternal(
         }
       }
     }
-    const owned = await inspectOwnedRequests(root, sources);
+    const owned = await progress("Чтение заявок", () => inspectOwnedRequests(root, sources));
     const requests = owned.files;
     const configs = requests.map((request) =>
       configuration(
@@ -421,7 +424,7 @@ async function prepareDownloadsInternal(
                 targets: {},
               },
             baseUrl,
-            catalogBaseUrl: options.catalogBaseUrl,
+            ...(options.catalogBaseUrl === undefined ? {} : { catalogBaseUrl: options.catalogBaseUrl }),
             sources: Object.fromEntries(
               operation.catalog.documents.map((d) => [d.source, d.output]),
             ),
@@ -439,8 +442,8 @@ async function prepareDownloadsInternal(
             const urls: Record<string, string> = {},
               resourceLinks: string[] = [];
             for (const link of fragment.links) {
-              const pathname = link.split(/[?#]/)[0],
-                target = pathname.split("/").pop();
+              const [pathname = ""] = link.split(/[?#]/);
+              const target = pathname.split("/").pop();
               if (
                 artifacts.some((a) =>
                   a.exerciseId + "-" + a.kind + ".zip" === target
@@ -583,7 +586,7 @@ async function prepareDownloadsInternal(
     }
     return await pack();
   };
-  const count = await collect();
+  const count = await progress("Подготовка загрузок", collect);
   return preparedDownloads(root, options.destinationDirectory || resolvedOutput!,
     archives, count);
 }
@@ -623,57 +626,64 @@ async function publishArchives(
   output: string,
   archives: { name: string; bytes: Uint8Array }[],
 ) {
-  let existingParent = resolve(root, output);
-  while (!await exists(existingParent)) {
-    existingParent = dirname(existingParent);
-  }
-  await noSymlinks("/", existingParent);
-  await clearOwned(root, output);
-  if (!archives.length) return;
-  const outputRoot = resolve(root, output);
-  const directory = child(outputRoot, "_downloads");
-  if (
-    await exists(outputRoot) && (await Deno.lstat(outputRoot)).isSymlink
-  ) {
-    throw diagnostic(
-      "DOWNLOAD.PATH_INVALID",
-      "Каталог вывода не должен быть символической ссылкой",
-      { source: outputRoot, field: "output-dir" },
-    );
-  }
-  await Deno.mkdir(directory, { recursive: true });
-  if ((await Deno.lstat(outputRoot)).isSymlink) {
-    throw diagnostic(
-      "DOWNLOAD.PATH_INVALID",
-      "Каталог вывода не должен быть символической ссылкой",
-      { source: outputRoot, field: "output-dir" },
-    );
-  }
-  await noSymlinks("/", outputRoot);
-  await noSymlinks(outputRoot, directory);
-  // Нельзя перезаписывать файл, которым это расширение не владело.
-  for (const archive of archives) {
-    if (await exists(join(directory, archive.name))) {
+  return await progress("Запись файлов", async () => {
+    let existingParent = resolve(root, output);
+    while (!await exists(existingParent)) {
+      existingParent = dirname(existingParent);
+    }
+    await noSymlinks("/", existingParent);
+    await clearOwned(root, output);
+    if (!archives.length) {
+      reportProgress("Запись файлов — files=0/0");
+      return;
+    }
+    const outputRoot = resolve(root, output);
+    const directory = child(outputRoot, "_downloads");
+    if (
+      await exists(outputRoot) && (await Deno.lstat(outputRoot)).isSymlink
+    ) {
       throw diagnostic(
-        "DOWNLOAD.OUTPUT_CONFLICT",
-        `Посторонний файл мешает публикации архива: ${archive.name}`,
-        {
-          source: join(directory, archive.name),
-          id: archive.name,
-          field: "output",
-          hint: "Выберите свободный путь или переместите посторонний архив.",
-        },
+        "DOWNLOAD.PATH_INVALID",
+        "Каталог вывода не должен быть символической ссылкой",
+        { source: outputRoot, field: "output-dir" },
       );
     }
-  }
-  // Манифест записывается первым: следующая сборка очистит и прерванную запись.
-  await Deno.writeTextFile(
-    join(directory, manifestName),
-    JSON.stringify(archives.map((item) => item.name)) + "\n",
-  );
-  for (const archive of archives) {
-    await Deno.writeFile(join(directory, archive.name), archive.bytes, {
-      createNew: true,
-    });
-  }
+    await Deno.mkdir(directory, { recursive: true });
+    if ((await Deno.lstat(outputRoot)).isSymlink) {
+      throw diagnostic(
+        "DOWNLOAD.PATH_INVALID",
+        "Каталог вывода не должен быть символической ссылкой",
+        { source: outputRoot, field: "output-dir" },
+      );
+    }
+    await noSymlinks("/", outputRoot);
+    await noSymlinks(outputRoot, directory);
+    // Нельзя перезаписывать файл, которым это расширение не владело.
+    for (const archive of archives) {
+      if (await exists(join(directory, archive.name))) {
+        throw diagnostic(
+          "DOWNLOAD.OUTPUT_CONFLICT",
+          `Посторонний файл мешает публикации архива: ${archive.name}`,
+          {
+            source: join(directory, archive.name),
+            id: archive.name,
+            field: "output",
+            hint: "Выберите свободный путь или переместите посторонний архив.",
+          },
+        );
+      }
+    }
+    // Манифест записывается первым: следующая сборка очистит и прерванную запись.
+    await Deno.writeTextFile(
+      join(directory, manifestName),
+      JSON.stringify(archives.map((item) => item.name)) + "\n",
+    );
+    let files = 0;
+    for (const archive of archives) {
+      await Deno.writeFile(join(directory, archive.name), archive.bytes, {
+        createNew: true,
+      });
+      reportProgress(`Запись файлов — files=${++files}/${archives.length}`);
+    }
+  });
 }

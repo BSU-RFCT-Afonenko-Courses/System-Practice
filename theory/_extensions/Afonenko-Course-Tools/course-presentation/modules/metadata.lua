@@ -5,18 +5,25 @@ local __metrics=require("../observability/bridge").create_metrics("course-presen
 local M = {}
 local vocabulary = require("./vocabulary")
 local roles, difficulty, modes, requirement = vocabulary.roles, vocabulary.difficulty, vocabulary.workMode, vocabulary.requirement
-local function label(value) return value end
+---@param div pandoc.Div
+---@param name string
 local function add_class(div, name) if not div.classes:includes(name) then div.classes:insert(name) end end
+---@param div pandoc.Div
+---@param cfg CoursePresentationConfig
+---@return pandoc.Div
 function M.decorate(div, cfg)
   local attrs = div.attributes
   local role = attrs["course-role"]
   local canonical=cfg.bank and div.identifier:match("^exr%-")
   local defaults = not canonical and (div.identifier:match("^exr%-") or (roles[role] and roles[role].activity)) and cfg.defaults or {}
+  ---@type table<string,string>
   local values = {}
   for _, key in ipairs({"difficulty", "time", "work-mode", "requirement"}) do
     values[key] = attrs[key] or defaults[key]
   end
-  local parts = pandoc.List()
+  local parts = pandoc.Inlines({})
+  ---@param text? string
+  ---@param kind string
   local function badge(text, kind)
     if not text then return end
     if #parts > 0 then parts:insert(pandoc.Space()) end
@@ -27,14 +34,14 @@ function M.decorate(div, cfg)
     add_class(div, "course-role-" .. role)
     badge(roles[role].label, "role")
   end
-  badge(label(difficulty[values.difficulty], cfg), "difficulty")
+  badge(difficulty[values.difficulty], "difficulty")
   if cfg.assessmentTime ~= false then
     badge(values.time and (values.time .. (cfg.ru and " мин" or " min")), "time")
   end
   if values["work-mode"] ~= "individual" then
-    badge(label(modes[values["work-mode"]], cfg), "work-mode")
+    badge(modes[values["work-mode"]], "work-mode")
   end
-  badge(label(requirement[values.requirement], cfg), "requirement")
+  badge(requirement[values.requirement], "requirement")
   if #parts > 0 then
     local line = pandoc.Div({pandoc.Plain(parts)}, pandoc.Attr("", {"course-metadata"}))
     -- Quarto читает название теоремы или упражнения из первого Header.

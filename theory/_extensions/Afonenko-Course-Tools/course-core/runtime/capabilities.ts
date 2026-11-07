@@ -22,7 +22,7 @@ export function bindNativeValue(
     assertIdentity?: (identity: string) => void,
   ) => Promise<Uint8Array | undefined>,
 ) {
-  guards.set(value, { root, assert, resource });
+  guards.set(value, { root, assert, ...(resource ? { resource } : {}) });
 }
 export function inheritNativeValue(source: object, target: object) {
   const guard = guards.get(source);

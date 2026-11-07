@@ -46,7 +46,7 @@ export function selectCondition(
       exerciseId,
     );
   }
-  const body = structuredClone(rows[0].body),
+  const body = structuredClone(rows[0]!.body),
     links = new Set<string>(),
     resources = new Set<string>();
   function visit(v: unknown) {
@@ -76,8 +76,8 @@ export function selectCondition(
   const condition = immutable(decode(ResolvedConditionSchema, {
     context: doc.context,
     exerciseId,
-    occurrence: rows[0].key,
-    anchor: rows[0].anchor,
+    occurrence: rows[0]!.key,
+    anchor: rows[0]!.anchor,
     ...(doc.definitions[exerciseId]?.project
       ? { project: doc.definitions[exerciseId].project }
       : {}),

@@ -83,7 +83,7 @@ export async function validatePublicationFacts(
     >(),
     assessments = new Set<string>(),
     bindings = new Set<string>();
-  const first = documents[0].early.release;
+  const first = documents[0]?.early.release;
   if (!first) {
     fail("RELEASE.METADATA_MISSING", "Нет current ранних release facts");
   }

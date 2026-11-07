@@ -27,9 +27,9 @@ export const NativeCaptureCommandSchema = z.strictObject({
 });
 export type NativeCaptureCommand = Readonly<{
   args: readonly string[];
-  stdout?: "piped" | "inherit" | "null";
-  stderr?: "piped" | "inherit" | "null";
-  timeoutMs?: number;
+  stdout?: "piped" | "inherit" | "null" | undefined;
+  stderr?: "piped" | "inherit" | "null" | undefined;
+  timeoutMs?: number | undefined;
 }>;
 export type NativePreparedLease = Readonly<{
   descriptor: NativePreparedOperation;

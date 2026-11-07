@@ -36,7 +36,7 @@ type Captured = {
       format: z.output<typeof NativeWebFormatSchema>;
     };
   };
-  projectFacts?: z.output<typeof NativeProjectFactsCaptureSchema>;
+  projectFacts?: z.output<typeof NativeProjectFactsCaptureSchema> | undefined;
 };
 export function validateAssignmentProvenance(
   identity: NativeOperationIdentity,

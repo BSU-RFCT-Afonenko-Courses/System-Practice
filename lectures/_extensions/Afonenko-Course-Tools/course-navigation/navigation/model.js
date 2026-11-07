@@ -1,14 +1,20 @@
 /* Навигация курса: структура слайдов и история посещений, независимые от интерфейса. */
-(function (root) {
+const NavigationModel = (function () {
   'use strict';
-  const namespace = root.CourseNavigationModules = root.CourseNavigationModules || {};
+  /** @param {unknown} value */
   const clean = value => String(value || '').replace(/\s+/g, ' ').trim();
 
+  /** @template {CourseGroupingEntry} T
+   * @param {T[]} entries
+   * @param {string} fallback
+   * @returns {CourseGrouping<T>} */
   function groupEntries(entries, fallback) {
+    /** @type {CourseGrouping<T>["groups"]} */
     const groups = [];
+    /** @type {CourseGrouping<T>["groups"][number] | undefined} */
     let current;
     const slides = entries.map((entry, index) => {
-      if (!current || (index > 0 && entries[index - 1].isTitle) || (entry.section && entry.section !== current.title) || entry.sectionStart) {
+      if (!current || (index > 0 && entries[index - 1]?.isTitle) || (entry.section && entry.section !== current.title) || entry.sectionStart) {
         current = { index: groups.length, title: entry.section || fallback, start: index, slides: [] };
         groups.push(current);
       }
@@ -19,9 +25,14 @@
     return { slides, groups };
   }
 
+  /** @template {CourseCollectElement} T
+   * @param {{getSlides(): T[], getIndices(slide: NoInfer<T>): {h: number, v?: number | undefined}}} deck
+   * @param {Pick<CourseNavLabels, 'slide' | 'start' | 'material'>} labels
+   * @returns {CourseGrouping<CourseSlideEntry<T>>} */
   function collect(deck, labels) {
     const visible = deck.getSlides().filter(slide => {
       if (Array.from(slide.children).some(child => child.tagName === 'SECTION')) return false;
+      /** @type {CourseCollectAncestor | null} */
       let node = slide;
       while (node && node.tagName === 'SECTION') {
         if (node.getAttribute('data-visibility') === 'hidden') return false;
@@ -36,7 +47,7 @@
       const isTitle = element.id === 'title-slide';
       const sectionStart = !isTitle && !!heading && (heading.tagName === 'H1' || element.classList.contains('level1'));
       const clone = element.cloneNode(true);
-      clone.querySelectorAll('script,style,.speaker-notes').forEach(node => node.remove());
+      if ('querySelectorAll' in clone) clone.querySelectorAll('script,style,.speaker-notes').forEach(node => node.remove());
       const indices = deck.getIndices(element);
       return {
         element, title, h: indices.h, v: indices.v || 0,
@@ -48,6 +59,7 @@
     return groupEntries(entries, labels.material);
   }
 
+  /** @param {CourseSlide} slide @param {string} term */
   function findTarget(slide, term) {
     if (!term) return slide.element;
     const selector = 'p,li,pre,h1,h2,h3,h4,h5,h6,td,th,figcaption,summary';
@@ -57,7 +69,13 @@
   }
 
   class VisitHistory {
-    constructor(limit = 256) { this.limit = limit; this.entries = []; this.cursor = -1; }
+    constructor(limit = 256) {
+      this.limit = limit;
+      /** @type {number[]} */
+      this.entries = [];
+      this.cursor = -1;
+    }
+    /** @param {number} index */
     record(index) {
       if (this.entries[this.cursor] === index) return;
       this.entries = this.entries.slice(0, this.cursor + 1);
@@ -65,15 +83,20 @@
       if (this.entries.length > this.limit) this.entries.shift();
       this.cursor = this.entries.length - 1;
     }
+    /** @param {number} direction */
     move(direction) {
       const target = this.cursor + direction;
       if (target < 0 || target >= this.entries.length) return null;
       this.cursor = target;
-      return this.entries[target];
+      return this.entries[target] ?? null;
     }
+    /** @param {number} direction */
     canMove(direction) { const target = this.cursor + direction; return target >= 0 && target < this.entries.length; }
   }
 
-  namespace.NavigationModel = { collect, groupEntries, VisitHistory, findTarget };
-  if (typeof module === 'object' && module.exports) module.exports = namespace.NavigationModel;
-})(typeof window === 'undefined' ? globalThis : window);
+  return { collect, groupEntries, VisitHistory, findTarget };
+})();
+/** @type {CourseNavModules} */
+const navigationNamespace = globalThis.CourseNavigationModules = globalThis.CourseNavigationModules || {};
+navigationNamespace.NavigationModel = NavigationModel;
+if (typeof module === 'object' && module.exports) module.exports = NavigationModel;

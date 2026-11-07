@@ -1,5 +1,15 @@
 -- Техническая метка custom node переживает штатный native renderer.
+---@class CourseCustomExercise
+---@field div pandoc.Div
+---@field name? pandoc.Inlines|string
+---@class CourseConditionalBlock
+---@field node pandoc.Div
+---@type string
 local occurrence='data-course-core-occurrence'
+---@param node CourseCustomExercise
+---@param kind string
+---@param container pandoc.Div
+---@return CourseCustomExercise
 local function mark(node,kind,container)
   local key=node.div.attributes[occurrence]
   if key then
@@ -15,9 +25,17 @@ local function mark(node,kind,container)
   return node
 end
 return {{
-  Theorem=function(node,container) return mark(node,'Theorem',container) end,
-  Proof=function(node,container) return mark(node,'Proof',container) end,
-  ConditionalBlock=function(node)
+  Theorem=
+  ---@param node CourseCustomExercise
+  ---@param container pandoc.Div
+  function(node,container) return mark(node,'Theorem',container) end,
+  Proof=
+  ---@param node CourseCustomExercise
+  ---@param container pandoc.Div
+  function(node,container) return mark(node,'Proof',container) end,
+  ConditionalBlock=
+  ---@param node CourseConditionalBlock
+  function(node)
     local attributes=node.node.attributes
     if attributes and attributes[occurrence] then
       -- ConditionalBlock снимает свой Div. Немаркированная оболочка позволяет

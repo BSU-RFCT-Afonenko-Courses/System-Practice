@@ -7,8 +7,8 @@ import { fail } from "../contracts/project.ts";
 type Execution = {
   runtime: AssignmentRuntimeWitness;
   root: string;
-  pandocBinding?: () => Promise<NativePandocBinding | undefined>;
-  beforeChild?: () => Promise<void>;
+  pandocBinding?: (() => Promise<NativePandocBinding | undefined>) | undefined;
+  beforeChild?: (() => Promise<void>) | undefined;
   lives: { active: boolean }[];
   token?: string;
 };

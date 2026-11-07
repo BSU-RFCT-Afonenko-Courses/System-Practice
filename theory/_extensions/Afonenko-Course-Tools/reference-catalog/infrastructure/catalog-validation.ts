@@ -61,7 +61,7 @@ function target(value: unknown, key: string, source: string) {
 }
 
 /** Проверяем внешний JSON до передачи его механизму разрешения ссылок. */
-export function validateImportedCatalog(value: unknown, source: string) {
+function validateImportedCatalogImpl(value: unknown, source: string) {
   if (!isRecord(value) || value.schema !== "quarto-reference-catalog") {
     throw diagnostic(
       "QRC.IMPORT_INVALID",
@@ -110,9 +110,8 @@ export function validateImportedCatalog(value: unknown, source: string) {
   };
 }
 
-// @ts-expect-error JS допускает замену function binding; сигнатура публичного API сохраняется.
-validateImportedCatalog = __metrics.wrapSync({
+export const validateImportedCatalog = __metrics.wrapSync({
   id:
     "reference-catalog.infrastructure.catalog-validation.validateImportedCatalog",
   kind: "io",
-}, validateImportedCatalog);
+}, validateImportedCatalogImpl);

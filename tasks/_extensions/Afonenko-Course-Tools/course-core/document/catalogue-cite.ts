@@ -1,3 +1,5 @@
+import { isNode, isCite } from "./native-ast.ts";
+import type { Node } from "./native-ast.ts";
 import { fail } from "../contracts/project.ts";
 export type CatalogueReference = { token: string; key: string; style: string };
 export const catalogueReference = (
@@ -11,18 +13,18 @@ export const catalogueReference = (
 });
 /** Existing QRC requests.lua Cite grammar and ordering, without catalogue lookup. */
 export function catalogueCitations(
-  node: any,
+  node: unknown,
 ):
-  | { reference: CatalogueReference; prefix: any[]; suffix: any[] }[]
+  | { reference: CatalogueReference; prefix: Node[]; suffix: Node[] }[]
   | undefined {
-  if (node?.t !== "Cite") return;
-  const rows = node.c?.[0];
-  if (!Array.isArray(rows)) fail("QRC.REFERENCE_INVALID", "Повреждённый Cite");
+  if (!isNode(node) || node.t !== "Cite") return undefined;
+  if (!isCite(node)) fail("QRC.REFERENCE_INVALID", "Повреждённый Cite/prefix/suffix/mode");
+  const rows = node.c[0];
   const selected = rows.map((row) =>
     typeof row.citationId === "string" &&
     /^[A-Za-z][A-Za-z0-9_-]*:[A-Za-z][^:]*-[^:]+$/.test(row.citationId)
   );
-  if (!selected.some(Boolean)) return;
+  if (!selected.some(Boolean)) return undefined;
   if (!selected.every(Boolean)) {
     fail(
       "QRC.REFERENCE_INVALID",
@@ -30,9 +32,6 @@ export function catalogueCitations(
     );
   }
   return rows.map((row) => {
-    if (
-      !Array.isArray(row.citationPrefix) || !Array.isArray(row.citationSuffix)
-    ) fail("QRC.REFERENCE_INVALID", "Повреждённые prefix/suffix");
     return {
       reference: catalogueReference(
         row.citationId,
@@ -45,9 +44,9 @@ export function catalogueCitations(
 }
 export function catalogueCiteInlines(
   rows: NonNullable<ReturnType<typeof catalogueCitations>>,
-  link: (ref: CatalogueReference) => any,
+  link: (ref: CatalogueReference) => Node,
 ) {
-  const out: any[] = [];
+  const out: Node[] = [];
   rows.forEach((row, i) => {
     if (i) out.push({ t: "Str", c: ";" }, { t: "Space" });
     out.push(...row.prefix);

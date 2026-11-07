@@ -122,7 +122,7 @@ export async function planProject(
     }
     if (graphDone.has(name)) return;
     graphActive.add(name);
-    for (const [dep, on] of Object.entries(nodes[name].requires)) {
+    for (const [dep, on] of Object.entries(nodes[name]!.requires)) {
       if (!Object.hasOwn(nodes, dep)) {
         fail(
           "PROJECT_UNKNOWN",
@@ -172,7 +172,7 @@ export async function planProject(
     selected.add(name);
     if (done.has(name)) return;
     active.add(name);
-    for (const [dep, on] of Object.entries(nodes[name].requires)) {
+    for (const [dep, on] of Object.entries(nodes[name]!.requires)) {
       if (!Object.hasOwn(nodes, dep)) {
         fail("PROJECT_UNKNOWN", [...trace, dep].join(" → "), context.input);
       }
@@ -187,7 +187,7 @@ export async function planProject(
         }
       }
     }
-    for (const [dep, on] of Object.entries(nodes[name].requires)) {
+    for (const [dep, on] of Object.entries(nodes[name]!.requires)) {
       if (on) visit(dep, trace);
     }
     active.delete(name);
@@ -209,13 +209,13 @@ export async function planProject(
     reason: "starter",
   }];
   const files = Object.keys(project.build.files).sort().map((target) => ({
-    path: project.build.files[target].path,
+    path: project.build.files[target]!.path,
     target,
     reason: "build",
   }));
   for (const name of [...selected].sort()) {
     trees.push({
-      path: nodes[name].path,
+      path: nodes[name]!.path,
       prefix: "",
       reason:
         (Object.hasOwn(project.testsets, name) ? "testset:" : "component:") +
@@ -225,7 +225,7 @@ export async function planProject(
   // Reference/alternative source groups are independent roots with the same actual build/tests.
   for (const group of groups) {
     trees.push({
-      path: project.solutions[group].path,
+      path: project.solutions[group]!.path,
       prefix: "author/" + group + "/",
       reason: "solution:" + group,
     });

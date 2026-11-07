@@ -1,6 +1,7 @@
 /* Плагин Reveal. Файлы model.js и ui.js загружаются перед ним. */
 (function (root) {
   'use strict';
+  /** @type {Map<CourseReveal, () => void>} */
   const cleanup = new Map();
   root.CourseNavigation = {
     id: 'CourseNavigation',
@@ -14,16 +15,37 @@
       // Reveal удаляет скрытые разделы после инициализации плагина, до ready.
       // Координаты собираются после удаления, чтобы переходы были корректными.
       const start = () => {
-        const options = Object.assign({ language: document.documentElement.lang?.startsWith('en') ? 'en' : 'ru', sidebar: true, title: document.querySelector('#title-slide h1')?.textContent.trim() || document.title }, configured);
+        /** @type {CourseNavigationOptions} */
+        const options = { language: document.documentElement.lang?.startsWith('en') ? 'en' : 'ru', sidebar: true, title: document.querySelector('#title-slide h1')?.textContent?.trim() || document.title, ...configured };
         const context = document.getElementById('course-navigation-context');
-        if (context) options.links = [...JSON.parse(context.textContent).links, ...(options.links || [])];
+        if (context) {
+          /** @type {unknown} */ const data = JSON.parse(context.textContent || 'null');
+          if (!data || typeof data !== 'object' || !('links' in data) || !Array.isArray(data.links)) throw new TypeError('Некорректный контекст навигации');
+          /** @type {CourseNavLink[]} */ const links = [];
+          /** @type {unknown[]} */ const rawLinks = data.links;
+          for (const item of rawLinks) {
+            if (!item || typeof item !== 'object' || !('text' in item) || typeof item.text !== 'string' || !('href' in item) || typeof item.href !== 'string') throw new TypeError('Некорректная ссылка навигации');
+            const id = 'id' in item ? item.id : undefined;
+            const current = 'current' in item ? item.current : undefined;
+            const scope = 'scope' in item ? item.scope : undefined;
+            if ((id !== undefined && typeof id !== 'string') || (current !== undefined && typeof current !== 'boolean') ||
+              (scope !== undefined && typeof scope !== 'string')) throw new TypeError('Некорректная ссылка навигации');
+            links.push({text: item.text, href: item.href, ...(id === undefined ? {} : {id}),
+              ...(current === undefined ? {} : {current}), ...(scope === undefined ? {} : {scope})});
+          }
+          options.links = [...links, ...(options.links || [])];
+        }
         options.slideWidth = config.width; options.slideHeight = config.height;
-        const { NavigationModel: Model, NavigationUI: UI } = root.CourseNavigationModules;
-        const model = Model.collect(deck, UI.strings[options.language] || UI.strings.ru);
+        const { NavigationModel: Model, NavigationUI: UI } = root.CourseNavigationModules || {};
+        if (!Model || !UI) throw new Error('Модули навигации не загружены');
+        const model = Model.collect(deck, UI.strings[options.language || 'ru'] || UI.strings.ru);
         const history = new Model.VisitHistory();
+        /** @type {number | null} */
         let historyTarget = null;
+        /** @type {CourseNavUI} */
         let ui;
         const current = () => model.slides.find(slide => slide.element === deck.getCurrentSlide());
+        /** @param {number} index @param {Element} [target] */
         function goto(index, target) {
           const slide = model.slides[index];
           if (!slide) return;
@@ -39,17 +61,20 @@
           }
           if (ui) ui.update(slide, history, deck.availableFragments());
         }
+        /** @param {number} direction */
         function travel(direction) {
           const target = history.move(direction);
           if (target === null) return;
           historyTarget = target; goto(target);
           ui.update(current(), history, deck.availableFragments());
         }
+        /** @param {number} direction */
         function section(direction) {
           const slide = current();
           const group = slide && model.groups[slide.group + direction];
           if (group) goto(group.start);
         }
+        /** @type {CourseNavActions} */
         const actions = {
           goto, prev: () => deck.prev(), next: () => deck.next(),
           prevSection: () => section(-1), nextSection: () => section(1),
@@ -64,7 +89,7 @@
           }
         };
         const notes = deck.getPlugin?.('notes');
-        if (typeof notes?.open === 'function') actions.speaker = () => notes.open();
+        if (typeof notes?.open === 'function') actions.speaker = () => notes.open?.();
         document.body.classList.add('course-navigation-active');
         if (options.sidebar === false) document.body.classList.add('course-navigation-no-sidebar');
         ui = UI.build(model, options, actions);
@@ -72,15 +97,20 @@
           if (document.body.dataset.courseMode === 'lecture') {
             ui.closeDialogs();
             ui.update(current(), history, deck.availableFragments());
-            document.querySelector('.course-mode-toggle')?.focus({preventScroll: true});
+            const toggle = document.querySelector('.course-mode-toggle');
+            if (toggle instanceof HTMLElement) toggle.focus({preventScroll: true});
           }
           requestAnimationFrame(() => deck.layout());
         };
         document.addEventListener('course-mode-change', modeChanged);
         modeChanged();
-        const overviewShown = () => { deck.toggleOverview(false); actions.overview(); };
+        const overviewShown = () => {
+          const showOverview = actions.overview;
+          if (!showOverview) throw new Error('Обзор навигации не зарегистрирован');
+          deck.toggleOverview(false); showOverview();
+        };
         deck.on('overviewshown', overviewShown);
-        if (!document.documentElement.requestFullscreen) ui.shell.querySelectorAll('[data-action="fullscreen"]').forEach(control => { control.hidden = true; });
+        if (!document.documentElement.requestFullscreen) ui.shell.querySelectorAll('[data-action="fullscreen"]').forEach(control => { if (control instanceof HTMLElement) control.hidden = true; });
         const changed = () => update();
         ['ready', 'slidechanged', 'fragmentshown', 'fragmenthidden'].forEach(event => deck.on(event, changed));
         const onResize = () => { deck.layout(); ui.update(current(), history, deck.availableFragments()); };

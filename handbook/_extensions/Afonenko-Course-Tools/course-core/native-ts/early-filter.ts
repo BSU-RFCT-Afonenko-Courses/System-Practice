@@ -5,10 +5,13 @@ import {
   boundDocument,
   decodeDocumentContext,
   ExerciseDeclarationSchema,
+  PandocDocumentSchema,
 } from "../document/contracts.ts";
 import { nativeMetadata } from "../release/collect.ts";
 import { NativePendingDocumentContextSchema } from "../runtime/contracts.ts";
 import { decode } from "../document/contracts.ts";
+import { isRecord } from "../document/native-ast.ts";
+import type { AssignmentNormalization } from "../document/assignment-contracts.ts";
 import { fail } from "../contracts/project.ts";
 /** Quarto наследует отдельные metadata keys; TS декодирует прежние flat defaults. */
 function exerciseDefaults(meta: Record<string, unknown>, input: string) {
@@ -53,16 +56,18 @@ for (const chunk of chunks) {
   bytes.set(chunk, offset);
   offset += chunk.length;
 }
-const ast = JSON.parse(new TextDecoder("utf-8", { fatal: true }).decode(bytes));
-boundDocument(ast);
+const rawAst: unknown = JSON.parse(new TextDecoder("utf-8", { fatal: true }).decode(bytes));
+boundDocument(rawAst);
+const ast = decode(PandocDocumentSchema, rawAst, "DOCUMENT_AST");
 const requestMetadata = ast.meta?.["course-core-ts-request"];
 const runPath = Deno.env.get("COURSE_CORE_TS_RUN") ??
-  (requestMetadata?.t === "MetaString" ? requestMetadata.c : undefined);
+  (isRecord(requestMetadata) && requestMetadata.t === "MetaString" ? requestMetadata.c : undefined);
 if (typeof runPath !== "string") {
   fail("DOCUMENT_CONTEXT", "Отсутствует native request");
 }
-const request = JSON.parse(await Deno.readTextFile(runPath)),
-  requestedContext = Deno.env.get("COURSE_CORE_TS_RUN")
+const request: unknown = JSON.parse(await Deno.readTextFile(runPath));
+if (!isRecord(request)) fail("DOCUMENT_CONTEXT", "Нужен native request object");
+const requestedContext = Deno.env.get("COURSE_CORE_TS_RUN")
     ? decodeDocumentContext(request.context)
     : decode(
       NativePendingDocumentContextSchema,
@@ -74,7 +79,7 @@ if (typeof request.capture !== "string" || !request.capture.startsWith("/")) {
 }
 delete ast.meta["course-core-ts-request"];
 const transport = ast.meta?.["course-core-ts-context"];
-if (transport?.t !== "MetaString") {
+if (!isRecord(transport) || transport.t !== "MetaString" || typeof transport.c !== "string") {
   fail("DOCUMENT_BINDING", "Отсутствует native context");
 }
 const nativeContext = decodeDocumentContext(JSON.parse(transport.c));
@@ -98,15 +103,20 @@ const context = Deno.env.get("COURSE_CORE_TS_RUN")
     ...boundContext,
     defaults: exerciseDefaults(ast.meta, boundContext.input),
   });
+function isAssignment(value: unknown): value is AssignmentNormalization {
+  return isRecord(value) && typeof value.source === "string" && Array.isArray(value.assessments) && value.assessments.every((row: unknown) => isRecord(row) && typeof row.source === "string" && typeof row.id === "string");
+}
+const assignment = request.assignment;
+if (assignment !== undefined && !isAssignment(assignment)) fail("DOCUMENT_CONTEXT", "Повреждённый assignment request");
 let assignmentOwner: string | undefined;
-if (request.assignment) {
+if (assignment) {
   assignmentOwner = await assertNativeAssignmentCapture(
     context,
-    request.assignment,
+    assignment,
     request.capture,
   );
 }
-const early = normalizeDocument(ast, context, request.assignment);
+const early = normalizeDocument(ast, context, assignment);
 try {
   await Deno.writeTextFile(
     request.capture + ".early.json",
@@ -119,7 +129,7 @@ try {
   }
   throw error;
 }
-if (request.assignment) {
+if (assignment) {
   const facts = collectNativeProjectFacts(early, assignmentOwner!);
   try {
     await Deno.writeTextFile(
