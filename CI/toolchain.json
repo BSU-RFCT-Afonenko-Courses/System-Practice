@@ -13,7 +13,7 @@
     "javaImageConfig": "sha256:2f2d093bdc724bc9f8e45020c6bc96e17392eec0728bfa8bf55604c2ea022655",
     "workspaceImage": "ghcr.io/afonenko-course-tools/sp-git-workspace@sha256:465bf16061c3a44afdc61c77d1dd853216be35b0203072cb8e7c69a51a1bf31a"
   },
-  "status": "Публичный JUnit API Platform 2.6.0 с Java image из публикации v2.6.0 и известными images смешанных выпусков: Community 2.5.8, fish из current profiles, workspace из фактического SP export. Развёртывание на прежней VM планируется с переносом только users/rights в новую БД; фактический итог deployment здесь не заявлен. Оценки и attempts остаются без изменений до отдельного указания после deployment. Проверка source course SP 64f3d9: student render и native export 7Q5 PASS. Основные сценарии продолжаются; полный результат ещё не установлен.",
+  "status": "Java/JUnit использует публичные API Platform 2.6.0. Community 2.5.8, fish и Workspace сохраняются на указанных digest. В чистую установку переносятся только пользователи и права; исторические оценки и попытки не переносятся и не пересчитываются без отдельной команды владельца после развёртывания и проверки.",
   "imagePublication": {
     "run": 42356822605,
     "buildSource": "de9a7e464e137a8cdc7e56e9e8e2e78f6d93da62",
@@ -34,6 +34,6 @@
   "githubCi": {
     "status": "pending",
     "scope": "public-source-published-providers-and-site",
-    "reason": "Результат hosted CI для текущего course HEAD ещё ожидается."
+    "reason": "Результат hosted CI для соответствующего course HEAD проверяется отдельно в GitHub Actions."
   }
 }
