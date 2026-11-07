@@ -1,8 +1,8 @@
+import { isStrings, nativeConfig, nativeInspect } from "./values.ts";
 import { contextualize, diagnostic } from "./diagnostics.ts";
 import {
   inside,
   isAbsolute,
-  join,
   outputDirectory,
   relative,
   resolve,
@@ -10,24 +10,14 @@ import {
   within,
 } from "./files.ts";
 import { profileArguments, quarto } from "./process.ts";
-export interface Project {
-  id: string;
-  path: string;
-  mount: string;
+function projectRecord(
+  path: string,
+  mount: string,
+) {
+  return { id: `subproject-${encodeURIComponent(mount)}`, path, mount };
 }
-export interface Workspace {
-  root: string;
-  output: string;
-  profiles: string[];
-  projects: Project[];
-  config: any;
-  resources?: string[];
-}
-export async function inspect(root: string, profiles: string[]): Promise<any> {
-  return JSON.parse(
-    await quarto(["inspect", root, ...profileArguments(profiles)], root),
-  ).config;
-}
+export type Project = ReturnType<typeof projectRecord>;
+export type Workspace = Awaited<ReturnType<typeof workspace>>;
 export function activeProfiles(): string[] {
   const profiles = (Deno.env.get("QUARTO_PROFILE") || "").split(",").filter(
     Boolean,
@@ -50,10 +40,11 @@ export function activeProfiles(): string[] {
 }
 export async function validateConfig(
   root: string,
-  config: any,
+  value: unknown,
   profiles: string[],
-): Promise<Workspace> {
+) {
   root = resolve(root);
+  const config = nativeConfig(value, root);
   if (config.project?.type !== "website") {
     throw diagnostic(
       "SITE.CONFIG_INVALID",
@@ -80,18 +71,21 @@ export async function validateConfig(
       },
     );
   }
-  const raw = config.subprojects;
+  const raw: unknown = config.subprojects;
   if (
     !Array.isArray(raw) || !raw.length ||
-    raw.some((path) => typeof path !== "string" || !path)
+    !raw.every((item: unknown): item is string =>
+      typeof item === "string" && item.length > 0
+    )
   ) {
     throw diagnostic(
       "SITE.CONFIG_INVALID",
-      "subprojects должен быть непустым списком относительных путей",
+      "subprojects должен быть непустым списком каталогов",
       {
         source: root,
         field: "subprojects",
-        hint: "Укажите пути папок самостоятельных проектов.",
+        hint:
+          "Например: subprojects: [theory, tasks, lectures].",
       },
     );
   }
@@ -191,128 +185,103 @@ export async function validateConfig(
         );
       }
     }
-    projects.push({
-      id: `subproject-${encodeURIComponent(mount)}`,
-      path,
-      mount,
-    });
+    projects.push(projectRecord(path, mount));
   }
   return { root, output, projects, profiles, config };
 }
-export async function workspace(root: string): Promise<Workspace> {
+export async function workspace(root: string) {
   const profiles = activeProfiles();
-  const project = JSON.parse(
+  const project = nativeInspect(JSON.parse(
     await quarto(["inspect", root, ...profileArguments(profiles)], root),
-  );
+  ), root);
+  const quartoVersion = project.quarto?.version;
+  if (typeof quartoVersion !== "string" || !quartoVersion.trim()) {
+    throw diagnostic(
+      "SITE.CONFIG_INVALID",
+      "Native inspect не вернул версию Quarto",
+      { source: root, field: "quarto.version" },
+    );
+  }
   const config = project.config;
   const override = Deno.env.get("QUARTO_PROJECT_OUTPUT_DIR");
-  if (override) config.project["output-dir"] = override;
+  if (override) {
+    if (!config.project) throw diagnostic("SITE.CONFIG_INVALID", "Не задан project", { source: root, field: "project" });
+    config.project["output-dir"] = override;
+  }
   return {
     ...await validateConfig(root, config, profiles),
+    quartoVersion: quartoVersion.trim(),
     resources: project.files?.resources || [],
+    selectedSources: Deno.env.get("QUARTO_PROJECT_RENDER_ALL") === "1"
+      ? await selectedSources(root, project.files?.input)
+      : undefined,
   };
 }
 
-export async function validateAudienceOutputs(
+/** Чистый preflight: metadata не разрешают author выдачу в student audience. */
+export function validateAudience(
   root: string,
   profiles: string[],
-  selectedOutput: string,
   view?: "student" | "full",
-): Promise<void> {
-  const selectedAudience =
-    profiles.find((profile) => profile === "student" || profile === "full") ||
-    view;
-  const alternatives = selectedAudience
-    ? ["student", "full"].filter((profile) => profile !== selectedAudience)
-    : ["student", "full"];
-  const alternateOutputs: string[] = [];
-  for (const audience of alternatives) {
-    let present = false;
-    for (const suffix of ["yml", "yaml"]) {
-      try {
-        await Deno.stat(join(root, `_quarto-${audience}.${suffix}`));
-        present = true;
-      } catch (error) {
-        if (!(error instanceof Deno.errors.NotFound)) throw error;
-      }
-    }
-    if (!present) continue;
-    const selection = selectedAudience && profiles.includes(selectedAudience)
-      ? profiles.map((profile) =>
-        profile === selectedAudience ? audience : profile
-      )
-      : [...profiles, audience];
-    const alternate = await inspect(root, selection);
-    const output = await outputDirectory(
-      root,
-      alternate.project?.["output-dir"] || "_site",
+  nativeProjection?: "student" | "author",
+  expectedAudience?: "student" | "full",
+) {
+  const audience = expectedAudience ??
+    profiles.find((profile) => profile === "student" || profile === "full") ??
+    view ??
+    (nativeProjection === undefined
+      ? undefined
+      : nativeProjection === "author"
+      ? "full"
+      : "student");
+  if (view !== undefined && view !== audience) {
+    throw diagnostic(
+      "SITE.AUDIENCE_MISMATCH",
+      "course.view не совпадает с выбранной student/full аудиторией",
+      {
+        source: root,
+        field: "course.view",
+        hint:
+          "Согласуйте course.view корня и native компонентов с выбранной аудиторией.",
+      },
     );
-    if (
-      alternateOutputs.some((other) =>
-        inside(output, other) || inside(other, output)
-      )
-    ) {
-      throw diagnostic(
-        "SITE.OUTPUT_OVERLAP",
-        "Каталоги student и full пересекаются",
-        {
-          source: root,
-          field: "project.output-dir",
-          related: [...alternateOutputs, output].map((source) => ({ source })),
-          hint: "Задайте отдельные каталоги для каждой аудитории.",
-        },
-      );
-    }
-    alternateOutputs.push(output);
-    // When native defaults/groups select an unknown audience, its output may
-    // equal one canonical projection. The pair must remain disjoint, and a
-    // partial overlap is never safe. Profile filenames do not prove activation:
-    // ordinary metadata-files can use exactly those names.
-    if (
-      (selectedAudience || output !== selectedOutput) &&
-      (inside(output, selectedOutput) || inside(selectedOutput, output))
-    ) {
-      throw diagnostic(
-        "SITE.OUTPUT_OVERLAP",
-        `Выбранный каталог пересекается с результатом ${audience}`,
-        {
-          source: root,
-          field: "project.output-dir",
-          related: [{ source: selectedOutput }, { source: output }],
-          hint: "Разделите каталоги аудиторий.",
-        },
-      );
-    }
   }
+  if (
+    nativeProjection !== undefined &&
+    nativeProjection !== (audience === "full" ? "author" : "student")
+  ) {
+    throw diagnostic(
+      "SITE.AUDIENCE_MISMATCH",
+      "Native проекция Core не совпадает с выбранной student/full аудиторией",
+      {
+        source: root,
+        field: "course-core-projection",
+        hint: "Используйте student для student audience и author для full.",
+      },
+    );
+  }
+  return audience;
 }
 
-export interface DocumentFormat {
-  source: string;
-  format: string;
-  baseFormat: string;
-  web: boolean;
-}
-export interface DocumentPlan {
-  resources?: string[];
-  config: any;
-  documents: DocumentFormat[];
-  /** undefined: native configuration; default: native first format; null: selected files. */
-  renderTo?: string | null;
-}
-/** Effective formats are native Quarto data, including directory metadata and profiles. */
-export async function inspectDocuments(
+/** Настоящий native project selected set; форматы документов здесь не вычисляются. */
+async function selectedSources(
   root: string,
-  profiles: string[],
-  project?: any,
-): Promise<DocumentPlan> {
-  project ??= JSON.parse(
-    await quarto(["inspect", root, ...profileArguments(profiles)], root),
-  );
-  // Validate the entire selected list before inspecting any document or
-  // cleaning output. Optional Core is not the source-path safety boundary.
-  for (const input of project.files.input) {
+  inputs: unknown,
+): Promise<string[]> {
+  if (
+    !isStrings(inputs)
+  ) {
+    throw diagnostic(
+      "SITE.SUBPROJECT_INVALID",
+      "Native inspect не вернул список inputs",
+      { source: root, field: "input" },
+    );
+  }
+  const selected: string[] = [], unique = new Set<string>();
+  for (const input of inputs) {
+    const path = within(root, input);
     try {
-      await safePath(root, within(root, input));
+      await safePath(root, path);
     } catch (error) {
       throw contextualize(error, {
         source: root,
@@ -320,7 +289,7 @@ export async function inspectDocuments(
         related: [{ source: input }],
       });
     }
-    if (!(await Deno.lstat(input)).isFile) {
+    if (!(await Deno.lstat(path)).isFile) {
       throw diagnostic(
         "SITE.SUBPROJECT_INVALID",
         "Выбранный источник не является файлом",
@@ -332,69 +301,26 @@ export async function inspectDocuments(
         },
       );
     }
-  }
-  const documents: DocumentFormat[] = [];
-  let hasOtherFormats = false, firstSelected = true;
-  for (const input of project.files.input) {
-    const document = JSON.parse(
-      await quarto(["inspect", input, ...profileArguments(profiles)], root),
-    );
-    const entries = Object.entries(document.formats) as [string, any][];
-    const web = entries.filter(([, value]) =>
-      value.render?.["output-ext"] === "html"
-    );
-    if (web.length > 1) {
-      throw diagnostic(
-        "SITE.FORMAT_AMBIGUOUS",
-        "У документа выбрано несколько веб-форматов",
-        {
-          source: input,
-          field: "format",
-          related: [{ source: root }],
-          hint: "Выберите один веб-формат в конфигурации или профиле.",
-        },
-      );
+    const name = relative(root, path).replaceAll("\\", "/");
+    if (unique.has(name)) {
+      throw diagnostic("SITE.SUBPROJECT_INVALID", "Native inputs повторяются", {
+        source: root,
+        field: "input",
+        related: [{ source: input }],
+      });
     }
-    const selected = web.length
-      ? web[0]
-      : entries.length === 1
-      ? entries[0]
-      : undefined;
-    if (!selected) {
-      throw diagnostic(
-        "SITE.FORMAT_AMBIGUOUS",
-        "Для документа требуется один выбранный формат",
-        {
-          source: input,
-          field: "format",
-          related: [{ source: root }],
-          hint: "Выберите формат отдельным профилем.",
-        },
-      );
-    }
-    const [format, value] = selected;
-    documents.push({
-      source: relative(root, input).replaceAll("\\", "/"),
-      format,
-      baseFormat: value.identifier?.["base-format"] || value.pandoc?.to ||
-        format,
-      web: web.length === 1,
-    });
-    hasOtherFormats ||= entries.length > 1;
-    firstSelected &&= entries[0][0] === format;
+    unique.add(name);
+    selected.push(name);
   }
-  const formats = new Set(documents.map((d) => d.format));
-  const renderTo = !hasOtherFormats
-    ? undefined
-    : firstSelected
-    ? "default"
-    : project.config.project.type === "book" && formats.size === 1
-    ? documents[0].format
-    : null;
+  return selected;
+}
+export async function inspectProject(root: string, profiles: string[]) {
+  const project = nativeInspect(JSON.parse(
+    await quarto(["inspect", root, ...profileArguments(profiles)], root),
+  ), root);
   return {
     config: project.config,
-    documents,
-    renderTo,
+    selectedSources: await selectedSources(root, project.files?.input),
     resources: project.files?.resources || [],
   };
 }

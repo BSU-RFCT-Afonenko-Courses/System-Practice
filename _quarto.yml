@@ -6,7 +6,6 @@ project:
   resources:
   - '!tools/**'
   - '!providers.json'
-  - '!installed-packages.json'
   - '!tests/**'
   - '!**/projects/**'
   - '!**/__pycache__/**'
@@ -84,3 +83,5 @@ subprojects:
 - tasks
 - practice
 - handbook
+course-core-runtime: native-ts
+course-core-projection: student

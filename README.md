@@ -61,6 +61,6 @@ QRC разрешает ссылки между ними. Порядок сбор
 
 ## История
 
-[Архив первой редакции](docs/history/README.md) сохраняет прежний README,
+[История первой редакции](https://github.com/BSU-RFCT-Afonenko-Courses/System-Practice/blob/d254c636bbc0701e881315802dc3a3f775b7d872/docs/history/README.md) сохраняет прежний README,
 сведения о происхождении карточек, описание первой поставки.
 Технический пилот PrairieLearn находится в `reference/pr-1-c712a0b`.

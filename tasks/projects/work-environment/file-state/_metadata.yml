@@ -1,0 +1,14 @@
+course-project:
+  starter:
+    path: student
+  instructions:
+    local:
+      path: student/README.md
+  build:
+    files:
+      survey/tools/count.fish:
+        path: ../../../common/work-environment/count.fish
+        base: config
+      survey/tools/count.ps1:
+        path: ../../../common/work-environment/count.ps1
+        base: config

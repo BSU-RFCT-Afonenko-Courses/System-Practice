@@ -2,3 +2,4 @@ project:
   output-dir: _site-full
 course:
   view: full
+course-core-projection: author

@@ -1,16 +1,15 @@
-import { canonicalizeMetadata } from "./metadata.ts";
 import {createMetrics as __createMetrics} from "../observability/bridge.ts";
 const __metrics=__createMetrics("reference-catalog");
 import { diagnostic } from "../diagnostics.ts";
-import { namespacePattern, referenceStyles } from "../domain/contract.ts";
+import { namespacePattern, isReferenceStyle } from "../domain/contract.ts";
 import type { Target } from "../domain/model.ts";
 import { assemble, resolve } from "../domain/catalog.ts";
 import { href } from "../domain/urls.ts";
 import type { Page } from "./pages.ts";
-import { attr, escape, hasClass, inner, replace, type Edit, type Node } from "./html.ts";
+import { attr, escape, hasClass, inner, replace, type Edit, location, textNode, span } from "./html.ts";
 import { readable } from "./search.ts";
 export type LinkScope = "local" | "full";
-export function linkPages(pages: Page[], navigationScript: string, imports: Target[] = [], externalCss = "", scope: LinkScope = "full"): { pages: Map<string, string>; parsedPages: Map<string, Page>; targets: Map<string, Target>; links: number; deferred: number } {
+function linkPagesImpl(pages: Page[], navigationScript: string, imports: Target[] = [], externalCss = "", scope: LinkScope = "full"): { pages: Map<string, string>; parsedPages: Map<string, Page>; targets: Map<string, Target>; links: number; deferred: number } {
   const targets = assemble([...pages.flatMap((p) => p.targets), ...imports]);
   const result = new Map<string, string>();
   let links = 0;
@@ -23,14 +22,14 @@ export function linkPages(pages: Page[], navigationScript: string, imports: Targ
       if (!key) continue;
       if (node.tagName !== "a") throw diagnostic("QRC.REFERENCE_INVALID", `некорректная разметка ссылки в ${page.path}`, { source: `HTML-результат ${page.path}`, id: key, field: "data-qrc-ref" });
       const [namespace, id, extra] = key.split(":");
-      if (!namespacePattern.test(namespace) || !id || /[\s#]/.test(id) || extra !== undefined) throw diagnostic("QRC.REFERENCE_INVALID", `некорректная ссылка ${key} в ${page.path}`, { source: `HTML-результат ${page.path}`, id: key, field: "data-qrc-ref" });
+      if (!namespace || !namespacePattern.test(namespace) || !id || /[\s#]/.test(id) || extra !== undefined) throw diagnostic("QRC.REFERENCE_INVALID", `некорректная ссылка ${key} в ${page.path}`, { source: `HTML-результат ${page.path}`, id: key, field: "data-qrc-ref" });
       const requestedStyle = attr(node, "data-qrc-style");
-      if (!(referenceStyles as readonly string[]).includes(requestedStyle ?? "")) throw diagnostic("QRC.REFERENCE_INVALID", `некорректный стиль ссылки в ${page.path}`, { source: `HTML-результат ${page.path}`, id: key, field: "data-qrc-style" });
+      if (!isReferenceStyle(requestedStyle)) throw diagnostic("QRC.REFERENCE_INVALID", `некорректный стиль ссылки в ${page.path}`, { source: `HTML-результат ${page.path}`, id: key, field: "data-qrc-style" });
       if (scope === "local" && !targets.has(key)) {
         const attributes = node.attrs.filter(a => !["href", "data-qrc-deferred"].includes(a.name));
         attributes.push({ name: "data-qrc-deferred", value: "true" });
         const attrs = attributes.map(a => `${a.name}="${escape(a.value)}"`).join(" ");
-        const loc = node.sourceCodeLocation!;
+        const loc = location(node);
         edits.push({ start: loc.startOffset, end: loc.endOffset, value: `<a ${attrs}>${inner(page.html, node)}</a>` });
         deferred++;
         continue;
@@ -64,26 +63,28 @@ export function linkPages(pages: Page[], navigationScript: string, imports: Targ
       if (classes.size) attributes.push({ name: "class", value: [...classes].join(" ") });
       if (rel.size) attributes.push({ name: "rel", value: [...rel].join(" ") });
       const attrs = attributes.map((a) => `${a.name}="${escape(a.value)}"`).join(" ");
-      const loc = node.sourceCodeLocation!;
+      const loc = location(node);
       edits.push({ start: loc.startOffset, end: loc.endOffset,
         value: `<a ${attrs} href="${escape(href(page.path, target))}">${label}</a>` });
       // Search consumes this same parsed tree. Update the link's semantic
       // children while preserving authored markup in the serialized edit.
-      const text = (value: string): Node => ({ nodeName: "#text", value });
-      const captionNodes = custom ? authoredChildren : [text(labelText)];
+      const captionNodes = custom ? authoredChildren : [textNode(labelText)];
       node.attrs = [...attributes, { name: "href", value: href(page.path, target) }];
       if (style === "external") {
         node.childNodes = [
-          { nodeName: "span", tagName: "span", attrs: [{ name: "class", value: "qrc-title" }], childNodes: captionNodes, parentNode: node },
-          { nodeName: "span", tagName: "span", attrs: [{ name: "class", value: "qrc-source" }], childNodes: [text(` — ${target.sourceTitle || target.namespace}`)], parentNode: node },
-          { nodeName: "span", tagName: "span", attrs: [{ name: "class", value: "qrc-external-marker" }], childNodes: [text(" ↗")], parentNode: node },
+          span(node, "qrc-title", captionNodes),
+          span(node, "qrc-source", [textNode(` — ${target.sourceTitle || target.namespace}`)]),
+          span(node, "qrc-external-marker", [textNode(" ↗")]),
         ];
-      } else node.childNodes = captionNodes;
+      } else {
+        node.childNodes = captionNodes;
+        for (const child of captionNodes) child.parentNode = node;
+      }
       links++;
     }
     if (scope === "full") {
       for (const probe of page.probes) {
-        const loc = probe.sourceCodeLocation!;
+        const loc = location(probe);
         edits.push({ start: loc.startOffset, end: loc.endOffset, value: "" });
         if (probe.parentNode) probe.parentNode.childNodes = probe.parentNode.childNodes.filter(child => child !== probe);
       }
@@ -100,15 +101,14 @@ export function linkPages(pages: Page[], navigationScript: string, imports: Targ
       // В результатах портала может остаться ранее добавленный скрипт.
       // Заменяем его, чтобы обработчики событий не дублировались.
       for (const script of page.nodes.filter(n => n.tagName === "script" && attr(n, "data-qrc-navigation") !== undefined)) {
-        const loc = script.sourceCodeLocation!;
+        const loc = location(script);
         edits.push({ start: loc.startOffset, end: loc.endOffset, value: "" });
       }
       edits.push({ start: body.startOffset, end: body.startOffset, value: `<script data-qrc-navigation>${navigationScript}</script>\n` });
     }
-    result.set(page.path, canonicalizeMetadata(replace(page.html, edits)));
+    result.set(page.path, replace(page.html, edits));
   }
   return { pages: result, parsedPages: new Map(pages.map(page => [page.path, page])), targets, links, deferred };
 }
 
-// @ts-expect-error JS допускает замену function binding; сигнатура публичного API сохраняется.
-linkPages=__metrics.wrapSync({id:"reference-catalog.infrastructure.linker.linkPages",kind:"io"},linkPages);
+export const linkPages = __metrics.wrapSync({id:"reference-catalog.infrastructure.linker.linkPages",kind:"io"},linkPagesImpl);

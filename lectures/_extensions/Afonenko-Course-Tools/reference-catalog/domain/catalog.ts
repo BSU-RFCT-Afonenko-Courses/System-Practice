@@ -4,7 +4,8 @@ export function assemble(targets: Target[]): Map<string, Target> {
   const result = new Map<string, Target>();
   for (const target of targets) {
     const key = `${target.namespace}:${target.id}`;
-    if (result.has(key)) throw diagnostic("QRC.TARGET_DUPLICATE", `повторяющаяся цель ${key}: ${result.get(key)!.page}, ${target.page}`, { id: key, source: `HTML-результат ${target.page}`, related: [{ source: `HTML-результат ${result.get(key)!.page}`, id: key }], hint: "Задайте цели уникальный ID в namespace." });
+    const previous = result.get(key);
+    if (previous) throw diagnostic("QRC.TARGET_DUPLICATE", `повторяющаяся цель ${key}: ${previous.page}, ${target.page}`, { id: key, source: `HTML-результат ${target.page}`, related: [{ source: `HTML-результат ${previous.page}`, id: key }], hint: "Задайте цели уникальный ID в namespace." });
     result.set(key, target);
   }
   return result;

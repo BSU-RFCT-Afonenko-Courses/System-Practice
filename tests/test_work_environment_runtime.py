@@ -1,4 +1,5 @@
 """Trusted published tools: observable files, stdout/stderr and exit codes."""
+from collections.abc import Iterator, Sequence
 from pathlib import Path
 import shutil
 import subprocess
@@ -12,30 +13,30 @@ ROUTES = {'powershell': ('pwsh', '-NoProfile', '-File', 'count.ps1'),
 
 
 class WorkEnvironmentRuntimeTests(unittest.TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.tmp = tempfile.TemporaryDirectory(prefix='system-count-runtime-')
         self.addCleanup(self.tmp.cleanup)
         self.base = Path(self.tmp.name)
 
-    def unpack(self, name, where):
+    def unpack(self, name: str, where: Path) -> None:
         with zipfile.ZipFile(ROOT / name) as archive:
             archive.extractall(where)
 
-    def invoke(self, route, root, cwd, source, output, extra=()):
+    def invoke(self, route: str, root: Path, cwd: Path, source: str | Path, output: str | Path, extra: Sequence[str] = ()) -> subprocess.CompletedProcess[str]:
         args = ROUTES[route]
         script = root / 'tools' / args[-1]
         self.assertTrue(script.is_file(), f'Published tool missing: {script.name}')
         return subprocess.run([*args[:-1], str(script), str(source), str(output), *extra],
                               cwd=cwd, capture_output=True, text=True, timeout=15)
 
-    def each_route(self):
+    def each_route(self) -> Iterator[tuple[str, Path]]:
         for route in ROUTES:
             self.assertIsNotNone(shutil.which(ROUTES[route][0]), f'{route} is required for trusted runtime checks')
             root = self.base / route
             root.mkdir()
             yield route, root
 
-    def test_published_inputs_produce_exact_one_and_two_line_reports(self):
+    def test_published_inputs_produce_exact_one_and_two_line_reports(self) -> None:
         for route, where in self.each_route():
             for archive, child, source, wanted in [
                 ('practice/materials/work-environment-demo.zip', 'lab', 'input/room A.txt', b'lines=1\n'),
@@ -53,7 +54,7 @@ class WorkEnvironmentRuntimeTests(unittest.TestCase):
                     self.assertEqual(wanted, output.read_bytes())
                     self.assertEqual(before, (root / source).read_bytes())
 
-    def test_relative_paths_resolve_from_caller_directory(self):
+    def test_relative_paths_resolve_from_caller_directory(self) -> None:
         for route, where in self.each_route():
             self.unpack('practice/materials/work-environment-demo.zip', where)
             root = where / 'lab'
@@ -63,7 +64,7 @@ class WorkEnvironmentRuntimeTests(unittest.TestCase):
             self.assertEqual(b'lines=1\n', output.read_bytes())
             self.assertFalse((root / 'tools/from-reports.txt').exists())
 
-    def test_missing_input_reports_path_and_leaves_no_new_report(self):
+    def test_missing_input_reports_path_and_leaves_no_new_report(self) -> None:
         for route, where in self.each_route():
             self.unpack('practice/materials/work-environment-demo.zip', where)
             root = where / 'lab'
@@ -75,7 +76,7 @@ class WorkEnvironmentRuntimeTests(unittest.TestCase):
             self.assertFalse((root / 'reports/missing-count.txt').exists())
             self.assertEqual(b'previous report\n', (root / 'reports/count.txt').read_bytes())
 
-    def test_existing_output_is_preserved(self):
+    def test_existing_output_is_preserved(self) -> None:
         for route, where in self.each_route():
             self.unpack('practice/materials/work-environment-demo.zip', where)
             root = where / 'lab'
@@ -87,7 +88,7 @@ class WorkEnvironmentRuntimeTests(unittest.TestCase):
             self.assertEqual(b'keep this report\n', output.read_bytes())
             self.assertEqual(b'north\n', (root / 'input/room A.txt').read_bytes())
 
-    def test_missing_output_parent_is_not_created(self):
+    def test_missing_output_parent_is_not_created(self) -> None:
         for route, where in self.each_route():
             self.unpack('practice/materials/work-environment-demo.zip', where)
             root = where / 'lab'
@@ -98,7 +99,7 @@ class WorkEnvironmentRuntimeTests(unittest.TestCase):
             self.assertFalse((root / 'absent').exists())
             self.assertEqual(b'north\n', (root / 'input/room A.txt').read_bytes())
 
-    def test_absolute_paths_work_from_another_caller(self):
+    def test_absolute_paths_work_from_another_caller(self) -> None:
         for route, where in self.each_route():
             self.unpack('practice/materials/work-environment-demo.zip', where)
             root = where / 'lab'; output = root / 'reports/absolute.txt'
@@ -106,7 +107,7 @@ class WorkEnvironmentRuntimeTests(unittest.TestCase):
             self.assertEqual(0, run.returncode, run.stderr)
             self.assertEqual(b'lines=1\n', output.read_bytes())
 
-    def test_missing_argument_is_rejected_without_changing_input(self):
+    def test_missing_argument_is_rejected_without_changing_input(self) -> None:
         for route, where in self.each_route():
             self.unpack('practice/materials/work-environment-demo.zip', where)
             root = where / 'lab'; args = ROUTES[route]
@@ -119,7 +120,7 @@ class WorkEnvironmentRuntimeTests(unittest.TestCase):
             self.assertTrue(run.stderr.strip())
             self.assertEqual(b'north\n', (root / 'input/room A.txt').read_bytes())
 
-    def test_extra_argument_is_rejected_without_output(self):
+    def test_extra_argument_is_rejected_without_output(self) -> None:
         for route, where in self.each_route():
             self.unpack('practice/materials/work-environment-demo.zip', where)
             root = where / 'lab'

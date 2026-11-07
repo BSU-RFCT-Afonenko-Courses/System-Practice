@@ -1,11 +1,13 @@
 import {createMetrics as __createMetrics} from "../observability/bridge.ts";
 const __metrics=__createMetrics("reference-catalog");
 
-export async function quarto(args: string[], cwd: string, extra: Record<string, string> = {}): Promise<string> {
+async function quartoImpl(args: string[], cwd: string, extra: Record<string, string> = {}): Promise<string> {
   const command = Deno.env.get("QUARTO") || Deno.env.get("QRC_QUARTO") || "quarto";
   let result: Deno.CommandOutput;
   try {
-    result = await new Deno.Command(command, { args, cwd, env: __metrics.childEnv(extra), stdout: "piped", stderr: "piped" }).output();
+    const childEnv = __metrics.childEnv(extra);
+    const observed = childEnv !== extra;
+    result = await new Deno.Command(command, { args, cwd, env: observed ? __metrics.childEnv({ ...Deno.env.toObject(), ...extra }) : childEnv, clearEnv: observed, stdout: "piped", stderr: "piped" }).output();
   } catch (cause) {
     if (!Object.values(Deno.errors).some(kind => cause instanceof kind)) throw cause;
     const error = new Error(`Не удалось запустить Quarto (${command}): ${cause instanceof Error ? cause.message : cause}`, { cause });
@@ -23,5 +25,4 @@ export async function quarto(args: string[], cwd: string, extra: Record<string, 
   return out;
 }
 
-// @ts-expect-error JS допускает замену function binding; сигнатура публичного API сохраняется.
-quarto=__metrics.wrapAsync({id:"reference-catalog.infrastructure.process.quarto",kind:"command"},quarto);
+export const quarto = __metrics.wrapAsync({id:"reference-catalog.infrastructure.process.quarto",kind:"command"},quartoImpl);

@@ -1,27 +1,76 @@
 local __metrics=require("./observability/bridge").create_metrics("course-core",1)
-local __perfWalk1=__metrics.wrap_walk({id="course-core.native-resources.walk.1",kind='ast_walk',scope="full-document"},function(node,filter)return node:walk(filter)end)
+---@class CourseStringList: pandoc.List
+---@field [integer] string
+---@class CourseObservedResource
+---@field source string
+---@field output string
+---@field _bytes? string
+---@class CourseObservedResourceList: pandoc.List
+---@field [integer] CourseObservedResource
+---@class CourseResourceObservation
+---@field source string
+---@field format string
+---@field view? string
+---@field rawProjectRoots CourseStringList
+---@field effectiveBase string
+---@field outputDirectory string
+---@field outputFile string
+---@field rawUses CourseStringList
+---@field projectedUses CourseStringList
+---@field capturedFiles CourseObservedResourceList
+---@param node pandoc.Pandoc
+---@param filter table<string,function>
+---@return pandoc.Pandoc
+local function walk(node,filter) return node:walk(filter) end
+local __perfWalk1=__metrics.wrap_walk({id="course-core.native-resources.walk.1",kind='ast_walk',scope="full-document"},walk)
 local diagnostics = require("./diagnostics")
 local M={}
+---@param doc pandoc.Pandoc
+---@return CourseStringList
 function M.uses(doc)
-  local result,seen=pandoc.List(),{}
-  local function add(node)
-    local target=node.target or node.src
+  local result=pandoc.List()
+  ---@cast result CourseStringList
+  ---@type table<string,boolean>
+  local seen={}
+  ---@param target string
+  local function add(target)
     if not target:match('^[%a][%w+.-]*:') and not target:match('^//') and target:sub(1,1)~='#' then
       target=target:gsub('[?#].*$','')
       if target~='' and not seen[target] then result:insert(target);seen[target]=true end
     end
   end
-  local function raw(node)
-    if node.format=='html' then
-      for target in node.text:gmatch('[sS][rR][cC]%s*=%s*["\']([^"\']+)["\']') do add({target=target}) end
-      for target in node.text:gmatch('[hH][rR][eE][fF]%s*=%s*["\']([^"\']+)["\']') do add({target=target}) end
-    end
-  end
-  __perfWalk1(doc,{Image=add,Link=add,RawBlock=raw,RawInline=raw});return result
+  __perfWalk1(doc,{
+    Image=---@param image pandoc.Image
+    function(image) add(image.src) end,
+    Link=---@param link pandoc.Link
+    function(link) add(link.target) end,
+  });return result
 end
+-- Служебный cache не является предметным ресурсом даже при прямой ссылке.
+---@param root string
+---@param source string
+---@return boolean
+local function tool_cache(root,source)
+  local name=pandoc.path.make_relative(source,root):gsub('\\','/')
+  if name=='..' or name:match('^%.%./') or pandoc.path.is_absolute(name) then return false end
+  if ('/'..name..'/'):find('/.cache/codex-tools/',1,true) then return true end
+  local configured=os.getenv('XDG_CACHE_HOME')
+  if not configured or not pandoc.path.is_absolute(configured) then return false end
+  configured=pandoc.path.normalize(configured)
+  local local_cache=pandoc.path.make_relative(configured,root)
+  if local_cache=='.' or local_cache=='..' or local_cache:match('^%.%./') or pandoc.path.is_absolute(local_cache) then return false end
+  return source==configured or source:sub(1,#configured+1)==configured..'/'
+end
+---@param raw pandoc.Pandoc
+---@param public pandoc.Pandoc
+---@param canonical? {id:string,project?:string}[]
+---@return CourseResourceObservation
 function M.facts(raw,public,canonical)
-  local root=quarto.project.directory
-  local rawProjectRoots,seenProjects=pandoc.List(),{}
+  local root=assert(quarto.project.directory)
+  local rawProjectRoots=pandoc.List()
+  ---@cast rawProjectRoots CourseStringList
+  ---@type table<string,boolean>
+  local seenProjects={}
   -- Reuse pre-projection validation facts; retain paths only, never private bodies.
   for _,fact in ipairs(canonical or {}) do
     if fact.project then
@@ -32,30 +81,39 @@ function M.facts(raw,public,canonical)
   end
   local input=quarto.doc.input_file;if pandoc.path.is_relative(input) then input=pandoc.path.join({root,input}) end
   local outputRoot=quarto.project.output_directory or root;if pandoc.path.is_relative(outputRoot) then outputRoot=pandoc.path.join({root,outputRoot}) end
-  local rawUses,projectedUses=M.uses(raw),M.uses(public)
+  local rawUses=M.uses(raw)
+  local projectedUses=rawUses
+  if not rawequal(raw,public) then projectedUses=M.uses(public) end
   local capturedFiles=pandoc.List()
+  ---@cast capturedFiles CourseObservedResourceList
+  ---@type table<string,boolean>
   local publicUses={};for _,uri in ipairs(projectedUses) do publicUses[uri]=true end
-  local view=raw.meta.course.view and pandoc.utils.stringify(raw.meta.course.view) or nil
+  ---@type string|nil
+  local view
+  local course=raw.meta.course
+  if course then
+    assert(type(course)=='table','CORE.METADATA_INVALID: course требует карту')
+    for key in pairs(course) do assert(type(key)=='string','CORE.METADATA_INVALID: course требует карту') end
+    ---@cast course pandoc.MetaMap
+    view=course.view and pandoc.utils.stringify(course.view) or nil
+  end
   local generatedPrefix=input:gsub('%.[^./]+$','')..'_files/'
-  -- Observe bytes while engine-generated files still live beside the input.
-  -- The native writer may move them to outputRoot after this filter returns.
+  -- Наблюдаем пути до переноса generated файлов native writer в outputRoot.
   for _,uri in ipairs(rawUses) do
-    local decoded=uri:gsub('%%(%x%x)',function(h) return string.char(tonumber(h,16)) end)
+    local decoded=uri:gsub('%%(%x%x)',function(h) return string.char(assert(tonumber(h,16))) end)
     local source=decoded:sub(1,1)=='/' and pandoc.path.join({root,decoded:sub(2)}) or pandoc.path.join({pandoc.path.directory(input),decoded})
     source=pandoc.path.normalize(source)
-    local file=io.open(source,'rb')
+    local file=not tool_cache(root,source) and io.open(source,'rb')
     if file then
-      local bytes=file:read('*a');file:close()
-      if bytes then
-        local observed={source=source,output=pandoc.path.join({outputRoot,pandoc.path.make_relative(source,root)}),sha1=pandoc.utils.sha1(bytes)}
-        -- PDF compilation consumes generated figures. Transport only referenced
-        -- bytes, and never private generated bytes in a public sidecar.
-        if FORMAT=='latex' and source:sub(1,#generatedPrefix)==generatedPrefix and (view=='full' or publicUses[uri]) then observed._bytes=bytes end
-        capturedFiles:insert(observed)
-      end
+      ---@type CourseObservedResource
+      local observed={source=source,output=pandoc.path.join({outputRoot,pandoc.path.make_relative(source,root)})}
+      -- PDF читает generated figures до native relocation.
+      if FORMAT=='latex' and source:sub(1,#generatedPrefix)==generatedPrefix and (view=='full' or publicUses[uri]) then observed._bytes=file:read('*a') end
+      file:close()
+      capturedFiles:insert(observed)
     end
   end
-  return {source=pandoc.path.make_relative(input,root),format=FORMAT,view=raw.meta.course.view and pandoc.utils.stringify(raw.meta.course.view) or nil,
+  return {source=pandoc.path.make_relative(input,root),format=FORMAT,view=view,
     rawProjectRoots=rawProjectRoots,effectiveBase=pandoc.path.directory(input),outputDirectory=outputRoot,outputFile=quarto.doc.output_file,rawUses=rawUses,projectedUses=projectedUses,capturedFiles=capturedFiles}
 end
 M.uses=__metrics.wrap_sync({id="course-core.native-resources.uses",kind='phase'},M.uses)

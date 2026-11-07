@@ -1,113 +1,72 @@
 import {createMetrics as __createMetrics} from "../observability/bridge.ts";
 const __metrics=__createMetrics("course-core");
 import { diagnostic } from "../domain/diagnostics.ts";
-// Maintained common answer contract promoted from Core #8, exact 4f5caf9a15b9bd36476cad8a646e81521fbd29d1.
-// Native CodeBlock answer data only; no QMD reader/resource producer.
-import { isAlias, parseDocument } from "./vendor/libraries.js";
+import { decodeAnswerYaml, projectAnswer } from "../document/answers.ts";
+import { AnswerFactsSchema } from "../document/answer-contracts.ts";
+import { isBulletList, isContainer, isRecord, requireNodes } from "../document/native-ast.ts";
 import type { Node } from "./model.ts";
-import { command } from "../infrastructure/process.ts";
-async function run(cmd: string, args: string[]): Promise<string> {
-  return await command(Deno.env.get("CUE") || cmd, args, Deno.cwd());
-}
-const para = (s: string): Node => ({ t: "Para", c: [{ t: "Str", c: s }] });
-async function vet(answer: any, context: {source?: string; id?: string} = {}) {
-  const dir = await Deno.makeTempDir();
+async function validateAnswerWork(source: string, context: {source?: string; id?: string} = {}) {
   try {
-    await Deno.writeTextFile(dir + "/input.json", JSON.stringify({ answer }));
-    await run("cue", [
-      "vet",
-      new URL("answer.cue", import.meta.url).pathname,
-      dir + "/input.json",
-    ]);
+    const data = decodeAnswerYaml(source, context.source ?? "answer");
+    return {publicAnswer: projectAnswer(data), closedKey: data, answerType: data.type};
   } catch (cause) {
-    if (!(cause instanceof Error) || cause.name !== "ExternalToolFailure" || !(cause as any).exitCode) throw cause;
-    throw diagnostic("ANSWER_INVALID", "CUE отклонил контракт ответа", {...context, field: "answer"}, cause);
-  } finally {
-    await Deno.remove(dir, { recursive: true });
+    if (!cause || typeof cause !== "object" || !("code" in cause) || !String(cause.code).startsWith("ANSWER_")) throw cause;
+    throw diagnostic(String(cause.code), cause instanceof Error ? cause.message : String(cause), {...context, field: "answer"}, cause);
   }
-}
-export async function validateAnswer(
-  source: string,
-  context: {source?: string; id?: string} = {},
-): Promise<{ publicAnswer: Node[]; closedKey: any; answerType: string }> {
-  let data: any;
-  try {
-    const doc = parseDocument(source, { uniqueKeys: true, version: "1.2" });
-    if (!doc || doc.errors.length || doc.warnings.length) {
-      throw doc?.errors[0] ?? doc?.warnings[0] ?? Error("Требуется корректный YAML");
-    }
-    const inspect = (v: any) => {
-      if (!v || typeof v !== "object") return;
-      if (isAlias(v) || v.tag) throw Error("aliases/tags unsupported");
-      for (const x of v.items ?? []) {
-        inspect(x);
-        inspect(x.key);
-        inspect(x.value);
-      }
-    };
-    inspect(doc.contents);
-    data = doc.toJS({ maxAliasCount: 0 });
-    if (!data || typeof data !== "object" || Array.isArray(data)) {
-      throw Error("mapping required");
-    }
-  } catch (cause) {
-    throw diagnostic("ANSWER_YAML", "Требуется один YAML-словарь без повторных ключей, aliases и пользовательских тегов", {...context, field: "answer"}, cause);
-  }
-  await vet(data, context);
-  const project = (a: any): Node[] =>
-    a.type === "numeric"
-      ? [para("Ответ: ____________________")]
-      : a.type === "manual"
-      ? [para("Ответ: ________________________________________")]
-      : a.type === "multipart"
-      ? a.parts.flatMap((p: any) => [para(p.label), ...project(p)])
-      : a.type === "matching"
-      ? [
-        para("Условия"),
-        { t: "BulletList", c: a.prompts.map((p: string) => [para(p)]) },
-        para("Варианты"),
-        { t: "BulletList", c: a.options.map((p: string) => [para(p)]) },
-        para("Соответствия: ____________________"),
-      ]
-      : [];
-  return {
-    publicAnswer: project(data),
-    closedKey: data,
-    answerType: data.type,
-  };
 }
 
-export async function projectChoice(b: Node, context: {source?: string; id?: string} = {}) {
-  if (
-    !b.c[0][2].some((x: any) => x[0] === "type" && x[1] === "single-choice") ||
-    b.c[1].length !== 1 || b.c[1][0].t !== "BulletList"
-  ) throw diagnostic("ADAPTER", "Компонент Core/projectChoice: неподдерживаемая структура ответа single-choice", {...context, field: "answer"});
+async function projectChoiceWork(
+  b: Node,
+  context: { source?: string; id?: string } = {},
+) {
+  const list = isContainer(b) && b.c[1].length === 1 ? b.c[1][0] : undefined;
+  if (!isContainer(b) || !b.c[0][2].some(([key, value]) => key === "type" && value === "single-choice") || !isBulletList(list)) {
+    throw diagnostic(
+      "ADAPTER",
+      "Компонент Core/projectChoice: неподдерживаемая структура ответа single-choice",
+      { ...context, field: "answer" },
+    );
+  }
   let correct = -1, count = 0;
-  const strip = (v: any, index: number): any => {
+  const strip = (v: unknown, index: number): unknown => {
     if (Array.isArray(v)) {
       return v.flatMap((x) => {
-        if (x?.t === "Span" && x.c[0][1].includes("correct")) {
-          correct = index;
-          count++;
-          return strip(x.c[1], index);
+        if (isRecord(x) && x.t === "Span") {
+          if (!isContainer(x)) {
+            throw diagnostic("ANSWER_INVALID", "Повреждённый native Span в single-choice", {
+              ...context, field: "answer",
+            });
+          }
+          if (x.c[0][1].includes("correct")) {
+            correct = index;
+            count++;
+            return strip(x.c[1], index);
+          }
         }
         return [strip(x, index)];
       });
     }
-    if (v && typeof v === "object") {
+    if (isRecord(v)) {
       return Object.fromEntries(
         Object.entries(v).map(([k, x]) => [k, strip(x, index)]),
       );
     }
     return v;
   };
-  const clean = b.c[1][0].c.map((c: any, i: number) => strip(c, i));
-  await vet({
+  const clean = list.c.map((c, i) => requireNodes(strip(c, i)));
+  const parsed = AnswerFactsSchema.safeParse({
     type: "single-choice",
     count: clean.length,
     correct,
-    markedCount: count,
-  }, context);
+  });
+  if (count !== 1 || !parsed.success) {
+    throw diagnostic(
+      "ANSWER_INVALID",
+      "single-choice требует ровно один correct и не менее двух вариантов",
+      { ...context, field: "answer" },
+      parsed.success ? undefined : parsed.error,
+    );
+  }
   return {
     answerType: "single-choice",
     closedKey: { correct },
@@ -115,7 +74,5 @@ export async function projectChoice(b: Node, context: {source?: string; id?: str
   };
 }
 
-// @ts-expect-error JS допускает замену function binding; сигнатура публичного API сохраняется.
-validateAnswer=__metrics.wrapAsync({id:"course-core.body-export.answer.validateAnswer",kind:"phase"},validateAnswer);
-// @ts-expect-error JS допускает замену function binding; сигнатура публичного API сохраняется.
-projectChoice=__metrics.wrapAsync({id:"course-core.body-export.answer.projectChoice",kind:"phase"},projectChoice);
+export const validateAnswer = __metrics.wrapAsync({id:"course-core.body-export.answer.validateAnswer",kind:"phase"}, validateAnswerWork);
+export const projectChoice = __metrics.wrapAsync({id:"course-core.body-export.answer.projectChoice",kind:"phase"}, projectChoiceWork);

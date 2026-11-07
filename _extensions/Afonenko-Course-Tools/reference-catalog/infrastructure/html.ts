@@ -1,17 +1,12 @@
 import {createMetrics as __createMetrics} from "../observability/bridge.ts";
 const __metrics=__createMetrics("reference-catalog");
-import { parse } from "../vendor/parse5/dist/index.js";
-// Минимальный интерфейс адаптера HTML; сторонняя библиотека изолирована в этом модуле.
-interface Offset { startOffset: number; endOffset: number }
-interface Location extends Offset { startTag?: Offset; endTag?: Offset }
-interface Document { nodeName: "#document"; childNodes: Node[] }
-interface Text { nodeName: "#text"; value: string }
-interface Comment { nodeName: "#comment"; data: string }
-export interface Element {
-  nodeName: string; tagName: string; attrs: { name: string; value: string }[];
-  childNodes: Node[]; parentNode?: Element | Document; sourceCodeLocation?: Location;
-}
-export type Node = Document | Text | Comment | Element;
+// @deno-types="../types/parse5/dist/index.d.ts"
+import { parse, defaultTreeAdapter } from "../vendor/parse5/dist/index.js";
+// Тип дерева принадлежит parse5; адаптер не поддерживает параллельную модель HTML.
+import type { Element as ParseElement, Node as ParseNode, ChildNode as ParseChildNode } from "../types/parse5/dist/tree-adapters/default.d.ts";
+export type Element = ParseElement;
+export type Node = ParseNode;
+export type ChildNode = ParseChildNode;
 export function elements(node: Node): Element[] {
   const out: Element[] = [];
   const visit = (item: Node) => {
@@ -39,7 +34,7 @@ export function escape(value: string): string {
   return value.replaceAll("&", "&amp;").replaceAll('"', "&quot;").replaceAll("<", "&lt;").replaceAll(">", "&gt;");
 }
 export interface Edit { start: number; end: number; value: string }
-export function replace(html: string, edits: Edit[]): string {
+function replaceImpl(html: string, edits: Edit[]): string {
   edits.sort((a, b) => b.start - a.start);
   let end = html.length;
   for (const edit of edits) {
@@ -49,9 +44,23 @@ export function replace(html: string, edits: Edit[]): string {
   }
   return html;
 }
-export function parseHtml(html: string) { return parse(html, { sourceCodeLocationInfo: true }) as unknown as Document; }
+function parseHtmlImpl(html: string) { return parse(html, { sourceCodeLocationInfo: true }); }
 
-// @ts-expect-error JS допускает замену function binding; сигнатура публичного API сохраняется.
-replace=__metrics.wrapSync({id:"reference-catalog.infrastructure.html.replace",kind:"io"},replace);
-// @ts-expect-error JS допускает замену function binding; сигнатура публичного API сохраняется.
-parseHtml=__metrics.wrapSync({id:"reference-catalog.infrastructure.html.parseHtml",kind:"io"},parseHtml);
+export const replace = __metrics.wrapSync({id:"reference-catalog.infrastructure.html.replace",kind:"io"},replaceImpl);
+export const parseHtml = __metrics.wrapSync({id:"reference-catalog.infrastructure.html.parseHtml",kind:"io"},parseHtmlImpl);
+
+/** Изменения сохраняют реальное дерево parse5, включая двусторонние связи. */
+export function textNode(value: string): ChildNode {
+  return defaultTreeAdapter.createTextNode(value);
+}
+export function span(parent: Element, className: string, children: ChildNode[]): Element {
+  const node = defaultTreeAdapter.createElement("span", parent.namespaceURI, [{ name: "class", value: className }]);
+  node.parentNode = parent;
+  for (const child of children) defaultTreeAdapter.appendChild(node, child);
+  return node;
+}
+export function location(node: Element) {
+  const position = node.sourceCodeLocation;
+  if (!position) throw new Error(`QRC отсутствуют позиции HTML-элемента ${node.tagName}`);
+  return position;
+}

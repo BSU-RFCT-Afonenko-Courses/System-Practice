@@ -2,7 +2,8 @@ import type { Target } from "./model.ts";
 /** URL строятся по расположению результатов; домен и префикс Pages не добавляются. */
 export function href(from: string, target: Target): string {
   if (target.baseUrl) {
-    const local = href("index.html", { ...target, baseUrl: undefined });
+    const { baseUrl, ...own } = target;
+    const local = href("index.html", own);
     return new URL(local, target.baseUrl).href;
   }
   const source = from.split("/").slice(0, -1);

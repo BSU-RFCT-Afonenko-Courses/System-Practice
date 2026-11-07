@@ -6,3 +6,4 @@ format:
   html:
     code-tools: false
     keep-source: false
+course-core-projection: student

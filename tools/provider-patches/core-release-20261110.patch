@@ -1,0 +1,2824 @@
+diff --git a/_extensions/course-core/capture.ts b/_extensions/course-core/capture.ts
+index db484d0..1b1905d 100644
+--- a/_extensions/course-core/capture.ts
++++ b/_extensions/course-core/capture.ts
+@@ -1,5 +1,5 @@
+ import { withAssignmentExecution } from "./runtime/assignment-execution.ts";
+-/** Инертная точка existing capture scope: до gate не импортирует project/metrics runtime. */
++/** Existing capture scope: реальная owner operation и explicit assignment intent. */
+ import { assertAssignmentRuntime } from "./runtime/assignment-admission.ts";
+ import { assertSources } from "./runtime/source-snapshot.ts";
+ import { prepareAssignment } from "./runtime/assignment-admission.ts";
+@@ -21,21 +21,26 @@ export async function withNativeCaptureScope<T>(
+       fixedReservation,
+       options as AssignmentPreparation,
+     );
+-    return await withAssignmentExecution(prepared.profile, async () => {
+-      const runtime = await import("./runtime/operation.ts");
+-      return await runtime.withPreparedNativeCaptureScope(
+-        prepared,
+-        fixedReservation,
+-        use,
+-      );
+-    }, async () => {
+-      await assertSources(prepared.source);
+-      await assertAssignmentRuntime(
+-        prepared.runtime,
+-        prepared.source.root,
+-        prepared,
+-      );
+-    });
++    return await withAssignmentExecution(
++      prepared.runtime,
++      prepared.source.root,
++      async () => {
++        const runtime = await import("./runtime/operation.ts");
++        return await runtime.withPreparedNativeCaptureScope(
++          prepared,
++          fixedReservation,
++          use,
++        );
++      },
++      async () => {
++        await assertSources(prepared.source, [], false);
++        await assertAssignmentRuntime(
++          prepared.runtime,
++          prepared.source.root,
++          prepared,
++        );
++      },
++    );
+   }
+   const runtime = await import("./runtime/operation.ts");
+   return await runtime.withNativeCaptureScope(
+diff --git a/_extensions/course-core/document/assignment-contracts.ts b/_extensions/course-core/document/assignment-contracts.ts
+index 1ea2d77..f0485c1 100644
+--- a/_extensions/course-core/document/assignment-contracts.ts
++++ b/_extensions/course-core/document/assignment-contracts.ts
+@@ -16,7 +16,6 @@ export const NativeResponseSlotSchema = z.strictObject({
+ export type NativeResponseSlot = z.output<typeof NativeResponseSlotSchema>;
+ export const AssignmentEarlySchema = z.strictObject({
+   source: z.string().min(1),
+-  producerProfile: z.string().min(1),
+   assessments: z.array(
+     z.strictObject({ source: z.string().min(1), id: z.string().min(1) }),
+   ),
+@@ -74,6 +73,5 @@ export const AssignmentFinalSchema = AssignmentEarlySchema.omit({
+ export type AssignmentEarly = z.output<typeof AssignmentEarlySchema>;
+ export type AssignmentNormalization = {
+   source: string;
+-  producerProfile: string;
+   assessments: readonly { source: string; id: string }[];
+ };
+diff --git a/_extensions/course-core/document/assignment-producer.ts b/_extensions/course-core/document/assignment-producer.ts
+index 70f6efc..11a396a 100644
+--- a/_extensions/course-core/document/assignment-producer.ts
++++ b/_extensions/course-core/document/assignment-producer.ts
+@@ -1,16 +1,16 @@
+ import { fail } from "../contracts/project.ts";
+-import type { AssignmentProducerProfile } from "../runtime/assignment-producer-profiles.ts";
+ import type { DocumentContext } from "./contracts.ts";
+-const stable = (v: unknown): string =>
+-  JSON.stringify(
+-    v,
+-    (_k, x) =>
+-      x && typeof x === "object" && !Array.isArray(x)
+-        ? Object.fromEntries(
+-          Object.entries(x).sort(([a], [b]) => a.localeCompare(b)),
+-        )
+-        : x,
+-  );
++export type NativeShortcodeHandlerObservation = Readonly<
++  { name: string; file: string }
++>;
++/** Данные одного native pre-ast observation; сами по себе не создают producer capability. */
++export type AssignmentProducerObservation = Readonly<{
++  format: string;
++  engine: string;
++  filters: unknown;
++  shortcodes: readonly string[];
++  shortcodeHandlers?: readonly NativeShortcodeHandlerObservation[];
++}>;
+ function unsupported(s: string): never {
+   return fail("BODY.DELIVERY_PHASE_UNSUPPORTED", s);
+ }
+@@ -22,16 +22,33 @@ const dynamicLiteral =
+ export function qualifyAssignmentProducer(
+   ast: any,
+   context: DocumentContext,
+-  profile: AssignmentProducerProfile,
+-  evidence: any,
++  evidence: AssignmentProducerObservation,
+ ) {
+-  const expected =
+-    profile.native.producerEvidence[context.format as "html" | "revealjs"];
+   if (
+-    !expected ||
+-    stable({ ...evidence, format: undefined }) !== stable(expected) ||
+-    evidence.format !== context.format
+-  ) unsupported("Native producer order/path/runtime evidence отличается");
++    !evidence || evidence.format !== context.format ||
++    typeof evidence.engine !== "string" ||
++    !evidence.filters || typeof evidence.filters !== "object" ||
++    !Array.isArray(evidence.shortcodes) ||
++    evidence.shortcodes.length > 4096 ||
++    evidence.shortcodes.some((file: unknown) =>
++      typeof file !== "string" || !file
++    )
++  ) {
++    unsupported("Нет actual native phase/format/engine observation");
++  }
++  const handlers = evidence.shortcodeHandlers ?? [];
++  if (
++    !Array.isArray(handlers) || handlers.length > 4096 ||
++    handlers.some((row: unknown) => {
++      if (!row || typeof row !== "object") return true;
++      const observed = row as Record<string, unknown>;
++      return typeof observed.name !== "string" || !observed.name ||
++        typeof observed.file !== "string" ||
++        !evidence.shortcodes.includes(observed.file);
++    }) || new Set(handlers.map((row) => row.name)).size !== handlers.length
++  ) {
++    unsupported("Несогласованное native shortcode handler observation");
++  }
+   function walk(v: any) {
+     if (Array.isArray(v)) {
+       v.forEach(walk);
+@@ -71,9 +88,10 @@ export function qualifyAssignmentProducer(
+       const first = args.shift();
+       if (
+         !first || first.key ||
+-        !profile.native.literalShortcodes.includes(
+-          first.value as "xref" | "meta",
+-        )
++        (!["xref", "meta"].includes(first.value) &&
++          !handlers.some((row) =>
++            row.name === first.value && evidence.shortcodes.includes(row.file)
++          ))
+       ) unsupported("Shortcode не квалифицирован");
+       if (first.value === "meta") {
+         const title = ast.meta?.title;
+@@ -87,7 +105,7 @@ export function qualifyAssignmentProducer(
+           args.length !== 1 || args[0].key || args[0].value !== "title" ||
+           !primitive
+         ) unsupported("meta допускает только публичный примитивный title");
+-      } else {
++      } else if (first.value === "xref") {
+         const positional = args.filter((p) => !p.key),
+           named = args.filter((p) => p.key);
+         if (
+diff --git a/_extensions/course-core/document/contracts.ts b/_extensions/course-core/document/contracts.ts
+index 705c85f..ff35425 100644
+--- a/_extensions/course-core/document/contracts.ts
++++ b/_extensions/course-core/document/contracts.ts
+@@ -52,18 +52,6 @@ export const EarlyDocumentSchema = z.strictObject({
+   occurrences: z.array(OccurrenceSchema).max(4096),
+   release: NativeReleaseFactsSchema.optional(),
+   assignment: AssignmentEarlySchema.optional(),
+-  authorityCost: z.record(
+-    z.enum([
+-      "authorityDataReads",
+-      "authorityHashBytes",
+-      "authorityGraphHashReads",
+-      "authorityGraphHashBytes",
+-      "authorityPathReads",
+-      "authorityDirectoryReads",
+-      "authorityTopologyBytes",
+-    ]),
+-    z.number().int().nonnegative(),
+-  ).optional(),
+ });
+ export type EarlyDocument = z.output<typeof EarlyDocumentSchema>;
+ export const LateOccurrenceSchema = z.strictObject({
+diff --git a/_extensions/course-core/document/normalize.ts b/_extensions/course-core/document/normalize.ts
+index d6febff..acbf86e 100644
+--- a/_extensions/course-core/document/normalize.ts
++++ b/_extensions/course-core/document/normalize.ts
+@@ -132,7 +132,6 @@ function normalizeDocumentWork(
+   const assignment: AssignmentEarly | undefined = assignmentInput
+     ? {
+       source: assignmentInput.source,
+-      producerProfile: assignmentInput.producerProfile,
+       assessments: assignmentInput.assessments.map((v) => ({ ...v })),
+       introductions: [],
+       answers: {},
+diff --git a/_extensions/course-core/native-ts/early-context.lua b/_extensions/course-core/native-ts/early-context.lua
+index dd8f526..5cd4fa8 100644
+--- a/_extensions/course-core/native-ts/early-context.lua
++++ b/_extensions/course-core/native-ts/early-context.lua
+@@ -59,7 +59,26 @@ return {{Pandoc=function(doc)
+   doc.meta['course-core-ts-context']=pandoc.MetaString(pandoc.json.encode(context))
+   if request.assignment then
+     assert(doc.meta['course-core-producer-evidence']==nil,'DOCUMENT_BINDING: авторский producer evidence')
+-    doc.meta['course-core-producer-evidence']=pandoc.MetaString(pandoc.json.encode({filters=param('quarto-filters'),shortcodes=param('shortcodes',{}),engine=param('execution-engine'),format=native_format}))
++    -- Уже инициализированная таблица Quarto: наблюдаем выбранный handler, не вызываем/не загружаем его.
++    local shortcode_files=pandoc.List(param('shortcodes',{}))
++    local shortcode_handlers,seen=pandoc.List(),{}
++    doc:walk({Span=function(span)
++      if not span.classes:includes('quarto-shortcode__') then return end
++      local name
++      for _,node in ipairs(span.content) do
++        if node.t=='Span' and node.classes:includes('quarto-shortcode__-param') then
++          if node.attributes['data-key']==nil then name=node.attributes['data-value'] end
++          break
++        elseif node.t~='Space' and node.t~='SoftBreak' then break end
++      end
++      if type(name)~='string' or seen[name] then return end
++      seen[name]=true
++      local handler=type(handlerForShortcode)=='function' and handlerForShortcode({name=name}) or nil
++      if type(handler)=='table' and type(handler.handle)=='function' and type(handler.file)=='string' and shortcode_files:includes(handler.file) then
++        shortcode_handlers:insert({name=name,file=handler.file})
++      end
++    end})
++    doc.meta['course-core-producer-evidence']=pandoc.MetaString(pandoc.json.encode({filters=param('quarto-filters'),shortcodes=shortcode_files,shortcodeHandlers=shortcode_handlers,engine=param('execution-engine'),format=native_format}))
+   end
+   local projected=pandoc.utils.run_json_filter(doc,pandoc.path.join({dir,'early-filter.sh'}),{FORMAT})
+   return projected
+diff --git a/_extensions/course-core/native-ts/early-filter.ts b/_extensions/course-core/native-ts/early-filter.ts
+index 74c7b60..91710b5 100644
+--- a/_extensions/course-core/native-ts/early-filter.ts
++++ b/_extensions/course-core/native-ts/early-filter.ts
+@@ -1,8 +1,5 @@
+ import { collectNativeProjectFacts } from "../document/project-capture.ts";
+-import {
+-  nativeAssignmentOwner,
+-  nativeAssignmentProfile,
+-} from "../runtime/assignment-admission.ts";
++import { assertNativeAssignmentCapture } from "../runtime/operation.ts";
+ import { qualifyAssignmentProducer } from "../document/assignment-producer.ts";
+ import { normalizeDocument } from "../public.ts";
+ import { decodeDocumentContext } from "../document/contracts.ts";
+@@ -62,21 +59,13 @@ if (JSON.stringify(nativeContext) !== JSON.stringify(context)) {
+   fail("DOCUMENT_BINDING", "Native context не соответствует request");
+ }
+ delete ast.meta["course-core-ts-context"];
+-let authorityCost, assignmentOwner: string | undefined;
++let assignmentOwner: string | undefined;
+ if (request.assignment) {
+-  const native = await nativeAssignmentProfile(
+-    request.assignment.producerProfile,
+-    nativeAssignmentOwner(
+-      context.input,
+-      request.assignment.source,
+-      request.capture,
+-      context.operation,
+-    ),
+-    request.assignment.authority,
++  assignmentOwner = await assertNativeAssignmentCapture(
++    context,
++    request.assignment,
++    request.capture,
+   );
+-  const profile = native.profile;
+-  assignmentOwner = profile.root;
+-  authorityCost = native.cost;
+   const evidence = ast.meta["course-core-producer-evidence"];
+   if (evidence?.t !== "MetaString") {
+     fail(
+@@ -84,11 +73,10 @@ if (request.assignment) {
+       "Нет actual native producer evidence",
+     );
+   }
+-  qualifyAssignmentProducer(ast, context, profile, JSON.parse(evidence.c));
++  qualifyAssignmentProducer(ast, context, JSON.parse(evidence.c));
+   delete ast.meta["course-core-producer-evidence"];
+ }
+ const early = normalizeDocument(ast, context, request.assignment);
+-if (authorityCost) early.authorityCost = authorityCost;
+ try {
+   await Deno.writeTextFile(
+     request.capture + ".early.json",
+diff --git a/_extensions/course-core/runtime/assignment-admission.ts b/_extensions/course-core/runtime/assignment-admission.ts
+index 9112481..76489a4 100644
+--- a/_extensions/course-core/runtime/assignment-admission.ts
++++ b/_extensions/course-core/runtime/assignment-admission.ts
+@@ -1,131 +1,55 @@
+-import { SupportedQuartoVersionSchema } from "../infrastructure/quarto-version.ts";
+-import {
+-  assignmentChild,
+-  withAssignmentExecution,
+-} from "./assignment-execution.ts";
+-import {
+-  basename,
+-  dirname,
+-  fromFileUrl,
+-  join,
+-  relative,
+-  resolve,
+-} from "stdlib/path";
++import { basename, dirname, join, relative, resolve } from "stdlib/path";
+ import { fail } from "../contracts/project.ts";
+-import { assertSources, hash, signature, snapshot } from "./source-snapshot.ts";
++import { assertSources, signature, snapshot } from "./source-snapshot.ts";
+ import type { SourceSnapshotState } from "./source-snapshot.ts";
+-import {
+-  addAuthorityMetrics,
+-  assertAssignmentAuthority,
+-  assertAuthorityHost,
+-  assertCapsuleIndependent,
+-  authorityProfile,
+-  emptyAuthorityMetrics,
+-  openAssignmentAuthority,
+-} from "./assignment-authority.ts";
+-import type {
+-  AssignmentAuthorityIdentity,
+-  AuthorityMetrics,
+-} from "./assignment-authority.ts";
+-import type { AssignmentProducerProfile } from "./assignment-producer-profiles.ts";
+ import type { NativeCaptureReservation } from "./contracts.ts";
++import type { NativeOwnerInspection } from "./operation.ts";
+ export type AssignmentIntent = { source: string; id: string }[];
+ export type AssignmentPreparation = {
+   assignment: {
+     mode: "new";
+-    prepare: (
+-      owner: Readonly<Record<string, unknown>>,
+-    ) => Promise<
+-      {
+-        expectedSources: readonly string[];
+-        assessments: readonly { source: string; id: string }[];
+-      }
+-    >;
++    profiles?: readonly string[];
++    prepare: (owner: Readonly<NativeOwnerInspection>) => Promise<{
++      expectedSources: readonly string[];
++      assessments: readonly { source: string; id: string }[];
++    }>;
+   };
+ };
++/** Наблюдённый native запуск владельца; не external producer qualification. */
+ export type AssignmentRuntimeWitness = {
+-  profile: string;
+-  authority: AssignmentAuthorityIdentity;
+-  files: { path: string; signature: string; sha256: string }[];
+-  directories: { path: string; names: string[] }[];
+-  absent: string[];
++  executable: string;
++  environment: Record<string, string>;
++  profiles: string[];
++  outputDirectory: string;
++  inputs: string[];
++  implementationFiles: { path: string; signature: string }[];
+ };
+ export type AssignmentAdmission = {
+   source: SourceSnapshotState;
+   operation: string;
+-  owner: Record<string, any>;
++  owner: NativeOwnerInspection;
+   inputs: string[];
+   assessments: AssignmentIntent;
+-  profile: AssignmentProducerProfile;
+   runtime: AssignmentRuntimeWitness;
++  invocation: string;
+   runtimeHashReads: number;
+   runtimeHashBytes: number;
+   runtimePathReads: number;
+   runtimeDirectoryReads: number;
+   inspectCalls: number;
+-} & AuthorityMetrics;
++};
+ const admitted = new WeakSet<object>();
+-const equal = (a: unknown, b: unknown) =>
+-  JSON.stringify(a) === JSON.stringify(b);
+-const frozen = <T>(v: T): T => {
+-  if (v && typeof v === "object") {
+-    Object.values(v).forEach(frozen);
+-    Object.freeze(v);
++const frozen = <T>(value: T): T => {
++  if (value && typeof value === "object") {
++    Object.values(value).forEach(frozen);
++    Object.freeze(value);
+   }
+-  return v;
++  return value;
+ };
+ function invalid(s: string): never {
+   return fail("BODY.PRODUCER_INPUT_UNQUALIFIED", s);
+ }
+-const changed = (s: string): never => fail("BODY.PRODUCER_INPUT_CHANGED", s);
+-async function regular(path: string) {
+-  const stat = await Deno.lstat(path);
+-  if (!stat.isFile || stat.isSymlink || await Deno.realPath(path) !== path) {
+-    invalid("Неканонический producer input " + path);
+-  }
+-  return stat;
+-}
+-async function absent(path: string) {
+-  let current = path;
+-  while (true) {
+-    try {
+-      const stat = await Deno.lstat(current);
+-      if (current === path) return false;
+-      if (
+-        !stat.isDirectory || stat.isSymlink ||
+-        await Deno.realPath(current) !== current
+-      ) changed("Неканонический absence corridor " + current);
+-      return true;
+-    } catch (e) {
+-      if (!(e instanceof Deno.errors.NotFound)) throw e;
+-    }
+-    const parent = dirname(current);
+-    if (parent === current) changed("Нет canonical absence ancestor");
+-    current = parent;
+-  }
+-}
+-async function names(path: string) {
+-  const stat = await Deno.lstat(path);
+-  if (
+-    !stat.isDirectory || stat.isSymlink || await Deno.realPath(path) !== path
+-  ) invalid("Неканонический loader corridor " + path);
+-  const result = [];
+-  for await (const entry of Deno.readDir(path)) result.push(entry.name);
+-  return result.sort();
+-}
+-const runtimeAuthorities = new WeakMap<
+-  object,
+-  Awaited<ReturnType<typeof openAssignmentAuthority>>
+->();
+-export function assignmentProfile(
+-  witness: AssignmentRuntimeWitness,
+-  root: string,
+-) {
+-  const handle = runtimeAuthorities.get(witness);
+-  if (!handle) invalid("Runtime authority не открыта/не связана");
+-  return authorityProfile(handle, witness.profile, root);
+-}
+-/** Кандидат owner из bound input/source; authorityProfile независимо проверяет root/id. */
++/** Bound input/source identifies owner; cwd не является source authority. */
+ export function nativeAssignmentOwner(
+   input: string,
+   source: unknown,
+@@ -136,80 +60,67 @@ export function nativeAssignmentOwner(
+     typeof input !== "string" || !input.startsWith("/") ||
+     input.includes("\0") || resolve(input) !== input ||
+     typeof source !== "string" || !source || source.startsWith("/") ||
+-    source.includes("\\") || source.includes("\0") ||
+-    source.split("/").some((part) => !part || part === "." || part === "..") ||
++    /[\\\0]/.test(source) ||
++    source.split("/").some((p) => !p || p === "." || p === "..") ||
+     !input.endsWith("/" + source)
+-  ) invalid("Native input/source owner binding отличается");
++  ) {
++    invalid("Native input/source owner binding отличается");
++  }
+   const root = input.slice(0, -source.length - 1) || "/";
+   if (
+-    typeof capture !== "string" || !capture.startsWith("/") ||
+-    capture.includes("\0") || resolve(capture) !== capture ||
++    typeof capture !== "string" || resolve(capture) !== capture ||
+     dirname(capture) !==
+       join(root, "_generated/course-spec/native-ts", operation) ||
+     !/^(0|[1-9][0-9]*)$/.test(basename(capture))
+   ) invalid("Native capture/owner/operation binding отличается");
+   return root;
+ }
+-export async function nativeAssignmentProfile(
+-  id: string,
+-  root: string,
+-  identity: AssignmentAuthorityIdentity,
+-) {
+-  const handle = await openAssignmentAuthority(root);
+-  if (!equal(handle.identity, identity)) {
+-    changed("Native authority identity отличается");
++/** Только уже наблюдённые rows: без discovery/IO; несовпадение необратимо проваливает seal. */
++export function mergeAssignmentImplementationFiles(
++  previous: readonly Readonly<{ path: string; signature: string }>[],
++  observed: readonly Readonly<{ path: string; signature: string }>[],
++): { path: string; signature: string }[] {
++  const rows = new Map<string, { path: string; signature: string }>();
++  for (const row of [...previous, ...observed]) {
++    const known = rows.get(row.path);
++    if (known && known.signature !== row.signature) {
++      fail(
++        "BODY.PRODUCER_INPUT_CHANGED",
++        "Child native implementation dependency изменена " + row.path,
++      );
++    }
++    if (!known) rows.set(row.path, { ...row });
+   }
+-  const profile = authorityProfile(handle, id, root);
+-  if (
+-    !profile.runtime.files.some((r) => r.path === Deno.execPath()) ||
+-    !profile.runtime.files.some((r) => r.path === fromFileUrl(Deno.mainModule))
+-  ) invalid("Native Core module/executable вне qualified K");
+-  return { profile, cost: handle.cost };
++  return [...rows.values()];
+ }
+ export async function assertAssignmentRuntime(
+   witness: AssignmentRuntimeWitness,
+   root: string,
+-  metrics?:
+-    & { runtimePathReads: number; runtimeDirectoryReads: number }
+-    & Partial<AuthorityMetrics>,
++  metrics?: { runtimePathReads: number; runtimeDirectoryReads: number },
+   full = false,
+ ) {
+-  let handle = runtimeAuthorities.get(witness);
+-  if (!handle) {
+-    handle = await openAssignmentAuthority(root);
+-    if (!equal(handle.identity, witness.authority)) {
+-      changed("Authority identity отличается от private operation");
+-    }
+-    runtimeAuthorities.set(witness, handle);
+-    addAuthorityMetrics(metrics, handle.cost);
+-  }
+-  await assertAssignmentAuthority(handle, root, metrics, full);
+-  const profile = assignmentProfile(witness, root);
+   if (
+-    !equal(
+-      witness.files.map((r) => ({ path: r.path, sha256: r.sha256 })),
+-      profile.runtime.files,
+-    ) || !equal(witness.directories, profile.runtime.directories) ||
+-    !equal(witness.absent, profile.runtime.absent)
+-  ) changed("Producer runtime witness не принадлежит поставке");
+-  for (const row of witness.files) {
+-    if (metrics) metrics.runtimePathReads++;
+-    if (signature(await regular(row.path)) !== row.signature) {
+-      changed("Изменён producer runtime " + row.path);
+-    }
+-  }
+-  for (const row of witness.directories) {
+-    if (metrics) metrics.runtimeDirectoryReads++;
+-    if (!equal(await names(row.path), row.names)) {
+-      changed("Изменён loader corridor " + row.path);
+-    }
++    !witness.outputDirectory.startsWith(root + "/_generated/") ||
++    !witness.profiles.includes("full")
++  ) {
++    invalid("Чужая assignment runtime binding");
+   }
+-  for (const path of witness.absent) {
++  if (!full) return;
++  for (const row of witness.implementationFiles) {
+     if (metrics) metrics.runtimePathReads++;
+-    if (!await absent(path)) changed("Возник loader candidate " + path);
++    const info = await Deno.lstat(row.path);
++    if (
++      !info.isFile || info.isSymlink ||
++      await Deno.realPath(row.path) !== row.path ||
++      signature(info) !== row.signature
++    ) {
++      fail(
++        "BODY.PRODUCER_INPUT_CHANGED",
++        "Изменена наблюдённая native implementation dependency " + row.path,
++      );
++    }
+   }
+ }
+-/** Внутренняя preparation authority; ни JSON, ни consumer boolean не создают этот объект. */
+ export function consumeAssignmentAdmission(value: AssignmentAdmission) {
+   if (!admitted.delete(value)) {
+     fail("OPERATION_BINDING", "Чужая/повторная assignment preparation");
+@@ -220,65 +131,33 @@ export async function prepareAssignment(
+   reservation: NativeCaptureReservation,
+   options: AssignmentPreparation,
+ ): Promise<AssignmentAdmission> {
+-  if (options?.assignment?.mode !== "new") {
+-    invalid("Требуется явное новое assignment intent");
+-  }
+-  const authority = await openAssignmentAuthority(reservation.root);
+-  const profile = authorityProfile(authority, undefined, reservation.root);
+-  assertAuthorityHost(authority, profile);
+   if (
++    options?.assignment?.mode !== "new" ||
+     Object.keys(options).some((k) => k !== "assignment") ||
+-    Object.keys(options.assignment ?? {}).some((k) =>
+-      !["prepare", "mode"].includes(k)
++    Object.keys(options.assignment).some((k) =>
++      !["mode", "prepare", "profiles"].includes(k)
++    ) ||
++    typeof options.assignment.prepare !== "function"
++  ) invalid("Требуется явное новое assignment intent");
++  const requested = options.assignment.profiles ?? [];
++  if (
++    !Array.isArray(requested) || requested.length > 15 ||
++    new Set(requested).size !== requested.length ||
++    requested.some((p) =>
++      typeof p !== "string" || !/^[-a-z0-9]+$/.test(p) ||
++      ["student", "full"].includes(p)
+     )
+-  ) invalid("Неизвестный assignment option");
++  ) {
++    invalid("Требуются уникальные functional profiles без student/full");
++  }
+   if (
+     reservation.projection !== "author" ||
+     await Deno.realPath(reservation.root) !== reservation.root ||
+     resolve(reservation.outputDirectory) !== reservation.outputDirectory ||
+     !reservation.outputDirectory.startsWith(reservation.root + "/_generated/")
+-  ) {
+-    invalid(
+-      "Assignment требует frozen canonical owner, author и служебный output",
+-    );
+-  }
+-  if (
+-    Deno.execPath() !== profile.launcher.executable ||
+-    !equal(Deno.args, profile.launcher.arguments)
+-  ) invalid("Launcher/argv не квалифицирован");
+-  if (
+-    Deno.env.get("COURSE_PERF_MODE") &&
+-    Deno.env.get("COURSE_PERF_MODE") !== "off"
+-  ) invalid("Ambient performance agent не квалифицирован");
+-  if (typeof options.assignment?.prepare !== "function") {
+-    invalid("Требуется trusted preparation callback");
+-  }
+-  for (const [key, value] of Object.entries(Deno.env.toObject())) {
+-    if (
+-      /^(?:QUARTO(?:_|$)|DENO(?:_|$)|PANDOC(?:_|$)|COURSE_(?:PERF|CORE|QRC|NATIVE)_)/
+-        .test(
+-          key,
+-        ) &&
+-      (!Object.hasOwn(profile.hostEnvironment, key) ||
+-        profile.hostEnvironment[key] !== value)
+-    ) invalid("Неквалифицированный environment override " + key);
+-  }
+-  for (const [key, value] of Object.entries(profile.hostEnvironment)) {
+-    if ((Deno.env.get(key) ?? null) !== value) {
+-      invalid("Host environment изменён " + key);
+-    }
+-  }
+-  if (
+-    profile.native.environment.XDG_CACHE_HOME !==
+-      Deno.env.get("XDG_CACHE_HOME") ||
+-    profile.native.environment.QUARTO_RUN_NO_NETWORK !== "true" ||
+-    profile.native.environment.JAVA_HOME !== "/usr/lib/jvm/java-25-openjdk" ||
+-    !profile.native.environment.PATH?.startsWith(
+-      "/usr/lib/jvm/java-25-openjdk/bin:",
+-    )
+-  ) invalid("Native child environment не квалифицирован");
+-
+-  const state: SourceSnapshotState = {
++  ) invalid("Assignment требует canonical owner, author и служебный output");
++  const profiles = [...requested, "full"];
++  const source: SourceSnapshotState = {
+     root: reservation.root,
+     outputDirectory: reservation.outputDirectory,
+     rows: [],
+@@ -293,121 +172,44 @@ export async function prepareAssignment(
+       localSourceFences: 0,
+     },
+   };
+-  await snapshot(state);
+-  assertCapsuleIndependent(authority, state.rows);
+-  const actual = state.rows.map((r) => ({ path: r.path, sha256: r.sha256 }))
+-    .sort((a, b) => a.path.localeCompare(b.path));
+-  const expected = [...profile.source.files].sort((a, b) =>
+-    a.path.localeCompare(b.path)
++  const { nativeRuntimeIdentity, inspectNativeOwner } = await import(
++    "./operation.ts"
+   );
+-  const sorted = (v: Record<string, readonly string[]>) =>
+-    Object.entries(v).sort(([a], [b]) => a.localeCompare(b));
+-  if (
+-    !equal(actual, expected) ||
+-    !equal(sorted(state.memberships), sorted(profile.source.memberships))
+-  ) invalid("Frozen source bytes/membership изменились");
+-  const runtime: AssignmentRuntimeWitness = {
+-    profile: profile.id,
+-    authority: authority.identity,
+-    files: [],
+-    directories: profile.runtime.directories.map((r) => ({
+-      path: r.path,
+-      names: [...r.names],
+-    })),
+-    absent: [...profile.runtime.absent],
+-  };
+-  runtimeAuthorities.set(runtime, authority);
+-  const result: AssignmentAdmission = {
+-    ...emptyAuthorityMetrics(),
+-    ...authority.cost,
+-    source: state,
+-    operation: crypto.randomUUID(),
+-    owner: {},
+-    inputs: [],
+-    assessments: [],
+-    profile,
+-    runtime,
+-    runtimeHashReads: 0,
+-    runtimeHashBytes: 0,
+-    runtimePathReads: 0,
+-    runtimeDirectoryReads: 0,
+-    inspectCalls: 0,
+-  };
+-  for (const row of profile.runtime.files) {
+-    const existing = state.rows.find((r) =>
+-      join(state.root, r.path) === row.path
+-    );
+-    if (existing) {
+-      if (
+-        existing.sha256 !== row.sha256 ||
+-        signature(await regular(row.path)) !== existing.signature
+-      ) invalid("Producer source dependency изменён " + row.path);
+-      result.runtimePathReads++;
+-      runtime.files.push({ ...row, signature: existing.signature });
+-      continue;
+-    }
+-    const before = signature(await regular(row.path)),
+-      bytes = await Deno.readFile(row.path);
+-    result.runtimeHashReads++;
+-    result.runtimeHashBytes += bytes.length;
++  const metrics = { runtimeHashReads: 0, runtimeHashBytes: 0 };
++  const invocation = await nativeRuntimeIdentity(source.root, true, metrics);
++  const executable = JSON.parse(invocation).physical as string;
++  const environment = { ...Deno.env.toObject() };
++  // Quarto child создаёт собственный project/script transport; host CLI не переносит его.
++  for (const key of Object.keys(environment)) {
+     if (
+-      await hash(bytes) !== row.sha256 ||
+-      signature(await regular(row.path)) !== before
+-    ) invalid("Producer dependency изменён " + row.path);
+-    runtime.files.push({ ...row, signature: before });
++      /^QUARTO_(?:PROJECT_|USE_FILE_FOR_PROJECT_|FILTER_|SCRIPT_|DOCUMENT_)/
++        .test(key) || /^COURSE_CORE_(?:CAPTURE|TS)_/.test(key)
++    ) delete environment[key];
+   }
+-  if (
+-    !runtime.files.some((r) => r.path === profile.native.executable) ||
+-    !runtime.files.some((r) => r.path === profile.launcher.executable) ||
+-    !runtime.files.some((r) =>
+-      r.path === fromFileUrl(profile.launcher.entrypoint)
+-    )
+-  ) invalid("Неполный runtime/launcher closure");
+-  assertCapsuleIndependent(authority, runtime.files);
+-  await assertAssignmentRuntime(runtime, reservation.root, result);
+-  await assertSources(state);
+-  const inspected = await withAssignmentExecution(profile, async () => {
+-    const qualified = assignmentChild(profile.native.executable, [
+-      "inspect",
+-      reservation.root,
+-      ...(profile.launcher.requestedProfiles.length
+-        ? ["--profile", profile.launcher.requestedProfiles.join(",")]
+-        : []),
+-    ], reservation.root)!;
+-    return await new Deno.Command(qualified.executable, {
+-      ...qualified.options,
+-      stdout: "piped",
+-      stderr: "piped",
+-    }).output();
++  Object.assign(environment, {
++    QUARTO: executable,
++    QUARTO_PROFILE: profiles.join(","),
++    QUARTO_RUN_NO_NETWORK: "true",
++    DENO_NO_PACKAGE_JSON: "1",
+   });
+-  result.inspectCalls++;
+-  if (!inspected.success) {
+-    fail(
+-      "BODY.PRODUCER_INSPECTION_FAILED",
+-      new TextDecoder().decode(inspected.stderr),
+-    );
+-  }
+-  await assertAssignmentRuntime(runtime, reservation.root, result);
+-  await assertSources(state);
+-  const owner = JSON.parse(
+-    new TextDecoder("utf-8", { fatal: true }).decode(inspected.stdout),
++  delete environment.COURSE_CORE_CAPTURE_TOKEN;
++  await snapshot(source);
++  const owner = await inspectNativeOwner(
++    source.root,
++    profiles,
++    executable,
++    environment,
+   );
++  await assertSources(source);
++  if (await nativeRuntimeIdentity(source.root, true, metrics) !== invocation) {
++    fail("OPERATION_CHANGED", "Runtime изменён во время preparation");
++  }
+   if (
+-    owner.dir !== reservation.root ||
+-    !SupportedQuartoVersionSchema.safeParse(owner.quarto?.version).success ||
+     owner.config?.["course-core-runtime"] !== "native-ts" ||
+-    owner.config?.["course-core-projection"] !== "author" ||
+-    !Array.isArray(owner.files?.input) || !Array.isArray(owner.engines) ||
+-    owner.engines.some((s: unknown) => s !== "markdown")
+-  ) invalid("Native owner не соответствует квалифицированному producer");
+-  result.owner = owner;
+-  const selection = await withAssignmentExecution(
+-    profile,
+-    () => options.assignment.prepare(frozen(structuredClone(owner))),
+-    async () => {
+-      await assertSources(state);
+-      await assertAssignmentRuntime(runtime, reservation.root, result);
+-    },
++    owner.config?.["course-core-projection"] !== "author"
++  ) invalid("Native owner не соответствует author operation");
++  const selection = await options.assignment.prepare(
++    frozen(structuredClone(owner)),
+   );
+   if (
+     !selection || !Array.isArray(selection.expectedSources) ||
+@@ -417,8 +219,8 @@ export async function prepareAssignment(
+       selection.expectedSources.length ||
+     selection.expectedSources.some((p) =>
+       typeof p !== "string" ||
+-      !owner.files.input.includes(join(reservation.root, p)) ||
+-      p !== relative(reservation.root, join(reservation.root, p)) ||
++      !owner.files.input.includes(join(source.root, p)) ||
++      p !== relative(source.root, join(source.root, p)) ||
+       p.split("/").some((s) => !s || s === "." || s === "..")
+     )
+   ) invalid("Неверный prepared source scope");
+@@ -428,14 +230,31 @@ export async function prepareAssignment(
+     new Set(selection.assessments.map((p) => p.source + "\0" + p.id)).size !==
+       selection.assessments.length ||
+     selection.assessments.some((p) =>
+-      !selection.expectedSources.includes(p.source) || !p.id ||
++      !selection.expectedSources.includes(p.source) ||
+       !/^[a-z][a-z0-9-]*$/.test(p.id)
+     )
+   ) invalid("Неверный assignment intent");
+-  result.inputs = [...selection.expectedSources];
+-  result.assessments = selection.assessments.map((p) => ({ ...p }));
+-  await assertAssignmentRuntime(runtime, reservation.root, result);
+-  await assertSources(state);
++  await assertSources(source);
++  const result: AssignmentAdmission = {
++    source,
++    operation: crypto.randomUUID(),
++    owner,
++    inputs: [...selection.expectedSources],
++    assessments: selection.assessments.map((p) => ({ ...p })),
++    invocation,
++    ...metrics,
++    runtimePathReads: 0,
++    runtimeDirectoryReads: 0,
++    inspectCalls: 1,
++    runtime: {
++      executable,
++      environment,
++      profiles,
++      outputDirectory: reservation.outputDirectory,
++      inputs: [...selection.expectedSources],
++      implementationFiles: [],
++    },
++  };
+   admitted.add(result);
+   return result;
+ }
+diff --git a/_extensions/course-core/runtime/assignment-authority.ts b/_extensions/course-core/runtime/assignment-authority.ts
+deleted file mode 100644
+index f6b249d..0000000
+--- a/_extensions/course-core/runtime/assignment-authority.ts
++++ /dev/null
+@@ -1,511 +0,0 @@
+-// Инертный data-only I3 reader. Prior P и до-import проверка ROOT вне Core.
+-// @deno-types="../vendor/zod/v4/index.d.ts"
+-import { z } from "../vendor/zod/v4/index.js";
+-import { dirname, fromFileUrl, join, relative, resolve } from "stdlib/path";
+-import { fail } from "../contracts/project.ts";
+-import { hash, signature } from "./source-snapshot.ts";
+-import { AssignmentProducerProfileSchema } from "./assignment-producer-profiles.ts";
+-import type { AssignmentProducerProfile } from "./assignment-producer-profiles.ts";
+-const locationPath = fromFileUrl(
+-  new URL("./assignment-authority-location.json", import.meta.url),
+-);
+-function bad(s: string): never {
+-  return fail("BODY.PRODUCER_INPUT_UNQUALIFIED", s);
+-}
+-const changed = (s: string): never => fail("BODY.PRODUCER_INPUT_CHANGED", s);
+-const same = (a: unknown, b: unknown) =>
+-  JSON.stringify(a) === JSON.stringify(b);
+-const frozen = <T>(v: T): T => {
+-  if (v && typeof v === "object") {
+-    Object.values(v).forEach(frozen);
+-    Object.freeze(v);
+-  }
+-  return v;
+-};
+-const sha = z.string().regex(/^[a-f0-9]{64}$/),
+-  documentSize = z.number().int().positive().max(64 * 1024 * 1024),
+-  graphFileSize = z.number().int().positive().max(256 * 1024 * 1024),
+-  epoch = z.string().regex(/^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$/);
+-const absolute = z.string().min(1).max(4096).refine((p) =>
+-  p.startsWith("/") && resolve(p) === p && !p.includes("\0")
+-);
+-const digest = z.strictObject({ sha256: sha, size: documentSize });
+-const L = z.strictObject({
+-  schema: z.literal("course-assignment-authority-location-v1"),
+-  root: absolute,
+-  epoch,
+-});
+-const R = z.strictObject({
+-  schema: z.literal("course-assignment-profiles-v1"),
+-  epoch,
+-  profiles: z.array(AssignmentProducerProfileSchema).min(1).max(32),
+-});
+-const M = z.strictObject({
+-  schema: z.literal("course-assignment-authority-manifest-v1"),
+-  epoch,
+-  files: z.tuple([
+-    z.literal("anchor.json"),
+-    z.literal("manifest.json"),
+-    z.literal("profiles.json"),
+-  ]),
+-  mode: z.literal(292),
+-  profiles: digest,
+-});
+-const E = z.strictObject({
+-  schema: z.literal("course-assignment-authority-anchor-v1"),
+-  epoch,
+-  root: absolute,
+-  manifest: digest,
+-  graph: z.strictObject({
+-    files: z.array(
+-      z.strictObject({
+-        path: absolute,
+-        sha256: sha,
+-        size: graphFileSize,
+-        mode: z.number().int().min(0).max(511),
+-      }),
+-    ).min(1).max(32768),
+-    directories: z.array(
+-      z.strictObject({ path: absolute, names: z.array(z.string()) }),
+-    ).max(8192),
+-    absent: z.array(absolute).max(8192),
+-  }),
+-  launches: z.array(z.strictObject({
+-    entrypoint: z.string().startsWith("file:///"),
+-    executable: absolute,
+-    cwd: absolute,
+-    arguments: z.array(z.string()).max(4096),
+-    runtimeArguments: z.array(z.string()).max(256),
+-    environment: z.record(z.string(), z.string().nullable()),
+-  })).min(1).max(2),
+-});
+-export const AssignmentAuthorityIdentitySchema = z.strictObject({
+-  root: absolute,
+-  epoch,
+-  locationSha256: sha,
+-  anchorSha256: sha,
+-  manifestSha256: sha,
+-  profilesSha256: sha,
+-});
+-export type AssignmentAuthorityIdentity = z.output<
+-  typeof AssignmentAuthorityIdentitySchema
+->;
+-export const authorityCounterNames = [
+-  "authorityDataReads",
+-  "authorityHashBytes",
+-  "authorityGraphHashReads",
+-  "authorityGraphHashBytes",
+-  "authorityPathReads",
+-  "authorityDirectoryReads",
+-  "authorityTopologyBytes",
+-] as const;
+-export type AuthorityMetrics = {
+-  [K in typeof authorityCounterNames[number]]: number;
+-};
+-export const emptyAuthorityMetrics = (): AuthorityMetrics =>
+-  Object.fromEntries(
+-    authorityCounterNames.map((key) => [key, 0]),
+-  ) as AuthorityMetrics;
+-const add = (
+-  metrics: Partial<AuthorityMetrics> | undefined,
+-  key: typeof authorityCounterNames[number],
+-  value = 1,
+-) => {
+-  if (metrics) metrics[key] = (metrics[key] ?? 0) + value;
+-};
+-export function addAuthorityMetrics(
+-  target: Partial<AuthorityMetrics> | undefined,
+-  cost: AuthorityMetrics,
+-) {
+-  for (const key of authorityCounterNames) add(target, key, cost[key]);
+-}
+-type File = {
+-  path: string;
+-  signature: string;
+-  sha256: string;
+-  size: number;
+-  identity: string;
+-};
+-type Handle = Readonly<
+-  {
+-    identity: AssignmentAuthorityIdentity;
+-    profiles: readonly AssignmentProducerProfile[];
+-    files: readonly File[];
+-    capsuleSignature: string;
+-    topology: string;
+-    graph: z.output<typeof E>["graph"];
+-    graphFiles: readonly { path: string; signature: string }[];
+-    launches: z.output<typeof E>["launches"];
+-    cost: AuthorityMetrics;
+-  }
+->;
+-const handles = new WeakSet<object>();
+-async function canonical(path: string, metrics?: Partial<AuthorityMetrics>) {
+-  if (!path.startsWith("/") || resolve(path) !== path) {
+-    bad("Неканонический authority path");
+-  }
+-  let current = "/";
+-  for (const name of path.split("/").filter(Boolean)) {
+-    current = join(current, name);
+-    add(metrics, "authorityPathReads");
+-    const s = await Deno.lstat(current);
+-    if (s.isSymlink) bad("Authority symlink " + current);
+-  }
+-  if (await Deno.realPath(path) !== path) bad("Authority realpath " + path);
+-  const s = await Deno.lstat(path);
+-  if (!s.isFile && !s.isDirectory) bad("Authority file type " + path);
+-  return s;
+-}
+-async function names(path: string, metrics?: Partial<AuthorityMetrics>) {
+-  add(metrics, "authorityDirectoryReads");
+-  const result = [];
+-  for await (const entry of Deno.readDir(path)) result.push(entry.name);
+-  return result.sort();
+-}
+-async function absent(path: string, metrics?: Partial<AuthorityMetrics>) {
+-  let current = path;
+-  while (true) {
+-    try {
+-      await canonical(current, metrics);
+-      return current !== path;
+-    } catch (e) {
+-      if (!(e instanceof Deno.errors.NotFound)) throw e;
+-    }
+-    const p = dirname(current);
+-    if (p === current) return false;
+-    current = p;
+-  }
+-}
+-async function file(
+-  path: string,
+-  limit: number,
+-  metrics: Partial<AuthorityMetrics>,
+-  readText = false,
+-): Promise<{ fact: File; text: string }> {
+-  const s = await canonical(path, metrics);
+-  if (
+-    !s.isFile || (s.mode! & 0o777) !== 0o444 || s.size > limit || s.size === 0
+-  ) bad("Authority mode/size/type " + path);
+-  // Text call is deliberate: fixed missing L is an observable single optional read.
+-  const text = readText
+-    ? await Deno.readTextFile(path)
+-    : new TextDecoder("utf-8", { fatal: true }).decode(
+-      await Deno.readFile(path),
+-    );
+-  add(metrics, "authorityDataReads");
+-  const bytes = new TextEncoder().encode(text);
+-  add(metrics, "authorityHashBytes", bytes.length);
+-  if (
+-    bytes.length !== s.size ||
+-    signature(await canonical(path, metrics)) !== signature(s)
+-  ) changed("Authority file changed " + path);
+-  return {
+-    fact: {
+-      path,
+-      signature: signature(s),
+-      sha256: await hash(bytes),
+-      size: bytes.length,
+-      identity: JSON.stringify([s.dev, s.ino]),
+-    },
+-    text,
+-  };
+-}
+-function parse<T>(schema: z.ZodType<T>, text: string): T {
+-  try {
+-    const result = schema.safeParse(JSON.parse(text));
+-    if (!result.success) {
+-      bad("Неизвестная authority schema " + result.error.issues[0]?.message);
+-    }
+-    return result.data;
+-  } catch (e) {
+-    if (e instanceof SyntaxError) bad("Malformed authority JSON");
+-    throw e;
+-  }
+-}
+-const contains = (a: string, b: string) => a === b || b.startsWith(a + "/");
+-function overlaps(a: string, b: string) {
+-  return contains(a, b) || contains(b, a);
+-}
+-const unescapeMount = (s: string) =>
+-  s.replace(/\\([0-7]{3})/g, (_, n) => String.fromCharCode(parseInt(n, 8)));
+-async function topology(
+-  owner: string,
+-  capsule: string,
+-  metrics: Partial<AuthorityMetrics>,
+-) {
+-  const a = await canonical(owner, metrics),
+-    b = await canonical(capsule, metrics);
+-  if (!a.isDirectory || !b.isDirectory || overlaps(owner, capsule)) {
+-    bad("Capsule пересекает owner, включая excluded cache");
+-  }
+-  if (Deno.build.os !== "linux") bad("Неподдержанная mount topology");
+-  const text = await Deno.readTextFile("/proc/self/mountinfo");
+-  add(metrics, "authorityTopologyBytes", new TextEncoder().encode(text).length);
+-  const mounts = text.trim().split("\n").map((line) => {
+-    const p = line.split(" ");
+-    if (p.length < 10 || !p.includes("-")) bad("Неизвестная mount topology");
+-    return {
+-      id: p[0],
+-      device: p[2],
+-      root: unescapeMount(p[3]),
+-      point: unescapeMount(p[4]),
+-    };
+-  });
+-  const physical = (path: string) => {
+-    const matches = mounts.filter((m) =>
+-      m.point === "/" || contains(m.point, path)
+-    ).sort((a, b) => b.point.length - a.point.length);
+-    const m = matches[0];
+-    if (!m) bad("Нет mount boundary");
+-    return { ...m, path: resolve(m.root, relative(m.point, path)) };
+-  };
+-  const po = physical(owner), pc = physical(capsule);
+-  if (po.device === pc.device && overlaps(po.path, pc.path)) {
+-    bad("Capsule physical mount alias owner");
+-  }
+-  for (const [leaf, path] of [[a, capsule], [b, owner]] as const) {
+-    let p = path;
+-    while (true) {
+-      const info = await canonical(p, metrics);
+-      if (info.dev === leaf.dev && info.ino === leaf.ino) {
+-        bad("Capsule ancestor/physical directory alias");
+-      }
+-      const next = dirname(p);
+-      if (next === p) break;
+-      p = next;
+-    }
+-  }
+-  return JSON.stringify([po, pc]);
+-}
+-async function graph(
+-  graph: Handle["graph"],
+-  metrics: Partial<AuthorityMetrics>,
+-  content: boolean,
+-  previous: readonly { path: string; signature: string }[] = [],
+-  forbidden = new Set<string>(),
+-) {
+-  const facts: { path: string; signature: string }[] = [];
+-  for (const row of graph.files) {
+-    const s = await canonical(row.path, metrics);
+-    if (forbidden.has(JSON.stringify([s.dev, s.ino]))) {
+-      bad("Capsule physical alias in G");
+-    }
+-    const old = previous.find((f) => f.path === row.path);
+-    if (old && old.signature !== signature(s)) {
+-      changed("Bootstrap G identity changed " + row.path);
+-    }
+-    facts.push({ path: row.path, signature: signature(s) });
+-    if (!s.isFile || (s.mode! & 0o777) !== row.mode || s.size !== row.size) {
+-      changed("Bootstrap G changed " + row.path);
+-    }
+-    if (content) {
+-      const bytes = await Deno.readFile(row.path);
+-      add(metrics, "authorityGraphHashReads");
+-      add(metrics, "authorityGraphHashBytes", bytes.length);
+-      if (
+-        await hash(bytes) !== row.sha256 ||
+-        signature(await canonical(row.path, metrics)) !== signature(s)
+-      ) changed("Bootstrap G bytes changed " + row.path);
+-    }
+-  }
+-  for (const row of graph.directories) {
+-    await canonical(row.path, metrics);
+-    if (!same(await names(row.path, metrics), row.names)) {
+-      changed("Bootstrap G corridor changed " + row.path);
+-    }
+-  }
+-  for (const path of graph.absent) {
+-    if (!await absent(path, metrics)) {
+-      changed("Bootstrap G candidate appeared " + path);
+-    }
+-  }
+-  return facts;
+-}
+-/** Fixed installation location only. Does not observe or manufacture ROOT's prior P. */
+-export async function openAssignmentAuthority(owner: string): Promise<Handle> {
+-  const cost = emptyAuthorityMetrics();
+-  try {
+-    // The only optional read, and only when assignment explicitly enters this reader.
+-    const lf = await file(locationPath, 16384, cost, true),
+-      location = parse(L, lf.text);
+-    const rootInfo = await canonical(location.root, cost);
+-    if (!rootInfo.isDirectory || (rootInfo.mode! & 0o777) !== 0o555) {
+-      bad("Capsule directory must be frozen");
+-    }
+-    const expected = ["anchor.json", "manifest.json", "profiles.json"];
+-    if (!same(await names(location.root, cost), expected)) {
+-      bad("Capsule exact composition");
+-    }
+-    const ef = await file(
+-        join(location.root, "anchor.json"),
+-        8 * 1024 * 1024,
+-        cost,
+-      ),
+-      anchor = parse(E, ef.text);
+-    const mf = await file(join(location.root, "manifest.json"), 65536, cost),
+-      manifest = parse(M, mf.text);
+-    const rf = await file(
+-        join(location.root, "profiles.json"),
+-        64 * 1024 * 1024,
+-        cost,
+-      ),
+-      registry = parse(R, rf.text);
+-    if (
+-      anchor.root !== location.root ||
+-      [anchor.epoch, manifest.epoch, registry.epoch].some((e) =>
+-        e !== location.epoch
+-      ) ||
+-      !same(anchor.manifest, { sha256: mf.fact.sha256, size: mf.fact.size }) ||
+-      !same(manifest.profiles, { sha256: rf.fact.sha256, size: rf.fact.size })
+-    ) bad("Capsule epoch/root/digest mismatch");
+-    const ids = new Set<string>(), launches = new Set<string>();
+-    for (const p of registry.profiles) {
+-      const key = p.root + "\0" + p.id,
+-        launch = p.root + "\0" + p.launcher.entrypoint;
+-      if (ids.has(key) || launches.has(launch)) bad("Ambiguous profile");
+-      ids.add(key);
+-      launches.add(launch);
+-      if (
+-        overlaps(p.root, location.root) || p.runtime.files.some((f) =>
+-          contains(location.root, f.path)
+-        ) || p.runtime.directories.some((f) =>
+-          overlaps(location.root, f.path)
+-        ) || p.runtime.absent.some((f) => contains(location.root, f))
+-      ) bad("Capsule is part of claimed S/K");
+-    }
+-    if (
+-      anchor.graph.files.some((row) => contains(location.root, row.path)) ||
+-      !anchor.graph.files.some((row) => row.path === locationPath)
+-    ) bad("Capsule in G or fixed L absent from G");
+-    const graphFiles = await graph(
+-      anchor.graph,
+-      cost,
+-      true,
+-      [],
+-      new Set([ef.fact, mf.fact, rf.fact].map((f) => f.identity)),
+-    );
+-    const handle = frozen({
+-      identity: {
+-        root: location.root,
+-        epoch: location.epoch,
+-        locationSha256: lf.fact.sha256,
+-        anchorSha256: ef.fact.sha256,
+-        manifestSha256: mf.fact.sha256,
+-        profilesSha256: rf.fact.sha256,
+-      },
+-      profiles: registry.profiles as readonly AssignmentProducerProfile[],
+-      files: [lf.fact, ef.fact, mf.fact, rf.fact],
+-      capsuleSignature: signature(rootInfo),
+-      topology: await topology(owner, location.root, cost),
+-      graph: anchor.graph,
+-      graphFiles,
+-      launches: anchor.launches,
+-      cost,
+-    });
+-    handles.add(handle);
+-    return handle;
+-  } catch (e) {
+-    if (
+-      e instanceof Deno.errors.NotFound ||
+-      e instanceof Deno.errors.PermissionDenied
+-    ) bad("Authority unavailable");
+-    throw e;
+-  }
+-}
+-export function authorityProfile(
+-  handle: Handle,
+-  id: string | undefined,
+-  owner: string,
+-) {
+-  if (!handles.has(handle)) bad("Copied authority handle");
+-  const rows = handle.profiles.filter((p) =>
+-    p.root === owner &&
+-    (id === undefined ? p.launcher.entrypoint === Deno.mainModule : p.id === id)
+-  );
+-  if (rows.length !== 1) bad("Нет independently qualified producer profile");
+-  return rows[0];
+-}
+-export function assertAuthorityHost(
+-  handle: Handle,
+-  profile: AssignmentProducerProfile,
+-) {
+-  if (!handles.has(handle)) bad("Copied authority handle");
+-  const sorted = (v: Record<string, unknown>) =>
+-    Object.entries(v).filter(([, v]) => v !== null).sort(([a], [b]) =>
+-      a.localeCompare(b)
+-    );
+-  if (
+-    !handle.launches.some((row) =>
+-      row.entrypoint === Deno.mainModule &&
+-      row.entrypoint === profile.launcher.entrypoint &&
+-      row.executable === Deno.execPath() && row.cwd === Deno.cwd() &&
+-      row.cwd === profile.root && same(row.arguments, Deno.args) &&
+-      same(sorted(row.environment), sorted(Deno.env.toObject()))
+-    )
+-  ) bad("Наблюдаемый launcher/cwd/argv/env вне E");
+-}
+-export function assertCapsuleIndependent(
+-  handle: Handle,
+-  files: readonly { path: string; signature: string }[],
+-) {
+-  if (!handles.has(handle)) bad("Copied authority handle");
+-  const capsuleIds = new Set(handle.files.slice(1).map((row) => row.identity));
+-  if (
+-    files.some((row) =>
+-      capsuleIds.has(JSON.stringify(JSON.parse(row.signature).slice(0, 2)))
+-    )
+-  ) bad("Capsule hardlink alias in S/K");
+-}
+-export async function assertAssignmentAuthority(
+-  handle: Handle,
+-  owner: string,
+-  metrics?: Partial<AuthorityMetrics>,
+-  full = false,
+-) {
+-  if (!handles.has(handle)) bad("Copied authority handle");
+-  try {
+-    if (
+-      signature(await canonical(handle.identity.root, metrics)) !==
+-        handle.capsuleSignature ||
+-      !same(await names(handle.identity.root, metrics), [
+-        "anchor.json",
+-        "manifest.json",
+-        "profiles.json",
+-      ])
+-    ) changed("Capsule composition changed");
+-    for (const row of handle.files) {
+-      if (signature(await canonical(row.path, metrics)) !== row.signature) {
+-        changed("Authority file changed " + row.path);
+-      }
+-      if (full) {
+-        const actual = await file(
+-          row.path,
+-          row.size,
+-          metrics ?? emptyAuthorityMetrics(),
+-        );
+-        if (actual.fact.sha256 !== row.sha256) {
+-          changed("Authority bytes changed " + row.path);
+-        }
+-      }
+-    }
+-    if (
+-      await topology(
+-        owner,
+-        handle.identity.root,
+-        metrics ?? emptyAuthorityMetrics(),
+-      ) !== handle.topology
+-    ) changed("Authority topology changed");
+-    await graph(
+-      handle.graph,
+-      metrics ?? emptyAuthorityMetrics(),
+-      full,
+-      handle.graphFiles,
+-    );
+-  } catch (e) {
+-    if (
+-      e instanceof Deno.errors.NotFound ||
+-      e instanceof Deno.errors.PermissionDenied
+-    ) changed("Authority disappeared");
+-    throw e;
+-  }
+-}
+diff --git a/_extensions/course-core/runtime/assignment-declarations.ts b/_extensions/course-core/runtime/assignment-declarations.ts
+index 915a4eb..7224805 100644
+--- a/_extensions/course-core/runtime/assignment-declarations.ts
++++ b/_extensions/course-core/runtime/assignment-declarations.ts
+@@ -7,6 +7,7 @@ type PresentationContext = {
+   xdg: string;
+   format: string;
+   outputs?: ReadonlySet<string>;
++  nativeImplementation?: (path: string) => boolean;
+ };
+ function presentationStylesheet(
+   row: any,
+@@ -116,7 +117,10 @@ export function assertAssignmentDeclarations(
+     if (/^(?:[a-z][a-z0-9+.-]*:|\/\/)/i.test(name)) {
+       invalid("Внешний declared resource вне frozen inputs");
+     }
+-    if (!known.has(resolve(dirname(input), name))) {
++    const absolute = resolve(dirname(input), name);
++    if (
++      !known.has(absolute) && !presentation?.nativeImplementation?.(absolute)
++    ) {
+       invalid("Неизвестный declared data/resource " + name);
+     }
+   };
+diff --git a/_extensions/course-core/runtime/assignment-execution.ts b/_extensions/course-core/runtime/assignment-execution.ts
+index 91283a0..a02318c 100644
+--- a/_extensions/course-core/runtime/assignment-execution.ts
++++ b/_extensions/course-core/runtime/assignment-execution.ts
+@@ -1,10 +1,11 @@
+ import type { NativeCaptureCommand } from "./prepared-operation.ts";
++import type { AssignmentRuntimeWitness } from "./assignment-admission.ts";
+ import { AsyncLocalStorage } from "node:async_hooks";
++import { relative, resolve } from "stdlib/path";
+ import { fail } from "../contracts/project.ts";
+-import type { AssignmentProducerProfile } from "./assignment-producer-profiles.ts";
+-// Callback-local only; ordinary commands retain their existing environment path.
+ type Execution = {
+-  profile: AssignmentProducerProfile;
++  runtime: AssignmentRuntimeWitness;
++  root: string;
+   beforeChild?: () => Promise<void>;
+   lives: { active: boolean }[];
+   token?: string;
+@@ -13,6 +14,8 @@ type Execution = {
+ };
+ const current = new AsyncLocalStorage<Execution>();
+ const carrierGuard = new AsyncLocalStorage<() => Promise<void>>();
++const equal = (a: unknown, b: unknown) =>
++  JSON.stringify(a) === JSON.stringify(b);
+ function changed(message: string): never {
+   return fail("BODY.PRODUCER_INPUT_CHANGED", message);
+ }
+@@ -38,13 +41,13 @@ async function enter<T>(
+   }
+ }
+ export function withAssignmentExecution<T>(
+-  profile: AssignmentProducerProfile,
++  runtime: AssignmentRuntimeWitness,
++  root: string,
+   use: () => Promise<T>,
+   beforeChild?: () => Promise<void>,
+ ) {
+-  return enter({ profile, beforeChild }, use);
++  return enter({ runtime, root, beforeChild }, use);
+ }
+-/** Вложенная граница batch; наследует profile/token/probes и истекает отдельно. */
+ export function withAssignmentBeforeChild<T>(
+   beforeChild: () => Promise<void>,
+   use: () => Promise<T>,
+@@ -55,7 +58,6 @@ export function withAssignmentBeforeChild<T>(
+     ? enter({ ...state, beforeChild, lives: [...state.lives, life] }, use)
+     : use();
+ }
+-/** Internal Core lifecycle only: the reservation created this exact token. */
+ export function withAssignmentCaptureChild<T>(
+   token: string,
+   use: () => Promise<T>,
+@@ -64,26 +66,28 @@ export function withAssignmentCaptureChild<T>(
+   if (!state) changed("Нет assignment execution для capture child");
+   return enter({ ...state, token }, use);
+ }
+-/** Internal Core A1 instrumentation site, not a public template/provider. */
+ export function withAssignmentA1Probe<T>(
+   probe: NonNullable<Execution["probe"]>,
+   use: () => Promise<T>,
+ ) {
+   const state = execution();
+   if (!state) return use();
++  if (
++    !probe.originalInput.startsWith(state.root + "/") ||
++    resolve(probe.originalInput) !== probe.originalInput ||
++    !probe.temporaryInput.startsWith("/") ||
++    resolve(probe.temporaryInput) !== probe.temporaryInput ||
++    !/^course-a1-[-a-z0-9]+$/.test(probe.technical)
++  ) changed("Чужой A1 probe");
+   return enter({ ...state, probe: { ...probe } }, use);
+ }
+-/** Внутренний вызов только из live operation closure после проверки SAME S/coverage. */
+-export async function withAssignmentContractProbe<T>(
+-  probe: {
+-    temporaryOwner: string;
+-    originalInputs: readonly string[];
+-    format: string;
+-    guard: () => void;
+-    beforeSpawn?: () => Promise<void>;
+-  },
+-  use: () => Promise<T>,
+-) {
++export async function withAssignmentContractProbe<T>(probe: {
++  temporaryOwner: string;
++  originalInputs: readonly string[];
++  format: string;
++  guard: () => void;
++  beforeSpawn?: () => Promise<void>;
++}, use: () => Promise<T>) {
+   const state = execution();
+   const run = () =>
+     carrierGuard.run(async () => {
+@@ -93,30 +97,18 @@ export async function withAssignmentContractProbe<T>(
+     }, use);
+   if (!state) return await run();
+   probe.guard();
+-  const profiles = state.profile.native.actualProfiles.join(",");
+   if (
+     probe.format !== "html" || !probe.temporaryOwner.startsWith("/") ||
++    resolve(probe.temporaryOwner) !== probe.temporaryOwner ||
+     /[\\\0]/.test(probe.temporaryOwner) ||
+-    probe.temporaryOwner.split("/").slice(1).some((part) =>
+-      !part || part === "." || part === ".."
+-    ) ||
+-    probe.temporaryOwner === state.profile.root ||
+-    probe.temporaryOwner.startsWith(state.profile.root + "/") ||
++    probe.temporaryOwner === state.root ||
++    probe.temporaryOwner.startsWith(state.root + "/") ||
+     !probe.originalInputs.length ||
+     new Set(probe.originalInputs).size !== probe.originalInputs.length ||
+     probe.originalInputs.some((input) =>
+-      !state.profile.native.renders.some((allowed) =>
+-        JSON.stringify(allowed) ===
+-          JSON.stringify([
+-            "inspect",
+-            input,
+-            ...(profiles ? ["--profile", profiles] : []),
+-          ])
+-      )
++      !input.startsWith(state.root + "/") || resolve(input) !== input
+     )
+-  ) {
+-    changed("Aggregate probe вне принятых project inputs/format");
+-  }
++  ) changed("Aggregate probe вне принятых project inputs/format");
+   return await enter({
+     ...state,
+     contractProbe: { temporaryOwner: probe.temporaryOwner, guard: probe.guard },
+@@ -131,8 +123,9 @@ export async function assignmentBeforeChild() {
+   execution();
+ }
+ export function assignmentQuarto() {
+-  return execution()?.profile.native.executable;
++  return execution()?.runtime.executable;
+ }
++/** Только existing Core call sites; caller capture получает отдельный exact render ниже. */
+ export function assignmentChild(
+   executable: string,
+   args: readonly string[],
+@@ -141,92 +134,105 @@ export function assignmentChild(
+ ) {
+   const state = execution();
+   if (!state) return undefined;
+-  const profile = state.profile;
+-  const target = executable === "quarto"
+-    ? profile.native.executable
+-    : executable;
++  const { runtime, root } = state;
+   if (
+-    !target || !target.startsWith("/") ||
+-    target !== profile.native.executable ||
+-    !profile.runtime.files.some((row) => row.path === target)
+-  ) {
+-    changed("Внешний executable вне квалифицированного command closure");
+-  }
+-  if (cwd !== profile.root) changed("Неизвестный assignment cwd");
+-  if (!Array.isArray(args) || args.some((arg) => typeof arg !== "string")) {
+-    changed("Неверный assignment argv");
+-  }
++    (executable !== "quarto" && executable !== runtime.executable) ||
++    cwd !== root ||
++    !Array.isArray(args) || args.some((a) => typeof a !== "string")
++  ) changed("Чужой native executable/cwd/argv");
+   state.contractProbe?.guard();
+-  const exactContractProbe = !!state.contractProbe &&
+-    JSON.stringify(args) ===
+-      JSON.stringify(["inspect", state.contractProbe.temporaryOwner]);
+-  let qualifiedArgs = [...args];
+-  const base = profile.native.actualProfiles.join(",");
+-  const technicalProfiles = state.probe
+-    ? [...profile.native.actualProfiles, state.probe.technical].join(",")
+-    : undefined;
+-  let exactProbe = false;
+-  if (
+-    state.probe && target === profile.native.executable &&
+-    JSON.stringify(args) === JSON.stringify([
+-        "inspect",
+-        state.probe.temporaryInput,
+-        "--profile",
+-        technicalProfiles,
+-      ])
+-  ) {
+-    exactProbe = true;
+-    qualifiedArgs = [
++  const base = runtime.profiles.join(","),
++    technical = state.probe
++      ? [...runtime.profiles, state.probe.technical].join(",")
++      : undefined;
++  const aggregate = !!state.contractProbe &&
++    equal(args, ["inspect", state.contractProbe.temporaryOwner]);
++  const probe = !!state.probe &&
++    equal(args, [
+       "inspect",
+-      state.probe.originalInput,
+-      ...(base ? ["--profile", base] : []),
+-    ];
+-  }
++      state.probe.temporaryInput,
++      "--profile",
++      technical,
++    ]);
++  const ownerInspect = equal(args, [
++    "inspect",
++    root,
++    ...(base ? ["--profile", base] : []),
++  ]);
++  const localInspect = args[0] === "inspect" &&
++    args[1]?.startsWith(root + "/") && resolve(args[1]) === args[1] &&
++    equal(args, ["inspect", args[1], ...(base ? ["--profile", base] : [])]);
++  const render = !!state.token &&
++    equal(args, [
++      "render",
++      "--output-dir",
++      relative(root, runtime.outputDirectory),
++      "--profile",
++      base,
++    ]);
++  const pandoc = args[0] === "pandoc" && (
++    equal(args, [
++      "pandoc",
++      "--from",
++      "markdown",
++      "--to",
++      "json",
++      "--wrap=none",
++    ]) ||
++    equal(args, ["pandoc", "--from", "json", "--to", "gfm", "--wrap=none"]) ||
++    args.length === 5 &&
++      equal(args.slice(0, 4), [
++        "pandoc",
++        "--from=json",
++        "--to=json",
++        "--citeproc",
++      ]) &&
++      args[4].startsWith("--resource-path=") &&
++      (args[4] === "--resource-path=" + root ||
++        args[4].slice(16).startsWith(root + "/")) &&
++      resolve(args[4].slice(16)) === args[4].slice(16)
++  );
+   if (
+-    !exactContractProbe &&
+-    !profile.native.renders.some((allowed) =>
+-      JSON.stringify(allowed) === JSON.stringify(qualifiedArgs)
+-    )
+-  ) {
+-    changed("Native argv вне точного квалифицированного перечня");
+-  }
+-  const fixed = { ...profile.native.environment };
+-  if (Object.hasOwn(fixed, "COURSE_CORE_CAPTURE_TOKEN")) {
+-    changed("Correlation не является фиксированным profile environment");
+-  }
++    !aggregate && !probe && !ownerInspect && !localInspect && !render && !pandoc
++  ) changed("Native command вне existing Core call site");
++  const fixed = { ...runtime.environment };
+   for (const [key, value] of Object.entries(env)) {
+     if (key === "QUARTO_PROFILE") {
+-      if (
+-        exactContractProbe
+-          ? value !== ""
+-          : value !== base && !(exactProbe && value === technicalProfiles)
+-      ) {
+-        changed("Неквалифицированный child profiles");
++      if (value !== (aggregate ? "" : probe ? technical : base)) {
++        changed("Чужой native profiles");
+       }
+     } else if (key === "COURSE_CORE_CAPTURE_TOKEN") {
+-      if (!state.token || value !== state.token) {
++      if (!state.token || value !== state.token || !render) {
+         changed("Чужой child correlation");
+       }
+-    } else if (fixed[key] !== value) {
+-      changed("Неквалифицированный child environment " + key);
+-    }
++    } else if (fixed[key] !== value) changed("Чужой native environment " + key);
+     fixed[key] = value;
+   }
++  // Private capture ждёт выхода Quarto; site ZIP в этой операции не нужны.
++  if (render) fixed.COURSE_SITE_DEFER_DOWNLOADS = "1";
+   return {
+-    executable: target,
++    executable: runtime.executable,
+     options: { args: [...args], cwd, env: fixed, clearEnv: true as const },
+   };
+ }
+-/** Private implementation of the existing capture command seam. */
+ export function runAssignmentCaptureChild(
+   token: string,
+   command: NativeCaptureCommand,
+ ) {
+   return withAssignmentCaptureChild(token, async () => {
+-    const profile = execution()!.profile;
+-    const qualified = assignmentChild("quarto", command.args, profile.root, {
++    const state = execution()!, base = state.runtime.profiles.join(",");
++    const expected = [
++      "render",
++      "--output-dir",
++      relative(state.root, state.runtime.outputDirectory),
++    ];
++    if (!equal(command.args, expected)) {
++      changed("Capture command требует точный owner render/output");
++    }
++    const args = [...expected, "--profile", base];
++    const qualified = assignmentChild("quarto", args, state.root, {
+       COURSE_CORE_CAPTURE_TOKEN: token,
+-      QUARTO_PROFILE: profile.native.actualProfiles.join(","),
++      QUARTO_PROFILE: base,
+     })!;
+     await assignmentBeforeChild();
+     const result = await new Deno.Command(qualified.executable, {
+@@ -240,22 +246,22 @@ export function runAssignmentCaptureChild(
+     if (!result.success) {
+       fail(
+         "OPERATION_INCOMPLETE",
+-        "Native capture child failed: " + result.code,
++        "Native capture child failed: " + result.code +
++          ((command.stderr ?? "piped") === "piped"
++            ? "\n" + new TextDecoder().decode(result.stderr)
++            : ""),
+       );
+     }
+     return result;
+   });
+ }
+-/** Existing helper scratch data stays in an approved service area before child fences. */
+ export async function assignmentServiceDirectory(
+   root: string,
+   kind: "citations" | "validation",
+ ) {
+-  const profile = current.getStore()?.profile;
+-  if (!profile) return undefined;
+-  if (root !== profile.root) {
+-    fail("BODY.PRODUCER_INPUT_CHANGED", "Чужой assignment service owner");
+-  }
++  const state = execution();
++  if (!state) return undefined;
++  if (root !== state.root) changed("Чужой assignment service owner");
+   const { safeParent } = await import("../artifacts/files.ts");
+   const directory = root + "/_generated/course-spec/assignment-work/" + kind;
+   await safeParent(directory);
+diff --git a/_extensions/course-core/runtime/assignment-producer-profiles.ts b/_extensions/course-core/runtime/assignment-producer-profiles.ts
+deleted file mode 100644
+index d49b5c1..0000000
+--- a/_extensions/course-core/runtime/assignment-producer-profiles.ts
++++ /dev/null
+@@ -1,102 +0,0 @@
+-/** Данные только проверенной поставки. Caller/project metadata не дополняют этот набор. */
+-export type AssignmentProducerProfile = Readonly<{
+-  id: string;
+-  root: string;
+-  source: {
+-    files: readonly { path: string; sha256: string }[];
+-    memberships: Readonly<Record<string, readonly string[]>>;
+-  };
+-  runtime: {
+-    files: readonly { path: string; sha256: string }[];
+-    directories: readonly { path: string; names: readonly string[] }[];
+-    absent: readonly string[];
+-  };
+-  hostEnvironment: Readonly<Record<string, string | null>>;
+-  launcher: {
+-    entrypoint: string;
+-    executable: string;
+-    arguments: readonly string[];
+-    requestedProfiles: readonly string[];
+-  };
+-  native: {
+-    executable: string;
+-    environment: Readonly<Record<string, string>>;
+-    // Только точные argv квалифицированных child commands; correlation добавляет Core.
+-    renders: readonly (readonly string[])[];
+-    actualProfiles: readonly string[];
+-    producerEvidence: Readonly<
+-      Partial<
+-        Record<"html" | "revealjs", {
+-          filters: unknown;
+-          shortcodes: unknown;
+-          engine: string;
+-        }>
+-      >
+-    >;
+-    literalShortcodes: readonly ("xref" | "meta")[];
+-  };
+-}>;
+-// Схема данных I3; этот модуль не читает location/capsule и не хранит registry.
+-// @deno-types="../vendor/zod/v4/index.d.ts"
+-import { z } from "../vendor/zod/v4/index.js";
+-const absolute = z.string().min(1).max(4096).refine((p) =>
+-  p.startsWith("/") && !p.includes("\\") && !p.includes("\0") &&
+-  !p.split("/").slice(1).some((v) => !v || v === "." || v === "..")
+-);
+-const relative = z.string().min(1).max(4096).refine((p) =>
+-  !p.startsWith("/") && !p.includes("\\") && !p.includes("\0") &&
+-  p.split("/").every((v) => v && v !== "." && v !== "..")
+-);
+-const sha = z.string().regex(/^[a-f0-9]{64}$/),
+-  names = z.array(
+-    z.string().min(1).max(255).refine((v) =>
+-      !v.includes("/") && v !== "." && v !== ".."
+-    ),
+-  ).max(65536).refine((v) => new Set(v).size === v.length);
+-const environment = z.record(
+-  z.string().regex(/^[A-Za-z_][A-Za-z0-9_]*$/),
+-  z.string().max(65536),
+-);
+-export const AssignmentProducerProfileSchema = z.strictObject({
+-  id: z.string().min(1).max(128),
+-  root: absolute,
+-  source: z.strictObject({
+-    files: z.array(z.strictObject({ path: relative, sha256: sha })).min(1).max(
+-      65536,
+-    ).refine((v) => new Set(v.map((r) => r.path)).size === v.length),
+-    memberships: z.record(z.string(), names),
+-  }),
+-  runtime: z.strictObject({
+-    files: z.array(z.strictObject({ path: absolute, sha256: sha })).min(3).max(
+-      65536,
+-    ).refine((v) => new Set(v.map((r) => r.path)).size === v.length),
+-    directories: z.array(z.strictObject({ path: absolute, names })).max(8192),
+-    absent: z.array(absolute).max(8192),
+-  }),
+-  hostEnvironment: z.record(z.string(), z.string().nullable()),
+-  launcher: z.strictObject({
+-    entrypoint: z.string().startsWith("file:///"),
+-    executable: absolute,
+-    arguments: z.array(z.string()).max(4096),
+-    requestedProfiles: z.array(z.string().regex(/^[-a-z0-9]+$/)).max(16),
+-  }),
+-  native: z.strictObject({
+-    executable: absolute,
+-    environment,
+-    renders: z.array(z.array(z.string()).max(4096)).max(4096),
+-    actualProfiles: z.array(z.string().regex(/^[-a-z0-9]+$/)).max(16),
+-    producerEvidence: z.strictObject({
+-      html: z.strictObject({
+-        filters: z.unknown(),
+-        shortcodes: z.unknown(),
+-        engine: z.string(),
+-      }).optional(),
+-      revealjs: z.strictObject({
+-        filters: z.unknown(),
+-        shortcodes: z.unknown(),
+-        engine: z.string(),
+-      }).optional(),
+-    }),
+-    literalShortcodes: z.array(z.enum(["xref", "meta"])).max(2),
+-  }),
+-});
+diff --git a/_extensions/course-core/runtime/contracts.ts b/_extensions/course-core/runtime/contracts.ts
+index 1d6c426..01efd94 100644
+--- a/_extensions/course-core/runtime/contracts.ts
++++ b/_extensions/course-core/runtime/contracts.ts
+@@ -109,13 +109,6 @@ export type NativeResourceInventory = z.output<
+ >;
+ 
+ export const NativeOperationMetricsSchema = z.strictObject({
+-  authorityDataReads: z.number().int().nonnegative(),
+-  authorityHashBytes: z.number().int().nonnegative(),
+-  authorityGraphHashReads: z.number().int().nonnegative(),
+-  authorityGraphHashBytes: z.number().int().nonnegative(),
+-  authorityPathReads: z.number().int().nonnegative(),
+-  authorityDirectoryReads: z.number().int().nonnegative(),
+-  authorityTopologyBytes: z.number().int().nonnegative(),
+   inspectCalls: z.number().int().nonnegative(),
+   fullSourceFences: z.number().int().nonnegative(),
+   localSourceFences: z.number().int().nonnegative(),
+diff --git a/_extensions/course-core/runtime/operation.ts b/_extensions/course-core/runtime/operation.ts
+index 963e65a..1b825c6 100644
+--- a/_extensions/course-core/runtime/operation.ts
++++ b/_extensions/course-core/runtime/operation.ts
+@@ -18,12 +18,6 @@ import type {
+   NativeCaptureScope,
+   NativePreparedLease,
+ } from "./prepared-operation.ts";
+-import {
+-  addAuthorityMetrics,
+-  AssignmentAuthorityIdentitySchema,
+-  authorityCounterNames,
+-  emptyAuthorityMetrics,
+-} from "./assignment-authority.ts";
+ import { assertAssignmentDeclarations } from "./assignment-declarations.ts";
+ import {
+   assignmentProjectRoot,
+@@ -45,8 +39,8 @@ import {
+ } from "./assignment-execution.ts";
+ import {
+   assertAssignmentRuntime,
+-  assignmentProfile,
+   consumeAssignmentAdmission,
++  mergeAssignmentImplementationFiles,
+ } from "./assignment-admission.ts";
+ import type { AssignmentAdmission } from "./assignment-admission.ts";
+ import {
+@@ -120,6 +114,59 @@ const base = (root: string) => join(root, "_generated/course-spec/native-ts");
+ const pointer = (root: string) => join(base(root), "active.json");
+ const same = (a: unknown, b: unknown) =>
+   JSON.stringify(a) === JSON.stringify(b);
++function record(value: unknown): value is Record<string, unknown> {
++  return value !== null && typeof value === "object" && !Array.isArray(value);
++}
++/** Только используемые поля inspect; полный payload и extension bags сохраняются. */
++export type NativeOwnerInspection = Record<string, unknown> & {
++  dir: string;
++  quarto: Record<string, unknown> & { version: string };
++  config: Record<string, unknown>;
++  files: Record<string, unknown> & { input: string[]; config?: string[] };
++};
++/** Тот же owner guard на выходе JSON, до path операций и передачи callback. */
++export function decodeNativeOwnerInspection(
++  value: unknown,
++  root: string,
++): NativeOwnerInspection {
++  if (!record(value) || !record(value.files)) {
++    fail("OPERATION_BINDING", "Нет native owner input scope");
++  }
++  const inputs: unknown = value.files.input;
++  if (
++    !Array.isArray(inputs) ||
++    !inputs.every((path: unknown) => typeof path === "string")
++  ) fail("OPERATION_BINDING", "Нет native owner input scope");
++  let configs: string[] | undefined;
++  if (value.files.config !== undefined) {
++    const paths: unknown = value.files.config;
++    if (
++      !Array.isArray(paths) ||
++      !paths.every((path: unknown) => typeof path === "string")
++    ) fail("OPERATION_BINDING", "Некорректный native owner config scope");
++    configs = paths;
++  }
++  const version = SupportedQuartoVersionSchema.safeParse(
++    record(value.quarto) ? value.quarto.version : undefined,
++  );
++  if (
++    !version.success || value.dir !== root || !record(value.config) ||
++    !record(value.quarto)
++  ) {
++    fail("OPERATION_UNQUALIFIED", "Требуется native Quarto>=1.11.5 owner");
++  }
++  return {
++    ...value,
++    dir: value.dir,
++    quarto: { ...value.quarto, version: version.data },
++    config: value.config,
++    files: {
++      ...value.files,
++      input: inputs,
++      ...(configs === undefined ? {} : { config: configs }),
++    },
++  };
++}
+ const pathSchema = z.string().min(1).refine((s) =>
+   !s.startsWith("/") && !s.includes("\\") && !s.includes("\0") &&
+   s.split("/").every((p) => p && p !== "." && p !== "..")
+@@ -143,7 +190,7 @@ const nativeCaptureSchema = z.strictObject({
+   ),
+ });
+ const stateSchema = z.strictObject({
+-  schema: z.literal("course-native-operation-private-v1"),
++  schema: z.literal("course-native-operation-private-v2"),
+   operation: z.uuid(),
+   root: z.string(),
+   directory: z.string(),
+@@ -156,19 +203,14 @@ const stateSchema = z.strictObject({
+       z.strictObject({ source: pathSchema, id: z.string().min(1) }),
+     ).min(1).max(4096),
+     runtime: z.strictObject({
+-      profile: z.string(),
+-      authority: AssignmentAuthorityIdentitySchema,
+-      files: z.array(
+-        z.strictObject({
+-          path: z.string(),
+-          signature: z.string(),
+-          sha256: z.string(),
+-        }),
++      executable: z.string().startsWith("/"),
++      environment: z.record(z.string(), z.string()),
++      profiles: z.array(z.string()),
++      outputDirectory: z.string(),
++      inputs: z.array(pathSchema),
++      implementationFiles: z.array(
++        z.strictObject({ path: z.string(), signature: z.string() }),
+       ),
+-      directories: z.array(
+-        z.strictObject({ path: z.string(), names: z.array(z.string()) }),
+-      ),
+-      absent: z.array(z.string()),
+     }),
+   }).optional(),
+   invocation: z.string(),
+@@ -191,13 +233,6 @@ const stateSchema = z.strictObject({
+   documentInputs: z.record(pathSchema, z.array(pathSchema)),
+   memberships: z.record(z.string(), z.array(z.string())),
+   metrics: z.strictObject({
+-    authorityDataReads: z.number().default(0),
+-    authorityHashBytes: z.number().default(0),
+-    authorityGraphHashReads: z.number().default(0),
+-    authorityGraphHashBytes: z.number().default(0),
+-    authorityPathReads: z.number().default(0),
+-    authorityDirectoryReads: z.number().default(0),
+-    authorityTopologyBytes: z.number().default(0),
+     inspectCalls: z.number(),
+     fullSourceFences: z.number(),
+     localSourceFences: z.number(),
+@@ -248,10 +283,10 @@ const sourcePart =
+ const ordinary = (path: string) =>
+   !privateParts.test(path) && !sourcePart.test(path) &&
+   !/(^|\/)check\.sh$/.test(path);
+-async function runtimeIdentity(
++export async function nativeRuntimeIdentity(
+   root: string,
+   content = true,
+-  metrics?: State["metrics"],
++  metrics?: { runtimeHashReads: number; runtimeHashBytes: number },
+   fixedExecutable?: string,
+ ) {
+   const requested = fixedExecutable ?? quartoExecutable();
+@@ -282,16 +317,58 @@ async function runtimeIdentity(
+     metrics.runtimeHashBytes += info.size;
+   }
+   return JSON.stringify({
+-    requested,
+-    path,
++    requested: physical,
++    path: physical,
+     physical,
+     signature: signature(info),
+     ...(content ? { sha256: await hash(await Deno.readFile(physical)) } : {}),
+   });
+ }
+-async function json(path: string) {
++export async function inspectNativeOwner(
++  root: string,
++  profiles: string[],
++  executable = quartoExecutable(),
++  environment?: Record<string, string>,
++): Promise<NativeOwnerInspection> {
++  const args = [
++    "inspect",
++    root,
++    ...(profiles.length ? ["--profile", profiles.join(",")] : []),
++  ];
++  if (!environment) {
++    const value: unknown = JSON.parse(await command(executable, args, root));
++    return decodeNativeOwnerInspection(value, root);
++  }
++  const result = await new Deno.Command(executable, {
++    args,
++    cwd: root,
++    env: environment,
++    clearEnv: true,
++    stdout: "piped",
++    stderr: "piped",
++  }).output();
++  if (!result.success) {
++    fail(
++      "BODY.PRODUCER_INSPECTION_FAILED",
++      new TextDecoder().decode(result.stderr),
++    );
++  }
++  const value: unknown = JSON.parse(
++    new TextDecoder("utf-8", { fatal: true }).decode(result.stdout),
++  );
++  return decodeNativeOwnerInspection(value, root);
++}
++async function json(path: string): Promise<unknown> {
+   return JSON.parse(await Deno.readTextFile(path));
+ }
++function nativePointer(value: unknown, root: string, message: string) {
++  if (!record(value)) fail("OPERATION_BINDING", message);
++  const operation = z.uuid().safeParse(value.operation);
++  if (!operation.success) fail("OPERATION_BINDING", message);
++  const directory = join(base(root), operation.data);
++  if (value.directory !== directory) fail("OPERATION_BINDING", message);
++  return { operation: operation.data, directory };
++}
+ async function nativeFileSelection(root: string, key: string) {
+   const file = Deno.env.get(
+     key.replace("QUARTO_PROJECT_", "QUARTO_USE_FILE_FOR_PROJECT_"),
+@@ -380,14 +457,11 @@ async function assertPrivate(state: State, full = false) {
+       full,
+     );
+   }
+-  const identity = await runtimeIdentity(
++  const identity = await nativeRuntimeIdentity(
+     state.root,
+     full,
+     state.metrics,
+-    state.assignment
+-      ? assignmentProfile(state.assignment.runtime, state.root).native
+-        .executable
+-      : undefined,
++    state.assignment?.runtime.executable,
+   );
+   if (identity !== (full ? state.invocation : state.localInvocation)) {
+     fail("OPERATION_CHANGED", "Изменён native runtime/environment");
+@@ -412,32 +486,22 @@ const reservationPath = (r: Pick<Reservation, "directory">) =>
+   join(r.directory, "reservation.json");
+ async function readOptionalPointer(root: string) {
+   try {
+-    const current = await json(
+-      await regular(root, relative(root, pointer(root))),
++    return nativePointer(
++      await json(await regular(root, relative(root, pointer(root)))),
++      root,
++      "Чужой private operation pointer",
+     );
+-    if (
+-      !z.uuid().safeParse(current.operation).success ||
+-      current.directory !== join(base(root), current.operation)
+-    ) {
+-      fail("OPERATION_BINDING", "Чужой private operation pointer");
+-    }
+-    return {
+-      operation: current.operation as string,
+-      directory: current.directory as string,
+-    };
+   } catch (e) {
+     if (e instanceof Deno.errors.NotFound) return undefined;
+     throw e;
+   }
+ }
+ async function readReservation(root: string): Promise<Reservation> {
+-  const active = await json(await regular(root, relative(root, pointer(root))));
+-  if (
+-    !z.uuid().safeParse(active.operation).success ||
+-    active.directory !== join(base(root), active.operation)
+-  ) {
+-    fail("OPERATION_BINDING", "Чужой scope pointer");
+-  }
++  const active = nativePointer(
++    await json(await regular(root, relative(root, pointer(root)))),
++    root,
++    "Чужой scope pointer",
++  );
+   const reservation = decode(
+     reservationSchema,
+     await json(
+@@ -567,13 +631,11 @@ export async function withNativeCaptureScope<T>(
+   await withWriter(root, async () => {
+     // Existing private data must remain a recognized Core pointer.
+     try {
+-      const current = await json(
+-        await regular(root, relative(root, pointer(root))),
++      nativePointer(
++        await json(await regular(root, relative(root, pointer(root)))),
++        root,
++        "Чужой private pointer",
+       );
+-      if (
+-        !z.uuid().safeParse(current.operation).success ||
+-        current.directory !== join(base(root), current.operation)
+-      ) fail("OPERATION_BINDING", "Чужой private pointer");
+     } catch (e) {
+       if (!(e instanceof Deno.errors.NotFound)) throw e;
+     }
+@@ -582,21 +644,15 @@ export async function withNativeCaptureScope<T>(
+   });
+   let preparedState: State | undefined;
+   if (prepared) {
+-    const initialRuntimeMetrics = { runtimeHashReads: 0, runtimeHashBytes: 0 };
+-    const initialInvocation = await runtimeIdentity(
+-      root,
+-      true,
+-      initialRuntimeMetrics as State["metrics"],
+-      prepared.profile.native.executable,
+-    );
++    const initialInvocation = prepared.invocation;
+     const state: State = {
+       ...prepared.source,
+-      schema: "course-native-operation-private-v1",
++      schema: "course-native-operation-private-v2",
+       operation,
+       root,
+       directory,
+       outputDirectory: expected.outputDirectory,
+-      profiles: [...prepared.profile.native.actualProfiles],
++      profiles: [...prepared.runtime.profiles],
+       projection: "author",
+       captureWitnesses: Object.fromEntries(
+         prepared.inputs.map((source) => [source, crypto.randomUUID()]),
+@@ -608,24 +664,21 @@ export async function withNativeCaptureScope<T>(
+       documentInputs: {},
+       relevantInputs: [],
+       invocation: initialInvocation,
+-      localInvocation: await runtimeIdentity(
++      localInvocation: await nativeRuntimeIdentity(
+         root,
+         false,
+         undefined,
+-        prepared.profile.native.executable,
++        prepared.runtime.executable,
+       ),
+       assignment: {
+         assessments: prepared.assessments,
+         runtime: prepared.runtime,
+       },
+       metrics: {
+-        ...emptyAuthorityMetrics(),
+         ...prepared.source.metrics,
+         inspectCalls: prepared.inspectCalls,
+-        runtimeHashReads: prepared.runtimeHashReads +
+-          initialRuntimeMetrics.runtimeHashReads,
+-        runtimeHashBytes: prepared.runtimeHashBytes +
+-          initialRuntimeMetrics.runtimeHashBytes,
++        runtimeHashReads: prepared.runtimeHashReads,
++        runtimeHashBytes: prepared.runtimeHashBytes,
+         runtimePathReads: prepared.runtimePathReads,
+         runtimeDirectoryReads: prepared.runtimeDirectoryReads,
+         outputHashReads: 0,
+@@ -636,9 +689,9 @@ export async function withNativeCaptureScope<T>(
+       },
+     };
+     preparedState = state;
+-    addAuthorityMetrics(state.metrics, prepared);
+     bindOwner(state, prepared.owner, true, expected.outputDirectory);
+-    await assertSources(state);
++    prepared.source.relevantInputs = state.relevantInputs;
++    prepared.source.ownerInputs = state.ownerInputs;
+     await assertAssignmentRuntime(
+       state.assignment!.runtime,
+       root,
+@@ -655,9 +708,6 @@ export async function withNativeCaptureScope<T>(
+     prepared
+       ? {
+         ...prepared.source.metrics,
+-        ...Object.fromEntries(
+-          authorityCounterNames.map((key) => [key, prepared[key]]),
+-        ),
+         runtimeHashReads: prepared.runtimeHashReads,
+         runtimeHashBytes: prepared.runtimeHashBytes,
+         runtimePathReads: prepared.runtimePathReads,
+@@ -842,7 +892,7 @@ export async function withNativeCaptureScope<T>(
+           signature(await Deno.lstat(preparedStatePath)) !==
+             preparedStateSignature
+         ) fail("OPERATION_CHANGED", "Prepared state replaced");
+-        await assertSources(prepared.source);
++        await assertSources(prepared.source, [], false);
+         await assertAssignmentRuntime(prepared.runtime, root, prepared);
+       };
+       try {
+@@ -853,7 +903,7 @@ export async function withNativeCaptureScope<T>(
+             captureInputs(
+               sources,
+               (token) =>
+-                withAssignmentExecution(prepared.profile, () =>
++                withAssignmentExecution(prepared.runtime, root, () =>
+                   runAssignmentCaptureChild(token, command), guard),
+             ),
+           async () => {
+@@ -894,17 +944,14 @@ export async function withNativeCaptureScope<T>(
+     live = false;
+   }
+ }
+-function bindOwner(
++export function bindOwner(
+   state: State,
+-  owner: any,
++  owner: NativeOwnerInspection,
+   expectedProjection: boolean,
+   nativeOutput?: string,
+ ) {
+   const root = state.root, inputs = state.inputs;
+-  if (!Array.isArray(owner.files?.input)) {
+-    fail("OPERATION_BINDING", "Нет native owner input scope");
+-  }
+-  state.ownerInputs = owner.files.input.map((path: string) =>
++  state.ownerInputs = owner.files.input.map((path) =>
+     relative(root, resolve(root, path))
+   );
+   if (
+@@ -913,14 +960,14 @@ function bindOwner(
+     state.ownerInputs.some((path) => !pathSchema.safeParse(path).success)
+   ) fail("OPERATION_BINDING", "Некорректный native owner input scope");
+   let outputDirectory = state.outputDirectory;
+-  const view = owner.config?.course?.view;
++  const view = record(owner.config.course)
++    ? owner.config.course.view
++    : undefined;
+   const projection = owner.config?.["course-core-projection"] ??
+     (view === "full" ? "author" : "student");
+   if (
+-    !SupportedQuartoVersionSchema.safeParse(owner.quarto?.version).success ||
+-    owner.dir !== root ||
+     (owner.config?.["course-core-runtime"] ?? "native-ts") !== "native-ts" ||
+-    !["student", "author"].includes(projection) ||
++    (projection !== "student" && projection !== "author") ||
+     (view !== undefined &&
+       view !== (projection === "author" ? "full" : "student"))
+   ) {
+@@ -935,7 +982,7 @@ function bindOwner(
+   const policy = owner.config?.["course-core-source-policy"] === undefined
+     ? "general"
+     : owner.config["course-core-source-policy"];
+-  if (!["general", "static"].includes(policy)) {
++  if (policy !== "general" && policy !== "static") {
+     fail("OPERATION_SOURCE_POLICY", "Неизвестная source policy");
+   }
+   if (policy === "static") {
+@@ -943,8 +990,12 @@ function bindOwner(
+       !Array.isArray(owner.engines) || !owner.engines.length ||
+       owner.engines.some((engine: unknown) => engine !== "markdown") ||
+       owner.config?.["ojs-engine"] === true ||
+-      Object.values(owner.config?.format ?? {}).some((format: any) =>
+-        format?.["ojs-engine"] === true
++      Object.values(
++        owner.config.format !== null && typeof owner.config.format === "object"
++          ? owner.config.format
++          : {},
++      ).some((format: unknown) =>
++        record(format) && format["ojs-engine"] === true
+       )
+     ) {
+       fail(
+@@ -953,17 +1004,23 @@ function bindOwner(
+       );
+     }
+     for (const input of state.ownerInputs) {
+-      const information = owner.fileInformation?.[input];
++      const information = record(owner.fileInformation)
++        ? owner.fileInformation[input]
++        : undefined;
+       if (
+-        !information || !Array.isArray(information.codeCells) ||
+-        !information.metadata || typeof information.metadata !== "object" ||
+-        Array.isArray(information.metadata) ||
++        !record(information) || !Array.isArray(information.codeCells) ||
++        !record(information.metadata) ||
+         information.metadata["ojs-engine"] === true ||
+-        Object.values(information.metadata.format ?? {}).some((format: any) =>
+-          format?.["ojs-engine"] === true
++        Object.values(
++          information.metadata.format !== null &&
++            typeof information.metadata.format === "object"
++            ? information.metadata.format
++            : {},
++        ).some((format: unknown) =>
++          record(format) && format["ojs-engine"] === true
+         ) ||
+-        information.codeCells.some((cell: any) =>
+-          !cell || typeof cell.language !== "string" ||
++        information.codeCells.some((cell: unknown) =>
++          !record(cell) || typeof cell.language !== "string" ||
+           (!/^=[A-Za-z][A-Za-z0-9_-]*$/.test(cell.language) &&
+             !["mermaid", "dot"].includes(cell.language))
+         )
+@@ -977,9 +1034,17 @@ function bindOwner(
+   }
+   state.sourcePolicy = policy;
+   state.projection = projection;
++  const output = nativeOutput ??
++    (record(owner.config.project)
++      ? owner.config.project["output-dir"]
++      : undefined) ??
++    "_site";
++  if (typeof output !== "string") {
++    fail("OPERATION_BINDING", "Native output не является путём");
++  }
+   outputDirectory = resolve(
+     root,
+-    nativeOutput ?? owner.config.project?.["output-dir"] ?? "_site",
++    output,
+   );
+   if (outputDirectory !== state.outputDirectory) {
+     fail("OPERATION_BINDING", "Native output отличается");
+@@ -992,12 +1057,18 @@ function bindOwner(
+   const relevant = new Set<string>(configuration);
+   for (const source of inputs) {
+     const dependencies = new Set<string>([source]);
+-    const information = owner.fileInformation?.[source];
+-    if (!information || !Array.isArray(information.includeMap)) {
++    const information = record(owner.fileInformation)
++      ? owner.fileInformation[source]
++      : undefined;
++    if (!record(information) || !Array.isArray(information.includeMap)) {
+       fail("OPERATION_UNQUALIFIED", "Нет native include closure");
+     }
+-    for (const edge of information.includeMap) {
+-      if (typeof edge.source !== "string" || typeof edge.target !== "string") {
++    const edges: readonly unknown[] = information.includeMap;
++    for (const edge of edges) {
++      if (
++        !record(edge) || typeof edge.source !== "string" ||
++        typeof edge.target !== "string"
++      ) {
+         fail(
+           "OPERATION_UNQUALIFIED",
+           "Некорректное native include observation",
+@@ -1058,8 +1129,6 @@ async function writePendingState(state: State) {
+             assignment: {
+               source: inputs[index],
+               assessments: state.assignment.assessments,
+-              authority: state.assignment.runtime.authority,
+-              producerProfile: state.assignment.runtime.profile,
+             },
+           }
+           : {}),
+@@ -1074,6 +1143,61 @@ async function writePendingState(state: State) {
+   );
+ }
+ 
++/** Internal early TS filter: private current generation and actual active child. */
++export async function assertNativeAssignmentCapture(
++  context: {
++    operation: string;
++    captureWitness?: string;
++    input: string;
++    profiles: string[];
++    projection: string;
++  },
++  intent: { source: string; assessments: unknown },
++  capture: string,
++) {
++  const source = intent.source;
++  if (Deno.env.get("COURSE_CORE_TS_RUN")) {
++    fail(
++      "BODY.PRODUCER_INPUT_UNQUALIFIED",
++      "Manual transport не создаёт assignment producer",
++    );
++  }
++  const { nativeAssignmentOwner } = await import("./assignment-admission.ts");
++  const root = nativeAssignmentOwner(
++    context.input,
++    source,
++    capture,
++    context.operation,
++  );
++  const reservation = await readReservation(root),
++    token = Deno.env.get("COURSE_CORE_CAPTURE_TOKEN");
++  if (!token) fail("OPERATION_BINDING", "Нет live assignment child token");
++  const child = activeChild(reservation, token);
++  const state = decode(
++    stateSchema,
++    await json(join(reservation.directory, "state.json")),
++    "OPERATION_BINDING",
++  );
++  const index = state.inputs.indexOf(source);
++  if (
++    !state.assignment || reservation.status !== "bound" || !child.used ||
++    child.posted || !child.inputs.includes(source) ||
++    state.operation !== context.operation || state.root !== root ||
++    state.directory !== reservation.directory ||
++    state.outputDirectory !== reservation.outputDirectory ||
++    state.projection !== context.projection ||
++    !same(state.profiles, context.profiles) || index < 0 ||
++    capture !== join(state.directory, String(index)) ||
++    state.captureWitnesses[source] !== context.captureWitness ||
++    !same(intent.assessments, state.assignment.assessments) ||
++    !same(state.inputs, reservation.expectedSources) ||
++    !same(state.assignment.runtime.inputs, state.inputs) ||
++    !same(state.assignment.runtime.profiles, state.profiles)
++  ) fail("OPERATION_BINDING", "Чужой/закрытый native assignment producer");
++  await assertReservationCurrent(reservation);
++  return root;
++}
++
+ /** Production pre-render: реальный native inspect, source fence и новые capture capabilities. */
+ export async function beginNativeOperation(root: string) {
+   return await beginNativeOperationInternal(root, false);
+@@ -1227,13 +1351,13 @@ async function beginNativeOperationInternal(root: string, nativeHook: boolean) {
+   await Deno.mkdir(base(root), { recursive: true });
+   if (!reservation) await Deno.mkdir(directory, { mode: 0o700 });
+   const initialRuntimeMetrics = { runtimeHashReads: 0, runtimeHashBytes: 0 };
+-  const initialInvocation = await runtimeIdentity(
++  const initialInvocation = await nativeRuntimeIdentity(
+     root,
+     true,
+     initialRuntimeMetrics as State["metrics"],
+   );
+   const state: State = {
+-    schema: "course-native-operation-private-v1",
++    schema: "course-native-operation-private-v2",
+     operation,
+     root,
+     directory,
+@@ -1250,9 +1374,8 @@ async function beginNativeOperationInternal(root: string, nativeHook: boolean) {
+     documentInputs: {},
+     memberships: {},
+     invocation: initialInvocation,
+-    localInvocation: await runtimeIdentity(root, false),
++    localInvocation: await nativeRuntimeIdentity(root, false),
+     metrics: {
+-      ...emptyAuthorityMetrics(),
+       fullSourceFences: 0,
+       localSourceFences: 0,
+       sourceDirectoryReads: 0,
+@@ -1272,13 +1395,7 @@ async function beginNativeOperationInternal(root: string, nativeHook: boolean) {
+     },
+   };
+   await snapshot(state);
+-  const owner = JSON.parse(
+-    await command(quartoExecutable(), [
+-      "inspect",
+-      root,
+-      ...(profiles.length ? ["--profile", profiles.join(",")] : []),
+-    ], root),
+-  );
++  const owner = await inspectNativeOwner(root, profiles);
+   state.metrics.inspectCalls++;
+   bindOwner(
+     state,
+@@ -1287,7 +1404,9 @@ async function beginNativeOperationInternal(root: string, nativeHook: boolean) {
+     Deno.env.get("QUARTO_PROJECT_OUTPUT_DIR"),
+   );
+   await assertSources(state);
+-  if (await runtimeIdentity(root, true, state.metrics) !== state.invocation) {
++  if (
++    await nativeRuntimeIdentity(root, true, state.metrics) !== state.invocation
++  ) {
+     fail("OPERATION_CHANGED", "Runtime изменён во время bind");
+   }
+   if (reservation) await assertReservationCurrent(reservation);
+@@ -1380,11 +1499,11 @@ async function finishNativeOperationInternal(
+     await invalidateNoWorkHook(root);
+     return;
+   }
+-  const active = await json(pointer(root));
+-  if (
+-    !z.uuid().safeParse(active.operation).success ||
+-    active.directory !== join(base(root), active.operation)
+-  ) fail("OPERATION_BINDING", "Чужой private operation pointer");
++  const active = nativePointer(
++    await json(pointer(root)),
++    root,
++    "Чужой private operation pointer",
++  );
+   const state = decode(
+     stateSchema,
+     await json(join(active.directory, "state.json")),
+@@ -1417,6 +1536,9 @@ async function finishNativeOperationInternal(
+       const delta = await json(
+         join(state.directory, "pre-" + token + ".metrics.json"),
+       );
++      if (!record(delta)) {
++        fail("OPERATION_BINDING", "Некорректные child metrics");
++      }
+       for (
+         const key of Object.keys(state.metrics) as (keyof State["metrics"])[]
+       ) {
+@@ -1506,30 +1628,58 @@ async function finishNativeOperationInternal(
+       fail("OPERATION_BINDING", "Output collision");
+     }
+     if (state.assignment) {
+-      if (!early.authorityCost) {
+-        fail(
+-          "BODY.PRODUCER_INPUT_UNQUALIFIED",
+-          "Missing native authority cost/witness producer",
+-        );
+-      }
+-      addAuthorityMetrics(state.metrics, early.authorityCost);
++      const nativeShare = resolve(
++        dirname(state.assignment.runtime.executable),
++        "../share",
++      );
++      const implementations = new Set<string>();
+       assertAssignmentDeclarations(
+         native.assignmentDeclarations,
+         resolve(root, sourceInput),
+         new Set([
+           ...state.rows.map((row) => resolve(root, row.path)),
+-          ...state.assignment.runtime.files.map((row) => row.path),
+         ]),
+         {
+           root,
+           outputDirectory: state.outputDirectory,
+-          xdg:
+-            assignmentProfile(state.assignment.runtime, root).native.environment
+-              .XDG_CACHE_HOME,
++          xdg: state.assignment.runtime.environment.XDG_CACHE_HOME ??
++            join(state.assignment.runtime.environment.HOME ?? root, ".cache"),
++          nativeImplementation: (path: string) => {
++            if (!path.startsWith(nativeShare + "/") || resolve(path) !== path) {
++              return false;
++            }
++            implementations.add(path);
++            return true;
++          },
+           format: early.context.format,
+           outputs: declaredOutputs,
+         },
+       );
++      if (implementations.size) {
++        if (await Deno.realPath(nativeShare) !== nativeShare) {
++          fail("BODY.PRODUCER_DEPENDENCY_UNQUALIFIED", "Native share alias");
++        }
++        for (const path of implementations) {
++          await regular(nativeShare, relative(nativeShare, path));
++          const observed = {
++            path,
++            signature: signature(await Deno.lstat(path)),
++          };
++          const previous = state.assignment.runtime.implementationFiles.find((
++            r,
++          ) => r.path === path);
++          if (previous && previous.signature !== observed.signature) {
++            fail(
++              "BODY.PRODUCER_INPUT_CHANGED",
++              "Native implementation dependency изменена",
++            );
++          }
++          if (!previous) {
++            state.assignment.runtime.implementationFiles.push(observed);
++          }
++          state.metrics.runtimePathReads++;
++        }
++      }
+       state.metrics.nativeMetadataBytes +=
+         new TextEncoder().encode(JSON.stringify(native.assignmentDeclarations))
+           .length;
+@@ -1838,7 +1988,7 @@ async function sealCaptureScope(reservation: Reservation) {
+     !same(state.inputs, reservation.expectedSources)
+   ) fail("OPERATION_BINDING", "Чужой seal state");
+   const baselineMetrics = { ...state.metrics };
+-  await assertPrivate(state, true);
++  await assertPrivate(state);
+   const children = [];
+   for (const child of reservation.children) {
+     children.push(
+@@ -1884,6 +2034,25 @@ async function sealCaptureScope(reservation: Reservation) {
+       !same(child.state.rows, state.rows) ||
+       !same(child.state.memberships, state.memberships)
+     ) fail("OPERATION_BINDING", "Child owner/S witness отличается");
++    if (state.assignment) {
++      if (
++        !child.state.assignment ||
++        !same(state.assignment.assessments, child.state.assignment.assessments)
++      ) {
++        fail("OPERATION_BINDING", "Child assignment intent отличается");
++      }
++      const { implementationFiles: previous, ...runtime } =
++        state.assignment.runtime;
++      const { implementationFiles: observed, ...childRuntime } =
++        child.state.assignment.runtime;
++      if (!same(runtime, childRuntime)) {
++        fail("OPERATION_BINDING", "Child native runtime binding отличается");
++      }
++      state.assignment.runtime.implementationFiles =
++        mergeAssignmentImplementationFiles(previous, observed);
++    } else if (child.state.assignment) {
++      fail("OPERATION_BINDING", "Unexpected child assignment");
++    }
+     for (const resource of child.resources) {
+       const known = resources.find((r) => r.source === resource.source);
+       if (known) {
+@@ -1914,6 +2083,9 @@ async function sealCaptureScope(reservation: Reservation) {
+     const delta = await json(
+       await regular(root, relative(root, join(state.directory, entry.name))),
+     );
++    if (!record(delta)) {
++      fail("OPERATION_BINDING", "Некорректные pending metrics");
++    }
+     for (
+       const key of Object.keys(state.metrics) as (keyof State["metrics"])[]
+     ) {
+@@ -2000,16 +2172,16 @@ export async function withPendingNativeOperation<T>(
+   }
+   let active: { operation: string; directory: string }, state: State;
+   try {
+-    active = await json(
+-      await regular(
+-        expectation.root,
+-        relative(expectation.root, pointer(expectation.root)),
++    active = nativePointer(
++      await json(
++        await regular(
++          expectation.root,
++          relative(expectation.root, pointer(expectation.root)),
++        ),
+       ),
++      expectation.root,
++      "Чужой pending pointer",
+     );
+-    if (
+-      !z.uuid().safeParse(active.operation).success ||
+-      active.directory !== join(base(expectation.root), active.operation)
+-    ) fail("OPERATION_BINDING", "Чужой pending pointer");
+     state = decode(
+       stateSchema,
+       await json(
+@@ -2157,17 +2329,17 @@ export async function withCurrentNativeOperation<T>(
+       expectation.root,
+       relative(expectation.root, pointer(expectation.root)),
+     );
+-    active = await json(pointer(expectation.root));
++    active = nativePointer(
++      await json(pointer(expectation.root)),
++      expectation.root,
++      "Неверный operation pointer",
++    );
+   } catch (error) {
+     if (error instanceof Deno.errors.NotFound) {
+       fail("OPERATION_BINDING", "В owner нет текущей native операции");
+     }
+     throw error;
+   }
+-  if (
+-    !z.uuid().safeParse(active.operation).success ||
+-    active.directory !== join(base(expectation.root), active.operation)
+-  ) fail("OPERATION_BINDING", "Неверный operation pointer");
+   const path = join(active.directory, "complete.json");
+   let signatureBefore: string, complete: z.output<typeof completeSchema>;
+   try {
+@@ -2339,7 +2511,6 @@ export async function withCurrentNativeOperation<T>(
+   const beforeOperationChild = async () => {
+     callbackGuard();
+     await guard();
+-    await assertSources(complete.state);
+     callbackGuard();
+   };
+   const run = async () => {
+@@ -2371,10 +2542,8 @@ export async function withCurrentNativeOperation<T>(
+     await guard(true);
+     return complete.state.assignment
+       ? await withAssignmentExecution(
+-        assignmentProfile(
+-          complete.state.assignment.runtime,
+-          complete.state.root,
+-        ),
++        complete.state.assignment.runtime,
++        complete.state.root,
+         run,
+         beforeOperationChild,
+       )
+@@ -2825,7 +2994,6 @@ function publicOperation(
+         ...metrics,
+         ...Object.fromEntries(
+           [
+-            ...authorityCounterNames,
+             "sourceHashBytes",
+             "fullSourceFences",
+             "localSourceFences",
+@@ -2875,6 +3043,12 @@ function publicOperation(
+         const contract = await json(
+           await regular(complete.state.root, row.path),
+         );
++        if (!record(contract)) {
++          fail(
++            "CORE.ADAPTER_INVALID",
++            "Некорректный installed adapter contract",
++          );
++        }
+         if (typeof contract.name === "string") {
+           if (installed.includes(contract.name)) {
+             fail(
+@@ -3105,9 +3279,6 @@ function publicOperation(
+         ...complete.resources.map((row) =>
+           resolve(complete.state.root, row.source)
+         ),
+-        ...assignment.runtime.files.map((row) =>
+-          row.path
+-        ),
+       ]);
+       const publicResource = (absolute: string) => {
+         roles.assertPath(absolute);
+diff --git a/_extensions/course-core/runtime/source-snapshot.ts b/_extensions/course-core/runtime/source-snapshot.ts
+index cb0ab9d..93b7ec4 100644
+--- a/_extensions/course-core/runtime/source-snapshot.ts
++++ b/_extensions/course-core/runtime/source-snapshot.ts
+@@ -13,6 +13,8 @@ export type SourceSnapshotState = {
+   rows: { path: string; signature: string; sha256: string }[];
+   memberships: Record<string, string[]>;
+   relevantInputs: string[];
++  /** Тот же existing native owner witness; до owner inspect отсутствует. */
++  ownerInputs?: readonly string[];
+   metrics: {
+     fullWalks: number;
+     sourceDirectoryReads: number;
+@@ -210,12 +212,42 @@ export async function assertSources(
+       parent = dirname(parent);
+     }
+   }
++  // Quarto удаляет пустой <input stem>_files/mediabag после render.
++  // Разрешено только исчезновение exact fileless baseline actual owner input.
++  const emptyNativeDirectories = new Set<string>();
++  for (const input of state.ownerInputs ?? []) {
++    if (!index.rows.has(input)) continue;
++    const supporting = input.replace(/\.[^/.]+$/, "") + "_files";
++    const names = state.memberships[supporting];
++    const media = supporting + "/mediabag";
++    if (
++      !names ||
++      !(names.length === 0 ||
++        names.length === 1 && names[0] === "mediabag" &&
++          state.memberships[media]?.length === 0) ||
++      state.rows.some((row) =>
++        row.path === supporting || row.path.startsWith(supporting + "/")
++      )
++    ) continue;
++    emptyNativeDirectories.add(supporting);
++    if (names.length) emptyNativeDirectories.add(media);
++  }
+   const selectedDirectories = full ? index.directories.keys() : directories;
+   for (const dir of selectedDirectories) {
+     const names = state.memberships[dir], known = index.directories.get(dir);
+     if (!names || !known) continue;
+-    if (dir && !(await inspectPath(dir)).isDirectory) {
+-      fail("OPERATION_CHANGED", "Native source directory type изменён");
++    if (dir) {
++      try {
++        if (!(await inspectPath(dir)).isDirectory) {
++          fail("OPERATION_CHANGED", "Native source directory type изменён");
++        }
++      } catch (error) {
++        if (
++          error instanceof Deno.errors.NotFound &&
++          emptyNativeDirectories.has(dir)
++        ) continue;
++        throw error;
++      }
+     }
+     const current: string[] = [];
+     state.metrics.sourceDirectoryReads++;
+@@ -233,7 +265,12 @@ export async function assertSources(
+       ) continue;
+       current.push(entry.name);
+     }
+-    if (!same(current.sort(), names)) {
++    const present = new Set(current);
++    const expected = names.filter((name) =>
++      present.has(name) ||
++      !emptyNativeDirectories.has(dir ? dir + "/" + name : name)
++    );
++    if (!same(current.sort(), expected)) {
+       fail("OPERATION_CHANGED", "Изменён состав native source: " + dir);
+     }
+   }

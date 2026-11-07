@@ -2,3 +2,4 @@ project:
   output-dir: _output/student
 course:
   view: student
+course-core-projection: student

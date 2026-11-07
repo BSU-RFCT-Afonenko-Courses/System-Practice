@@ -1,0 +1,6 @@
+course-project:
+  starter:
+    path: student
+  instructions:
+    local:
+      path: student/README.md

@@ -1,0 +1,11 @@
+course-project:
+  starter:
+    path: student
+  instructions:
+    local:
+      path: student/README.md
+  build:
+    files:
+      project-maintenance-start.zip:
+        path: ../../../materials/project-maintenance-start.zip
+        base: config

@@ -1,0 +1,39 @@
+{
+  "schemaVersion": 1,
+  "quarto": "1.11.5",
+  "javaRelease": 25,
+  "platform": {
+    "repository": "Afonenko-Course-Tools/prairielearn-platform",
+    "tag": "v2.6.0",
+    "commit": "12918eb7e81b6f86de9c817bcdeb3dffe7965218",
+    "version": "2.6.0",
+    "javaImage": "ghcr.io/afonenko-course-tools/java25-grader@sha256:b963e4ef1abce2a40c2a9c00b5e548814c3c7be074b24a34c869edc1adcf1282",
+    "fishImage": "ghcr.io/afonenko-course-tools/fish-git-grader@sha256:021adbbb5bb413f39b3e5e6c575dd989509998d89a8fe0cf470217e311a0c3d4",
+    "communityImage": "ghcr.io/afonenko-course-tools/prairielearn-community-gateway@sha256:f7d1903532e813fe29df74949da7131a353710ff7d0d632a51482762422dcb82",
+    "javaImageConfig": "sha256:2f2d093bdc724bc9f8e45020c6bc96e17392eec0728bfa8bf55604c2ea022655",
+    "workspaceImage": "ghcr.io/afonenko-course-tools/sp-git-workspace@sha256:465bf16061c3a44afdc61c77d1dd853216be35b0203072cb8e7c69a51a1bf31a"
+  },
+  "status": "Java/JUnit использует публичные API Platform 2.6.0. Community 2.5.8, fish и Workspace сохраняются на указанных digest. В чистую установку переносятся только пользователи и права; исторические оценки и попытки не переносятся и не пересчитываются без отдельной команды владельца после развёртывания и проверки.",
+  "imagePublication": {
+    "run": 42356822605,
+    "buildSource": "de9a7e464e137a8cdc7e56e9e8e2e78f6d93da62",
+    "release": {
+      "id": 437454797,
+      "url": "https://github.com/Afonenko-Course-Tools/prairielearn-platform/releases/tag/v2.6.0",
+      "immutable": false
+    },
+    "assets": {
+      "java-image.json": {
+        "url": "https://github.com/Afonenko-Course-Tools/prairielearn-platform/releases/download/v2.6.0/java-image.json"
+      },
+      "published-runtime-profiles.json": {
+        "url": "https://github.com/Afonenko-Course-Tools/prairielearn-platform/releases/download/v2.6.0/published-runtime-profiles.json"
+      }
+    }
+  },
+  "githubCi": {
+    "status": "pending",
+    "scope": "public-source-published-providers-and-site",
+    "reason": "Результат hosted CI для соответствующего course HEAD проверяется отдельно в GitHub Actions."
+  }
+}

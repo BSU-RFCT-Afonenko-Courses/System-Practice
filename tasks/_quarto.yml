@@ -23,13 +23,14 @@ project:
   - _extensions/Afonenko-Course-Tools/course-core/entrypoints/pre.ts
   - _extensions/Afonenko-Course-Tools/project-download/entrypoints/pre.ts
   post-render:
-  - _extensions/Afonenko-Course-Tools/course-core/entrypoints/post.ts
   - _extensions/Afonenko-Course-Tools/reference-catalog/entrypoints/post.ts
-  - _extensions/Afonenko-Course-Tools/project-download/entrypoints/post.ts
   - ../_extensions/Afonenko-Course-Tools/course-site/entrypoints/collect.ts
+  - _extensions/Afonenko-Course-Tools/course-core/entrypoints/post.ts
+  - _extensions/Afonenko-Course-Tools/project-download/entrypoints/post.ts
 format:
   html:
     theme: cosmo
+    number-sections: false
     include-in-header: ../includes/book-tables.html
     toc: true
     code-copy: true
@@ -44,12 +45,26 @@ filters:
 - project-download
 reference-catalog:
   namespace: system-practice-tasks
+  imports:
+    system-practice-theory:
+      source: ../theory/_output/student/reference-catalog-local.json
+      namespace: system-practice-theory
+      base-url: https://bsu-rfct-afonenko-courses.github.io/System-Practice/theory/
+    system-practice-practice:
+      source: ../practice/_output/student/reference-catalog-local.json
+      namespace: system-practice-practice
+      base-url: https://bsu-rfct-afonenko-courses.github.io/System-Practice/practice/
+    system-practice-handbook:
+      source: ../handbook/_output/student/reference-catalog-local.json
+      namespace: system-practice-handbook
+      base-url: https://bsu-rfct-afonenko-courses.github.io/System-Practice/handbook/
 profile:
   default: student
   group:
   - - student
     - full
 book:
+  site-url: https://bsu-rfct-afonenko-courses.github.io/System-Practice/tasks/
   title: System Practice — лабораторные и проект
   chapters:
   - index.qmd
@@ -67,8 +82,6 @@ book:
       href: ../index.html#sec-system-practice
       text: Портал курса
 
-website:
-  site-url: https://bsu-rfct-afonenko-courses.github.io/System-Practice/tasks/
 course:
   id: system-practice
   adapters: [prairielearn]
@@ -76,6 +89,8 @@ project-download:
   course-model: true
 
 prairielearn:
+  seed-targets:
+    exr-version-control-github-ssh: versioning/project
   delivery:
     book: tasks
     course:
@@ -109,3 +124,6 @@ prairielearn:
   assessment-defaults:
     assignment:
       mode: assessment-id
+course-core-runtime: native-ts
+course-core-projection: student
+course-core-source-policy: static

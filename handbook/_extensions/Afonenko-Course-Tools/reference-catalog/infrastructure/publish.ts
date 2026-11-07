@@ -5,7 +5,7 @@ import type { Catalog, Exports } from "../domain/model.ts";
 import { join, relative, dirname, fromFileUrl, resolve, isAbsolute } from "./files.ts";
 import { readPage } from "./pages.ts";
 import { linkPages, type LinkScope } from "./linker.ts";
-import { updateSearch, searchIndexBase, type SearchIndex } from "./search.ts";
+import { updateSearch, searchIndexBase, type SearchIndex, type SearchRow } from "./search.ts";
 import { exportedTargets } from "../domain/exports.ts";
 import { catalogConfig } from "./config.ts";
 import { importTargets } from "./imports.ts";
@@ -45,7 +45,7 @@ async function currentFiles(root: string, stage: string, outputs: string[] | und
   } catch (error) { if (!(error instanceof Deno.errors.NotFound)) throw error; }
   return paths;
 }
-export async function publish(context: CatalogPublication): Promise<void> {
+async function publishImpl(context: CatalogPublication): Promise<void> {
   const { root, stage, quarto, members } = context;
   const extension = dirname(dirname(fromFileUrl(import.meta.url)));
   const htmlMembers = members.filter(member => member.format === "html" || member.format === "revealjs");
@@ -80,12 +80,11 @@ export async function publish(context: CatalogPublication): Promise<void> {
   // Сначала вычисляется полный результат: ошибка ссылки не оставляет половину страниц обновлёнными.
   for (const [path, html] of linked.pages) await Deno.writeTextFile(join(stage, path), html);
   const currentIndexes = indexes.map(index => ({ ...index, path: resolve(root, index.path) }));
-  await updateSearch(stage, currentIndexes, linked.parsedPages);
+  const updatedSearch = await updateSearch(stage, currentIndexes, linked.parsedPages);
   if (context.scope !== "local" && indexes.length) {
-    const rows = new Map<string, Record<string, unknown>>();
-    for (const index of currentIndexes) {
+    const rows = new Map<string, SearchRow>();
+    for (const { index, rows: sourceRows } of updatedSearch) {
       const path = index.path;
-      const sourceRows = JSON.parse(await Deno.readTextFile(path));
       for (const row of sourceRows) {
         const base = searchIndexBase(stage, index);
         const url = new URL(row.href, `https://qrc.invalid/${base}`);
@@ -97,10 +96,9 @@ export async function publish(context: CatalogPublication): Promise<void> {
     }
     await Deno.writeTextFile(join(stage, "search.json"), JSON.stringify([...rows.values()], null, 2) + "\n");
   }
-  const catalog: Catalog = { schema: "quarto-reference-catalog", generator: { quarto }, publication: config.publication, targets: exported };
+  const catalog: Catalog = { schema: "quarto-reference-catalog", generator: { quarto }, ...(config.publication === undefined ? {} : { publication: config.publication }), targets: exported };
   await Deno.writeTextFile(join(stage, context.scope === "local" ? "reference-catalog-local.json" : "reference-catalog.json"), JSON.stringify(catalog, null, 2) + "\n");
   console.log(`QRC разрешено ссылок: ${linked.links}; отложено ссылок: ${linked.deferred}; целей: ${linked.targets.size}; страниц: ${pages.length}`);
 }
 
-// @ts-expect-error JS допускает замену function binding; сигнатура публичного API сохраняется.
-publish=__metrics.wrapAsync({id:"reference-catalog.infrastructure.publish.publish",kind:"io"},publish);
+export const publish = __metrics.wrapAsync({id:"reference-catalog.infrastructure.publish.publish",kind:"io"},publishImpl);

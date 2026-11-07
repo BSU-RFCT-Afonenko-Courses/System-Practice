@@ -1,28 +1,73 @@
 #!/usr/bin/env python3
 """Воспроизводимая локальная Git-поставка сопровождения по авторскому договору."""
-import argparse,hashlib,json,shutil,subprocess,sys,tempfile
+from collections.abc import Mapping
+from typing import TypedDict
+import argparse,json,shutil,subprocess,sys,tempfile
 from pathlib import Path
 from build_materials import target,packed,atomic_write
-from build_git_materials import git as seed_git,put,commit,initialize,normalize
+from system_support import read_json, json_object, json_string, json_strings, json_texts
+from build_git_materials import git as seed_git,put,initialize,normalize
+
+
+class HistoryNode(TypedDict):
+    parents: list[str]
+    files: dict[str, str]
+
+
+class Patch(TypedDict):
+    name: str
+    path: str
+    text: str
+
+
+class MaintenanceSeed(TypedDict):
+    root: str
+    history: dict[str, HistoryNode]
+    workHead: str
+    workBranches: dict[str, str]
+    workTags: dict[str, str]
+    sharedHead: str
+    sharedTags: dict[str, str]
+    patchBase: str
+    patch: Patch
 
 DIRECTORY='tasks/projects/project-maintenance'
 ARCHIVES={'practice/materials/project-maintenance-demo.zip','tasks/materials/project-maintenance-start.zip'}
 
 
-def git(repo,*args,input=None):
+def git(repo: Path, *args: str, input: bytes | None = None) -> bytes:
     """Хранить объекты набора без зависимости от алгоритма сжатия zlib Git."""
     return seed_git(repo,'-c','core.looseCompression=0',*args,input=input)
 
 
-def generate(seed):
+def read_seed(path: Path) -> dict[str, MaintenanceSeed]:
+    result: dict[str, MaintenanceSeed] = {}
+    for name, value in json_object(read_json(path)).items():
+        spec = json_object(value)
+        history: dict[str, HistoryNode] = {}
+        for label, raw_node in json_object(spec['history']).items():
+            node = json_object(raw_node)
+            history[label] = {'parents': json_strings(node['parents']), 'files': json_texts(node['files'])}
+        patch = json_texts(spec['patch'])
+        result[name] = {
+            'root': json_string(spec['root']), 'history': history,
+            'workHead': json_string(spec['workHead']), 'workBranches': json_texts(spec['workBranches']),
+            'workTags': json_texts(spec['workTags']), 'sharedHead': json_string(spec['sharedHead']),
+            'sharedTags': json_texts(spec['sharedTags']), 'patchBase': json_string(spec['patchBase']),
+            'patch': {'name': patch['name'], 'path': patch['path'], 'text': patch['text']},
+        }
+    return result
+
+
+def generate(seed: Mapping[str, MaintenanceSeed]) -> dict[str, bytes]:
     if set(seed)!=ARCHIVES:raise ValueError('Нужны ровно демонстрационный и самостоятельный наборы')
     roots={'practice/materials/project-maintenance-demo.zip':'maintenancelab','tasks/materials/project-maintenance-start.zip':'maintenance'}
     if any(spec.get('root')!=roots[name] for name,spec in seed.items()):raise ValueError('Корень исходного набора не соответствует объявленной поставке')
-    outputs={};states={}
+    outputs: dict[str, bytes] = {};states: dict[str, object] = {}
     with tempfile.TemporaryDirectory(prefix='maintenance-seed-') as temporary:
         parent=Path(temporary);template=parent/'template';template.mkdir()
         for archive,spec in seed.items():
-            base=parent/spec['root'];base.mkdir();work=base/'work';initialize(work,template);ids={}
+            base=parent/spec['root'];base.mkdir();work=base/'work';initialize(work,template);ids: dict[str, str] = {}
             # Создаём объявленные снимки и родителей; личная конфигурация не участвует.
             for label,node in spec['history'].items():
                 git(work,'read-tree','--empty')
@@ -30,7 +75,7 @@ def generate(seed):
                     target(work,name)
                     blob=git(work,'hash-object','-w','--stdin',input=text.encode()).decode().strip()
                     git(work,'update-index','--add','--cacheinfo','100644',blob,name)
-                tree=git(work,'write-tree').decode().strip();parents=[]
+                tree=git(work,'write-tree').decode().strip();parents: list[str] = []
                 for predecessor in node['parents']:parents+=['-p',ids[predecessor]]
                 ids[label]=git(work,'commit-tree',tree,*parents,'-m','Учебное состояние '+label).decode().strip()
             git(work,'update-ref','refs/heads/main',ids[spec['workHead']])
@@ -49,33 +94,31 @@ def generate(seed):
             git(work,'prune','--expire=now')
             incoming=base/'incoming';incoming.mkdir();target(incoming,patch_spec['name']).write_bytes(patch)
             state=normalize(work)
-            states[archive]={'root':spec['root'],'history':ids,**{k:ids[k] for k in ['A','M','F'] if k in ids},'work':state,'sharedRefs':git(shared,'show-ref').decode().splitlines(),'patch':{'name':patch_spec['name'],'sha256':hashlib.sha256(patch).hexdigest()}}
+            states[archive]={'root':spec['root'],'history':ids,**{k:ids[k] for k in ['A','M','F'] if k in ids},'work':state,'sharedRefs':git(shared,'show-ref').decode().splitlines(),'patch':{'name':patch_spec['name']}}
             entries={p.relative_to(parent).as_posix():p.read_bytes() for p in base.rglob('*') if p.is_file()};outputs[archive]=packed(entries)
     outputs[DIRECTORY+'/initial-state.json']=(json.dumps(states,ensure_ascii=False,indent=2)+'\n').encode()
     return outputs
 
 
-def build(root,write=False):
-    root=Path(root).resolve(strict=True);seed=json.loads(target(root,DIRECTORY+'/seed.json').read_text());outputs=generate(seed)
-    manifest=target(root,DIRECTORY+'/materials-hashes.json');previous=json.loads(manifest.read_text()) if manifest.exists() else {};planned=[];hashes={}
+def build(root: str | Path) -> list[str]:
+    root=Path(root).resolve(strict=True);seed=read_seed(target(root,DIRECTORY+'/seed.json'));outputs=generate(seed)
+    planned: list[tuple[Path, bytes]] = []
     for name,data in outputs.items():
-        if name not in ARCHIVES|{DIRECTORY+'/initial-state.json'}:raise ValueError('Не объявлено назначение набора')
-        p=target(root,name);expected=hashlib.sha256(data).hexdigest();actual=hashlib.sha256(p.read_bytes()).hexdigest() if p.exists() else None
-        if actual is not None and actual!=expected and actual!=previous.get(name):raise ValueError('Локальная правка сохранена: '+name)
-        planned.append((p,data,actual,expected));hashes[name]=expected
-    if set(previous)-set(hashes):raise ValueError('Уменьшение состава требует отдельной проверки')
-    if not write:
-        if previous!=hashes or any(a!=e for _,_,a,e in planned):raise ValueError('Материалы сопровождения отсутствуют или устарели')
-        return hashes
-    for p,data,actual,expected in planned:
-        if actual!=expected:atomic_write(p,data)
-    content=(json.dumps(hashes,ensure_ascii=False,indent=2)+'\n').encode()
-    if not manifest.exists() or manifest.read_bytes()!=content:atomic_write(manifest,content)
-    return hashes
+        if name not in ARCHIVES | {DIRECTORY + '/initial-state.json'}:raise ValueError('Не объявлено назначение набора')
+        planned.append((target(root,name),data))
+    for path,data in planned:atomic_write(path,data)
+    return list(outputs)
 
 
-def main():
-    p=argparse.ArgumentParser(description=__doc__);p.add_argument('--root',type=Path,default=Path(__file__).resolve().parents[1]);mode=p.add_mutually_exclusive_group(required=True);mode.add_argument('--write',action='store_true');mode.add_argument('--check',action='store_true');a=p.parse_args();print(json.dumps(build(a.root,a.write),ensure_ascii=False,indent=2))
+class Options(argparse.Namespace):
+    root: Path
+
+
+def main() -> None:
+    p=argparse.ArgumentParser(description=__doc__)
+    p.add_argument('--root',type=Path,default=Path(__file__).resolve().parents[1])
+    a=p.parse_args(namespace=Options())
+    print(json.dumps(build(a.root),ensure_ascii=False,indent=2))
 if __name__=='__main__':
     try:main()
     except (ValueError,OSError,subprocess.SubprocessError) as e:print(e,file=sys.stderr);raise SystemExit(1)

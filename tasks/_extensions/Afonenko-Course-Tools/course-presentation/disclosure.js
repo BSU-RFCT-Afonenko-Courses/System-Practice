@@ -3,25 +3,30 @@
  * Notes и поиск используют ту же операцию раскрытия целевого блока. */
 (() => {
   'use strict';
+  /** @param {string} hash */
   function targetForHash(hash) {
     try { return document.getElementById(decodeURIComponent(hash.replace(/^#\/?/, ''))); }
     catch { return null; }
   }
+  /** @param {Element | null} target */
   function expose(target) {
     if (!target) return;
     const displayed = window.CoursePresentation?.exposeNote(target);
     if (displayed) target = displayed;
+    const exposed = target;
     let fragment = -1;
     const scroll = () => {
       if (!window.Reveal) {
         // Начало длинного раздела должно оставаться видимым. Отступ под
         // навигационную панель задаёт штатное оформление Quarto для :target.
-        const block = target.tagName === 'SECTION' ? 'start' : 'center';
-        target.scrollIntoView({block, behavior: 'auto'});
+        const block = exposed.tagName === 'SECTION' ? 'start' : 'center';
+        exposed.scrollIntoView({block, behavior: 'auto'});
       }
     };
-    for (let element = target; element; element = element.parentElement) {
-      if (element.tagName === 'DETAILS') element.open = true;
+    /** @type {Element | null} */
+    let element = exposed;
+    for (; element; element = element.parentElement) {
+      if (element instanceof HTMLDetailsElement) element.open = true;
       if (element.classList.contains('collapse') && !element.classList.contains('show')) {
         if (window.bootstrap?.Collapse) {
           element.addEventListener('shown.bs.collapse', scroll, {once: true});
@@ -57,8 +62,9 @@
       // Quarto обрабатывает якоря Reveal с preventDefault; цель раскрывается
       // после этого обработчика, сохраняя жесты открытия в новой вкладке.
       if (event.button !== 0 || event.ctrlKey || event.metaKey || event.shiftKey || event.altKey) return;
-      const link = event.target.closest?.('a[href^="#"]');
-      if (link) window.requestAnimationFrame(() => expose(targetForHash(link.getAttribute('href'))));
+      const link = event.target instanceof Element ? event.target.closest('a[href^="#"]') : null;
+      const href = link?.getAttribute('href');
+      if (href) window.requestAnimationFrame(() => expose(targetForHash(href)));
     });
     window.addEventListener('hashchange', onHash);
     if (window.Reveal && !window.Reveal.isReady()) window.Reveal.on('ready', onHash);

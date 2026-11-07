@@ -2,6 +2,12 @@ local __metrics=require("../observability/bridge").create_metrics("reference-cat
 
 local M = {}
 -- Formatter завершает существующий guard и не вводит новый runtime ошибок.
+---@param code string
+---@param message string
+---@param id? string
+---@param field? string
+---@param hint? string
+---@return string
 function M.message(code, message, id, field, hint)
   local details = {code .. ": " .. message}
   if quarto.doc.input_file then details[#details + 1] = "источник=" .. quarto.doc.input_file end

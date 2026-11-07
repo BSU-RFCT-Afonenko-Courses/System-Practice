@@ -3,6 +3,9 @@ local __metrics=require("../observability/bridge").create_metrics("course-presen
 -- Узел #sol-* или callout и его ID сохраняются. Раскрытием управляет
 -- внешний контейнер без ID, поэтому штатные перекрёстные ссылки работают.
 local M = {}
+---@param div pandoc.Div
+---@param owner? string
+---@return "solution"|"hint"|nil
 function M.kind(div, owner)
   local related = div.attributes["for"] or owner
   if not related then return nil end
@@ -10,6 +13,10 @@ function M.kind(div, owner)
   if div.classes:includes("callout-tip") and not div.attributes["course-role"] then return "hint" end
   return nil
 end
+---@param div pandoc.Div
+---@param kind "solution"|"hint"|nil
+---@param cfg CoursePresentationConfig
+---@return pandoc.Div
 function M.wrap(div, kind, cfg)
   if not kind then return div end
   local classes = {"course-answer", "course-answer-" .. kind}
@@ -21,7 +28,7 @@ function M.wrap(div, kind, cfg)
   if not cfg.reveal then
     table.insert(classes, "callout-note")
     -- Штатное раскрытие Bootstrap в Quarto управляет переключением и состоянием ARIA.
-    return pandoc.Div({pandoc.Header(3, summary), div}, pandoc.Attr("", classes,
+    return pandoc.Div({pandoc.Header(3, pandoc.Inlines({pandoc.Str(summary)})), div}, pandoc.Attr("", classes,
       {collapse = "true", icon = "false"}))
   end
   -- Reveal не сворачивает callout. Фильтр создаёт элемент <details>,
