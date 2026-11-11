@@ -21,25 +21,31 @@ export function readable(node: Node): string {
   if ("value" in node) return node.value;
   return "childNodes" in node ? node.childNodes.map(readable).join(" ") : "";
 }
-/** Штатные индексы созданы до post-render; обновляем их текст из окончательного HTML. */
-async function updateSearchImpl(root: string, indexFiles: (string | SearchIndex)[], pages: Map<string, Page>): Promise<UpdatedSearchIndex[]> {
-  // Linking updates the current tree; no second HTML parse is needed.
+/** Готовим индексы из окончательного дерева HTML, не меняя файлы. */
+export async function prepareSearch(root: string, indexFiles: (string | SearchIndex)[], pages: Map<string, Page>): Promise<UpdatedSearchIndex[]> {
   const parsed = new Map<string, { main: Element | undefined; ids: Map<string, Element> }>();
   const updated: UpdatedSearchIndex[] = [];
   const rowsByPath = new Map<string, SearchRow[]>();
   for (const value of indexFiles) {
     const index = typeof value === "string" ? { path: value } : value;
     const file = index.path;
-    const rows: unknown = JSON.parse(await Deno.readTextFile(file));
-    if (!Array.isArray(rows)) throw new Error(`QRC неподдерживаемый поисковый индекс ${file}`);
-    const sourceRows: readonly unknown[] = rows;
-    const finalRows = rowsByPath.get(file) ?? [];
-    finalRows.length = 0;
-    rowsByPath.set(file, finalRows);
-    for (const row of sourceRows) {
-      if (!isSearchRow(row)) throw new Error(`QRC неподдерживаемая запись поискового индекса ${file}`);
-      finalRows.push(row);
-      const url = new URL(row.href, "https://qrc.invalid/" + searchIndexBase(root, index));
+    let finalRows = rowsByPath.get(file);
+    if (!finalRows) {
+      const rows: unknown = JSON.parse(await Deno.readTextFile(file));
+      if (!Array.isArray(rows)) throw new Error(`QRC неподдерживаемый поисковый индекс ${file}`);
+      const sourceRows: readonly unknown[] = rows;
+      finalRows = [];
+      for (const row of sourceRows) {
+        if (!isSearchRow(row)) throw new Error(`QRC неподдерживаемая запись поискового индекса ${file}`);
+        finalRows.push(row);
+      }
+      rowsByPath.set(file, finalRows);
+    }
+    // Один physical path разделяет строки между mounts: последний mount
+    // обновляет текст для всех его представлений, как при последовательной записи.
+    const base = searchIndexBase(root, index);
+    for (const row of finalRows) {
+      const url = new URL(row.href, "https://qrc.invalid/" + base);
       const path = decodeURIComponent(url.pathname).slice(1);
       const page = pages.get(path);
       if (!page) continue;
@@ -58,9 +64,16 @@ async function updateSearchImpl(root: string, indexFiles: (string | SearchIndex)
       const selected = fragment ? selection.ids.get(fragment) : selection.main;
       if (selected) row.text = readable(selected).replace(/\s+/g, " ").trim();
     }
-    await Deno.writeTextFile(file, JSON.stringify(finalRows, null, 2) + "\n");
     updated.push({ index, rows: finalRows });
   }
+  return updated;
+}
+
+/** Штатные индексы созданы до post-render; обновляем их текст из окончательного HTML. */
+async function updateSearchImpl(root: string, indexFiles: (string | SearchIndex)[], pages: Map<string, Page>): Promise<UpdatedSearchIndex[]> {
+  const updated = await prepareSearch(root, indexFiles, pages);
+  const files = new Map(updated.map(({ index, rows }) => [index.path, JSON.stringify(rows, null, 2) + "\n"]));
+  for (const [path, text] of files) await Deno.writeTextFile(path, text);
   return updated;
 }
 

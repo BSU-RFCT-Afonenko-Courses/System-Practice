@@ -1,5 +1,6 @@
 // @deno-types="../vendor/zod/v4/index.d.ts"
 import { z } from "../vendor/zod/v4/index.js";
+import { NativeNodesSchema } from "./native-ast.ts";
 export const NativeResponseSlotSchema = z.strictObject({
   name: z.string().min(1),
   type: z.enum(["manual", "numeric", "single-choice", "matching"]),
@@ -53,7 +54,7 @@ export const AssignmentFinalSchema = AssignmentEarlySchema.omit({
   introductions: true,
   answers: true,
 }).extend({
-  introductions: z.record(z.string(), z.array(z.unknown())),
+  introductions: z.record(z.string(), NativeNodesSchema),
   answers: z.record(
     z.string(),
     z.strictObject({
@@ -65,7 +66,7 @@ export const AssignmentFinalSchema = AssignmentEarlySchema.omit({
         "matching",
       ]),
       declared: z.boolean(),
-      publicAnswer: z.array(z.unknown()),
+      publicAnswer: NativeNodesSchema,
       responseSlots: z.array(NativeResponseSlotSchema),
     }),
   ),

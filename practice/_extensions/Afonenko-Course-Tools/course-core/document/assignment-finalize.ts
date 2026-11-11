@@ -11,7 +11,7 @@ import type {
 import type { AssignmentEarly } from "./assignment-contracts.ts";
 const bad = (s: string): never => fail("BODY.ANSWER_OCCURRENCE_MISMATCH", s);
 import { isRecord, isContainer, nodeAttributes as attr, requireNodes } from "./native-ast.ts";
-import type { ContainerNode } from "./native-ast.ts";
+import type { ContainerNode, Node } from "./native-ast.ts";
 const field = (n: unknown, key: string) => attr(n)?.[2].find(([k]) => k === key)?.[1];
 function walk(v: unknown, visit: (v: Record<string, unknown>) => void) {
   if (Array.isArray(v)) v.forEach((x) => walk(x, visit));
@@ -44,7 +44,7 @@ export function finalizeAssignment(
       "Отсутствует late assignment transport",
     );
   }
-  const introductions: Record<string, unknown[]> = {},
+  const introductions: Record<string, Node[]> = {},
     found = new Set<string>();
   for (const row of late.assignment.introductions) {
     const expected = early.assignment.introductions.find((v) =>
@@ -70,7 +70,7 @@ export function finalizeAssignment(
     {
       type: AssignmentEarly["answers"][string]["type"];
       declared: boolean;
-      publicAnswer: unknown[];
+      publicAnswer: Node[];
       responseSlots: AssignmentEarly["answers"][string]["responseSlots"];
     }
   > = {};

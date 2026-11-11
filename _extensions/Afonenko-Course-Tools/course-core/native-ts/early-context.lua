@@ -31,8 +31,8 @@ function(doc)
   if pandoc.path.is_relative(input) then input=pandoc.path.join({assert(quarto.project.directory),input}) end
   assert(pandoc.path.normalize(input)==context.input,'DOCUMENT_BINDING: native input отличается')
   local identifier=assert(quarto.format.format_identifier(),'DOCUMENT_BINDING: нет native format identifier')
-  local native_format=identifier['target-format']
-  assert((native_format=='html' or native_format=='revealjs') and identifier['base-format']==native_format and FORMAT==native_format,'DOCUMENT_BINDING: native format не квалифицирован')
+  local native_format=identifier['base-format']
+  assert((native_format=='html' or native_format=='revealjs') and FORMAT==native_format,'DOCUMENT_BINDING: native format не квалифицирован')
   if os.getenv('COURSE_CORE_TS_RUN') then
     assert(context.format==native_format,'DOCUMENT_BINDING: native format отличается')
   else context.format=native_format end

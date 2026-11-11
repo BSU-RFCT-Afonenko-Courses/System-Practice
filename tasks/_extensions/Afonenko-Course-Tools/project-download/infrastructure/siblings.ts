@@ -1,5 +1,3 @@
-import { dirname, fromFileUrl, join, toFileUrl } from "stdlib/path";
-
 // Только типы: обычные resources не загружают optional provider runtime.
 export type SiblingModules = {
   "course-core": typeof import("../../course-core/public.ts");
@@ -12,11 +10,16 @@ export type {
   ProjectPlan,
 } from "../../course-core/public.ts";
 
+// Отложенные literal imports сохраняют типы публичных модулей владельцев.
+const loaders: {
+  [Name in keyof SiblingModules]: () => Promise<SiblingModules[Name]>;
+} = {
+  "course-core": () => import("../../course-core/public.ts"),
+  "course-prairielearn": () => import("../../course-prairielearn/public.ts"),
+  "reference-catalog": () => import("../../reference-catalog/public.ts"),
+};
 export async function sibling<Name extends keyof SiblingModules>(
   name: Name,
 ): Promise<SiblingModules[Name]> {
-  const extension = dirname(dirname(fromFileUrl(import.meta.url)));
-  return await import(
-    toFileUrl(join(dirname(extension), name, "public.ts")).href
-  );
+  return await loaders[name]();
 }

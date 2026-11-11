@@ -49,6 +49,31 @@ export async function projectPlanState(plan: ProjectPlan) {
   await assertProjectContext(state.context);
   return state;
 }
+function assertProjectBuild(
+  project: ReturnType<typeof decodeProjectContract>,
+  context: ProjectContextView,
+) {
+  if (
+    project.instructions?.gradle ||
+    Object.keys(project.build.files).some((p) =>
+      /^(build|settings)\.gradle(?:\.kts)?$/.test(p)
+    )
+  ) {
+    if (!project.instructions?.gradle) {
+      fail(
+        "PROJECT_INCOMPLETE",
+        "Нужна общая Gradle-инструкция",
+        context.input,
+      );
+    }
+    for (const required of ["build.gradle", "settings.gradle"]) {
+      if (
+        !project.build.files[required] &&
+        !project.build.files[required + ".kts"]
+      ) fail("PROJECT_INCOMPLETE", "Нет настоящего " + required, context.input);
+    }
+  }
+}
 /** Closure names share one namespace; explicit false is never re-enabled by requires. */
 export function planProject(
   context: ProjectContext,
@@ -74,32 +99,9 @@ export async function planProject(
   );
   const project = decodeProjectContract(context);
   if (!project.starter) {
-    fail(
-      "PROJECT_INCOMPLETE",
-      "Нужен объявленный starter",
-      context.input,
-    );
+    fail("PROJECT_INCOMPLETE", "Нужен объявленный starter", context.input);
   }
-  if (
-    project.instructions?.gradle ||
-    Object.keys(project.build.files).some((p) =>
-      /^(build|settings)\.gradle(?:\.kts)?$/.test(p)
-    )
-  ) {
-    if (!project.instructions?.gradle) {
-      fail(
-        "PROJECT_INCOMPLETE",
-        "Нужна общая Gradle-инструкция",
-        context.input,
-      );
-    }
-    for (const required of ["build.gradle", "settings.gradle"]) {
-      if (
-        !project.build.files[required] &&
-        !project.build.files[required + ".kts"]
-      ) fail("PROJECT_INCOMPLETE", "Нет настоящего " + required, context.input);
-    }
-  }
+  assertProjectBuild(project, context);
   const nodes = { ...project.components, ...project.testsets };
   if (
     Object.keys(project.components).some((n) =>

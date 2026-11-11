@@ -85,7 +85,6 @@ export function collectNativeProjectFacts(early: EarlyDocument, root: string) {
       source,
       projects,
       projectMaterializations: materializations,
-      collectCalls: 1,
     },
     "BODY.PROJECT_FACTS_UNQUALIFIED",
     source,

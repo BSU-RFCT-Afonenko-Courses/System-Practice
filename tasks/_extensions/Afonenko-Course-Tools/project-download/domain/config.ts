@@ -34,8 +34,11 @@ export const DEFAULT_EXCLUDES = [
   "**/.DS_Store",
   "**/.gitkeep",
 ];
-function resource(value: unknown, id: string) {
-  if (!value || typeof value !== "object" || Array.isArray(value)) {
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return value !== null && typeof value === "object" && !Array.isArray(value);
+}
+function resourceFields(value: unknown, id: string) {
+  if (!isRecord(value)) {
     throw diagnostic(
       "DOWNLOAD.CONFIG_INVALID",
       `Ресурс ${id} должен быть словарём`,
@@ -51,7 +54,7 @@ function resource(value: unknown, id: string) {
       );
     }
   }
-  const item = value as Record<string, unknown>, path = item.path;
+  const item = value, path = item.path;
   if (typeof path !== "string" || !path || path === "/") {
     throw diagnostic(
       "DOWNLOAD.CONFIG_INVALID",
@@ -89,22 +92,50 @@ function resource(value: unknown, id: string) {
     ...(profiles === undefined ? {} : { profiles }),
     ...(gitignore === undefined ? {} : { gitignore }),
   };
-  // Единственный cast выводится из фактически проверенных значений, не ручного DTO.
-  // Возвращаем исходный объект: сохраняем identity, own undefined, null и prototype.
-  return value as typeof verified;
+  return verified;
+}
+function assertResource(
+  value: unknown,
+  id: string,
+): asserts value is ReturnType<typeof resourceFields> {
+  resourceFields(value, id);
+}
+function resource(value: unknown, id: string) {
+  assertResource(value, id);
+  return value;
 }
 function defaultConfiguration() {
   const resources: Record<string, Resource> = {};
   return { resources };
 }
+function assertResources(
+  resources: unknown,
+): asserts resources is Record<string, Resource> {
+  if (!isRecord(resources)) {
+    throw diagnostic(
+      "DOWNLOAD.CONFIG_INVALID",
+      "project-download.resources должен быть словарём",
+    );
+  }
+  for (const [id, item] of Object.entries(resources)) {
+    if (!RESOURCE_ID.test(id)) {
+      throw diagnostic(
+        "DOWNLOAD.CONFIG_INVALID",
+        `Недопустимый идентификатор ресурса: ${id}`,
+        { id, field: "resources" },
+      );
+    }
+    resource(item, id);
+  }
+}
 function configured(input: {}) {
-  if (typeof input !== "object" || Array.isArray(input)) {
+  if (!isRecord(input)) {
     throw diagnostic(
       "DOWNLOAD.CONFIG_INVALID",
       "project-download должен быть словарём",
     );
   }
-  const value = input as Record<string, unknown>;
+  const value = input;
   for (const key of Object.keys(value)) {
     if (!CONFIG_FIELDS.has(key)) {
       throw diagnostic(
@@ -128,24 +159,9 @@ function configured(input: {}) {
     );
   }
   const resources = value.resources ?? {};
-  if (!resources || typeof resources !== "object" || Array.isArray(resources)) {
-    throw diagnostic(
-      "DOWNLOAD.CONFIG_INVALID",
-      "project-download.resources должен быть словарём",
-    );
-  }
-  for (const [id, item] of Object.entries(resources)) {
-    if (!RESOURCE_ID.test(id)) {
-      throw diagnostic(
-        "DOWNLOAD.CONFIG_INVALID",
-        `Недопустимый идентификатор ресурса: ${id}`,
-        { id, field: "resources" },
-      );
-    }
-    resource(item, id);
-  }
+  assertResources(resources);
   return {
-    resources: resources as Record<string, Resource>,
+    resources,
     "course-model": model,
     "base-url": base,
   };

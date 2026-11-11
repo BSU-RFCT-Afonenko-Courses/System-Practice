@@ -12,7 +12,15 @@ import { assertReferenceTargets, resolveReferences } from "./references.ts";
 import { type BodyReferenceContext, publicLinks } from "./links.ts";
 import { BodyPackageSchema } from "./package-contracts.ts";
 export type { BodyPackage, PublicBodyPackage } from "./model.ts";
-import { isNode, isNodes as nodes, isRecord, isContainer, isLink, nodeAttributes as attr, requireNodes } from "../document/native-ast.ts";
+import {
+  isContainer,
+  isLink,
+  isNode,
+  isNodes as nodes,
+  isRecord,
+  nodeAttributes as attr,
+  requireNodes,
+} from "../document/native-ast.ts";
 import type { ContainerNode } from "../document/native-ast.ts";
 const classes = (n: unknown) => attr(n)?.[1] || [];
 function titleTargets(value: unknown): Node[] {
@@ -80,7 +88,9 @@ function partition(value: unknown, banks: Node[], solutions: Node[]): unknown {
     value.t === "CodeBlock" && classes(value).includes("answer-spec") ||
     value.t === "Div" && classes(value).includes("answer")
   ) {
-    if (!isNode(value)) throw diagnostic("DOCUMENT_AST", "Повреждённый банк ответа", {});
+    if (!isNode(value)) {
+      throw diagnostic("DOCUMENT_AST", "Повреждённый банк ответа", {});
+    }
     banks.push(value);
     return omitted;
   }
@@ -130,6 +140,22 @@ function assertSupported(value: unknown, context: DiagnosticContext) {
       context,
     );
   }
+  const native = attr(value);
+  const emptyNativeContainer = isContainer(value) && value.c[1].length === 0;
+  const ojsBlock = value.t === "Div" && native &&
+    /^ojs-cell-[0-9]+(?:-[0-9]+)?$/.test(native[0]) &&
+    native[2].some(([key, type]) =>
+      key === "nodetype" && ["declaration", "expression"].includes(type)
+    );
+  const ojsInline = value.t === "Span" && native &&
+    /^ojs-element-id-[0-9]+$/.test(native[0]);
+  if (emptyNativeContainer && (ojsBlock || ojsInline)) {
+    throw diagnostic(
+      "BODY.CAPABILITY_UNSUPPORTED",
+      "OJS требует native HTML runtime и не переносится в Body",
+      context,
+    );
+  }
   if (typeof value.t === "string" && !supported.has(value.t)) {
     throw diagnostic(
       "BODY.CAPABILITY_UNSUPPORTED",
@@ -153,13 +179,23 @@ function assertSupported(value: unknown, context: DiagnosticContext) {
 }
 /** Existing one-scope public links/citations assembly reused by native assignment. */
 export async function preparePublicQuestion(
-  condition: Node[],
-  publicAnswer: Node[],
-  document: unknown,
-  root: string,
-  context: DiagnosticContext,
-  references?: BodyReferenceContext,
-  effectiveBase?: string,
+  {
+    condition,
+    publicAnswer,
+    document,
+    root,
+    context,
+    references,
+    effectiveBase,
+  }: {
+    condition: Node[];
+    publicAnswer: Node[];
+    document: unknown;
+    root: string;
+    context: DiagnosticContext;
+    references?: BodyReferenceContext | undefined;
+    effectiveBase?: string | undefined;
+  },
 ) {
   const fragments = await resolveReferences(
     await publicLinks(
@@ -176,7 +212,13 @@ export async function preparePublicQuestion(
     effectiveBase,
   );
   const conditionFragment = fragments[0], answerFragment = fragments[1];
-  if (!isContainer(conditionFragment) || !isContainer(answerFragment)) throw diagnostic("DOCUMENT_AST", "Потеряна оболочка публичного фрагмента", context);
+  if (!isContainer(conditionFragment) || !isContainer(answerFragment)) {
+    throw diagnostic(
+      "DOCUMENT_AST",
+      "Потеряна оболочка публичного фрагмента",
+      context,
+    );
+  }
   const result = {
     condition: [...conditionFragment.c[1], ...fragments.slice(2)],
     publicAnswer: answerFragment.c[1],
@@ -190,12 +232,14 @@ export async function preparePublicQuestion(
   return result;
 }
 export async function preparePublicIntroduction(
-  blocks: Node[],
-  document: unknown,
-  root: string,
-  context: DiagnosticContext,
-  references?: BodyReferenceContext,
-  effectiveBase?: string,
+  { blocks, document, root, context, references, effectiveBase }: {
+    blocks: Node[];
+    document: unknown;
+    root: string;
+    context: DiagnosticContext;
+    references?: BodyReferenceContext | undefined;
+    effectiveBase?: string | undefined;
+  },
 ) {
   const result = await resolveReferences(
     await publicLinks(requireNodes(introduction(partition(blocks, [], []))), {
@@ -215,10 +259,15 @@ export async function assertBodyPackage(pkg: unknown, root: string) {
   const parsed = BodyPackageSchema.safeParse(pkg);
   if (!parsed.success) {
     const issue = parsed.error.issues[0];
-    throw diagnostic("BODY.PACKAGE_INVALID", (issue?.message ?? "Некорректный Body package"), {
-      source: root,
-      field: issue?.path.join(".") ?? "",
-    }, parsed.error);
+    throw diagnostic(
+      "BODY.PACKAGE_INVALID",
+      issue?.message ?? "Некорректный Body package",
+      {
+        source: root,
+        field: issue?.path.join(".") ?? "",
+      },
+      parsed.error,
+    );
   }
 }
 
@@ -278,6 +327,15 @@ export function publicCondition(blocks: Node[], hasCanonicalTitle: boolean) {
   const prefixAttr = prefix && attr(prefix);
   let prefixTargets: Node[] = [];
   let nativeTitleConsumed = false;
+  function titleTail() {
+    const tail = inlines!.slice(1);
+    while (
+      tail[0] && (["Space", "SoftBreak", "LineBreak"].includes(tail[0].t) ||
+        tail[0].t === "Str" && typeof tail[0].c === "string" &&
+          !tail[0].c.trim())
+    ) tail.shift();
+    return tail;
+  }
   // Quarto's crossref writer prepends this anonymous caption to the first
   // paragraph. Strip only that native prefix, keeping any authored tail.
   if (
@@ -289,12 +347,7 @@ export function publicCondition(blocks: Node[], hasCanonicalTitle: boolean) {
   ) {
     nativeTitleConsumed = true;
     prefixTargets = titleTargets(prefix);
-    const tail = inlines!.slice(1);
-    while (
-      tail[0] && (["Space", "SoftBreak", "LineBreak"].includes(tail[0].t) ||
-        tail[0].t === "Str" && typeof tail[0].c === "string" &&
-          !tail[0].c.trim())
-    ) tail.shift();
+    const tail = titleTail();
     if (tail.length) authoredCondition[0] = { ...opening, c: tail };
     else authoredCondition.shift();
   }

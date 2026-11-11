@@ -1,7 +1,9 @@
+const nativeArray = (value: unknown): value is readonly unknown[] =>
+  Array.isArray(value);
 import { basename, dirname, join, relative, resolve } from "stdlib/path";
 import { fail } from "../contracts/project.ts";
 import type { NativeCaptureReservation } from "./contracts.ts";
-import type { NativeOwnerInspection } from "./operation.ts";
+import type { NativeOwnerInspection } from "../infrastructure/native-owner-inspection.ts";
 export type AssignmentIntent = { source: string; id: string }[];
 export type AssignmentPreparation = {
   assignment: {
@@ -77,6 +79,62 @@ export function consumeAssignmentAdmission(value: AssignmentAdmission) {
   }
   return value;
 }
+async function assignmentExecutable(root: string) {
+  const { quartoExecutable } = await import("../infrastructure/process.ts");
+  const requestedExecutable = quartoExecutable();
+  const candidates = /[\\/]/.test(requestedExecutable)
+    ? [resolve(root, requestedExecutable)]
+    : (Deno.env.get("PATH") ?? "").split(
+      Deno.build.os === "windows" ? ";" : ":",
+    )
+      .map((directory) => resolve(root, directory || ".", requestedExecutable));
+  let executable: string | undefined;
+  for (const candidate of candidates) {
+    try {
+      if ((await Deno.stat(candidate)).isFile) {
+        executable = await Deno.realPath(candidate);
+        break;
+      }
+    } catch (error) {
+      if (!(error instanceof Deno.errors.NotFound)) throw error;
+    }
+  }
+  if (!executable) invalid("Quarto executable не найден");
+  return executable;
+}
+async function prepareAssignmentSelection(
+  options: AssignmentPreparation,
+  owner: NativeOwnerInspection,
+  source: AssignmentAdmission["source"],
+) {
+  const selection = await options.assignment.prepare(
+    frozen(structuredClone(owner)),
+  );
+  if (
+    !selection || !nativeArray(selection.expectedSources) ||
+    !selection.expectedSources.length ||
+    selection.expectedSources.length > 4096 ||
+    new Set(selection.expectedSources).size !==
+      selection.expectedSources.length ||
+    selection.expectedSources.some((p) =>
+      typeof p !== "string" ||
+      !owner.files.input.includes(join(source.root, p)) ||
+      p !== relative(source.root, join(source.root, p)) ||
+      p.split("/").some((s) => !s || s === "." || s === "..")
+    )
+  ) invalid("Неверный prepared source scope");
+  if (
+    !nativeArray(selection.assessments) || !selection.assessments.length ||
+    selection.assessments.length > 4096 ||
+    new Set(selection.assessments.map((p) => p.source + "\0" + p.id)).size !==
+      selection.assessments.length ||
+    selection.assessments.some((p) =>
+      !selection.expectedSources.includes(p.source) ||
+      !/^[a-z][a-z0-9-]*$/.test(p.id)
+    )
+  ) invalid("Неверный assignment intent");
+  return selection;
+}
 export async function prepareAssignment(
   reservation: NativeCaptureReservation,
   options: AssignmentPreparation,
@@ -91,7 +149,7 @@ export async function prepareAssignment(
   ) invalid("Требуется явное новое assignment intent");
   const requested = options.assignment.profiles ?? [];
   if (
-    !Array.isArray(requested) || requested.length > 15 ||
+    !nativeArray(requested) || requested.length > 15 ||
     new Set(requested).size !== requested.length ||
     requested.some((p) =>
       typeof p !== "string" || !/^[-a-z0-9]+$/.test(p) ||
@@ -112,29 +170,8 @@ export async function prepareAssignment(
     outputDirectory: reservation.outputDirectory,
     ownerInputs: [] as string[],
   };
-  const { inspectNativeOwner } = await import("./operation.ts");
-  const { quartoExecutable } = await import("../infrastructure/process.ts");
-  const requestedExecutable = quartoExecutable();
-  const candidates = /[\\/]/.test(requestedExecutable)
-    ? [resolve(source.root, requestedExecutable)]
-    : (Deno.env.get("PATH") ?? "").split(
-      Deno.build.os === "windows" ? ";" : ":",
-    )
-      .map((directory) =>
-        resolve(source.root, directory || ".", requestedExecutable)
-      );
-  let executable: string | undefined;
-  for (const candidate of candidates) {
-    try {
-      if ((await Deno.stat(candidate)).isFile) {
-        executable = await Deno.realPath(candidate);
-        break;
-      }
-    } catch (error) {
-      if (!(error instanceof Deno.errors.NotFound)) throw error;
-    }
-  }
-  if (!executable) invalid("Quarto executable не найден");
+  const { inspectNativeOwner } = await import("./operation-owner.ts");
+  const executable = await assignmentExecutable(source.root);
   const environment = { ...Deno.env.toObject() };
   // Quarto child создаёт собственный project/script transport; host CLI не переносит его.
   for (const key of Object.keys(environment)) {
@@ -173,32 +210,7 @@ export async function prepareAssignment(
     owner.config?.["course-core-runtime"] !== "native-ts" ||
     owner.config?.["course-core-projection"] !== "author"
   ) invalid("Native owner не соответствует author operation");
-  const selection = await options.assignment.prepare(
-    frozen(structuredClone(owner)),
-  );
-  if (
-    !selection || !Array.isArray(selection.expectedSources) ||
-    !selection.expectedSources.length ||
-    selection.expectedSources.length > 4096 ||
-    new Set(selection.expectedSources).size !==
-      selection.expectedSources.length ||
-    selection.expectedSources.some((p) =>
-      typeof p !== "string" ||
-      !owner.files.input.includes(join(source.root, p)) ||
-      p !== relative(source.root, join(source.root, p)) ||
-      p.split("/").some((s) => !s || s === "." || s === "..")
-    )
-  ) invalid("Неверный prepared source scope");
-  if (
-    !Array.isArray(selection.assessments) || !selection.assessments.length ||
-    selection.assessments.length > 4096 ||
-    new Set(selection.assessments.map((p) => p.source + "\0" + p.id)).size !==
-      selection.assessments.length ||
-    selection.assessments.some((p) =>
-      !selection.expectedSources.includes(p.source) ||
-      !/^[a-z][a-z0-9-]*$/.test(p.id)
-    )
-  ) invalid("Неверный assignment intent");
+  const selection = await prepareAssignmentSelection(options, owner, source);
   const result: AssignmentAdmission = {
     source,
     operation: crypto.randomUUID(),

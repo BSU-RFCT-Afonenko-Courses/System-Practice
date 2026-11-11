@@ -15,6 +15,7 @@ export async function finishedNativeResource(
   state: { root: string; outputDirectory: string },
   source: string,
   sourceIdentities: readonly string[] = [],
+  capturedSource?: string,
 ) {
   const output = resolve(state.outputDirectory, source);
   let original: string | undefined;
@@ -25,9 +26,18 @@ export async function finishedNativeResource(
   }
   let path: string;
   try {
-    path = await regular(state.root, relative(state.root, output));
+    path = await regular(
+      state.root,
+      relative(state.root, capturedSource ?? output),
+    );
   } catch (error) {
     if (!(error instanceof Deno.errors.NotFound)) throw error;
+    if (capturedSource) {
+      fail(
+        "RESOURCE_CURRENT_BYTES_MISSING",
+        "Не найден native mediabag source",
+      );
+    }
     if (!original) {
       fail(
         "RESOURCE_CURRENT_BYTES_MISSING",

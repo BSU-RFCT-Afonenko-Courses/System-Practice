@@ -23,7 +23,8 @@ export function bindConditionLinks(
     ...destination,
     baseUrl: destination.catalogBaseUrl ?? destination.baseUrl,
   });
-  const result: Record<string, string> = Object.create(null);
+  const result: Record<string, string> = {};
+  Object.setPrototypeOf(result, null);
   for (const link of condition.links) {
     // Полный набор локальных IDs и их проверка принадлежат Core writer.
     if (link.startsWith("#")) continue;
@@ -41,9 +42,7 @@ export function bindConditionLinks(
       continue;
     }
     const urls = destination.urls;
-    const explicit = urls && Object.hasOwn(urls, link)
-      ? urls[link]
-      : undefined;
+    const explicit = urls && Object.hasOwn(urls, link) ? urls[link] : undefined;
     let nativeOutput: string | undefined;
     if (
       !explicit && destination.sources && !/^[a-z][a-z0-9+.-]*:/i.test(link)

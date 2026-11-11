@@ -37,7 +37,13 @@ const ownKeys = new Set([
   "target",
   "project-check",
 ]);
-import { isRecord as object, isContainer, isHeader, nodeAttributes, requireNodes } from "./native-ast.ts";
+import {
+  isContainer,
+  isHeader,
+  isRecord as object,
+  nodeAttributes,
+  requireNodes,
+} from "./native-ast.ts";
 import type { Attributes } from "./native-ast.ts";
 function attr(node: unknown, source: string): Attributes {
   const value = nodeAttributes(node, source);
@@ -104,6 +110,110 @@ function normalizeDocumentWork(
     : undefined;
   const identityNodes = new WeakSet<object>();
   let ordinal = 0;
+  function declareExercise(id: string, pairs: Attributes[2]) {
+    const own: Record<string, unknown> = {};
+    const seen = new Set<string>();
+    for (const [key, text] of pairs) {
+      if (seen.has(key)) {
+        fail(
+          "DOCUMENT_DUPLICATE",
+          "Повторный атрибут " + key,
+          context.input,
+          id,
+        );
+      }
+      seen.add(key);
+      if (ownKeys.has(key)) {
+        if (key === "time") {
+          if (!/^[1-9][0-9]*$/.test(text)) {
+            fail(
+              "EXERCISE_CONTRACT",
+              "time требует положительное целое",
+              context.input,
+              id,
+            );
+          }
+          own[key] = Number(text);
+        } else own[key] = text;
+      }
+    }
+    if (
+      context.defaults.target && own.target &&
+      context.defaults.target !== own.target
+    ) {
+      fail(
+        "CORE.EXERCISE_DEFAULT_CONFLICT",
+        "Конфликт default/explicit target",
+        context.input,
+        id,
+      );
+    }
+    const declaration = decode(
+      ExerciseDeclarationSchema,
+      {
+        ...(!context.exerciseBank ? { "statement-visibility": "open" } : {}),
+        ...context.defaults,
+        ...own,
+      },
+      "EXERCISE_CONTRACT",
+      context.input,
+    );
+    if (
+      definitions[id] &&
+      JSON.stringify(definitions[id]) !== JSON.stringify(declaration)
+    ) {
+      fail(
+        "DOCUMENT_DUPLICATE",
+        "Противоречащие определения одного ID",
+        context.input,
+        id,
+      );
+    }
+    definitions[id] = declaration;
+    return declaration;
+  }
+
+  function collectSolution(
+    v: object,
+    a: Attributes,
+    parent: string | undefined,
+    conditional: boolean,
+  ) {
+    const [id, , pairs] = a;
+    if (pairs.some(([key]) => key === "for")) {
+      fail(
+        "SOLUTION_PAIRING_INVALID",
+        "Атрибут for у банковского решения не поддерживается; используйте suffix или вложенное .solution",
+        context.input,
+        `${id || parent || "solution"}.for`,
+      );
+    }
+    const namedOwner = id.startsWith("sol-") ? "exr-" + id.slice(4) : undefined;
+    if (namedOwner && parent && namedOwner !== parent) {
+      fail(
+        "SOLUTION_PAIRING_INVALID",
+        `Suffix ${id} указывает на ${namedOwner}, но окружающее упражнение — ${parent}`,
+        context.input,
+        "solution",
+      );
+    }
+    const exerciseId = namedOwner ?? parent;
+    if (!exerciseId) {
+      fail(
+        "EXERCISE_CONTRACT",
+        "Решение без упражнения",
+        context.input,
+        id,
+      );
+    }
+    rows.set(v, {
+      kind: "solution",
+      exerciseId,
+      publicSolution: false,
+      remove: false,
+      conditional,
+    });
+  }
   function collect(v: unknown, parent?: string, conditional = false) {
     if (Array.isArray(v)) {
       for (const item of v) collect(item, parent, conditional);
@@ -161,67 +271,7 @@ function normalizeDocumentWork(
             id,
           );
         }
-        const own: Record<string, unknown> = {};
-        const seen = new Set<string>();
-        for (const [key, text] of pairs) {
-          if (seen.has(key)) {
-            fail(
-              "DOCUMENT_DUPLICATE",
-              "Повторный атрибут " + key,
-              context.input,
-              id,
-            );
-          }
-          seen.add(key);
-          if (ownKeys.has(key)) {
-            if (key === "time") {
-              if (!/^[1-9][0-9]*$/.test(text)) {
-                fail(
-                  "EXERCISE_CONTRACT",
-                  "time требует положительное целое",
-                  context.input,
-                  id,
-                );
-              }
-              own[key] = Number(text);
-            } else own[key] = text;
-          }
-        }
-        if (
-          context.defaults.target && own.target &&
-          context.defaults.target !== own.target
-        ) {
-          fail(
-            "CORE.EXERCISE_DEFAULT_CONFLICT",
-            "Конфликт default/explicit target",
-            context.input,
-            id,
-          );
-        }
-        const declaration = decode(
-          ExerciseDeclarationSchema,
-          {
-            ...(!context.exerciseBank
-              ? { "statement-visibility": "open" }
-              : {}),
-            ...context.defaults,
-            ...own,
-          },
-          "EXERCISE_CONTRACT",
-          context.input,
-        );
-        if (
-          definitions[id] &&
-          JSON.stringify(definitions[id]) !== JSON.stringify(declaration)
-        ) {
-          fail(
-            "DOCUMENT_DUPLICATE",
-            "Противоречащие определения одного ID",
-            context.input,
-            id,
-          );
-        }
-        definitions[id] = declaration;
+        const declaration = declareExercise(id, pairs);
         rows.set(v, {
           kind: "exercise",
           exerciseId: id,
@@ -235,41 +285,7 @@ function normalizeDocumentWork(
         context.exerciseBank && v.t === "Div" &&
         (classes.includes("solution") || id.startsWith("sol-"))
       ) {
-        if (pairs.some(([key]) => key === "for")) {
-          fail(
-            "SOLUTION_PAIRING_INVALID",
-            "Атрибут for у банковского решения не поддерживается; используйте suffix или вложенное .solution",
-            context.input,
-            `${id || parent || "solution"}.for`,
-          );
-        }
-        const namedOwner = id.startsWith("sol-")
-          ? "exr-" + id.slice(4)
-          : undefined;
-        if (namedOwner && parent && namedOwner !== parent) {
-          fail(
-            "SOLUTION_PAIRING_INVALID",
-            `Suffix ${id} указывает на ${namedOwner}, но окружающее упражнение — ${parent}`,
-            context.input,
-            "solution",
-          );
-        }
-        const exerciseId = namedOwner ?? parent;
-        if (!exerciseId) {
-          fail(
-            "EXERCISE_CONTRACT",
-            "Решение без упражнения",
-            context.input,
-            id,
-          );
-        }
-        rows.set(v, {
-          kind: "solution",
-          exerciseId,
-          publicSolution: false,
-          remove: false,
-          conditional,
-        });
+        collectSolution(v, a, parent, conditional);
       }
     }
     for (const child of Object.values(v)) collect(child, next, conditional);
@@ -309,13 +325,16 @@ function normalizeDocumentWork(
   for (const [id, declaration] of Object.entries(definitions)) {
     const project = declaration.project;
     if (!project?.startsWith("/projects/")) continue;
-    const expected = "exr-" + project.slice("/projects/".length).replaceAll("/", "-");
+    const expected = "exr-" +
+      project.slice("/projects/".length).replaceAll("/", "-");
     if (id !== expected) {
-      console.warn("WARNING: " + diagnostic(
-        "CORE.PROJECT_ID_MISMATCH",
-        `ID упражнения отличается от project: project=${project}; expected=${expected}`,
-        { source: context.input, id, field: "project" },
-      ).message);
+      console.warn(
+        "WARNING: " + diagnostic(
+          "CORE.PROJECT_ID_MISMATCH",
+          `ID упражнения отличается от project: project=${project}; expected=${expected}`,
+          { source: context.input, id, field: "project" },
+        ).message,
+      );
     }
   }
   if (assignment) {
@@ -332,6 +351,29 @@ function normalizeDocumentWork(
       Object.values(value).forEach((v) => mark(v, [...parents, value]));
     }
     mark(ast.blocks);
+  }
+  function projectPublicExamples(result: Record<string, unknown>) {
+    // Raw ответы и release facts уже проверены выше. Заголовок не должен
+    // скрыть недопустимый answer/correct в авторском исходном Header.
+    if (
+      isContainer(result) && result.t === "Div" &&
+      result.c[0][1].includes("public-tests")
+    ) {
+      const body = result.c[1];
+      const index = body.findIndex(isHeader);
+      const previous = index >= 0 ? body[index] : undefined;
+      const heading = isHeader(previous)
+        ? {
+          ...previous,
+          c: [3, previous.c[1], [{ t: "Str", c: "Открытые примеры" }]],
+        }
+        : {
+          t: "Header",
+          c: [3, ["", [], []], [{ t: "Str", c: "Открытые примеры" }]],
+        };
+      if (index >= 0) body.splice(index, 1);
+      body.unshift(heading);
+    }
   }
   function project(v: unknown): unknown {
     if (Array.isArray(v)) {
@@ -351,9 +393,7 @@ function normalizeDocumentWork(
       assignment &&
       assignment.assessments.some((p) => p.source === assignment.source) &&
       isContainer(v) && v.t === "Div" &&
-      v.c[0][1].some((c) =>
-        c === "task-items" || c === "assessment-preview"
-      )
+      v.c[0][1].some((c) => c === "task-items" || c === "assessment-preview")
     ) return undefined;
     if (
       context.projection === "student" && isContainer(v) && v.t === "Div" &&
@@ -373,7 +413,9 @@ function normalizeDocumentWork(
       });
     }
     if (assignment && row?.kind === "solution") {
-      if (!isContainer(v)) fail("DOCUMENT_AST", "Некорректное solution body", context.input);
+      if (!isContainer(v)) {
+        fail("DOCUMENT_AST", "Некорректное solution body", context.input);
+      }
       v.c[1] = [];
     }
     const result = Object.fromEntries(
@@ -383,7 +425,9 @@ function normalizeDocumentWork(
       assignment && row?.kind === "exercise" &&
       !Object.hasOwn(assignment.answers, row.exerciseId)
     ) {
-      if (!isContainer(result)) fail("DOCUMENT_AST", "Некорректное exercise body", context.input);
+      if (!isContainer(result)) {
+        fail("DOCUMENT_AST", "Некорректное exercise body", context.input);
+      }
       result.c[1].push(
         ...assignmentAnswerTransport(
           row.exerciseId,
@@ -394,29 +438,23 @@ function normalizeDocumentWork(
         ),
       );
     }
-    // Raw ответы и release facts уже проверены выше. Заголовок не должен
-    // скрыть недопустимый answer/correct в авторском исходном Header.
-    if (isContainer(result) && result.t === "Div" && result.c[0][1].includes("public-tests")) {
-      const body = result.c[1];
-      const index = body.findIndex(isHeader);
-      const previous = index >= 0 ? body[index] : undefined;
-      const heading = isHeader(previous)
-        ? { ...previous, c: [3, previous.c[1], [{ t: "Str", c: "Открытые примеры" }]] }
-        : { t: "Header", c: [3, ["", [], []], [{ t: "Str", c: "Открытые примеры" }]] };
-      if (index >= 0) body.splice(index, 1);
-      body.unshift(heading);
-    }
+    projectPublicExamples(result);
     if (identityNodes.has(v)) identityNodes.add(result);
     return result;
   }
   ast.blocks = requireNodes(project(ast.blocks), context.input);
   if (assignment) {
-    ast.blocks = requireNodes(assignmentPrivacy(ast.blocks, context, identityNodes), context.input);
+    ast.blocks = requireNodes(
+      assignmentPrivacy(ast.blocks, context, identityNodes),
+      context.input,
+    );
     const selected = assignment.assessments.filter((p) =>
       p.source === assignment.source
     );
     if (selected.length) {
-      if (selected.length !== 1 || release?.assessment?.id !== selected[0]!.id) {
+      if (
+        selected.length !== 1 || release?.assessment?.id !== selected[0]!.id
+      ) {
         fail(
           "BODY.ASSESSMENT_BINDING",
           "Selected native composition отличается",
@@ -492,6 +530,8 @@ export function normalizeDocument(
   return metrics.wrapSync({
     id: "course-core.document.normalizeDocument",
     kind: "phase",
-    ...(args[1] && typeof args[1].input === "string" ? { document_id: args[1].input } : {}),
+    ...(args[1] && typeof args[1].input === "string"
+      ? { document_id: args[1].input }
+      : {}),
   }, () => normalizeDocumentWork(...args))();
 }

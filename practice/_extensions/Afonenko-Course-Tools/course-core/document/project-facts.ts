@@ -110,5 +110,4 @@ export const NativeProjectFactsCaptureSchema = z.strictObject({
     z.string(),
     NativeProjectMaterializationSchema,
   ),
-  collectCalls: z.literal(1),
 });

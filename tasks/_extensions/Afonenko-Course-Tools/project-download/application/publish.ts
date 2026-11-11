@@ -15,9 +15,11 @@ export type ArtifactKind = typeof ARTIFACT_KINDS[number];
 type NativeRequest = ReturnType<typeof resolveDownloadRequests>["request"];
 export type ArtifactRequest = NonNullable<NativeRequest["artifacts"]>[number];
 /** Проверенные поля заявки; raw configuration разбирает её действующий owner. */
-export type Request = Pick<NativeRequest, "source" | "resources" | "artifacts"> & {
-  configuration?: unknown;
-};
+export type Request =
+  & Pick<NativeRequest, "source" | "resources" | "artifacts">
+  & {
+    configuration?: unknown;
+  };
 export interface PublishPorts {
   requests(): Promise<Request[]>;
   courseResource(id: string, source: string): Promise<Resource>;
@@ -42,9 +44,16 @@ export const publish = __metrics.wrapAsync({
   profiles: string[],
   ports: PublishPorts,
 ): Promise<number> {
-  return await progress("Сборка материалов и ZIP", () => publishInternal(config, profiles, ports));
+  return await progress(
+    "Сборка материалов и ZIP",
+    () => publishInternal(config, profiles, ports),
+  );
 });
-async function publishInternal(config: Configuration, profiles: string[], ports: PublishPorts): Promise<number> {
+async function publishInternal(
+  config: Configuration,
+  profiles: string[],
+  ports: PublishPorts,
+): Promise<number> {
   const selected = new Map<string, Resource>();
   const model = new Map<
     string,
@@ -52,7 +61,11 @@ async function publishInternal(config: Configuration, profiles: string[], ports:
   >();
   const requests = await progress("Чтение заявок", () => ports.requests());
   await progress("Подготовка заявок", async () => {
-    let pages = 0;
+    let pages = 0, prepared = 0;
+    const total = requests.reduce(
+      (count, request) => count + (request.artifacts?.length ?? 0),
+      0,
+    );
     for (const request of requests) {
       for (const artifact of request.artifacts ?? []) {
         if (
@@ -77,13 +90,20 @@ async function publishInternal(config: Configuration, profiles: string[], ports:
             },
           );
         }
+        reportProgress(
+          `Подготовка материалов: ${request.source} / ${artifact.exerciseId} (${artifact.kind}), готово=${prepared}/${total}`,
+        );
         await progress("Подготовка материалов", async () => {
           const resolved = await ports.modelArtifact!(artifact, request.source);
           if (resolved.kind !== artifact.kind) {
             throw diagnostic(
               "DOWNLOAD.REQUEST_INVALID",
               "Разрешённый комплект не совпадает с текущей ссылкой",
-              { source: request.source, id: artifact.exerciseId, field: "kind" },
+              {
+                source: request.source,
+                id: artifact.exerciseId,
+                field: "kind",
+              },
             );
           }
           const name = artifact.exerciseId + "-" + resolved.kind + ".zip";
@@ -104,6 +124,9 @@ async function publishInternal(config: Configuration, profiles: string[], ports:
           }
           if (!previous) model.set(name, { files, package: resolved.package });
         });
+        reportProgress(
+          `Подготовка материалов — artifacts=${++prepared}/${total}, source=${request.source}, id=${artifact.exerciseId}, kind=${artifact.kind}`,
+        );
       }
       for (const id of request.resources) {
         if (!RESOURCE_ID.test(id)) {
@@ -159,7 +182,9 @@ async function publishInternal(config: Configuration, profiles: string[], ports:
       reportProgress(`Подготовка заявок — pages=${++pages}/${requests.length}`);
     }
   });
-  reportProgress(`Подготовка заявок — resources=${selected.size}, model=${model.size}`);
+  reportProgress(
+    `Подготовка заявок — resources=${selected.size}, model=${model.size}`,
+  );
   const archives: { name: string; bytes: Uint8Array }[] = [];
   await progress("Сборка ZIP", async () => {
     for (
@@ -173,18 +198,31 @@ async function publishInternal(config: Configuration, profiles: string[], ports:
           { id, field: "output" },
         );
       }
-      const files = await progress("Чтение материалов", () => ports.files(resource));
+      const files = await progress(
+        "Чтение материалов",
+        () => ports.files(resource),
+      );
       archives.push({ name, bytes: zip(files) });
-      reportProgress(`Сборка ZIP — archives=${archives.length}/${selected.size + model.size}`);
+      reportProgress(
+        `Сборка ZIP — archives=${archives.length}/${
+          selected.size + model.size
+        }, archive=${name}`,
+      );
     }
     for (
       const [name, artifact] of [...model].sort(([a], [b]) => a < b ? -1 : 1)
     ) {
       archives.push({
         name,
-        bytes: artifact.package ? await artifact.package() : zip(artifact.files),
+        bytes: artifact.package
+          ? await artifact.package()
+          : zip(artifact.files),
       });
-      reportProgress(`Сборка ZIP — archives=${archives.length}/${selected.size + model.size}`);
+      reportProgress(
+        `Сборка ZIP — archives=${archives.length}/${
+          selected.size + model.size
+        }, archive=${name}`,
+      );
     }
   });
   await progress("Передача архивов", () => ports.save(archives));
@@ -198,6 +236,7 @@ function equalFiles(a: ArchiveEntry[], b: ArchiveEntry[]): boolean {
   return a.length === b.length &&
     a.every((file, i) => {
       const other = b[i];
-      return other !== undefined && file.name === other.name && equalBytes(file.bytes, other.bytes);
+      return other !== undefined && file.name === other.name &&
+        equalBytes(file.bytes, other.bytes);
     });
 }

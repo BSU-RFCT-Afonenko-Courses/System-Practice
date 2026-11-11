@@ -117,6 +117,10 @@ async function gitIgnored(root: string, paths: string[]): Promise<Set<string>> {
       }
       throw externalFailure("git", undefined, cause);
     }
+    // Git пишет совпадения, пока ещё читает список путей из stdin.
+    const output = process.output();
+    // Пока пишем в stdin, ранний отказ чтения уже должен быть обработан.
+    void output.catch(() => {});
     const writer = process.stdin.getWriter();
     let inputFailure: unknown;
     try {
@@ -130,7 +134,7 @@ async function gitIgnored(root: string, paths: string[]): Promise<Set<string>> {
       inputFailure ??= cause;
     }
     // Получить собственный exit/потоки Git даже при раннем закрытии stdin.
-    const result = await process.output();
+    const result = await output;
     if (result.code > 1) throw externalFailure("git", result, inputFailure);
     if (inputFailure !== undefined) {
       if (

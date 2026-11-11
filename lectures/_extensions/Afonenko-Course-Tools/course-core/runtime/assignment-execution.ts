@@ -1,3 +1,11 @@
+import {
+  nativeChildBefore,
+  ordinaryPandocChild,
+  qualifiedPandocArgs,
+  withNativeChildScope,
+} from "./native-child.ts";
+const nativeArray = (value: unknown): value is readonly unknown[] =>
+  Array.isArray(value);
 import type { NativePandocBinding } from "./pandoc-binding.ts";
 import type { NativeCaptureCommand } from "./prepared-operation.ts";
 import type { AssignmentRuntimeWitness } from "./assignment-admission.ts";
@@ -54,14 +62,18 @@ export function withAssignmentBeforeChild<T>(
   pandocBinding?: () => Promise<NativePandocBinding | undefined>,
 ) {
   const state = execution();
-  return state
-    ? enter({
-      ...state,
-      beforeChild,
-      lives: [...state.lives, life],
-      pandocBinding: pandocBinding ?? state.pandocBinding,
-    }, use)
-    : use();
+  return withNativeChildScope(
+    { beforeChild, life, pandocBinding },
+    () =>
+      state
+        ? enter({
+          ...state,
+          beforeChild,
+          lives: [...state.lives, life],
+          pandocBinding: pandocBinding ?? state.pandocBinding,
+        }, use)
+        : use(),
+  );
 }
 export function withAssignmentCaptureChild<T>(
   token: string,
@@ -72,6 +84,7 @@ export function withAssignmentCaptureChild<T>(
   return enter({ ...state, token }, use);
 }
 export async function assignmentBeforeChild() {
+  if (await nativeChildBefore()) return;
   const state = execution();
   await state?.beforeChild?.();
   execution();
@@ -92,7 +105,7 @@ export function assignmentChild(
   if (
     (executable !== "quarto" && executable !== runtime.executable) ||
     cwd !== root ||
-    !Array.isArray(args) || args.some((a) => typeof a !== "string")
+    !nativeArray(args) || args.some((a) => typeof a !== "string")
   ) changed("Чужой native executable/cwd/argv");
   const base = runtime.profiles.join(",");
   const ownerInspect = equal(args, [
@@ -108,28 +121,7 @@ export function assignmentChild(
       "--profile",
       base,
     ]);
-  const pandoc = args[0] === "pandoc" && (
-    equal(args, [
-      "pandoc",
-      "--from",
-      "markdown",
-      "--to",
-      "json",
-      "--wrap=none",
-    ]) ||
-    equal(args, ["pandoc", "--from", "json", "--to", "gfm", "--wrap=none"]) ||
-    args.length === 5 &&
-      equal(args.slice(0, 4), [
-        "pandoc",
-        "--from=json",
-        "--to=json",
-        "--citeproc",
-      ]) &&
-      args[4].startsWith("--resource-path=") &&
-      (args[4] === "--resource-path=" + root ||
-        args[4].slice(16).startsWith(root + "/")) &&
-      resolve(args[4].slice(16)) === args[4].slice(16)
-  );
+  const pandoc = qualifiedPandocArgs(args, root);
   if (
     !ownerInspect && !render && !pandoc
   ) changed("Native command вне existing Core call site");
@@ -162,7 +154,8 @@ export async function assignmentPandocChild(
 ) {
   const qualified = assignmentChild(executable, args, cwd, env);
   const state = execution();
-  const binding = await state?.pandocBinding?.();
+  if (!state) return await ordinaryPandocChild({ executable, args, cwd, env });
+  const binding = await state.pandocBinding?.();
   execution();
   if (!binding || !qualified) return qualified;
   // Только эквивалентный frozen snapshot может заменить launcher.
@@ -177,12 +170,16 @@ export async function assignmentPandocChild(
       environment[key] !== value
     )
   ) return qualified;
+  const childEnvironment: Record<string, string> = {
+    ...qualified.options.env,
+    PWD: cwd,
+  };
   return {
     executable: binding.executable,
     options: {
       args: [...args.slice(1)],
       cwd,
-      env: qualified.options.env,
+      env: childEnvironment,
       clearEnv: true as const,
     },
   };

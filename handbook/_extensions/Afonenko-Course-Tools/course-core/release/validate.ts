@@ -19,17 +19,27 @@ import type {
   PublicationPathCheck,
 } from "./publication.ts";
 export async function validateNativeRelease(
-  documents: PublicationDocuments,
-  identity: {
-    operation: string;
-    projection: "student" | "author";
-    profiles: string[];
+  {
+    documents,
+    identity,
+    requestValue,
+    validators,
+    installed,
+    checkPath,
+    guard,
+  }: {
+    documents: PublicationDocuments;
+    identity: {
+      operation: string;
+      projection: "student" | "author";
+      profiles: string[];
+    };
+    requestValue: NativeReleaseRequest;
+    validators: readonly NativeAdapterValidator[];
+    installed: readonly string[];
+    checkPath: PublicationPathCheck;
+    guard: () => Promise<void>;
   },
-  requestValue: NativeReleaseRequest,
-  validators: readonly NativeAdapterValidator[],
-  installed: readonly string[],
-  checkPath: PublicationPathCheck,
-  guard: () => Promise<void>,
 ) {
   // Snapshot executable descriptors before the first await; later mutation cannot change authority.
   validators = validators.map((v) => ({
@@ -48,14 +58,14 @@ export async function validateNativeRelease(
     projection: identity.projection,
     profiles: identity.profiles,
   };
-  const facts = await validatePublicationFacts(
-    documents,
-    identity,
-    requestValue,
-    checkPath,
-    guard,
-    installed,
-  );
+  const facts = await validatePublicationFacts({
+    documents: documents,
+    identity: identity,
+    requestValue: requestValue,
+    checkPath: checkPath,
+    guard: guard,
+    installed: installed,
+  });
   const course = facts.course;
   const byName = new Map(validators.map((v) => [v.name, v]));
   if (

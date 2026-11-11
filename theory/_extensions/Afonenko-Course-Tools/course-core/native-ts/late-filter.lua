@@ -118,8 +118,8 @@ return {{
     local binding=doc.meta['course-core-ts-binding']
     local context=bound_context(pandoc.json.decode(pandoc.utils.stringify(binding),false))
     local identifier=assert(quarto.format.format_identifier(),'DOCUMENT_BINDING: нет native format identifier')
-    local native_format=identifier['target-format']
-    assert((native_format=='html' or native_format=='revealjs') and identifier['base-format']==native_format and FORMAT==native_format and context.format==native_format,'DOCUMENT_BINDING: late native format отличается')
+    local native_format=identifier['base-format']
+    assert((native_format=='html' or native_format=='revealjs') and FORMAT==native_format and context.format==native_format,'DOCUMENT_BINDING: late native format отличается')
     local expected_profiles=request.context.profiles or (os.getenv('COURSE_CORE_TS_RUN') and pandoc.List())
     assert(context.operation==request.context.operation and context.captureWitness==request.context.captureWitness and context.input==request.context.input and context.projection==request.context.projection and pandoc.json.encode(context.profiles)==pandoc.json.encode(expected_profiles),'DOCUMENT_BINDING: чужой late request')
     local output=request.capture..'.late.json'
@@ -143,6 +143,7 @@ return {{
     ---@type pandoc.Pandoc|nil
     local cleaned
     if not os.getenv('COURSE_CORE_TS_RUN') then
+      -- Writer observation: post связывает её с текущими перемещёнными outputs.
       local output=quarto.doc.output_file
       cleaned=clean_document(doc)
       local body=blocks(cleaned)
@@ -151,6 +152,18 @@ return {{
       ---@type {facts:fun(raw:pandoc.Pandoc,public:pandoc.Pandoc,canonical?:{id:string,project?:string}[]):CourseResourceObservation}
       local resources=dofile(pandoc.path.join({dir,'../native-resources.lua'}))
       local observation=resources.facts(observedDoc,observedDoc,{})
+      -- Virtual native sources have bytes in Pandoc's bag, not an authored file.
+      -- Store only exact observed entries in this capture; never infer *_files paths.
+      assert(#observation.capturedFiles<=4096,'RESOURCE_LIMIT: too many native resources')
+      for index,resource in ipairs(observation.capturedFiles) do
+        if resource._bytes then
+          assert(#resource._bytes<=128*1024*1024,'RESOURCE_LIMIT: mediabag entry too large')
+          local media_path=request.capture..'.media-'..tostring(index)
+          local previous=io.open(media_path,'rb');assert(not previous,'DOCUMENT_BINDING: media sidecar already exists')
+          local media=assert(io.open(media_path,'wb'));media:write(resource._bytes);media:close()
+          resource._bytes=nil;resource.media=index
+        end
+      end
       ---@type {output:string,body:CourseJsonValue[],role:string,resources:CourseObservedResourceList,assignmentDeclarations?:CourseJsonList}
       local data={output=output,body=body,role=pandoc.utils.stringify(doc.meta['course-core-role'] or 'page'),resources=observation.capturedFiles}
       if request.assignment then

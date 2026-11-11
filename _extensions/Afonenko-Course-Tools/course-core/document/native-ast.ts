@@ -1,4 +1,6 @@
 import { fail } from "../contracts/project.ts";
+// @deno-types="../vendor/zod/v4/index.d.ts"
+import { z } from "../vendor/zod/v4/index.js";
 /** Нативные узлы Pandoc: payload уточняется только в месте чтения. */
 export type Node = { t: string; c?: unknown };
 export type Attributes = [string, string[], [string, string][]];
@@ -13,6 +15,12 @@ export const isNode = (value: unknown): value is Node =>
   isRecord(value) && typeof value.t === "string";
 export const isNodes = (value: unknown): value is Node[] =>
   Array.isArray(value) && value.every(isNode);
+/** Только массив узлов с tag; payload известных узлов проверяет читающий guard. */
+export const NativeNodesSchema = z.array(z.unknown()).transform((value, context) => {
+  if (isNodes(value)) return value;
+  context.addIssue({ code: "custom", message: "Ожидается массив native узлов" });
+  return z.NEVER;
+});
 export const isAttributes = (value: unknown): value is Attributes =>
   Array.isArray(value) && value.length === 3 && typeof value[0] === "string" &&
   Array.isArray(value[1]) && value[1].every((v: unknown) => typeof v === "string") &&

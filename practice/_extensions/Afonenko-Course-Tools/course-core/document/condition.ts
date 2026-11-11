@@ -2,6 +2,7 @@ import { inheritNativeValue } from "../runtime/capabilities.ts";
 import { fail } from "../contracts/project.ts";
 import { boundDocument, decode, FinalizedDocumentSchema } from "./contracts.ts";
 import type { FinalizedDocument } from "./contracts.ts";
+import { isLink, isNode } from "./native-ast.ts";
 import {
   ConditionViewSchema,
   ResolvedConditionSchema,
@@ -51,18 +52,11 @@ export function selectCondition(
     resources = new Set<string>();
   function visit(v: unknown) {
     if (!v || typeof v !== "object") return;
-    if ("t" in v && (v.t === "Link" || v.t === "Image")) {
-      const content = "c" in v ? v.c : undefined;
-      const target = typeof content === "string" ? content[2] :
-        content && (typeof content === "object" || typeof content === "function") &&
-          "2" in content ? content[2] : undefined;
-      const url = typeof target === "string" ? target[0] :
-        target && (typeof target === "object" || typeof target === "function") &&
-          "0" in target ? target[0] : undefined;
-      if (typeof url !== "string" || !url) {
+    if (isNode(v) && (v.t === "Link" || v.t === "Image")) {
+      if (!isLink(v) || !v.c[2][0]) {
         fail("CONDITION_NODE", "Повреждённый link/image");
       }
-      (v.t === "Link" ? links : resources).add(url);
+      (v.t === "Link" ? links : resources).add(v.c[2][0]);
     }
     const children: readonly unknown[] = Object.values(v);
     for (const child of children) {

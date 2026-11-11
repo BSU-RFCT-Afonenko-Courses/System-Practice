@@ -21,9 +21,9 @@ function paths(value: unknown): string[] {
   if (meta?.t === "MetaString" && typeof meta.c === "string") return [meta.c];
   if (
     meta?.t === "MetaInlines" && Array.isArray(meta.c) &&
-    meta.c.every((n) =>
+    meta.c.every((n: unknown) =>
       n && typeof n === "object" && "t" in n &&
-      ["Str", "Space", "SoftBreak"].includes(n.t)
+      ["Str", "Space", "SoftBreak"].includes(String(n.t))
     )
   ) return [visibleTitle(meta.c)];
   return fail(
@@ -57,7 +57,11 @@ const privateParts =
   /(^|\/)(?:private|reference|solution|solutions|grading-notes|rubric\.md|contract\.md|closed-tests|tests)(\/|$)/i;
 /** Разрешение внешнего файла не распространяется на другие ресурсы или targets. */
 export function citationResourceGuard(
-  owner: { root: string; outputDirectory: string; cacheDirectory?: string | undefined },
+  owner: {
+    root: string;
+    outputDirectory: string;
+    cacheDirectory?: string | undefined;
+  },
   documents: readonly Pick<NativePublicDocument, "context" | "assignment">[],
   roles: {
     assertPath: (path: string) => void;

@@ -1,34 +1,159 @@
 name: Проверка курса
-
 on:
+  pull_request:
   push:
     branches: [main]
-  pull_request:
-
+  workflow_dispatch:
 permissions:
   contents: read
-
+concurrency:
+  group: course-check-${{ github.ref }}
+  cancel-in-progress: true
+env:
+  PYTHONDONTWRITEBYTECODE: '1'
 jobs:
-  render:
+  build:
+    name: Один student и native выпуск
     runs-on: ubuntu-24.04
     timeout-minutes: 150
+    outputs:
+      delivery-artifact-id: ${{ steps.delivery.outputs.artifact-id }}
+      controller-artifact-id: ${{ steps.controller.outputs.artifact-id }}
+      platform-commit: ${{ steps.platform-ref.outputs.commit }}
     steps:
-      - name: Получить исходники
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
-      - name: Установить Quarto
-        uses: quarto-dev/quarto-actions/setup@8a96df13519ee81fd526f2dfca5962811136661b
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
-          version: '1.11.5'
-      - name: Подготовить оболочки для проверки готовых сценариев
+          persist-credentials: false
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          repository: Afonenko-Course-Tools/prairielearn-platform
+          ref: e1c8fcb2cdc7d7a938253e5b58e3eaf56f4d917a
+          path: .platform
+          persist-credentials: false
+      - id: platform-ref
+        run: echo "commit=$(git -C .platform rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          repository: Afonenko-Course-Tools/quarto-course-performance
+          ref: bfbe23f819dfe4c7d5e5487f669c14d8e6c9846e
+          path: .ci/performance
+          sparse-checkout: |
+            tools/setup-mv-ci.sh
+            tools/check-mv-capability.sh
+          sparse-checkout-cone-mode: false
+          persist-credentials: false
+      - uses: quarto-dev/quarto-actions/setup@8a96df13519ee81fd526f2dfca5962811136661b
+      - name: Подготовить системные инструменты
         run: |
+          test -f /etc/apt/apt-mirrors.txt
+          test ! -L /etc/apt/apt-mirrors.txt
+          grep -Rq 'mirror+file:/etc/apt/apt-mirrors.txt' /etc/apt/sources.list.d
+          printf '%s\n' 'https://mirrors.edge.kernel.org/ubuntu/' | sudo tee /etc/apt/apt-mirrors.txt
           sudo apt-get update
+          sudo apt-get install -y shellcheck python3-yaml python3-jsonschema
+          npm install --global pyright typescript
+          go install github.com/go-task/task/v3/cmd/task@latest
+          mkdir -p "$RUNNER_TEMP/bin"
+          install "$(go env GOPATH)/bin/task" "$RUNNER_TEMP/bin/go-task"
+          echo "$RUNNER_TEMP/bin" >> "$GITHUB_PATH"
+      - name: Подготовить GNU mv с требуемой no-replace capability
+        run: |
+          test "$(git -C .ci/performance rev-parse HEAD)" = 'bfbe23f819dfe4c7d5e5487f669c14d8e6c9846e'
+          bash .ci/performance/tools/setup-mv-ci.sh "$RUNNER_TEMP/course-gnu-mv" >> "$GITHUB_PATH"
+      - name: Проверить опубликованные учебные сценарии
+        run: |
           sudo apt-get install --yes fish
           fish --version
           pwsh --version
-      - name: Проверить учебные материалы и файловые договоры
-        run: |
           python3 -m unittest discover -s tests -p 'test_*.py' -v
-      - name: Проверить пути установленного Core на семи проектах
-        run: quarto run tests/project-paths.ts
-      - name: Собрать student
-        run: timeout --signal=TERM --kill-after=5s 2700s quarto render --profile student --fail-if-warnings
+          quarto run tests/project-paths.ts
+      - name: Собрать теми же course targets
+        env:
+          XDG_CACHE_HOME: ${{ runner.temp }}/course-cache
+          CI_LOG_DIR: ${{ runner.temp }}/course-build/logs
+        run: go-task build BUILD_DIR="$RUNNER_TEMP/course-build" PLATFORM_ROOT="$GITHUB_WORKSPACE/.platform"
+      - name: Упаковать готовые outputs с hidden files и modes
+        run: |
+          tar -C "$RUNNER_TEMP/course-build" -cf "$RUNNER_TEMP/delivery.tar" site native
+          tar -C "$RUNNER_TEMP/course-build/site" -cf "$RUNNER_TEMP/site.tar" .
+          tar -C "$RUNNER_TEMP/course-build/native" -cf "$RUNNER_TEMP/native.tar" .
+          tar -C "$RUNNER_TEMP/course-build" -cf "$RUNNER_TEMP/controller.tar" native-checks.json runtime-profiles.json
+      - id: delivery
+        name: Сохранить готовую поставку
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
+        with:
+          name: system-practice-delivery-${{ github.sha }}-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            ${{ runner.temp }}/delivery.tar
+            ${{ runner.temp }}/site.tar
+            ${{ runner.temp }}/native.tar
+          if-no-files-found: error
+          retention-days: 14
+      - id: controller
+        name: Сохранить private checks только для controller
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
+        with:
+          name: system-practice-controller-${{ github.sha }}-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/controller.tar
+          if-no-files-found: error
+          retention-days: 14
+      - name: Сохранить журналы сборки
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
+        with:
+          name: system-practice-build-logs-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/course-build/logs
+          if-no-files-found: ignore
+          retention-days: 14
+  verify:
+    name: Полные ${{ matrix.scope }} проверки тех же bytes
+    needs: build
+    strategy:
+      fail-fast: false
+      matrix:
+        scope: [declared, delivery]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 180
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          repository: Afonenko-Course-Tools/prairielearn-platform
+          ref: ${{ needs.build.outputs.platform-commit }}
+          path: .platform
+          persist-credentials: false
+      - name: Подготовить controller
+        run: |
+          test -f /etc/apt/apt-mirrors.txt
+          test ! -L /etc/apt/apt-mirrors.txt
+          grep -Rq 'mirror+file:/etc/apt/apt-mirrors.txt' /etc/apt/sources.list.d
+          printf '%s\n' 'https://mirrors.edge.kernel.org/ubuntu/' | sudo tee /etc/apt/apt-mirrors.txt
+          sudo apt-get update
+          sudo apt-get install -y python3-yaml python3-jsonschema
+          go install github.com/go-task/task/v3/cmd/task@latest
+          mkdir -p "$RUNNER_TEMP/bin"
+          install "$(go env GOPATH)/bin/task" "$RUNNER_TEMP/bin/go-task"
+          echo "$RUNNER_TEMP/bin" >> "$GITHUB_PATH"
+      - name: Получить actual producer artifacts
+        uses: actions/download-artifact@v4
+        with:
+          artifact-ids: ${{ needs.build.outputs.delivery-artifact-id }},${{ needs.build.outputs.controller-artifact-id }}
+          path: ${{ runner.temp }}/artifacts
+          merge-multiple: true
+      - name: Распаковать проверяемый выпуск
+        run: |
+          mkdir -p "$RUNNER_TEMP/course-build"
+          tar -C "$RUNNER_TEMP/course-build" -xf "$RUNNER_TEMP/artifacts/delivery.tar"
+          tar -C "$RUNNER_TEMP/course-build" -xf "$RUNNER_TEMP/artifacts/controller.tar"
+      - name: Проверить без повторной сборки
+        run: go-task verify:${{ matrix.scope }} BUILD_DIR="$RUNNER_TEMP/course-build" PLATFORM_ROOT="$GITHUB_WORKSPACE/.platform"
+      - name: Сохранить отчёты и grader logs также при отказе
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
+        with:
+          name: system-practice-verification-${{ matrix.scope }}-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/course-build/reports
+          if-no-files-found: ignore
+          retention-days: 14

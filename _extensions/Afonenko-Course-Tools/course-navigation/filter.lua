@@ -6,7 +6,7 @@ local function text(value) return value and pandoc.utils.stringify(value) or nil
 ---@param field string
 ---@param detail string
 local function fail(field,detail)
- error('NAVIGATION.CONFIG_INVALID: '..detail..'; источник='..quarto.doc.input_file..'; поле='..field)
+ assert(false,'NAVIGATION.CONFIG_INVALID: '..detail..'; источник='..quarto.doc.input_file..'; поле='..field)
 end
 ---@param value string
 ---@param field string

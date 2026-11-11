@@ -31,8 +31,19 @@ import {
   readProjectContextFile,
 } from "../infrastructure/project-context.ts";
 import { quartoExecutable } from "../infrastructure/process.ts";
-import { isRecord, isContainer, isLink, nodeAttributes, requireNodes } from "../document/native-ast.ts";
-import { boundDocument, decode, PandocDocumentSchema } from "../document/contracts.ts";
+import {
+  isContainer,
+  isLink,
+  isNode,
+  isRecord,
+  nodeAttributes,
+  requireNodes,
+} from "../document/native-ast.ts";
+import {
+  boundDocument,
+  decode,
+  PandocDocumentSchema,
+} from "../document/contracts.ts";
 import {
   ArtifactDestinationSchema,
   ArtifactFilesDataSchema,
@@ -115,11 +126,15 @@ async function pandoc(
 function nativeReference(
   value: unknown,
 ): { token: string; key: string; style: string } | undefined {
-  if ((!isLink(value) && !isContainer(value)) || (value.t !== "Link" && value.t !== "Span")) return undefined;
+  if (
+    (!isLink(value) && !isContainer(value)) ||
+    (value.t !== "Link" && value.t !== "Span")
+  ) return undefined;
   const attr = value.c[0];
   const key = attr[2].find(([name]) => name === "data-qrc-ref")?.[1];
   if (!key) return undefined;
-  const style = attr[2].find(([name]) => name === "data-qrc-style")?.[1] ?? "default";
+  const style = attr[2].find(([name]) => name === "data-qrc-style")?.[1] ??
+    "default";
   return catalogueReference(key, style);
 }
 function assertSourcePath(
@@ -173,7 +188,9 @@ async function parsedFragment(
       "Quarto shortcode в Markdown fragment требует native разрешения",
     );
   }
-  const raw: unknown = JSON.parse(await pandoc(state, "markdown", "json", text));
+  const raw: unknown = JSON.parse(
+    await pandoc(state, "markdown", "json", text),
+  );
   boundDocument(raw);
   const doc = decode(PandocDocumentSchema, raw, "DOCUMENT_AST", path);
   state.fragments.set(path, structuredClone(doc.blocks));
@@ -264,21 +281,21 @@ export async function materializationClosure(
       >();
     function visit(value: unknown) {
       if (!value || typeof value !== "object") return;
-      const node = value as { t?: string; c?: unknown[] };
-      const citations = catalogueCitations(node);
+      const citations = catalogueCitations(value);
       for (const { reference } of citations ?? []) {
         links.add(reference.token);
         references.set(reference.token, reference);
       }
-      const ref = nativeReference(node);
+      const ref = nativeReference(value);
       if (ref) {
         links.add(ref.token);
         references.set(ref.token, ref);
       }
-      if (!ref && (node.t === "Link" || node.t === "Image")) {
-        const url = (node.c?.[2] as string[] | undefined)?.[0];
-        if (typeof url !== "string") fail("CONDITION_NODE", "Повреждённый URL");
-        (node.t === "Link" ? links : resources).add(url);
+      if (
+        !ref && isNode(value) && (value.t === "Link" || value.t === "Image")
+      ) {
+        if (!isLink(value)) fail("CONDITION_NODE", "Повреждённый URL");
+        (value.t === "Link" ? links : resources).add(value.c[2][0]);
       }
       for (const child of Object.values(value)) {
         if (Array.isArray(child)) {
@@ -434,49 +451,106 @@ async function materialize(
     }
     return readSource(state, plan.audience, path);
   };
-  if (kind === "project") {
-    for (const file of state.files) {
-      await add(file.target, await read(file.path), file.reason, file.path);
-    }
-    for (const tree of state.trees) {
-      if (
-        plan.audience === "student" &&
-        relative(context.owner, tree.path).split("/").some((p) =>
-          privateNames.has(p)
-        )
-      ) fail("ARTIFACT_PRIVATE", "Закрытый source partition в student");
-      const paths = await projectContextFiles(
-        context,
-        tree.path,
-        () => state.metrics.treeWalks++,
-      );
-      for (const path of paths) {
-        const name = relative(tree.path, path), parts = name.split("/");
-        if (path === state.local && name === "README.md") continue;
-        if (parts.some((p) => privateNames.has(p))) {
-          fail(
-            "ARTIFACT_PRIVATE",
-            "Закрытый partition внутри выдаваемого tree",
-          );
-        }
-        if (plan.audience === "student" && parts.some(publicExcluded)) continue;
+  async function collectProjectFiles() {
+    if (kind === "project") {
+      for (const file of state.files) {
+        await add(file.target, await read(file.path), file.reason, file.path);
+      }
+      for (const tree of state.trees) {
         if (
-          parts.some((p) =>
-            excluded.has(p) || p.startsWith(".") && p !== ".gitignore"
+          plan.audience === "student" &&
+          relative(context.owner, tree.path).split("/").some((p) =>
+            privateNames.has(p)
           )
-        ) continue;
-        if (
-          /\.(qmd|rmd|ipynb|class|jar|pyc)$/i.test(name) ||
-          parts.some((p) => /^_quarto|^_metadata\.ya?ml$/.test(p))
-        ) continue;
-        await add(tree.prefix + name, await read(path), tree.reason, path);
+        ) fail("ARTIFACT_PRIVATE", "Закрытый source partition в student");
+        const paths = await projectContextFiles(
+          context,
+          tree.path,
+          () => state.metrics.treeWalks++,
+        );
+        for (const path of paths) {
+          const name = relative(tree.path, path), parts = name.split("/");
+          if (path === state.local && name === "README.md") continue;
+          if (parts.some((p) => privateNames.has(p))) {
+            fail(
+              "ARTIFACT_PRIVATE",
+              "Закрытый partition внутри выдаваемого tree",
+            );
+          }
+          if (plan.audience === "student" && parts.some(publicExcluded)) {
+            continue;
+          }
+          if (
+            parts.some((p) =>
+              excluded.has(p) || p.startsWith(".") && p !== ".gitignore"
+            )
+          ) continue;
+          if (
+            /\.(qmd|rmd|ipynb|class|jar|pyc)$/i.test(name) ||
+            parts.some((p) => /^_quarto|^_metadata\.ya?ml$/.test(p))
+          ) continue;
+          await add(tree.prefix + name, await read(path), tree.reason, path);
+        }
       }
     }
   }
+  await collectProjectFiles();
   const resources = new Map<string, string>();
   const resourceBytes = new Map<string, Uint8Array>();
   const anchors = new Set<string>();
   const localLinks = new Set<string>();
+  async function collectResource(
+    resource: { path: string; target: string },
+    path: string,
+    canonical: string,
+  ) {
+    const previous = resources.get(resource.target);
+    if (previous && previous !== path) {
+      fail(
+        "ARTIFACT_COLLISION",
+        "Resource target имеет разные origins: " + resource.target,
+      );
+    }
+    if (!previous) {
+      resources.set(resource.target, path);
+      if (files.has(resource.target)) {
+        resourceBytes.set(
+          resource.target,
+          new Uint8Array(files.get(resource.target)!.bytes),
+        );
+        if (provenance.get(resource.target) !== path) {
+          fail(
+            "ARTIFACT_COLLISION",
+            "Resource target уже принадлежит другому source: " +
+              resource.target,
+          );
+        }
+      } else {
+        assertArtifactTarget(resource.target, plan.audience, context.owner);
+        assertSourcePath(state, plan.audience, path);
+        let bytes: Uint8Array;
+        if (projectFileExists(context, path)) bytes = await read(path);
+        else {
+          const observed = await readNativeResource(
+            conditionValue,
+            context.owner,
+            canonical,
+            resource.target,
+            state.publicSource?.assertIdentity,
+          );
+          if (!observed) {
+            fail(
+              "RESOURCE_MISSING",
+              "Нет captured/observed текущих bytes ресурса: " + canonical,
+            );
+          }
+          bytes = observed;
+        }
+        resourceBytes.set(resource.target, new Uint8Array(bytes));
+        await add(resource.target, bytes, "condition-resource", path);
+      }
+    }
+  }
   const mapUrl = async (
     url: string,
     base: string | undefined,
@@ -489,7 +563,7 @@ async function materialize(
     if (base && !/^(?:[a-z][a-z0-9+.-]*:|\/\/|#)/i.test(url)) {
       let local: string;
       try {
-        local = decodeURIComponent((url.split(/[?#]/)[0] ?? ""));
+        local = decodeURIComponent(url.split(/[?#]/)[0] ?? "");
       } catch {
         fail("RESOURCE_PATH", "Некорректный URL ресурса");
       }
@@ -553,52 +627,7 @@ async function materialize(
       }
       fail("CONDITION_LINK", "Нужен конечный destination документа: " + url);
     }
-    const previous = resources.get(resource.target);
-    if (previous && previous !== path) {
-      fail(
-        "ARTIFACT_COLLISION",
-        "Resource target имеет разные origins: " + resource.target,
-      );
-    }
-    if (!previous) {
-      resources.set(resource.target, path);
-      if (files.has(resource.target)) {
-        resourceBytes.set(
-          resource.target,
-          new Uint8Array(files.get(resource.target)!.bytes),
-        );
-        if (provenance.get(resource.target) !== path) {
-          fail(
-            "ARTIFACT_COLLISION",
-            "Resource target уже принадлежит другому source: " +
-              resource.target,
-          );
-        }
-      } else {
-        assertArtifactTarget(resource.target, plan.audience, context.owner);
-        assertSourcePath(state, plan.audience, path);
-        let bytes: Uint8Array;
-        if (projectFileExists(context, path)) bytes = await read(path);
-        else {
-          const observed = await readNativeResource(
-            conditionValue,
-            context.owner,
-            canonical,
-            resource.target,
-            state.publicSource?.assertIdentity,
-          );
-          if (!observed) {
-            fail(
-              "RESOURCE_MISSING",
-              "Нет captured/observed текущих bytes ресурса: " + canonical,
-            );
-          }
-          bytes = observed;
-        }
-        resourceBytes.set(resource.target, new Uint8Array(bytes));
-        await add(resource.target, bytes, "condition-resource", path);
-      }
-    }
+    await collectResource(resource, path, canonical);
     return resource.target + suffix;
   };
   function checkedLink(url: string) {
@@ -665,7 +694,9 @@ async function materialize(
     }
     const ref = nativeReference(value);
     if (ref) {
-      if (!isLink(value) && !isContainer(value)) fail("DOCUMENT_AST", "Повреждённый native reference");
+      if (!isLink(value) && !isContainer(value)) {
+        fail("DOCUMENT_AST", "Повреждённый native reference");
+      }
       const attr = structuredClone(value.c[0]);
       attr[1] = attr[1].filter((c: string) =>
         !["qrc-reference", "qrc-link"].includes(c)
@@ -702,7 +733,10 @@ async function materialize(
     if (isLink(result)) {
       result.c[2][0] = await mapUrl(result.c[2][0], base, result.t === "Image");
     }
-    if (typeof result.t === "string" && ["Header", "Div", "Span", "CodeBlock"].includes(result.t)) {
+    if (
+      typeof result.t === "string" &&
+      ["Header", "Div", "Span", "CodeBlock"].includes(result.t)
+    ) {
       const attr = nodeAttributes(result);
       if (Array.isArray(attr) && typeof attr[0] === "string" && attr[0]) {
         if (!attr[0] || /[\u0000-\u0020'"<>&]/u.test(attr[0])) {
@@ -751,10 +785,12 @@ async function materialize(
   }
   const fragment = async (path: string) => {
     assertAssignmentArtifactSource(conditionValue, path);
-    return requireNodes(await transform(
-      await parsedFragment(state, plan.audience, path),
-      path,
-    ));
+    return requireNodes(
+      await transform(
+        await parsedFragment(state, plan.audience, path),
+        path,
+      ),
+    );
   };
   if (state.gradle) blocks.push(...await fragment(state.gradle));
   if (state.local) blocks.push(...await fragment(state.local));
@@ -762,20 +798,28 @@ async function materialize(
     await pandoc(state, "markdown", "json", bindings.submission.instructions),
   );
   boundDocument(rawSubmission);
-  const submissionDoc = decode(PandocDocumentSchema, rawSubmission, "DOCUMENT_AST");
-  blocks.push(
-    ...requireNodes([await transform({
-      t: "Header",
-      c: [2, ["submission", [], []], [{ t: "Str", c: "Сдача" }]],
-    }, undefined)]),
+  const submissionDoc = decode(
+    PandocDocumentSchema,
+    rawSubmission,
+    "DOCUMENT_AST",
   );
   blocks.push(
-    ...requireNodes(await transform(
-      submissionDoc.blocks,
-      bindings.submissionBase
-        ? resolve(context.owner, bindings.submissionBase)
-        : undefined,
-    )),
+    ...requireNodes([
+      await transform({
+        t: "Header",
+        c: [2, ["submission", [], []], [{ t: "Str", c: "Сдача" }]],
+      }, undefined),
+    ]),
+  );
+  blocks.push(
+    ...requireNodes(
+      await transform(
+        submissionDoc.blocks,
+        bindings.submissionBase
+          ? resolve(context.owner, bindings.submissionBase)
+          : undefined,
+      ),
+    ),
   );
   for (const item of bindings.submission.files) {
     if (

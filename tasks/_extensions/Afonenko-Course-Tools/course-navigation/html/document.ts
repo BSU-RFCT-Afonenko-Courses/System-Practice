@@ -1,36 +1,8 @@
 import { createMetrics as __createMetrics } from "../observability/bridge.ts";
 const __metrics = __createMetrics("course-navigation");
-import { parse } from "../vendor/parse5/dist/index.js";
-// Минимальный интерфейс адаптера HTML; сторонняя библиотека изолирована в этом модуле.
-interface Offset {
-  startOffset: number;
-  endOffset: number;
-}
-interface Location extends Offset {
-  startTag?: Offset;
-  endTag?: Offset;
-}
-interface Document {
-  nodeName: "#document";
-  childNodes: Node[];
-}
-interface Text {
-  nodeName: "#text";
-  value: string;
-}
-interface Comment {
-  nodeName: "#comment";
-  data: string;
-}
-export interface Element {
-  nodeName: string;
-  tagName: string;
-  attrs: { name: string; value: string }[];
-  childNodes: Node[];
-  parentNode?: Element | Document;
-  sourceCodeLocation?: Location;
-}
-export type Node = Document | Text | Comment | Element;
+// @deno-types="./parse5-adapter.d.ts"
+import { parse, type Element, type Node } from "../vendor/parse5/dist/index.js";
+export type { Element, Node };
 export function elements(node: Node): Element[] {
   const out: Element[] = [];
   const visit = (item: Node) => {
@@ -89,5 +61,5 @@ export const parseHtml = __metrics.wrapSync({
   id: "course-navigation.html.document.parseHtml",
   kind: "io",
 }, function parseHtml(html: string) {
-  return parse(html, { sourceCodeLocationInfo: true }) as unknown as Document;
+  return parse(html, { sourceCodeLocationInfo: true });
 });

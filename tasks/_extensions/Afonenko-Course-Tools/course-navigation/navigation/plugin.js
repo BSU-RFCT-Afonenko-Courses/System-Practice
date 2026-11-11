@@ -3,20 +3,8 @@
   'use strict';
   /** @type {Map<CourseReveal, () => void>} */
   const cleanup = new Map();
-  root.CourseNavigation = {
-    id: 'CourseNavigation',
-    init(deck) {
-      const config = deck.getConfig();
-      const configured = config.courseNav ?? config['course-nav'] ?? {};
-      const printMode = config.view === 'print' || new URLSearchParams(location.search).has('print-pdf') || document.documentElement.classList.contains('print-pdf');
-      // Подготовку содержимого к печати выполняют Quarto и course-presentation.
-      if (printMode) return;
-      if (configured === false) return;
-      // Reveal удаляет скрытые разделы после инициализации плагина, до ready.
-      // Координаты собираются после удаления, чтобы переходы были корректными.
-      const start = () => {
-        /** @type {CourseNavigationOptions} */
-        const options = { language: document.documentElement.lang?.startsWith('en') ? 'en' : 'ru', sidebar: true, title: document.querySelector('#title-slide h1')?.textContent?.trim() || document.title, ...configured };
+  /** @param {CourseNavigationOptions} options */
+  function contextualLinks(options) {
         const context = document.getElementById('course-navigation-context');
         if (context) {
           /** @type {unknown} */ const data = JSON.parse(context.textContent || 'null');
@@ -35,6 +23,22 @@
           }
           options.links = [...links, ...(options.links || [])];
         }
+  }
+  root.CourseNavigation = {
+    id: 'CourseNavigation',
+    init(deck) {
+      const config = deck.getConfig();
+      const configured = config.courseNav ?? config['course-nav'] ?? {};
+      const printMode = config.view === 'print' || new URLSearchParams(location.search).has('print-pdf') || document.documentElement.classList.contains('print-pdf');
+      // Подготовку содержимого к печати выполняют Quarto и course-presentation.
+      if (printMode) return;
+      if (configured === false) return;
+      // Reveal удаляет скрытые разделы после инициализации плагина, до ready.
+      // Координаты собираются после удаления, чтобы переходы были корректными.
+      const start = () => {
+        /** @type {CourseNavigationOptions} */
+        const options = { language: document.documentElement.lang?.startsWith('en') ? 'en' : 'ru', sidebar: true, title: document.querySelector('#title-slide h1')?.textContent?.trim() || document.title, ...configured };
+        contextualLinks(options);
         options.slideWidth = config.width; options.slideHeight = config.height;
         const { NavigationModel: Model, NavigationUI: UI } = root.CourseNavigationModules || {};
         if (!Model || !UI) throw new Error('Модули навигации не загружены');

@@ -8,19 +8,38 @@ import type {
 } from "../document/contracts.ts";
 import { NativeReleaseFactsSchema } from "./contracts.ts";
 import type { NativeReleaseFacts } from "./contracts.ts";
-import { isRecord as obj, isContainer, isHeader, isCite, isBulletList, isNode, isNodes, nodeAttributes } from "../document/native-ast.ts";
-import type { Node, ContainerNode } from "../document/native-ast.ts";
+import {
+  isBulletList,
+  isCite,
+  isContainer,
+  isHeader,
+  isNode,
+  isNodes,
+  isRecord as obj,
+  nodeAttributes,
+} from "../document/native-ast.ts";
+import type { ContainerNode, Node } from "../document/native-ast.ts";
 function body(value: unknown): Node[] {
-  if (!isContainer(value)) fail("DOCUMENT_AST", "Повреждённый native container");
+  if (!isContainer(value)) {
+    fail("DOCUMENT_AST", "Повреждённый native container");
+  }
   return value.c[1];
 }
 function citations(value: unknown) {
-  if (!isCite(value)) fail("CORE.ASSESSMENT_INVALID", "Повреждённый native Cite");
+  if (!isCite(value)) {
+    fail("CORE.ASSESSMENT_INVALID", "Повреждённый native Cite");
+  }
   return value.c[0];
 }
 function listItems(value: unknown): Node[][] {
   if (isBulletList(value)) return value.c;
-  if (isNode(value) && value.t === "OrderedList" && Array.isArray(value.c) && value.c.length === 2 && Array.isArray(value.c[0]) && value.c[0].length === 3 && typeof value.c[0][0] === "number" && isNode(value.c[0][1]) && isNode(value.c[0][2]) && Array.isArray(value.c[1]) && value.c[1].every(isNodes)) return value.c[1];
+  if (
+    isNode(value) && value.t === "OrderedList" && Array.isArray(value.c) &&
+    value.c.length === 2 && Array.isArray(value.c[0]) &&
+    value.c[0].length === 3 && typeof value.c[0][0] === "number" &&
+    isNode(value.c[0][1]) && isNode(value.c[0][2]) &&
+    Array.isArray(value.c[1]) && value.c[1].every(isNodes)
+  ) return value.c[1];
   fail("CORE.ASSESSMENT_INVALID", "Повреждённый native список");
 }
 export function nativeMetadata(v: unknown): unknown {
@@ -34,13 +53,19 @@ export function nativeMetadata(v: unknown): unknown {
         ) => [k, nativeMetadata(x)]),
       );
     case "MetaList":
-      if (!Array.isArray(v.c)) fail("CORE.METADATA_INVALID", "Повреждённый MetaList");
+      if (!Array.isArray(v.c)) {
+        fail("CORE.METADATA_INVALID", "Повреждённый MetaList");
+      }
       return v.c.map(nativeMetadata);
     case "MetaBool":
-      if (typeof v.c !== "boolean") fail("CORE.METADATA_INVALID", "Повреждённый MetaBool");
+      if (typeof v.c !== "boolean") {
+        fail("CORE.METADATA_INVALID", "Повреждённый MetaBool");
+      }
       return v.c;
     case "MetaString":
-      if (typeof v.c !== "string") fail("CORE.METADATA_INVALID", "Повреждённый MetaString");
+      if (typeof v.c !== "string") {
+        fail("CORE.METADATA_INVALID", "Повреждённый MetaString");
+      }
       return v.c;
     case "MetaInlines":
     case "MetaBlocks":
@@ -78,6 +103,12 @@ function visit(v: unknown, use: (node: Record<string, unknown>) => void) {
     use(v);
     for (const child of Object.values(v)) visit(child, use);
   }
+}
+function assertAssessmentParagraph(item: unknown) {
+  if (
+    !Array.isArray(item) || item.length !== 1 ||
+    !obj(item[0]) || !["Plain", "Para"].includes(String(item[0].t))
+  ) fail("CORE.ASSESSMENT_INVALID", "Позиция требует один абзац");
 }
 export function collectReleaseFacts(
   ast: { meta: Record<string, unknown>; blocks: unknown[] },
@@ -125,12 +156,8 @@ export function collectReleaseFacts(
             }
             : {};
         })(),
-        ...(declaration.target
-          ? { target: declaration.target }
-          : {}),
-        ...(declaration.project
-          ? { project: declaration.project }
-          : {}),
+        ...(declaration.target ? { target: declaration.target } : {}),
+        ...(declaration.project ? { project: declaration.project } : {}),
         ...(declaration["project-check"]
           ? { check: declaration["project-check"] }
           : {}),
@@ -172,212 +199,223 @@ export function collectReleaseFacts(
     for (const child of Object.values(v)) solution(child, next);
   }
   solution(ast.blocks);
-  let assessment: unknown;
-  if (config !== undefined || containers.length) {
-    if (!obj(config)) {
-      fail("CORE.ASSESSMENT_INVALID", "Требуется assessment.kind");
-    }
-    if (
-      config["theory-time"] !== undefined &&
-      !["string", "number"].includes(typeof config["theory-time"])
-    ) {
-      fail(
-        "CORE.ASSESSMENT_INVALID",
-        "theory-time требует положительное число минут",
-      );
-    }
-    let title = visibleTitle(ast.meta.title).trim();
-    let id = typeof config.id === "string" ? config.id : "";
-    visit(ast.blocks, (n) => {
-      if (n.t === "Header") {
-        if (!isHeader(n)) fail("DOCUMENT_AST", "Повреждённый Header");
-        const c = n.c;
-        if (!title) title = visibleTitle(c[2]).trim();
-        if (!id) id = c[1][0];
+  function collectAssessment() {
+    let assessment: unknown;
+    if (config !== undefined || containers.length) {
+      if (!obj(config)) {
+        fail("CORE.ASSESSMENT_INVALID", "Требуется assessment.kind");
       }
-    });
-    const slots: unknown[] = [],
-      memberKinds: string[] = [],
-      memberSizes: number[] = [];
-    for (const container of containers) {
-      const a = attrs(container),
-        members = body(container);
       if (
-        members.length !== 1 ||
-        !members[0] || !["BulletList", "OrderedList"].includes(members[0].t)
-      ) fail("CORE.ASSESSMENT_INVALID", "task-items требует один список");
-      for (const k of Object.keys(a.values)) {
-        if (
-          ![
-            "stage",
-            "requirement",
-            "work-mode",
-            "when-format",
-            "unless-format",
-            "when-profile",
-            "unless-profile",
-            "when-meta",
-            "unless-meta",
-          ].includes(k)
-        ) {
-          fail(
-            "CORE.ASSESSMENT_INVALID",
-            "Неизвестный task-items атрибут " + k,
-          );
-        }
+        config["theory-time"] !== undefined &&
+        !["string", "number"].includes(typeof config["theory-time"])
+      ) {
+        fail(
+          "CORE.ASSESSMENT_INVALID",
+          "theory-time требует положительное число минут",
+        );
       }
-      memberKinds.push(members[0]!.t);
-      const items = listItems(members[0]);
-      for (const item of items) {
+      let title = visibleTitle(ast.meta.title).trim();
+      let id = typeof config.id === "string" ? config.id : "";
+      visit(ast.blocks, (n) => {
+        if (n.t === "Header") {
+          if (!isHeader(n)) fail("DOCUMENT_AST", "Повреждённый Header");
+          const c = n.c;
+          if (!title) title = visibleTitle(c[2]).trim();
+          if (!id) id = c[1][0];
+        }
+      });
+      const slots: unknown[] = [],
+        memberKinds: string[] = [],
+        memberSizes: number[] = [];
+      for (const container of containers) {
+        const a = attrs(container),
+          members = body(container);
         if (
-          !Array.isArray(item) || item.length !== 1 ||
-          !item[0] || !["Plain", "Para"].includes(item[0].t)
-        ) fail("CORE.ASSESSMENT_INVALID", "Позиция требует один абзац");
-        let group: ReturnType<typeof attrs> | undefined,
-          groupNode: Record<string, unknown> | undefined;
-        const candidates: string[] = [];
-        let requirement: string | undefined, workMode: string | undefined;
-        visit(item, (node) => {
-          if (node.t === "Cite") {
-            for (const cite of citations(node)) candidates.push(String(cite.citationId));
+          members.length !== 1 ||
+          !members[0] || !["BulletList", "OrderedList"].includes(members[0].t)
+        ) fail("CORE.ASSESSMENT_INVALID", "task-items требует один список");
+        for (const k of Object.keys(a.values)) {
+          if (
+            ![
+              "stage",
+              "requirement",
+              "work-mode",
+              "when-format",
+              "unless-format",
+              "when-profile",
+              "unless-profile",
+              "when-meta",
+              "unless-meta",
+            ].includes(k)
+          ) {
+            fail(
+              "CORE.ASSESSMENT_INVALID",
+              "Неизвестный task-items атрибут " + k,
+            );
           }
-          if (node.t === "Span") {
-            const span = attrs(node);
-            if (span.values.stage) {
-              fail("CORE.ASSESSMENT_INVALID", "stage принадлежит task-items");
+        }
+        memberKinds.push(members[0]!.t);
+        const items = listItems(members[0]);
+        for (const item of items) {
+          assertAssessmentParagraph(item);
+          let group: ReturnType<typeof attrs> | undefined,
+            groupNode: Record<string, unknown> | undefined;
+          const candidates: string[] = [];
+          let requirement: string | undefined, workMode: string | undefined;
+          visit(item, (node) => {
+            if (node.t === "Cite") {
+              for (const cite of citations(node)) {
+                candidates.push(String(cite.citationId));
+              }
             }
-            if (span.classes.includes("task-alternatives")) {
-              if (group) {
-                fail(
-                  "CORE.ASSESSMENT_INVALID",
-                  "Повторная группа alternatives",
-                );
+            if (node.t === "Span") {
+              const span = attrs(node);
+              if (span.values.stage) {
+                fail("CORE.ASSESSMENT_INVALID", "stage принадлежит task-items");
               }
-              group = span;
-              groupNode = node;
-              if (
-                !/^alt-[a-z0-9][a-z0-9-]*$/.test(span.id) ||
-                !["random", "choice"].includes(span.values.selection ?? "")
-              ) {
-                fail(
-                  "CORE.ASSESSMENT_INVALID",
-                  "Группа требует alt-* и selection=random|choice",
-                );
-              }
-              visit(body(node), (candidate) => {
-                if (candidate.t === "Span") {
-                  const values = attrs(candidate).values;
-                  if (
-                    values.requirement !== undefined ||
-                    values["work-mode"] !== undefined
-                  ) {
-                    fail(
-                      "CORE.ASSESSMENT_INVALID",
-                      "Назначение принадлежит позиции, не кандидату группы",
-                    );
+              if (span.classes.includes("task-alternatives")) {
+                if (group) {
+                  fail(
+                    "CORE.ASSESSMENT_INVALID",
+                    "Повторная группа alternatives",
+                  );
+                }
+                group = span;
+                groupNode = node;
+                if (
+                  !/^alt-[a-z0-9][a-z0-9-]*$/.test(span.id) ||
+                  !["random", "choice"].includes(span.values.selection ?? "")
+                ) {
+                  fail(
+                    "CORE.ASSESSMENT_INVALID",
+                    "Группа требует alt-* и selection=random|choice",
+                  );
+                }
+                visit(body(node), (candidate) => {
+                  if (candidate.t === "Span") {
+                    const values = attrs(candidate).values;
+                    if (
+                      values.requirement !== undefined ||
+                      values["work-mode"] !== undefined
+                    ) {
+                      fail(
+                        "CORE.ASSESSMENT_INVALID",
+                        "Назначение принадлежит позиции, не кандидату группы",
+                      );
+                    }
                   }
-                }
-              });
-            }
-            if (
-              span.values.requirement !== undefined ||
-              span.values["work-mode"] !== undefined
-            ) {
-              let count = 0;
-              visit(body(node), (child) => {
-                if (child.t === "Cite") {
-                  count += citations(child).length;
-                }
-              });
-              if (!span.classes.includes("task-alternatives") && count !== 1) {
-                fail(
-                  "CORE.ASSESSMENT_INVALID",
-                  "Назначение требует Span позиции",
-                );
+                });
               }
-              if (span.values.requirement !== undefined) {
-                if (requirement !== undefined) {
-                  fail("CORE.ASSESSMENT_INVALID", "Повторный requirement");
-                }
-                requirement = span.values.requirement;
-              }
-              if (span.values["work-mode"] !== undefined) {
-                if (workMode !== undefined) {
-                  fail("CORE.ASSESSMENT_INVALID", "Повторный work-mode");
-                }
-                workMode = span.values["work-mode"];
-              }
-            }
-            for (const key of Object.keys(span.values)) {
               if (
-                ![
-                  ...(span.classes.includes("task-alternatives")
-                    ? ["selection"]
-                    : []),
-                  "requirement",
-                  "work-mode",
-                  "when-format",
-                  "unless-format",
-                  "when-profile",
-                  "unless-profile",
-                  "when-meta",
-                  "unless-meta",
-                ].includes(key)
+                span.values.requirement !== undefined ||
+                span.values["work-mode"] !== undefined
               ) {
-                fail(
-                  "CORE.ASSESSMENT_INVALID",
-                  "Неизвестный Span атрибут " + key,
-                );
+                let count = 0;
+                visit(body(node), (child) => {
+                  if (child.t === "Cite") {
+                    count += citations(child).length;
+                  }
+                });
+                if (
+                  !span.classes.includes("task-alternatives") && count !== 1
+                ) {
+                  fail(
+                    "CORE.ASSESSMENT_INVALID",
+                    "Назначение требует Span позиции",
+                  );
+                }
+                if (span.values.requirement !== undefined) {
+                  if (requirement !== undefined) {
+                    fail("CORE.ASSESSMENT_INVALID", "Повторный requirement");
+                  }
+                  requirement = span.values.requirement;
+                }
+                if (span.values["work-mode"] !== undefined) {
+                  if (workMode !== undefined) {
+                    fail("CORE.ASSESSMENT_INVALID", "Повторный work-mode");
+                  }
+                  workMode = span.values["work-mode"];
+                }
               }
-            }
-          }
-        });
-        if (group) {
-          const inside: string[] = [];
-          visit(body(groupNode), (x) => {
-            if (x.t === "Cite") {
-              for (const cite of citations(x)) inside.push(String(cite.citationId));
+              for (const key of Object.keys(span.values)) {
+                if (
+                  ![
+                    ...(span.classes.includes("task-alternatives")
+                      ? ["selection"]
+                      : []),
+                    "requirement",
+                    "work-mode",
+                    "when-format",
+                    "unless-format",
+                    "when-profile",
+                    "unless-profile",
+                    "when-meta",
+                    "unless-meta",
+                  ].includes(key)
+                ) {
+                  fail(
+                    "CORE.ASSESSMENT_INVALID",
+                    "Неизвестный Span атрибут " + key,
+                  );
+                }
+              }
             }
           });
-          if (inside.length !== candidates.length) {
-            fail("CORE.ASSESSMENT_INVALID", "Группа не охватывает всю позицию");
+          if (group) {
+            const inside: string[] = [];
+            visit(body(groupNode), (x) => {
+              if (x.t === "Cite") {
+                for (const cite of citations(x)) {
+                  inside.push(String(cite.citationId));
+                }
+              }
+            });
+            if (inside.length !== candidates.length) {
+              fail(
+                "CORE.ASSESSMENT_INVALID",
+                "Группа не охватывает всю позицию",
+              );
+            }
           }
+          slots.push({
+            id: group?.id ?? candidates[0],
+            selection: group?.values.selection ?? "fixed",
+            candidates,
+            assignment: {
+              ...(a.values.stage ? { stage: a.values.stage } : {}),
+              requirement: requirement ?? a.values.requirement ?? "required",
+              workMode: workMode ?? a.values["work-mode"] ?? "individual",
+            },
+          });
+          memberSizes.push(1);
         }
-        slots.push({
-          id: group?.id ?? candidates[0],
-          selection: group?.values.selection ?? "fixed",
-          candidates,
-          assignment: {
-            ...(a.values.stage ? { stage: a.values.stage } : {}),
-            requirement: requirement ?? a.values.requirement ?? "required",
-            workMode: workMode ?? a.values["work-mode"] ?? "individual",
-          },
-        });
-        memberSizes.push(1);
       }
+      assessment = {
+        id,
+        title,
+        kind: config.kind,
+        slots,
+        ...(config["theory-time"] !== undefined
+          ? { theoryTime: Number(config["theory-time"]) }
+          : {}),
+        ...(config["related-exercise"] !== undefined
+          ? { relatedExercise: config["related-exercise"] }
+          : {}),
+        memberContainers: containers.length,
+        memberKinds,
+        memberSizes,
+      };
     }
-    assessment = {
-      id,
-      title,
-      kind: config.kind,
-      slots,
-      ...(config["theory-time"] !== undefined
-        ? { theoryTime: Number(config["theory-time"]) }
-        : {}),
-      ...(config["related-exercise"] !== undefined
-        ? { relatedExercise: config["related-exercise"] }
-        : {}),
-      memberContainers: containers.length,
-      memberKinds,
-      memberSizes,
-    };
+    return assessment;
   }
+  const assessment = collectAssessment();
   return decode(
     NativeReleaseFactsSchema,
     {
       course: {
         ...(course.id !== undefined ? { id: course.id } : {}),
-        view: course.view ?? (context.projection === "author" ? "full" : "student"),
+        view: course.view ??
+          (context.projection === "author" ? "full" : "student"),
         adapters: course.adapters ?? [],
       },
       nativeMetadata: {

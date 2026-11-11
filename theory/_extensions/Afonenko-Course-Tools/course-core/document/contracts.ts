@@ -7,6 +7,7 @@ import {
 import { z } from "../vendor/zod/v4/index.js";
 import { NativeReleaseFactsSchema } from "../release/contracts.ts";
 import { boundInput, fail } from "../contracts/project.ts";
+import { NativeNodesSchema } from "./native-ast.ts";
 export const ExerciseDeclarationSchema = z.strictObject({
   difficulty: z.enum(["introductory", "intermediate", "advanced"]),
   "statement-visibility": z.enum(["open", "restricted"]),
@@ -36,7 +37,7 @@ export type DocumentContext = z.input<typeof DocumentContextSchema>;
 export const PandocDocumentSchema = z.strictObject({
   "pandoc-api-version": z.array(z.number().int().nonnegative()).min(2).max(4),
   meta: z.record(z.string(), z.unknown()),
-  blocks: z.array(z.unknown()),
+  blocks: NativeNodesSchema,
 });
 export const OccurrenceSchema = z.strictObject({
   key: z.string().min(1),
@@ -56,10 +57,10 @@ export const EarlyDocumentSchema = z.strictObject({
 export type EarlyDocument = z.output<typeof EarlyDocumentSchema>;
 export const LateOccurrenceSchema = z.strictObject({
   key: z.string().min(1),
-  body: z.array(z.unknown()),
+  body: NativeNodesSchema,
   nativeKind: z.string().min(1),
   anchor: z.string(),
-  title: z.array(z.unknown()).optional(),
+  title: NativeNodesSchema.optional(),
 });
 export const LateDocumentSchema = z.strictObject({
   context: DocumentContextSchema,
