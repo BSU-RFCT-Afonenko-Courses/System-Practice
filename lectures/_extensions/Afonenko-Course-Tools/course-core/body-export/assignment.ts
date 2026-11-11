@@ -16,7 +16,7 @@ import {
 } from "./producer.ts";
 import type { BodyReferenceContext } from "./links.ts";
 import type { BodyPackage, Node, PublicBodyPackage } from "./model.ts";
-import { isRecord, isLink, nodeAttributes, requireNodes } from "../document/native-ast.ts";
+import { isLink, isRecord, nodeAttributes } from "../document/native-ast.ts";
 export type AssignmentBodyCache = {
   questions: Map<string, { condition: Node[]; publicAnswer: Node[] }>;
   introductions: Map<string, Node[]>;
@@ -70,14 +70,14 @@ export async function buildAssignmentBody(input: {
   ]);
   let overview = input.cache?.introductions.get(introKey);
   if (!overview) {
-    overview = await preparePublicIntroduction(
-      requireNodes(workDoc.assignment.introductions[composition.id]),
-      await documentMeta(workDoc),
-      root,
-      { source: work.source, id: composition.id },
-      input.references,
-      dirname(resolve(root, work.source)),
-    );
+    overview = await preparePublicIntroduction({
+      blocks: workDoc.assignment.introductions[composition.id]!,
+      document: await documentMeta(workDoc),
+      root: root,
+      context: { source: work.source, id: composition.id },
+      references: input.references,
+      effectiveBase: dirname(resolve(root, work.source)),
+    });
     input.cache?.introductions.set(introKey, structuredClone(overview));
   }
   overview = structuredClone(overview);
@@ -120,15 +120,15 @@ export async function buildAssignmentBody(input: {
     const questionKey = JSON.stringify([doc.context, doc.pandocApiVersion, id]);
     let prepared = input.cache?.questions.get(questionKey);
     if (!prepared) {
-      prepared = await preparePublicQuestion(
-        publicCondition(requireNodes(row.body), !!row.title?.length),
-        requireNodes(answer.publicAnswer),
-        await documentMeta(doc),
-        root,
-        { source, id },
-        input.references,
-        dirname(resolve(root, source)),
-      );
+      prepared = await preparePublicQuestion({
+        condition: publicCondition(row.body, !!row.title?.length),
+        publicAnswer: answer.publicAnswer,
+        document: await documentMeta(doc),
+        root: root,
+        context: { source, id },
+        references: input.references,
+        effectiveBase: dirname(resolve(root, source)),
+      });
       input.cache?.questions.set(questionKey, structuredClone(prepared));
     }
     prepared = structuredClone(prepared);

@@ -46,12 +46,14 @@ type PublicationIdentity = Pick<
 
 /** Только Core-семантика actual capture; full grading остаётся у course exporter. */
 export async function validatePublicationFacts(
-  documents: PublicationDocuments,
-  identity: PublicationIdentity,
-  requestValue: NativeReleaseRequest,
-  checkPath: PublicationPathCheck,
-  guard: () => Promise<void>,
-  installed?: readonly string[],
+  { documents, identity, requestValue, checkPath, guard, installed }: {
+    documents: PublicationDocuments;
+    identity: PublicationIdentity;
+    requestValue: NativeReleaseRequest;
+    checkPath: PublicationPathCheck;
+    guard: () => Promise<void>;
+    installed?: readonly string[];
+  },
 ): Promise<
   {
     course: NonNullable<EarlyDocument["release"]>["course"];
@@ -98,14 +100,10 @@ export async function validatePublicationFacts(
       "course.view отличается от native projection",
     );
   }
-  for (const doc of documents) {
-    const release = doc.early.release;
-    if (!release) {
-      fail("RELEASE.METADATA_MISSING", "Нет current release facts", doc.source);
-    }
-    if (JSON.stringify(release.course) !== JSON.stringify(course)) {
-      fail("RELEASE.MIXED_COURSE", "Разные course/view/adapters", doc.source);
-    }
+  async function validateDocumentDeclarations(
+    doc: PublicationDocuments[number],
+    release: NonNullable<EarlyDocument["release"]>,
+  ) {
     for (const item of release.declarations) {
       if (facts.has(item.id)) fail("CORE.DUPLICATE_EXERCISE", item.id);
       const declaration = doc.early.definitions[item.id];
@@ -174,6 +172,17 @@ export async function validatePublicationFacts(
       }
     }
   }
+  for (const doc of documents) {
+    const release = doc.early.release;
+    if (!release) {
+      fail("RELEASE.METADATA_MISSING", "Нет current release facts", doc.source);
+    }
+    if (JSON.stringify(release.course) !== JSON.stringify(course)) {
+      fail("RELEASE.MIXED_COURSE", "Разные course/view/adapters", doc.source);
+    }
+    await validateDocumentDeclarations(doc, release);
+  }
+
   for (const doc of documents) {
     const release = doc.early.release!;
     const a = release.assessment;
@@ -326,77 +335,87 @@ export type NativePublication = PublicationOperations & {
 
 /** Borrowed methods истекают вместе с настоящим Core callback; data не являются authority. */
 export async function createNativePublication(
-  operation: NativeOperation,
-  documents: NativePublicationDocuments,
-  selection: NativePublicationSelection,
-  owner: { readonly root: string; readonly outputDirectory: string },
-  checkPath: PublicationPathCheck,
-  guard: () => Promise<void>,
-  checkLive: () => void,
+  { operation, documents, selection, owner, checkPath, guard, checkLive }: {
+    operation: NativeOperation;
+    documents: NativePublicationDocuments;
+    selection: NativePublicationSelection;
+    owner: { readonly root: string; readonly outputDirectory: string };
+    checkPath: PublicationPathCheck;
+    guard: () => Promise<void>;
+    checkLive: () => void;
+  },
 ): Promise<NativePublication> {
-  const corePhaseAction = async function createNativePublicationPhase(): Promise<NativePublication> {
-    const facts = await validatePublicationFacts(
-      documents,
-      operation.identity,
-      selection ?? { expectedSources: documents.map((d) => d.source) },
-      checkPath,
-      guard,
-    );
-    const course = immutable(facts.course);
-    const sources = new Set(documents.map((d) => d.source));
-    return Object.freeze({
-      get root() {
-        checkLive();
-        return owner.root;
-      },
-      get outputDirectory() {
-        checkLive();
-        return owner.outputDirectory;
-      },
-      get identity() {
-        checkLive();
-        return operation.identity;
-      },
-      get catalog() {
-        checkLive();
-        return operation.catalog;
-      },
-      course,
-      document: operation.document,
-      condition: operation.condition,
-      assertCurrent: operation.assertCurrent,
-      resourceFiles: operation.resourceFiles,
-      withProjectContracts: operation.withProjectContracts,
-      adapterInputs(name: string, readSet: readonly NativeMetadataSlot[]) {
-        checkLive();
-        const slots = decode(
-          NativeMetadataReadSetSchema,
-          readSet,
-          "CORE.ADAPTER_INVALID",
-        );
-        return course.adapters.includes(name)
-          ? documents.map((doc) =>
-            nativePublicationAdapterInput(doc, operation.identity, name, slots)
-          )
-          : [];
-      },
-      async checkSources(
-        source: string,
-        references: readonly NativeAdapterValidationResult["sources"][number][],
-      ) {
-        checkLive();
-        if (!sources.has(source)) {
-          fail("RELEASE.COVERAGE", "Foreign publication source", source);
-        }
-        await guard();
-        for (const reference of references) {
-          await checkPath(source, reference.path, reference.kind);
-        }
-        await guard();
-        checkLive();
-      },
-    });
-  };
+  const corePhaseAction =
+    async function createNativePublicationPhase(): Promise<NativePublication> {
+      const facts = await validatePublicationFacts({
+        documents: documents,
+        identity: operation.identity,
+        requestValue: selection ??
+          { expectedSources: documents.map((d) => d.source) },
+        checkPath: checkPath,
+        guard: guard,
+      });
+      const course = immutable(facts.course);
+      const sources = new Set(documents.map((d) => d.source));
+      return Object.freeze({
+        get root() {
+          checkLive();
+          return owner.root;
+        },
+        get outputDirectory() {
+          checkLive();
+          return owner.outputDirectory;
+        },
+        get identity() {
+          checkLive();
+          return operation.identity;
+        },
+        get catalog() {
+          checkLive();
+          return operation.catalog;
+        },
+        course,
+        document: operation.document,
+        condition: operation.condition,
+        assertCurrent: operation.assertCurrent,
+        resourceFiles: operation.resourceFiles,
+        withProjectContracts: operation.withProjectContracts,
+        adapterInputs(name: string, readSet: readonly NativeMetadataSlot[]) {
+          checkLive();
+          const slots = decode(
+            NativeMetadataReadSetSchema,
+            readSet,
+            "CORE.ADAPTER_INVALID",
+          );
+          return course.adapters.includes(name)
+            ? documents.map((doc) =>
+              nativePublicationAdapterInput(
+                doc,
+                operation.identity,
+                name,
+                slots,
+              )
+            )
+            : [];
+        },
+        async checkSources(
+          source: string,
+          references:
+            readonly NativeAdapterValidationResult["sources"][number][],
+        ) {
+          checkLive();
+          if (!sources.has(source)) {
+            fail("RELEASE.COVERAGE", "Foreign publication source", source);
+          }
+          await guard();
+          for (const reference of references) {
+            await checkPath(source, reference.path, reference.kind);
+          }
+          await guard();
+          checkLive();
+        },
+      });
+    };
   return await __createMetrics("course-core").wrapAsync({
     id: "course-core.release.publication.createNativePublication",
     kind: "phase",

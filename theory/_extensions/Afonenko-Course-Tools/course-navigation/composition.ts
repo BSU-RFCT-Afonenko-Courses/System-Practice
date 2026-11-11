@@ -1,4 +1,3 @@
-import { isRecord } from "../course-core/document/native-ast.ts";
 /** Общее меню: состав Course Site и нативные заголовки страниц Quarto. */
 import {
   attr,
@@ -12,6 +11,7 @@ import {
   parseHtml,
   replace,
 } from "./html/document.ts";
+import { isRecord } from "./record.ts";
 import { dirname, join, relative } from "stdlib/path";
 
 export interface NavigationMember {
@@ -77,9 +77,7 @@ function nativeTitle(page: Page): string | undefined {
     undefined;
 }
 
-export async function composeNavigation(
-  context: NavigationComposition,
-): Promise<void> {
+function assertMembers(context: NavigationComposition) {
   if (!context.members.length || context.members[0]!.mount !== "") {
     fail("Первым участником должен быть корневой портал");
   }
@@ -99,6 +97,9 @@ export async function composeNavigation(
     ids.add(member.id);
     mounts.add(member.mount);
   }
+}
+
+async function readPages(context: NavigationComposition) {
   const realStage = await Deno.realPath(context.stage);
   const pages = new Map<string, Page>();
   for (const output of new Set(context.outputs)) {
@@ -126,6 +127,14 @@ export async function composeNavigation(
       });
     }
   }
+  return pages;
+}
+
+export async function composeNavigation(
+  context: NavigationComposition,
+): Promise<void> {
+  assertMembers(context);
+  const pages = await readPages(context);
   if (!pages.size) return;
   const entries = context.members.map((member) => {
     const prefix = member.mount ? member.mount.replace(/\/$/, "") + "/" : "";
@@ -152,6 +161,158 @@ export async function composeNavigation(
   const presentations = new Set(
     [...pages.values()].filter((p) => p.reveal).map((p) => p.path),
   );
+  function presentationTargets(page: Page, navbar: Element, edits: Edit[]) {
+    // При входе в презентацию из оглавления сохраняется открытая страница курса.
+    if (page.path.endsWith("index.html")) {
+      for (const node of page.nodes) {
+        if (
+          node.tagName !== "a" || under(node, navbar) || !attr(node, "href")
+        ) continue;
+        let url: URL;
+        try {
+          url = new URL(
+            attr(node, "href")!,
+            "https://navigation.invalid/" +
+              page.path.split("/").map(encodeURIComponent).join("/"),
+          );
+        } catch {
+          continue;
+        }
+        if (url.origin !== "https://navigation.invalid") continue;
+        let target: string;
+        try {
+          target = decodeURIComponent(url.pathname).slice(1);
+        } catch {
+          continue;
+        }
+        if (target.endsWith("/")) target += "index.html";
+        if (!presentations.has(target)) continue;
+        const tag = node.sourceCodeLocation?.startTag;
+        if (!tag) continue;
+        const rel = [
+          ...new Set(
+            (attr(node, "rel") || "").split(/\s+/).filter(Boolean).concat([
+              "noopener",
+              "noreferrer",
+            ]),
+          ),
+        ].join(" ");
+        const attrs = node.attrs.filter((a) =>
+          a.name !== "target" && a.name !== "rel"
+        ).map((a) => " " + a.name + '="' + escape(a.value) + '"').join("");
+        edits.push({
+          start: tag.startOffset,
+          end: tag.endOffset,
+          value: "<a" + attrs + ' target="_blank" rel="' + escape(rel) + '">',
+        });
+      }
+    }
+  }
+  function composeHtmlPage(
+    page: Page,
+    links: { id: string; text: string; href: string; current: boolean }[],
+    edits: Edit[],
+  ) {
+    const header = page.nodes.find((n) => attr(n, "id") === "quarto-header");
+    const navbar = header &&
+      page.nodes.find((n) =>
+        n.tagName === "nav" && hasClass(n, "navbar") && under(n, header)
+      );
+    if (!navbar) {
+      fail(
+        "Нет штатной navbar Quarto в " + page.path +
+          "; подключите общие metadata навигации",
+      );
+    }
+    const brand = page.nodes.find((n) =>
+      hasClass(n, "navbar-brand") && under(n, navbar)
+    );
+    if (brand) {
+      const tag = brand.sourceCodeLocation?.startTag;
+      if (tag) {
+        const attrs = brand.attrs.filter((a) => a.name !== "href").map((a) =>
+          " " + a.name + '="' + escape(a.value) + '"'
+        ).join("");
+        edits.push({
+          start: tag.startOffset,
+          end: tag.endOffset,
+          value: "<a" + attrs + ' href="' +
+            escape(pageHref(page.path, entries[0]!.page)) + '">',
+        });
+      }
+      const title = page.nodes.find((n) =>
+        hasClass(n, "navbar-title") && under(n, brand)
+      );
+      const target = title || brand;
+      const loc = target.sourceCodeLocation;
+      if (loc?.startTag && loc.endTag) {
+        const logos = title
+          ? ""
+          : page.nodes.filter((n) => n.tagName === "img" && under(n, brand))
+            .map((n) => outer(page, n)).join("");
+        edits.push({
+          start: loc.startTag.endOffset,
+          end: loc.endTag.startOffset,
+          value: logos + escape(context.title),
+        });
+      }
+    }
+    const lists = page.nodes.filter((n) =>
+      n.tagName === "ul" && hasClass(n, "navbar-nav") && under(n, navbar)
+    );
+    const list = lists.find((n) => hasClass(n, "me-auto")) ||
+      lists.find((n) => !hasClass(n, "ms-auto"));
+    const menu = links.map((link) =>
+      '<li class="nav-item"><a class="nav-link' +
+      (link.current ? " active" : "") + '" data-course-link="' +
+      escape(link.id) + '" href="' + escape(link.href) + '"' +
+      (link.current ? ' aria-current="page"' : "") +
+      '><span class="menu-text">' + escape(link.text) + "</span></a></li>"
+    ).join("");
+    if (
+      list?.sourceCodeLocation?.startTag && list.sourceCodeLocation.endTag
+    ) {
+      const loc = list.sourceCodeLocation;
+      edits.push({
+        start: loc.startTag!.endOffset,
+        end: loc.endTag!.startOffset,
+        value: menu,
+      });
+    } else {
+      const collapse = page.nodes.find((n) =>
+        hasClass(n, "navbar-collapse") && under(n, navbar)
+      );
+      const offset = collapse?.sourceCodeLocation?.startTag?.endOffset;
+      const listHtml = '<ul class="navbar-nav navbar-nav-scroll me-auto">' +
+        menu + "</ul>";
+      if (offset !== undefined) {
+        edits.push({ start: offset, end: offset, value: listHtml });
+      } else {
+        // При navbar: {} Quarto не создаёт пустые collapse и toggler.
+        const container = page.nodes.find((n) =>
+          hasClass(n, "navbar-container") && under(n, navbar)
+        ) || navbar;
+        const brandContainer = page.nodes.find((n) =>
+          hasClass(n, "navbar-brand-container") && under(n, container)
+        );
+        const insert = brandContainer?.sourceCodeLocation?.endOffset ||
+          container.sourceCodeLocation?.startTag?.endOffset;
+        if (insert === undefined) {
+          fail("Нет позиции штатной navbar Quarto в " + page.path);
+        }
+        const toggle =
+          '<button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarCollapse" aria-controls="navbarCollapse" aria-expanded="false" aria-label="Меню курса"><span class="navbar-toggler-icon"></span></button>';
+        edits.push({
+          start: insert,
+          end: insert,
+          value: toggle +
+            '<div class="collapse navbar-collapse" id="navbarCollapse">' +
+            listHtml + "</div>",
+        });
+      }
+    }
+    presentationTargets(page, navbar, edits);
+  }
   const updates = new Map<string, string>();
   for (const page of pages.values()) {
     const current = [...entries].sort((a, b) => b.mount.length - a.mount.length)
@@ -169,10 +330,18 @@ export async function composeNavigation(
       attr(n, "id") === "course-navigation-context"
     );
     if (page.reveal) {
-      const existing: unknown = json ? JSON.parse(content(json)) : { links: [] };
-      if (!isRecord(existing) || !Array.isArray(existing.links)) throw Error("Некорректный navigation context");
-      const repositories = existing.links.filter((link: unknown) => {
-        if (!isRecord(link) || typeof link.href !== "string" || typeof link.text !== "string") throw Error("Некорректная navigation link");
+      const existing: unknown = json
+        ? JSON.parse(content(json))
+        : { links: [] };
+      if (!isRecord(existing) || !Array.isArray(existing.links)) {
+        throw Error("Некорректный navigation context");
+      }
+      const existingLinks: unknown[] = existing.links;
+      const repositories = existingLinks.filter((link: unknown) => {
+        if (
+          !isRecord(link) || typeof link.href !== "string" ||
+          typeof link.text !== "string"
+        ) throw Error("Некорректная navigation link");
         return link.scope === "repository";
       });
       const payload = JSON.stringify({ links: [...links, ...repositories] })
@@ -192,149 +361,7 @@ export async function composeNavigation(
         edits.push({ start: offset, end: offset, value: script + "\n" });
       }
     } else {
-      const header = page.nodes.find((n) => attr(n, "id") === "quarto-header");
-      const navbar = header &&
-        page.nodes.find((n) =>
-          n.tagName === "nav" && hasClass(n, "navbar") && under(n, header)
-        );
-      if (!navbar) {
-        fail(
-          "Нет штатной navbar Quarto в " + page.path +
-            "; подключите общие metadata навигации",
-        );
-      }
-      const brand = page.nodes.find((n) =>
-        hasClass(n, "navbar-brand") && under(n, navbar)
-      );
-      if (brand) {
-        const tag = brand.sourceCodeLocation?.startTag;
-        if (tag) {
-          const attrs = brand.attrs.filter((a) => a.name !== "href").map((a) =>
-            " " + a.name + '="' + escape(a.value) + '"'
-          ).join("");
-          edits.push({
-            start: tag.startOffset,
-            end: tag.endOffset,
-            value: "<a" + attrs + ' href="' +
-              escape(pageHref(page.path, entries[0]!.page)) + '">',
-          });
-        }
-        const title = page.nodes.find((n) =>
-          hasClass(n, "navbar-title") && under(n, brand)
-        );
-        const target = title || brand;
-        const loc = target.sourceCodeLocation;
-        if (loc?.startTag && loc.endTag) {
-          const logos = title
-            ? ""
-            : page.nodes.filter((n) => n.tagName === "img" && under(n, brand))
-              .map((n) => outer(page, n)).join("");
-          edits.push({
-            start: loc.startTag.endOffset,
-            end: loc.endTag.startOffset,
-            value: logos + escape(context.title),
-          });
-        }
-      }
-      const lists = page.nodes.filter((n) =>
-        n.tagName === "ul" && hasClass(n, "navbar-nav") && under(n, navbar)
-      );
-      const list = lists.find((n) => hasClass(n, "me-auto")) ||
-        lists.find((n) => !hasClass(n, "ms-auto"));
-      const menu = links.map((link) =>
-        '<li class="nav-item"><a class="nav-link' +
-        (link.current ? " active" : "") + '" data-course-link="' +
-        escape(link.id) + '" href="' + escape(link.href) + '"' +
-        (link.current ? ' aria-current="page"' : "") +
-        '><span class="menu-text">' + escape(link.text) + "</span></a></li>"
-      ).join("");
-      if (
-        list?.sourceCodeLocation?.startTag && list.sourceCodeLocation.endTag
-      ) {
-        const loc = list.sourceCodeLocation;
-        edits.push({
-          start: loc.startTag!.endOffset,
-          end: loc.endTag!.startOffset,
-          value: menu,
-        });
-      } else {
-        const collapse = page.nodes.find((n) =>
-          hasClass(n, "navbar-collapse") && under(n, navbar)
-        );
-        const offset = collapse?.sourceCodeLocation?.startTag?.endOffset;
-        const listHtml = '<ul class="navbar-nav navbar-nav-scroll me-auto">' +
-          menu + "</ul>";
-        if (offset !== undefined) {
-          edits.push({ start: offset, end: offset, value: listHtml });
-        } else {
-          // При navbar: {} Quarto не создаёт пустые collapse и toggler.
-          const container = page.nodes.find((n) =>
-            hasClass(n, "navbar-container") && under(n, navbar)
-          ) || navbar;
-          const brandContainer = page.nodes.find((n) =>
-            hasClass(n, "navbar-brand-container") && under(n, container)
-          );
-          const insert = brandContainer?.sourceCodeLocation?.endOffset ||
-            container.sourceCodeLocation?.startTag?.endOffset;
-          if (insert === undefined) {
-            fail("Нет позиции штатной navbar Quarto в " + page.path);
-          }
-          const toggle =
-            '<button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarCollapse" aria-controls="navbarCollapse" aria-expanded="false" aria-label="Меню курса"><span class="navbar-toggler-icon"></span></button>';
-          edits.push({
-            start: insert,
-            end: insert,
-            value: toggle +
-              '<div class="collapse navbar-collapse" id="navbarCollapse">' +
-              listHtml + "</div>",
-          });
-        }
-      }
-      // При входе в презентацию из оглавления сохраняется открытая страница курса.
-      if (page.path.endsWith("index.html")) {
-        for (const node of page.nodes) {
-          if (
-            node.tagName !== "a" || under(node, navbar) || !attr(node, "href")
-          ) continue;
-          let url: URL;
-          try {
-            url = new URL(
-              attr(node, "href")!,
-              "https://navigation.invalid/" +
-                page.path.split("/").map(encodeURIComponent).join("/"),
-            );
-          } catch {
-            continue;
-          }
-          if (url.origin !== "https://navigation.invalid") continue;
-          let target: string;
-          try {
-            target = decodeURIComponent(url.pathname).slice(1);
-          } catch {
-            continue;
-          }
-          if (target.endsWith("/")) target += "index.html";
-          if (!presentations.has(target)) continue;
-          const tag = node.sourceCodeLocation?.startTag;
-          if (!tag) continue;
-          const rel = [
-            ...new Set(
-              (attr(node, "rel") || "").split(/\s+/).filter(Boolean).concat([
-                "noopener",
-                "noreferrer",
-              ]),
-            ),
-          ].join(" ");
-          const attrs = node.attrs.filter((a) =>
-            a.name !== "target" && a.name !== "rel"
-          ).map((a) => " " + a.name + '="' + escape(a.value) + '"').join("");
-          edits.push({
-            start: tag.startOffset,
-            end: tag.endOffset,
-            value: "<a" + attrs + ' target="_blank" rel="' + escape(rel) + '">',
-          });
-        }
-      }
+      composeHtmlPage(page, links, edits);
     }
     // Результат уже содержит относительные адреса; браузерная перебазировка не нужна.
     const oldScript = page.nodes.find((n) =>

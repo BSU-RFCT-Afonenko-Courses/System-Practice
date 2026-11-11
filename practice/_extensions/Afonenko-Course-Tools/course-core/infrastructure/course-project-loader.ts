@@ -1,3 +1,9 @@
+function yamlDocument(
+  value: unknown,
+): value is { errors: unknown[]; toJS(): unknown } {
+  return record(value) && Array.isArray(value.errors) &&
+    typeof value.toJS === "function";
+}
 import { dirname, isAbsolute, join, relative, resolve } from "stdlib/path";
 import { parseDocument } from "../body-export/vendor/libraries.js";
 import {
@@ -92,7 +98,9 @@ export function projectPathEntries(
     }
   }
   for (const [name, address] of Object.entries(contract.instructions ?? {})) {
-    if (address) rows.push({ field: `instructions.${name}.path`, path: address.path });
+    if (address) {
+      rows.push({ field: `instructions.${name}.path`, path: address.path });
+    }
   }
   for (const [target, address] of Object.entries(contract.build.files)) {
     rows.push({ field: `build.files.${target}`, path: address.path });
@@ -130,10 +138,18 @@ export function projectLoader(
         metrics.yamlFileReads++;
         metrics.yamlBytesRead += new TextEncoder().encode(text).length;
         const document: unknown = parseDocument(text);
-        if (!record(document) || !Array.isArray(document.errors) || typeof document.toJS !== "function") fail("PROJECT_YAML", "Не удалось прочитать YAML", path);
+        if (!yamlDocument(document)) {
+          fail("PROJECT_YAML", "Не удалось прочитать YAML", path);
+        }
         if (document.errors.length) {
           const first: unknown = document.errors[0];
-          fail("PROJECT_YAML", record(first) && typeof first.message === "string" ? first.message : "Повреждённый YAML", path);
+          fail(
+            "PROJECT_YAML",
+            record(first) && typeof first.message === "string"
+              ? first.message
+              : "Повреждённый YAML",
+            path,
+          );
         }
         const parsed: unknown = document.toJS();
         if (parsed === null) return {};
@@ -233,7 +249,8 @@ export function projectLoader(
             if (!Array.isArray(data["metadata-files"])) {
               fail("PROJECT_INCLUDE", "Нужен список metadata-files", path);
             }
-            list.push(...data["metadata-files"]);
+            const included: unknown[] = data["metadata-files"];
+            list.push(...included);
           }
           for (const name of list) {
             if (

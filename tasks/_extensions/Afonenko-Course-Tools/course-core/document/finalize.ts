@@ -16,7 +16,7 @@ import type {
 const stable = (v: unknown): string =>
   JSON.stringify(
     v,
-    (_k, x) =>
+    (_k: string, x: unknown): unknown =>
       x && typeof x === "object" && !Array.isArray(x)
         ? Object.fromEntries(
           Object.entries(x).sort(([a], [b]) => a.localeCompare(b)),

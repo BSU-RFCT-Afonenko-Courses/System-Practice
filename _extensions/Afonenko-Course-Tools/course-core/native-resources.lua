@@ -5,6 +5,7 @@ local __metrics=require("./observability/bridge").create_metrics("course-core",1
 ---@field source string
 ---@field output string
 ---@field _bytes? string
+---@field media? integer
 ---@class CourseObservedResourceList: pandoc.List
 ---@field [integer] CourseObservedResource
 ---@class CourseResourceObservation
@@ -103,13 +104,15 @@ function M.facts(raw,public,canonical)
     local decoded=uri:gsub('%%(%x%x)',function(h) return string.char(assert(tonumber(h,16))) end)
     local source=decoded:sub(1,1)=='/' and pandoc.path.join({root,decoded:sub(2)}) or pandoc.path.join({pandoc.path.directory(input),decoded})
     source=pandoc.path.normalize(source)
+    local _,media=pandoc.mediabag.lookup(decoded)
     local file=not tool_cache(root,source) and io.open(source,'rb')
-    if file then
+    if file or (media and not tool_cache(root,source)) then
       ---@type CourseObservedResource
       local observed={source=source,output=pandoc.path.join({outputRoot,pandoc.path.make_relative(source,root)})}
       -- PDF читает generated figures до native relocation.
-      if FORMAT=='latex' and source:sub(1,#generatedPrefix)==generatedPrefix and (view=='full' or publicUses[uri]) then observed._bytes=file:read('*a') end
-      file:close()
+      if media then observed._bytes=media end
+      if file and not media and FORMAT=='latex' and source:sub(1,#generatedPrefix)==generatedPrefix and (view=='full' or publicUses[uri]) then observed._bytes=file:read('*a') end
+      if file then file:close() end
       capturedFiles:insert(observed)
     end
   end

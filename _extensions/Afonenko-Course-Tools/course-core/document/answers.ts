@@ -6,7 +6,13 @@ import { boundInput, fail } from "../contracts/project.ts";
 import { AnswerFactsSchema, AnswerSpecSchema } from "./answer-contracts.ts";
 import type { AnswerFacts, AnswerSpec } from "./answer-contracts.ts";
 import { decode } from "./contracts.ts";
-import { isRecord as object, isContainer, isCode, isBulletList, nodeAttributes as attr } from "./native-ast.ts";
+import {
+  isBulletList,
+  isCode,
+  isContainer,
+  isRecord as object,
+  nodeAttributes as attr,
+} from "./native-ast.ts";
 import type { Node } from "./native-ast.ts";
 const para = (s: string): Node => ({ t: "Para", c: [{ t: "Str", c: s }] });
 export function projectAnswer(a: AnswerSpec): Node[] {
@@ -25,12 +31,28 @@ export function projectAnswer(a: AnswerSpec): Node[] {
     para("Соответствия: ____________________"),
   ];
 }
+function yamlDocument(
+  value: unknown,
+): value is {
+  errors: unknown[];
+  warnings: unknown[];
+  contents: unknown;
+  toJS(options: { maxAliasCount: number }): unknown;
+} {
+  return object(value) && Array.isArray(value.errors) &&
+    Array.isArray(value.warnings) && typeof value.toJS === "function";
+}
 export function decodeAnswerYaml(source: string, input: string): AnswerSpec {
   if (source.length > 65536) {
     fail("ANSWER_YAML", "Слишком большой YAML ответа", input);
   }
-  const raw: unknown = parseDocument(source, { uniqueKeys: true, version: "1.2" });
-  if (!object(raw) || !Array.isArray(raw.errors) || !Array.isArray(raw.warnings) || typeof raw.toJS !== "function") fail("ANSWER_YAML", "Повреждённый YAML document", input);
+  const raw: unknown = parseDocument(source, {
+    uniqueKeys: true,
+    version: "1.2",
+  });
+  if (!yamlDocument(raw)) {
+    fail("ANSWER_YAML", "Повреждённый YAML document", input);
+  }
   if (raw.errors.length || raw.warnings.length) {
     fail(
       "ANSWER_YAML",
@@ -43,7 +65,7 @@ export function decodeAnswerYaml(source: string, input: string): AnswerSpec {
     if (isAlias(v) || v.anchor || v.tag) {
       fail("ANSWER_YAML", "Aliases/anchors/tags ответа запрещены", input);
     }
-    if (Array.isArray(v.items)) for (const x of v.items) check(x);
+    if (Array.isArray(v.items)) { for (const x of v.items) check(x); }
     check(v.key);
     check(v.value);
   }
@@ -83,6 +105,35 @@ export function collectAnswers(
         : body,
     );
   }
+  function markCorrect(
+    v: Record<string, unknown>,
+    classes: string[],
+    { owner, role, choiceIndex, marks }: {
+      owner: string | undefined;
+      role: "solution" | "answer" | undefined;
+      choiceIndex: number | undefined;
+      marks: number[] | undefined;
+    },
+  ) {
+    if (classes.includes("correct")) {
+      if (
+        !isContainer(v) || v.t !== "Span" || role !== "answer" ||
+        choiceIndex === undefined ||
+        !marks
+      ) {
+        fail(
+          "ANSWER_INVALID",
+          "Маркер correct допустим только внутри ответа single-choice",
+          input,
+          owner,
+        );
+      }
+      marks.push(choiceIndex);
+      replacements.set(v, v.c[1]);
+    }
+  }
+  const isAnswerClasses = (classes: string[]) =>
+    classes.includes("answer") || classes.includes("answer-spec");
   function walk(
     v: unknown,
     owner?: string,
@@ -102,22 +153,8 @@ export function collectAnswers(
       v.t === "Div" &&
       (classes.includes("solution") || String(a?.[0]).startsWith("sol-"))
     ) nextRole = "solution";
-    if (classes.includes("correct")) {
-      if (
-        !isContainer(v) || v.t !== "Span" || role !== "answer" || choiceIndex === undefined ||
-        !marks
-      ) {
-        fail(
-          "ANSWER_INVALID",
-          "Маркер correct допустим только внутри ответа single-choice",
-          input,
-          owner,
-        );
-      }
-      marks.push(choiceIndex);
-      replacements.set(v, v.c[1]);
-    }
-    if (classes.includes("answer") || classes.includes("answer-spec")) {
+    markCorrect(v, classes, { owner, role, choiceIndex, marks });
+    if (isAnswerClasses(classes)) {
       if (
         !next || role || classes.includes("correct") ||
         (classes.includes("answer") && classes.includes("answer-spec"))
@@ -143,7 +180,8 @@ export function collectAnswers(
         return;
       }
       if (
-        !isContainer(v) || v.t !== "Div" || Object.fromEntries(v.c[0][2]).type !== "single-choice" ||
+        !isContainer(v) || v.t !== "Div" ||
+        Object.fromEntries(v.c[0][2]).type !== "single-choice" ||
         v.c[1].length !== 1 || !isBulletList(v.c[1][0])
       ) {
         fail(
@@ -154,7 +192,9 @@ export function collectAnswers(
         );
       }
       const list = v.c[1][0];
-      if (!isBulletList(list)) fail("ANSWER_INVALID", "Некорректный BulletList", input, next);
+      if (!isBulletList(list)) {
+        fail("ANSWER_INVALID", "Некорректный BulletList", input, next);
+      }
       const items = list.c, marked: number[] = [];
       items.forEach((item, index) => walk(item, next, "answer", index, marked));
       if (marked.length !== 1) {

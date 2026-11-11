@@ -5,7 +5,7 @@ import type { Catalog, Exports } from "../domain/model.ts";
 import { join, relative, dirname, fromFileUrl, resolve, isAbsolute } from "./files.ts";
 import { readPage } from "./pages.ts";
 import { linkPages, type LinkScope } from "./linker.ts";
-import { updateSearch, searchIndexBase, type SearchIndex, type SearchRow } from "./search.ts";
+import { prepareSearch, searchIndexBase, type SearchIndex, type SearchRow } from "./search.ts";
 import { exportedTargets } from "../domain/exports.ts";
 import { catalogConfig } from "./config.ts";
 import { importTargets } from "./imports.ts";
@@ -77,27 +77,45 @@ async function publishImpl(context: CatalogPublication): Promise<void> {
     : config.exports;
   const exported = exportedTargets(localTargets, selection);
   const linked = linkPages(pages, script, imports, css, context.scope);
-  // Сначала вычисляется полный результат: ошибка ссылки не оставляет половину страниц обновлёнными.
-  for (const [path, html] of linked.pages) await Deno.writeTextFile(join(stage, path), html);
   const currentIndexes = indexes.map(index => ({ ...index, path: resolve(root, index.path) }));
-  const updatedSearch = await updateSearch(stage, currentIndexes, linked.parsedPages);
+  const updatedSearch = await prepareSearch(stage, currentIndexes, linked.parsedPages);
+  const files = new Map([...linked.pages].map(([path, html]) => [join(stage, path), html]));
   if (context.scope !== "local" && indexes.length) {
+    // Общий physical path может отдаваться из нескольких mounts. Удалённая
+    // страница не должна остаться ни в одном из этих представлений.
+    const noncurrent = new Set<SearchRow>();
+    for (const { index, rows: sourceRows } of updatedSearch) {
+      const base = searchIndexBase(stage, index);
+      for (const row of sourceRows) {
+        const url = new URL(row.href, `https://qrc.invalid/${base}`);
+        if (url.origin !== "https://qrc.invalid") throw diagnostic("QRC.OUTPUT_INVALID", `внешний адрес в локальном поисковом индексе: ${row.href}`, { source: index.path, field: "outputs" });
+        if (!linked.parsedPages.has(decodeURIComponent(url.pathname).slice(1))) noncurrent.add(row);
+      }
+    }
+    for (const sourceRows of new Set(updatedSearch.map(({ rows }) => rows))) {
+      const current = sourceRows.filter(row => !noncurrent.has(row));
+      sourceRows.length = 0;
+      for (const row of current) sourceRows.push(row);
+    }
     const rows = new Map<string, SearchRow>();
     for (const { index, rows: sourceRows } of updatedSearch) {
-      const path = index.path;
+      const base = searchIndexBase(stage, index);
       for (const row of sourceRows) {
-        const base = searchIndexBase(stage, index);
         const url = new URL(row.href, `https://qrc.invalid/${base}`);
-        if (url.origin !== "https://qrc.invalid") throw diagnostic("QRC.OUTPUT_INVALID", `внешний адрес в локальном поисковом индексе: ${row.href}`, { source: path, field: "outputs" });
-        if (!linked.parsedPages.has(decodeURIComponent(url.pathname).slice(1))) continue;
         const href = url.pathname.slice(1) + url.search + url.hash;
         rows.set(href, { ...row, href });
       }
     }
-    await Deno.writeTextFile(join(stage, "search.json"), JSON.stringify([...rows.values()], null, 2) + "\n");
+    for (const { index, rows: sourceRows } of updatedSearch) files.set(index.path, JSON.stringify(sourceRows, null, 2) + "\n");
+    files.set(join(stage, "search.json"), JSON.stringify([...rows.values()], null, 2) + "\n");
+  } else {
+    for (const { index, rows } of updatedSearch) files.set(index.path, JSON.stringify(rows, null, 2) + "\n");
   }
   const catalog: Catalog = { schema: "quarto-reference-catalog", generator: { quarto }, ...(config.publication === undefined ? {} : { publication: config.publication }), targets: exported };
-  await Deno.writeTextFile(join(stage, context.scope === "local" ? "reference-catalog-local.json" : "reference-catalog.json"), JSON.stringify(catalog, null, 2) + "\n");
+  files.set(join(stage, context.scope === "local" ? "reference-catalog-local.json" : "reference-catalog.json"), JSON.stringify(catalog, null, 2) + "\n");
+  // Весь результат проверен и сериализован до первой записи. Ошибка файловой
+  // системы при применении сохраняется; уже записанные файлы не откатываются.
+  for (const [path, text] of files) await Deno.writeTextFile(path, text);
   console.log(`QRC разрешено ссылок: ${linked.links}; отложено ссылок: ${linked.deferred}; целей: ${linked.targets.size}; страниц: ${pages.length}`);
 }
 

@@ -27,7 +27,7 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
           repository: Afonenko-Course-Tools/prairielearn-platform
-          ref: ${{ vars.PLATFORM_REF || 'main' }}
+          ref: 67ae53b239b7c460f2c3e81b9e840cfa96879bcc
           path: .platform
           persist-credentials: false
       - id: platform-ref
@@ -113,7 +113,7 @@ jobs:
       matrix:
         scope: [declared, delivery]
     runs-on: ubuntu-24.04
-    timeout-minutes: 150
+    timeout-minutes: 180
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:

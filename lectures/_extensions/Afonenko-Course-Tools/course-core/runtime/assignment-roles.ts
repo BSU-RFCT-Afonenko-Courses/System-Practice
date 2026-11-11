@@ -1,3 +1,5 @@
+const nativeArray = (value: unknown): value is readonly unknown[] =>
+  Array.isArray(value);
 import { dirname, resolve } from "stdlib/path";
 import { fail } from "../contracts/project.ts";
 import {
@@ -44,16 +46,18 @@ export function assignmentProjectRoot(
 }
 /** The exact complete plan set is required before the first Body resource lookup. */
 export async function assignmentRoleIndex(
-  root: string,
-  profiles: readonly string[],
-  documents: readonly { source: string; format: string }[],
-  declared: readonly AssignmentProjectDeclaration[],
-  pairs: readonly NativeAssignmentProjectPlans[],
-  resources: readonly { path: string; identity: string }[],
-  generation: object,
+  { root, profiles, documents, declared, pairs, resources, generation }: {
+    root: string;
+    profiles: readonly string[];
+    documents: readonly { source: string; format: string }[];
+    declared: readonly AssignmentProjectDeclaration[];
+    pairs: readonly NativeAssignmentProjectPlans[];
+    resources: readonly { path: string; identity: string }[];
+    generation: object;
+  },
 ) {
   if (
-    !Array.isArray(pairs) || pairs.length !== declared.length ||
+    !nativeArray(pairs) || pairs.length !== declared.length ||
     pairs.length > 4096
   ) invalid("Неполное покрытие declared projects");
   const roles: AssignmentRole[] = [],

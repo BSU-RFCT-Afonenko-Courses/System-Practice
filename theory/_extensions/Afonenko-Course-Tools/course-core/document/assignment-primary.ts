@@ -5,7 +5,11 @@ import type {
   AssignmentEarly,
   NativeResponseSlot,
 } from "./assignment-contracts.ts";
-import { isBulletList, isRecord, nodeAttributes as attr } from "./native-ast.ts";
+import {
+  isBulletList,
+  isRecord,
+  nodeAttributes as attr,
+} from "./native-ast.ts";
 import type { Node } from "./native-ast.ts";
 export const assignmentAnswerAttribute = "data-course-core-answer";
 export const assignmentAnchorAttribute = "data-course-core-answer-anchor";
@@ -133,6 +137,79 @@ export function assignmentAnswerTransport(
     c: [["", [], [[assignmentAnswerAttribute, key]]], body],
   }];
 }
+function projectAssignmentProfiles(
+  value: object,
+  a: NonNullable<ReturnType<typeof attr>>,
+  context: DocumentContext,
+  identityNodes: WeakSet<object>,
+) {
+  const pairs = a[2], classes = a[1];
+  const profilePairs = pairs.filter(([k]) =>
+    k === "when-profile" || k === "unless-profile"
+  );
+  if (profilePairs.length) {
+    const seen = new Set<string>();
+    let p = true, effective = 0;
+    for (const [name, profile] of profilePairs) {
+      if (seen.has(name) || !/^[-a-z0-9]+$/.test(profile)) {
+        fail(
+          "BODY.DELIVERY_PHASE_UNSUPPORTED",
+          "Неподдержанный profile predicate",
+        );
+      }
+      seen.add(name);
+      const match = profile === "student"
+        ? true
+        : profile === "full"
+        ? false
+        : (context.profiles ?? []).includes(profile);
+      // Only audience gating on exercise identity/necessary ancestors is overridden.
+      if (
+        !(identityNodes.has(value) &&
+          (profile === "student" || profile === "full"))
+      ) {
+        effective++;
+        p &&= name === "when-profile" ? match : !match;
+      }
+    }
+    a[2] = pairs.filter(([k]) =>
+      k !== "when-profile" && k !== "unless-profile"
+    );
+    const visible = classes.includes("content-visible"),
+      hidden = classes.includes("content-hidden");
+    if (effective === 0) {
+      if (!a[2].some(([k]) => /^when-|^unless-/.test(k))) {
+        a[1] = classes.filter((c) =>
+          c !== "content-visible" && c !== "content-hidden"
+        );
+      }
+    } else {
+      if (!visible && !hidden) {
+        fail(
+          "BODY.DELIVERY_PHASE_UNSUPPORTED",
+          "Profile attrs вне native conditional gate",
+        );
+      }
+      if (
+        visible && !p ||
+        hidden && p &&
+          !a[2].some(([k]) => /^when-|^unless-/.test(k))
+      ) return false;
+      if (hidden && !p) {
+        a[2] = a[2].filter(([k]) => !/^when-|^unless-/.test(k));
+      }
+      const keep = (visible && p || hidden && p) &&
+        a[2].some(([k]) => /^when-|^unless-/.test(k));
+      if (!keep) {
+        a[1] = classes.filter((c) =>
+          c !== "content-visible" && c !== "content-hidden"
+        );
+      }
+    }
+  }
+
+  return true;
+}
 /** Audience is projected once before Quarto ConditionalBlock destroys reader content. */
 export function assignmentPrivacy(
   value: unknown,
@@ -150,68 +227,8 @@ export function assignmentPrivacy(
     if (
       classes.includes("content-visible") && classes.includes("content-hidden")
     ) fail("BODY.DELIVERY_PHASE_UNSUPPORTED", "Неоднозначный audience gate");
-    const profilePairs = pairs.filter(([k]) =>
-      k === "when-profile" || k === "unless-profile"
-    );
-    if (profilePairs.length) {
-      const seen = new Set<string>();
-      let p = true, effective = 0;
-      for (const [name, profile] of profilePairs) {
-        if (seen.has(name) || !/^[-a-z0-9]+$/.test(profile)) {
-          fail(
-            "BODY.DELIVERY_PHASE_UNSUPPORTED",
-            "Неподдержанный profile predicate",
-          );
-        }
-        seen.add(name);
-        const match = profile === "student"
-          ? true
-          : profile === "full"
-          ? false
-          : (context.profiles ?? []).includes(profile);
-        // Only audience gating on exercise identity/necessary ancestors is overridden.
-        if (
-          !(identityNodes.has(value) &&
-            (profile === "student" || profile === "full"))
-        ) {
-          effective++;
-          p &&= name === "when-profile" ? match : !match;
-        }
-      }
-      a[2] = pairs.filter(([k]) =>
-        k !== "when-profile" && k !== "unless-profile"
-      );
-      const visible = classes.includes("content-visible"),
-        hidden = classes.includes("content-hidden");
-      if (effective === 0) {
-        if (!a[2].some(([k]) => /^when-|^unless-/.test(k))) {
-          a[1] = classes.filter((c) =>
-            c !== "content-visible" && c !== "content-hidden"
-          );
-        }
-      } else {
-        if (!visible && !hidden) {
-          fail(
-            "BODY.DELIVERY_PHASE_UNSUPPORTED",
-            "Profile attrs вне native conditional gate",
-          );
-        }
-        if (
-          visible && !p ||
-          hidden && p &&
-            !a[2].some(([k]) => /^when-|^unless-/.test(k))
-        ) return undefined;
-        if (hidden && !p) {
-          a[2] = a[2].filter(([k]) => !/^when-|^unless-/.test(k));
-        }
-        const keep = (visible && p || hidden && p) &&
-          a[2].some(([k]) => /^when-|^unless-/.test(k));
-        if (!keep) {
-          a[1] = classes.filter((c) =>
-            c !== "content-visible" && c !== "content-hidden"
-          );
-        }
-      }
+    if (!projectAssignmentProfiles(value, a, context, identityNodes)) {
+      return undefined;
     }
     if (
       classes.some((c) =>

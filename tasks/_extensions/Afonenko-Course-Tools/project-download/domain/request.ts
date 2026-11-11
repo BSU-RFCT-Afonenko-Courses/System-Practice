@@ -11,11 +11,17 @@ function syntax(
   throw diagnostic("DOWNLOAD.REQUEST_INVALID", message, { source, id, field });
 }
 
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return value !== null && typeof value === "object" && !Array.isArray(value);
+}
+function isArtifactKind(value: string): value is ArtifactKind {
+  return ARTIFACT_KINDS.some((kind) => kind === value);
+}
 function record(value: unknown, source: string): Record<string, unknown> {
-  if (!value || typeof value !== "object" || Array.isArray(value)) {
+  if (!isRecord(value)) {
     syntax("Запрос должен быть словарём", source);
   }
-  return value as Record<string, unknown>;
+  return value;
 }
 function keys(
   value: Record<string, unknown>,
@@ -73,10 +79,10 @@ export function decodeDownloadRequest(value: unknown, source: string) {
     seen.add(arg.key);
     if (arg.key === "text") text = arg.value;
     else if (arg.key === "kind") {
-      if (!ARTIFACT_KINDS.includes(arg.value as ArtifactKind)) {
+      if (!isArtifactKind(arg.value)) {
         syntax("Неизвестный вид комплекта", source, resource, "kind");
       }
-      kind = arg.value as ArtifactKind;
+      kind = arg.value;
     } else {syntax(
         `Неизвестный параметр project-download: ${arg.key}`,
         source,
@@ -93,17 +99,88 @@ function invocation(value: unknown, source: string) {
   const v = record(value, source);
   keys(v, ["ordinal", "positional", "named", "inline"], source);
   if (
-    !Number.isSafeInteger(v.ordinal) || (v.ordinal as number) < 0 ||
+    typeof v.ordinal !== "number" || !Number.isSafeInteger(v.ordinal) ||
+    v.ordinal < 0 ||
     typeof v.inline !== "boolean"
   ) syntax("Недопустимый ordinal или признак inline", source);
   return {
-    ordinal: v.ordinal as number,
+    ordinal: v.ordinal,
     inline: v.inline,
     decoded: decodeDownloadRequest(
       { positional: v.positional, named: v.named },
       source,
     ),
   };
+}
+function modelKind(
+  input: {
+    id: string;
+    source: string;
+    observed: unknown;
+    context: unknown;
+    native: boolean;
+    view: unknown;
+    explicitKind: ArtifactKind | undefined;
+  },
+): ArtifactKind {
+  const { id, source, observed, context, native, view, explicitKind } = input;
+  let exercise: Record<string, unknown> | undefined = observed == null
+    ? undefined
+    : record(observed, source);
+  if (context != null) {
+    const actual = record(context, source);
+    exercise = {
+      "course-role": actual.purpose ?? "",
+      "statement-visibility": actual.statementVisibility ?? "",
+    };
+  }
+  if (!exercise && native) {
+    if (explicitKind === undefined) {
+      throw diagnostic(
+        "DOWNLOAD.KIND_UNQUALIFIED",
+        "Native custom appearance требует явный kind до owner artifact-context",
+        { source, id, field: "kind" },
+      );
+    }
+    exercise = {};
+  }
+  if (!exercise) {
+    throw diagnostic(
+      "DOWNLOAD.RESOURCE_UNAVAILABLE",
+      "Нет видимого упражнения в текущем документе",
+      { source, id, field: "exerciseId" },
+    );
+  }
+  const demo = exercise["course-role"] === "demonstration" &&
+    exercise["statement-visibility"] === "open";
+  return explicitKind ?? (view === "full" || demo ? "full" : "starter");
+}
+function visibleConfiguration(
+  calls: ReturnType<typeof invocation>[],
+  value: unknown,
+  source: string,
+) {
+  return calls.some((r) => r.inline)
+    ? value == null || value === false
+      ? (() => {
+        throw diagnostic(
+          "DOWNLOAD.CONFIG_INVALID",
+          "Для project-download требуется явная конфигурация ресурсов",
+          { source, field: "project-download" },
+        );
+      })()
+      : configuration(value)
+    : undefined;
+}
+function requestCaption(text: string, kind: ArtifactKind | undefined): string {
+  const captions = {
+    starter: "Скачать заготовку",
+    full: "Скачать полный проект",
+    conditions: "Скачать условие",
+  };
+  return /^[ \f\n\r\t\v]*$/.test(text)
+    ? kind ? captions[kind] : "Скачать материалы"
+    : text;
 }
 /** Одна document-local native batch. Не читает файлы/metadata и не создаёт ZIP. */
 export function resolveDownloadRequests(value: unknown) {
@@ -141,26 +218,13 @@ export function resolveDownloadRequests(value: unknown) {
     artifacts: ReturnType<typeof artifact>[] = [],
     links: { ordinal: number; href: string; text: string }[] = [],
     seen = new Set<string>();
-  const config = calls.some((r) => r.inline)
-    ? v.configuration == null || v.configuration === false
-      ? (() => {
-        throw diagnostic(
-          "DOWNLOAD.CONFIG_INVALID",
-          "Для project-download требуется явная конфигурация ресурсов",
-          { source, field: "project-download" },
-        );
-      })()
-      : configuration(v.configuration)
-    : undefined;
-  const captions = {
-    starter: "Скачать заготовку",
-    full: "Скачать полный проект",
-    conditions: "Скачать условие",
-  };
+  const config = visibleConfiguration(calls, v.configuration, source);
   for (const call of calls) {
     if (!call.inline) continue;
     const { resource: id, text, kind: explicitKind } = call.decoded;
-    const declared = Object.hasOwn(config!.resources, id) ? config!.resources[id] : undefined,
+    const declared = Object.hasOwn(config!.resources, id)
+        ? config!.resources[id]
+        : undefined,
       context = contexts[id],
       observed = exercises[id];
     const model = config!["course-model"] === true && id.startsWith("exr-") &&
@@ -186,36 +250,15 @@ export function resolveDownloadRequests(value: unknown) {
       }
       name = id;
     } else {
-      let exercise: Record<string, unknown> | undefined = observed == null
-        ? undefined
-        : record(observed, source);
-      if (context != null) {
-        const actual = record(context, source);
-        exercise = {
-          "course-role": actual.purpose ?? "",
-          "statement-visibility": actual.statementVisibility ?? "",
-        };
-      }
-      if (!exercise && v.native) {
-        if (explicitKind === undefined) {
-          throw diagnostic(
-            "DOWNLOAD.KIND_UNQUALIFIED",
-            "Native custom appearance требует явный kind до owner artifact-context",
-            { source, id, field: "kind" },
-          );
-        }
-        exercise = {};
-      }
-      if (!exercise) {
-        throw diagnostic(
-          "DOWNLOAD.RESOURCE_UNAVAILABLE",
-          "Нет видимого упражнения в текущем документе",
-          { source, id, field: "exerciseId" },
-        );
-      }
-      const demo = exercise["course-role"] === "demonstration" &&
-        exercise["statement-visibility"] === "open";
-      kind = explicitKind ?? (v.view === "full" || demo ? "full" : "starter");
+      kind = modelKind({
+        id,
+        source,
+        observed,
+        context,
+        native: v.native,
+        view: v.view,
+        explicitKind,
+      });
       name = id + "-" + kind;
     }
     const identity = kind ? `artifact:${id}:${kind}` : `resource:${id}`;
@@ -229,9 +272,7 @@ export function resolveDownloadRequests(value: unknown) {
       ordinal: call.ordinal,
       href: "../".repeat((source.match(/[\/\\]/g) ?? []).length) +
         "_downloads/" + name + ".zip",
-      text: /^[ \f\n\r\t\v]*$/.test(text)
-        ? kind ? captions[kind] : "Скачать материалы"
-        : text,
+      text: requestCaption(text, kind),
     });
   }
   return {

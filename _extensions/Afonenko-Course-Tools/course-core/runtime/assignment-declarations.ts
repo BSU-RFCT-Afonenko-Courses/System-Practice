@@ -11,25 +11,11 @@ type PresentationContext = {
 };
 const record = (value: unknown): value is Record<string, unknown> =>
   value !== null && typeof value === "object" && !Array.isArray(value);
-function presentationStylesheet(
+function stylesheetAttributes(
   row: { content: Record<string, unknown> },
-  sheet: unknown,
-  context?: PresentationContext,
+  sheet: { name: string; attribs: Record<string, unknown> },
+  context: PresentationContext,
 ) {
-  if (
-    !context ||
-    !["html", "revealjs"].includes(context.format) ||
-    ![context.root, context.xdg, context.outputDirectory].every((p) =>
-      typeof p === "string" && p.startsWith("/") && !p.includes("\0") &&
-      resolve(p) === p
-    ) ||
-    !context.outputDirectory.startsWith(context.root + "/_generated/") ||
-    row.content.external !== undefined || row.content.version !== undefined ||
-    !record(sheet) ||
-    Object.keys(sheet).sort().join(",") !== "attribs,name,path" ||
-    typeof sheet.path !== "string" || typeof sheet.name !== "string" ||
-    !record(sheet.attribs)
-  ) return false;
   const attrs = sheet.attribs;
   const syntax = /^quarto-syntax-highlighting(?:-dark)?-[a-f0-9]{32}\.css$/
     .test(sheet.name);
@@ -62,6 +48,34 @@ function presentationStylesheet(
       "quarto-color-scheme-extra",
     ].includes(attrs.class))
   ) return false;
+  return true;
+}
+function presentationStylesheet(
+  row: { content: Record<string, unknown> },
+  sheet: unknown,
+  context?: PresentationContext,
+) {
+  if (
+    !context ||
+    !["html", "revealjs"].includes(context.format) ||
+    ![context.root, context.xdg, context.outputDirectory].every((p) =>
+      typeof p === "string" && p.startsWith("/") && !p.includes("\0") &&
+      resolve(p) === p
+    ) ||
+    !context.outputDirectory.startsWith(context.root + "/_generated/") ||
+    row.content.external !== undefined || row.content.version !== undefined ||
+    !record(sheet) ||
+    Object.keys(sheet).sort().join(",") !== "attribs,name,path" ||
+    typeof sheet.path !== "string" || typeof sheet.name !== "string" ||
+    !record(sheet.attribs)
+  ) return false;
+  if (
+    !stylesheetAttributes(
+      row,
+      { name: sheet.name, attribs: sheet.attribs },
+      context,
+    )
+  ) return false;
   const path = sheet.path;
   if (!path.startsWith("/") || path.includes("\0") || resolve(path) !== path) {
     return false;
@@ -69,7 +83,7 @@ function presentationStylesheet(
   const cache = context.xdg + "/quarto/sass/";
   if (
     path.startsWith(cache) &&
-    /^[a-f0-9]{32}\.css$/.test(path.slice(cache.length))
+    /^(?:v8-[0-9]+\.[0-9]+\/)?[a-f0-9]{32}\.css$/.test(path.slice(cache.length))
   ) return true;
   const scratch = context.root + "/.quarto/";
   return path.startsWith(scratch) &&
@@ -130,6 +144,41 @@ export function assertAssignmentDeclarations(
       invalid("Declared data/resource вне владельца " + name);
     }
   };
+  function htmlDeclaration(row: { content: Record<string, unknown> }) {
+    const c = row.content;
+    for (const field of ["scripts", "stylesheets", "resources"]) {
+      if (c[field] !== undefined && !Array.isArray(c[field])) {
+        invalid("Повреждённый HTML dependency " + field);
+      }
+      const files: unknown[] = Array.isArray(c[field]) ? c[field] : [];
+      for (const file of files) {
+        // Служебный CSS не разрешается как содержимое AST/resource.
+        if (
+          field === "stylesheets" && record(file) &&
+          typeof file.path === "string" &&
+          presentationStylesheet(row, file, presentation)
+        ) continue;
+        path(record(file) ? file.path : undefined);
+      }
+    }
+    if (c.serviceworkers !== undefined && !Array.isArray(c.serviceworkers)) {
+      invalid("Повреждённый serviceworkers");
+    }
+    const workers: unknown[] = Array.isArray(c.serviceworkers)
+      ? c.serviceworkers
+      : [];
+    for (const worker of workers) {
+      path(record(worker) ? worker.source : undefined);
+    }
+    if (c.links !== undefined && !Array.isArray(c.links)) {
+      invalid("Повреждённый HTML dependency links");
+    }
+    const links: unknown[] = Array.isArray(c.links) ? c.links : [];
+    for (const link of links) {
+      if (paginationOutput(row, link, presentation)) continue;
+      path(record(link) ? link.href : undefined);
+    }
+  }
   const declarations: unknown[] = rows;
   for (const value of declarations) {
     if (
@@ -138,38 +187,16 @@ export function assertAssignmentDeclarations(
     ) return invalid("Повреждённая native declaration");
     // После проверки границы native JSON поля ещё остаются unknown.
     const row = { type: value.type, content: value.content }, c = row.content;
-    if (row.type === "resources" || row.type === "supporting" || row.type === "format-resources") {
+    if (
+      row.type === "resources" || row.type === "supporting" ||
+      row.type === "format-resources"
+    ) {
       path(c.file);
     } else if (row.type === "file") path(c.path);
-    else if (row.type === "html-attachment") path(record(c.file) ? c.file.path : undefined);
-    else if (row.type === "html") {
-      for (const field of ["scripts", "stylesheets", "resources"]) {
-        if (c[field] !== undefined && !Array.isArray(c[field])) {
-          invalid("Повреждённый HTML dependency " + field);
-        }
-        const files: unknown[] = Array.isArray(c[field]) ? c[field] : [];
-        for (const file of files) {
-          // Служебный CSS не разрешается как содержимое AST/resource.
-          if (
-            field === "stylesheets" && record(file) && typeof file.path === "string" &&
-            presentationStylesheet(row, file, presentation)
-          ) continue;
-          path(record(file) ? file.path : undefined);
-        }
-      }
-      if (c.serviceworkers !== undefined && !Array.isArray(c.serviceworkers)) {
-        invalid("Повреждённый serviceworkers");
-      }
-      const workers: unknown[] = Array.isArray(c.serviceworkers) ? c.serviceworkers : [];
-      for (const worker of workers) path(record(worker) ? worker.source : undefined);
-      if (c.links !== undefined && !Array.isArray(c.links)) {
-        invalid("Повреждённый HTML dependency links");
-      }
-      const links: unknown[] = Array.isArray(c.links) ? c.links : [];
-      for (const link of links) {
-        if (paginationOutput(row, link, presentation)) continue;
-        path(record(link) ? link.href : undefined);
-      }
+    else if (row.type === "html-attachment") {
+      path(record(c.file) ? c.file.path : undefined);
+    } else if (row.type === "html") {
+      htmlDeclaration(row);
     } else if (row.type !== "text" && row.type !== "usepackage") {
       invalid("Неизвестный native declaration type " + row.type);
     }

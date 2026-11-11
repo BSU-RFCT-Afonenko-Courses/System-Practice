@@ -3,6 +3,7 @@ import { artifactTargetIssue } from "./policy.ts";
 import { z } from "../vendor/zod/v4/index.js";
 import { NativeResponseSlotSchema } from "../document/assignment-contracts.ts";
 import { DocumentContextSchema } from "../document/contracts.ts";
+import { NativeNodesSchema } from "../document/native-ast.ts";
 export const ArtifactTargetSchema = z.string().min(1).max(1024).refine(
   (v) =>
     !/[\\\0:*?\[\]{}]/.test(v) && !v.startsWith("/") &&
@@ -24,7 +25,7 @@ export const ResolvedConditionSchema = z.strictObject({
   project: z.string().min(1).optional(),
   view: z.enum(["student", "author"]),
   pandocApiVersion: z.array(z.number().int().nonnegative()).min(2).max(4),
-  body: z.array(z.unknown()),
+  body: NativeNodesSchema,
   links: z.array(z.string().min(1)).max(4096),
   resources: z.array(z.string().min(1)).max(4096),
 });

@@ -4,30 +4,38 @@
   "javaRelease": 25,
   "platform": {
     "repository": "Afonenko-Course-Tools/prairielearn-platform",
-    "tag": "v2.6.0",
-    "commit": "12918eb7e81b6f86de9c817bcdeb3dffe7965218",
-    "version": "2.6.0",
-    "javaImage": "ghcr.io/afonenko-course-tools/java25-grader@sha256:b963e4ef1abce2a40c2a9c00b5e548814c3c7be074b24a34c869edc1adcf1282",
+    "tag": "v2.7.0",
+    "commit": "c2e8b66b9d21aff14608635b5b6f636ac046dd14",
+    "version": "2.7.0",
+    "javaImage": "ghcr.io/afonenko-course-tools/java25-grader@sha256:89a8651f93b2ae4b9bf522299c60a27043de493a6c5a7d5393c0231e4b791bb8",
     "fishImage": "ghcr.io/afonenko-course-tools/fish-git-grader@sha256:021adbbb5bb413f39b3e5e6c575dd989509998d89a8fe0cf470217e311a0c3d4",
-    "communityImage": "ghcr.io/afonenko-course-tools/prairielearn-community-gateway@sha256:f7d1903532e813fe29df74949da7131a353710ff7d0d632a51482762422dcb82",
-    "javaImageConfig": "sha256:2f2d093bdc724bc9f8e45020c6bc96e17392eec0728bfa8bf55604c2ea022655",
-    "workspaceImage": "ghcr.io/afonenko-course-tools/sp-git-workspace@sha256:465bf16061c3a44afdc61c77d1dd853216be35b0203072cb8e7c69a51a1bf31a"
+    "communityImage": "ghcr.io/afonenko-course-tools/prairielearn-community-gateway@sha256:34f40dd37e26daee8c63212657d6a02601c7f1610bc8abe55ca133ec2dfde897",
+    "javaImageConfig": "sha256:cb0fb12f4c52005bca60d349181d2bec2f7e5c397baf403b9559073c3058841d",
+    "workspaceImage": "ghcr.io/afonenko-course-tools/sp-git-workspace@sha256:465bf16061c3a44afdc61c77d1dd853216be35b0203072cb8e7c69a51a1bf31a",
+    "communityImageConfig": "sha256:26da969df12a15676e9c4c4dfad6205883dea63a88ec0d89bae1fe12039db8a4"
   },
-  "status": "Java/JUnit использует публичные API Platform 2.6.0. Community 2.5.8, fish и Workspace сохраняются на указанных digest. В чистую установку переносятся только пользователи и права; исторические оценки и попытки не переносятся и не пересчитываются без отдельной команды владельца после развёртывания и проверки.",
+  "status": "Java и Community 2.7.0 опубликованы из одного проверенного source; fish и Workspace сохранены. Quarto 1.11.5 — проверенный минимум, локальные инструменты берутся из PATH. Исторические сведения ниже не являются текущей приёмкой.",
   "imagePublication": {
-    "run": 42356822605,
-    "buildSource": "de9a7e464e137a8cdc7e56e9e8e2e78f6d93da62",
+    "run": 43047195157,
+    "communityRun": 43047211302,
+    "buildSource": "c2e8b66b9d21aff14608635b5b6f636ac046dd14",
     "release": {
-      "id": 437454797,
-      "url": "https://github.com/Afonenko-Course-Tools/prairielearn-platform/releases/tag/v2.6.0",
+      "id": 441909190,
+      "url": "https://github.com/Afonenko-Course-Tools/prairielearn-platform/releases/tag/v2.7.0",
       "immutable": false
     },
     "assets": {
       "java-image.json": {
-        "url": "https://github.com/Afonenko-Course-Tools/prairielearn-platform/releases/download/v2.6.0/java-image.json"
+        "url": "https://github.com/Afonenko-Course-Tools/prairielearn-platform/releases/download/v2.7.0/java-image.json"
+      },
+      "community-image.txt": {
+        "url": "https://github.com/Afonenko-Course-Tools/prairielearn-platform/releases/download/v2.7.0/community-image.txt"
+      },
+      "runtime-image.json": {
+        "url": "https://github.com/Afonenko-Course-Tools/prairielearn-platform/releases/download/v2.7.0/runtime-image.json"
       },
       "published-runtime-profiles.json": {
-        "url": "https://github.com/Afonenko-Course-Tools/prairielearn-platform/releases/download/v2.6.0/published-runtime-profiles.json"
+        "url": "https://github.com/Afonenko-Course-Tools/prairielearn-platform/releases/download/v2.7.0/published-runtime-profiles.json"
       }
     }
   },
@@ -35,5 +43,6 @@
     "status": "pending",
     "scope": "public-source-published-providers-and-site",
     "reason": "Результат hosted CI для соответствующего course HEAD проверяется отдельно в GitHub Actions."
-  }
+  },
+  "controllerCommit": "67ae53b239b7c460f2c3e81b9e840cfa96879bcc"
 }
