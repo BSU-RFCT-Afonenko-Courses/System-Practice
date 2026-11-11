@@ -12,3 +12,7 @@ _freeze/
 
 /.quarto/
 **/*.quarto_ipynb
+
+# Временные Deno caches при Quarto run/native export.
+/deno.lock
+/tasks/_extensions/Afonenko-Course-Tools/course-prairielearn/deno.lock
