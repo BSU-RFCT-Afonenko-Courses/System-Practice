@@ -32,9 +32,23 @@ jobs:
           persist-credentials: false
       - id: platform-ref
         run: echo "commit=$(git -C .platform rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          repository: Afonenko-Course-Tools/quarto-course-performance
+          ref: bfbe23f819dfe4c7d5e5487f669c14d8e6c9846e
+          path: .ci/performance
+          sparse-checkout: |
+            tools/setup-mv-ci.sh
+            tools/check-mv-capability.sh
+          sparse-checkout-cone-mode: false
+          persist-credentials: false
       - uses: quarto-dev/quarto-actions/setup@8a96df13519ee81fd526f2dfca5962811136661b
       - name: Подготовить системные инструменты
         run: |
+          test -f /etc/apt/apt-mirrors.txt
+          test ! -L /etc/apt/apt-mirrors.txt
+          grep -Rq 'mirror+file:/etc/apt/apt-mirrors.txt' /etc/apt/sources.list.d
+          printf '%s\n' 'https://mirrors.edge.kernel.org/ubuntu/' | sudo tee /etc/apt/apt-mirrors.txt
           sudo apt-get update
           sudo apt-get install -y shellcheck python3-yaml python3-jsonschema
           npm install --global pyright typescript
@@ -42,6 +56,10 @@ jobs:
           mkdir -p "$RUNNER_TEMP/bin"
           install "$(go env GOPATH)/bin/task" "$RUNNER_TEMP/bin/go-task"
           echo "$RUNNER_TEMP/bin" >> "$GITHUB_PATH"
+      - name: Подготовить GNU mv с требуемой no-replace capability
+        run: |
+          test "$(git -C .ci/performance rev-parse HEAD)" = 'bfbe23f819dfe4c7d5e5487f669c14d8e6c9846e'
+          bash .ci/performance/tools/setup-mv-ci.sh "$RUNNER_TEMP/course-gnu-mv" >> "$GITHUB_PATH"
       - name: Проверить опубликованные учебные сценарии
         run: |
           sudo apt-get install --yes fish
@@ -88,8 +106,12 @@ jobs:
           if-no-files-found: ignore
           retention-days: 14
   verify:
-    name: Полные declared и delivery проверки тех же bytes
+    name: Полные ${{ matrix.scope }} проверки тех же bytes
     needs: build
+    strategy:
+      fail-fast: false
+      matrix:
+        scope: [declared, delivery]
     runs-on: ubuntu-24.04
     timeout-minutes: 150
     steps:
@@ -104,6 +126,10 @@ jobs:
           persist-credentials: false
       - name: Подготовить controller
         run: |
+          test -f /etc/apt/apt-mirrors.txt
+          test ! -L /etc/apt/apt-mirrors.txt
+          grep -Rq 'mirror+file:/etc/apt/apt-mirrors.txt' /etc/apt/sources.list.d
+          printf '%s\n' 'https://mirrors.edge.kernel.org/ubuntu/' | sudo tee /etc/apt/apt-mirrors.txt
           sudo apt-get update
           sudo apt-get install -y python3-yaml python3-jsonschema
           go install github.com/go-task/task/v3/cmd/task@latest
@@ -122,12 +148,12 @@ jobs:
           tar -C "$RUNNER_TEMP/course-build" -xf "$RUNNER_TEMP/artifacts/delivery.tar"
           tar -C "$RUNNER_TEMP/course-build" -xf "$RUNNER_TEMP/artifacts/controller.tar"
       - name: Проверить без повторной сборки
-        run: go-task verify BUILD_DIR="$RUNNER_TEMP/course-build" PLATFORM_ROOT="$GITHUB_WORKSPACE/.platform"
+        run: go-task verify:${{ matrix.scope }} BUILD_DIR="$RUNNER_TEMP/course-build" PLATFORM_ROOT="$GITHUB_WORKSPACE/.platform"
       - name: Сохранить отчёты и grader logs также при отказе
         if: always()
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
         with:
-          name: system-practice-verification-${{ github.run_id }}-${{ github.run_attempt }}
+          name: system-practice-verification-${{ matrix.scope }}-${{ github.run_id }}-${{ github.run_attempt }}
           path: ${{ runner.temp }}/course-build/reports
           if-no-files-found: ignore
           retention-days: 14
