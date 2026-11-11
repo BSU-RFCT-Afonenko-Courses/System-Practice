@@ -17,10 +17,8 @@
     "tools/build_maintenance_materials.py",
     "tools/build_materials.py",
     "tools/check_data_processing.py",
-    "tools/materialize-providers.py",
     "tools/materialize_public_materials.py",
-    "tools/system_support.py",
-    "tools/test-materialize-providers.py"
+    "tools/system_support.py"
   ],
   "exclude": [
     "**/_extensions/**",

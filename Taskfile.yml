@@ -1,6 +1,6 @@
 version: '3'
 vars:
-  PLATFORM_ROOT: '{{.ROOT_DIR | dir}}/prairielearn-platform'
+  PLATFORM_ROOT: '{{.ROOT_DIR}}/.platform'
   BUILD_DIR: '{{.ROOT_DIR | dir}}/course-builds/system-practice'
   INSTANCE: pilot
   BACKEND: container
@@ -9,12 +9,10 @@ env:
   PYTHONDONTWRITEBYTECODE: '1'
 
 tasks:
-  install:from-sources:
-    desc: Установить packages из заранее полученных checkouts; заменяет выбранные пакеты
-    requires:
-      vars: [PROVIDERS_ROOT]
+  bootstrap:
+    desc: Получить закреплённые Git submodules
     cmds:
-    - python3 tools/materialize-providers.py --providers-root '{{.PROVIDERS_ROOT}}' --write
+    - git submodule update --init
   render:
     desc: Один корневой student render и сохранение сайта
     cmds:
@@ -49,7 +47,6 @@ tasks:
     desc: Проверить служебные исходники
     cmds:
       - pyright --project pyrightconfig.json
-      - python3 tools/test-materialize-providers.py
       - bash -n CI/render.sh
       - shellcheck --shell=bash --severity=style CI/render.sh
   export:

@@ -51,45 +51,6 @@ def json_texts(value: object) -> dict[str, str]:
     return {key: json_string(item) for key, item in json_object(value).items()}
 
 
-class ProviderCandidate(TypedDict):
-    patch: str
-    status: NotRequired[str]
-    commit: NotRequired[str]
-    baseCommit: NotRequired[str]
-
-
-class Provider(TypedDict):
-    checkout: str
-    commit: str
-    packages: dict[str, list[str]]
-    candidate: NotRequired[ProviderCandidate]
-    repository: NotRequired[str]
-    version: NotRequired[str]
-    tag: NotRequired[str]
-    sourceZip: NotRequired[str]
-
-
-class ProviderManifest(TypedDict):
-    namespace: str
-    providers: dict[str, Provider]
-
-
-def read_providers(path: Path) -> ProviderManifest:
-    manifest = json_object(read_json(path))
-    providers: dict[str, Provider] = {}
-    for name, raw in json_object(manifest['providers']).items():
-        value = json_object(raw)
-        provider: Provider = {
-            'checkout': json_string(value['checkout']), 'commit': json_string(value['commit']),
-            'packages': {package: json_strings(scopes) for package, scopes in json_object(value['packages']).items()},
-        }
-        if 'candidate' in value:
-            candidate = json_object(value['candidate'])
-            provider['candidate'] = {'patch': json_string(candidate['patch'])}
-        providers[name] = provider
-    return {'namespace': json_string(manifest['namespace']), 'providers': providers}
-
-
 class CheckResult(TypedDict):
     automated: Literal['pass', 'fail', 'manual']
     errors: list[str]
