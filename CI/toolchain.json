@@ -44,5 +44,5 @@
     "scope": "public-source-published-providers-and-site",
     "reason": "Результат hosted CI для соответствующего course HEAD проверяется отдельно в GitHub Actions."
   },
-  "controllerCommit": "67ae53b239b7c460f2c3e81b9e840cfa96879bcc"
+  "controllerCommit": "e1c8fcb2cdc7d7a938253e5b58e3eaf56f4d917a"
 }
