@@ -4,7 +4,8 @@
 Python, Quarto или JDK к требованиям студенческих заданий на сценарии и Git.
 На проверенном CachyOS Task 3.54 запускается командой `go-task`.
 
-Для обычной student-сборки с уже установленными расширениями:
+Получите исходные зависимости штатным Git: `git submodule update --init`
+либо `go-task bootstrap`. Для обычной student-сборки с уже установленными расширениями:
 
 ```sh
 go-task test:materials
@@ -85,14 +86,13 @@ TS-файлы и отдельно единственный script из `includes
 не заменяет эту команду. CSS из `includes/book-tables.html` не относится
 к проверке типов Python/TypeScript.
 
-Существующие Python-тесты и отдельные тесты установки providers запускаются так:
+Существующие Python-тесты запускаются так:
 
 ```sh
 python3 -m unittest discover -s tests -p 'test_*.py' -v
-python3 tools/test-materialize-providers.py -v
 ```
 
-Вторая команда не входит в `discover -s tests`. Проверка типов, синтаксиса,
+Проверка типов, синтаксиса,
 упаковки и исполнения сценариев имеет отдельные результаты; одна успешная
 стадия не подтверждает остальные.
 

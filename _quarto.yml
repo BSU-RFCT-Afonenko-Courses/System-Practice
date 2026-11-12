@@ -5,7 +5,6 @@ project:
   - index.qmd
   resources:
   - '!tools/**'
-  - '!providers.json'
   - '!tests/**'
   - '!**/projects/**'
   - '!**/__pycache__/**'
@@ -22,6 +21,9 @@ project:
   - '!UPSTREAM.md'
   - '!AGENTS.md'
   - '!.github/**'
+  - '!.platform/**'
+  - '!.ci/**'
+  - '!.gitmodules'
   - '!Taskfile.yml'
   - '!*.fish'
   - '!*.log'

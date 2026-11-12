@@ -1,0 +1,6 @@
+[submodule ".platform"]
+	path = .platform
+	url = https://github.com/Afonenko-Course-Tools/prairielearn-platform.git
+[submodule ".ci/performance"]
+	path = .ci/performance
+	url = https://github.com/Afonenko-Course-Tools/quarto-course-performance.git

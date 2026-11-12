@@ -1,19 +1,17 @@
 # Происхождение технической поставки
 
-Выбранные исходники расширений и области установки перечислены в
-[providers.json](providers.json). Порядок установки и обновления описан в
-[инструкции](docs/provider-installation.md). Локальные patches обозначены
-явно; они сохраняют статус неопубликованной адаптации.
+Общие расширения установлены штатным Quarto в `_extensions` и хранятся в Git.
+Версии пакетов находятся в их `_extension.yml`. Порядок установки и обновления
+описан в [инструкции](docs/provider-installation.md).
 
-Обычный CI выполняет student render. Полный author export, проверку учебных
-эталонов, отрицательных решений и контейнерного оценивания запускают
-отдельными штатными командами соответствующего владельца. Успешная сборка
-сайта сама по себе не подтверждает эти результаты.
+Исходные зависимости Platform и Performance оформлены как Git submodules:
+URL находятся в `.gitmodules`, выбранные commits — в gitlinks курса.
+`go-task bootstrap` получает их стандартной командой Git.
 
-[CI/toolchain.json](CI/toolchain.json) сохраняет версии инструментов,
-Platform source/release refs, native OCI identities и адреса функциональных
-assets. Отключённая проверка `CI/check-production-pins.py` и собственные
-runner/asset proof-поля удалены. Собственный vendor inventory курса удалён.
+CI выполняет student render и полный author export. Отдельные declared/delivery
+jobs проверяют готовую поставку с тем же фактическим Platform HEAD, который
+использовался при сборке. Runtime profiles и OCI identities поступают из
+закреплённой Platform в готовый выпуск. Успех student render сам по себе
+не подтверждает native export, контейнерное оценивание и эксплуатацию.
 
-История прежних поставок доступна в [точном снимке Git](https://github.com/BSU-RFCT-Afonenko-Courses/System-Practice/tree/d254c636bbc0701e881315802dc3a3f775b7d872/docs/provider-history).
-Её hashes, receipts и команды `--check` относятся к прежним этапам.
+История прежних поставок доступна в [снимке Git](https://github.com/BSU-RFCT-Afonenko-Courses/System-Practice/tree/d254c636bbc0701e881315802dc3a3f775b7d872/docs/provider-history).
