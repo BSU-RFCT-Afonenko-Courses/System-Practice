@@ -69,8 +69,8 @@ python3 -m pip install -r requirements-typecheck.txt
 python3 -m pyright --project pyrightconfig.json
 ```
 
-`requirements-typecheck.txt` закрепляет pyright 1.1.414; точную область собственных
-файлов задаёт `pyrightconfig.json` в режиме strict. Установленные расширения
+`requirements-typecheck.txt` закрепляет pyright 1.1.414; область собственных
+файлов задаёт `pyrightconfig.json` в режиме strict, включая новые файлы. Установленные расширения
 и vendor-код не включаются в эту собственную область.
 
 TypeScript и точный встроенный JavaScript проверяются штатным Quarto:
@@ -79,12 +79,12 @@ TypeScript и точный встроенный JavaScript проверяютс�
 quarto run tests/typecheck.ts
 ```
 
-Драйвер использует настоящие Quarto stdlib/path/fs aliases, проверяет собственные
+Драйвер использует настоящие Quarto stdlib/path/fs aliases, рекурсивно обнаруживает и проверяет собственные
 TS-файлы и отдельно единственный script из `includes/reveal-layout.html`
 со strict/checkJs и DOM. Для всего графа импортов нужны согласованные версии
 установленных расширений; отдельный `deno check` без штатной карты импортов
-не заменяет эту команду. CSS из `includes/book-tables.html` не относится
-к проверке типов Python/TypeScript.
+не заменяет эту команду. CSS из `includes/book-tables.html` отдельно проверяется Stylelint
+после извлечения единственного style-фрагмента.
 
 Существующие Python-тесты запускаются так:
 
@@ -115,3 +115,39 @@ python3 -m unittest discover -s tests -p 'test_*.py' -v
 `publish` изменяет внешний сайт и выполняется только разрешённым действием
 после предъявления конкретного результата. Нового receipt/source-hash
 требования для обычной сборки нет.
+
+
+`go-task check` последовательно выполняет `check:code`, `check:quarto`
+и `check-format`. Последняя команда проверяет форматирование без записи;
+`go-task format` применяет его. Собственные новые файлы обнаруживаются
+рекурсивно. Зависимости `.platform`, `.ci`, `_extensions`, vendor,
+генерируемые outputs и исторические `docs/superpowers` исключены.
+
+Роли инструментов разделены по форматам: Ruff форматирует Python и проверяет
+E4/E7/E9/F/B; shfmt форматирует Bash, fish_indent — fish, PSScriptAnalyzer
+Invoke-Formatter — PowerShell, Prettier — JSON/YAML/CSS/HTML/TypeScript,
+Panache — QMD. Prettier не форматирует код внутри HTML; встроенный JavaScript
+по-прежнему проходит строгую проверку Quarto. ShellCheck и штатные парсеры
+Bash/fish дополняют форматирование. Actionlint проверяет workflows, yamllint —
+синтаксис YAML и повторные ключи, jq — синтаксис JSON, Taplo без сетевых схем — синтаксис TOML,
+xmllint без сети — XML/CSL. Stylelint проверяет CSS-свойства и структуру,
+HTML Validate — include-фрагменты; проверка итогового DOM остаётся стадией render.
+
+Panache выполняет полный структурный проход из 26 правил. Namespace-ссылки
+и библиографию продолжает проверять QRC при штатной сборке. Форматирование
+QMD сохраняет переносы прозы и содержимое кодовых блоков; внешние форматтеры
+не подключены. Это техническая обработка Markdown, условия и оценивание
+сохраняются.
+
+Для PowerShell нужны PowerShell 7 и установленный штатным `Install-Module`
+модуль PSScriptAnalyzer. `tools/check-powershell.ps1` отдельно вызывает
+`Parser.ParseFile` и затем анализатор без фильтра Severity: синтаксическая
+ошибка не теряется среди предупреждений. Единственное контекстное исключение
+`PSUseBOMForUnicodeEncodedFile` задано в `PSScriptAnalyzerSettings.psd1`:
+PowerShell 7 на Windows читает UTF-8 без BOM, и этот формат уже является
+договором учебных файлов. Windows PowerShell 5 не входит в целевую среду.
+
+CI устанавливает эти авторские инструменты стандартными package-командами
+и вызывает те же Task targets. Локально требуются команды из PATH; проверки
+ничего не устанавливают. Отсутствующий инструмент или его отказ дают
+ненулевой результат. Запуск на Linux не подтверждает выполнение на Windows.

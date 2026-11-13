@@ -4,9 +4,7 @@ function selection(ids: unknown, invalid: () => never) {
   if (ids === "*") return ids;
   const id = (value: unknown): value is string =>
     typeof value === "string" && !!value && !/[\s:#]/.test(value);
-  if (
-    !Array.isArray(ids) || !ids.every(id) || new Set(ids).size !== ids.length
-  ) invalid();
+  if (!Array.isArray(ids) || !ids.every(id) || new Set(ids).size !== ids.length) invalid();
   return ids;
 }
 
@@ -47,11 +45,9 @@ export function parsePublication(raw: unknown): { title: string } | undefined {
     typeof raw.title !== "string" ||
     !raw.title.trim()
   ) {
-    throw diagnostic(
-      "QRC.CONFIG_INVALID",
-      "publication должен содержать непустое название title",
-      { field: "reference-catalog.publication.title" },
-    );
+    throw diagnostic("QRC.CONFIG_INVALID", "publication должен содержать непустое название title", {
+      field: "reference-catalog.publication.title",
+    });
   }
   return { title: raw.title.trim() };
 }

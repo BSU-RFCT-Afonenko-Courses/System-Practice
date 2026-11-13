@@ -2,41 +2,41 @@ project:
   type: website
   output-dir: _output
   pre-render:
-  - _extensions/Afonenko-Course-Tools/course-core/entrypoints/pre.ts
+    - _extensions/Afonenko-Course-Tools/course-core/entrypoints/pre.ts
   post-render:
-  - _extensions/Afonenko-Course-Tools/reference-catalog/entrypoints/post.ts
-  - ../_extensions/Afonenko-Course-Tools/course-site/entrypoints/collect.ts
-  - _extensions/Afonenko-Course-Tools/course-core/entrypoints/post.ts
+    - _extensions/Afonenko-Course-Tools/reference-catalog/entrypoints/post.ts
+    - ../_extensions/Afonenko-Course-Tools/course-site/entrypoints/collect.ts
+    - _extensions/Afonenko-Course-Tools/course-core/entrypoints/post.ts
   render:
-  - index.qmd
-  - command-interface.qmd
-  - version-control.qmd
+    - index.qmd
+    - command-interface.qmd
+    - version-control.qmd
   resources:
-  - '!tools/**'
-  - '!tests/**'
-  - '!**/projects/**'
-  - '!**/__pycache__/**'
-  - '!**/*.qmd'
-  - '!**/*.rmd'
-  - '!**/*.ipynb'
-  - '!_extensions/**'
-  - '!_generated/**'
-  - '!.quarto/**'
-  - '!_freeze/**'
-  - '!_output/**'
-  - '!**/_output/**'
-  - '!**/_generated/**'
-  - '!**/_site*/**'
+    - "!tools/**"
+    - "!tests/**"
+    - "!**/projects/**"
+    - "!**/__pycache__/**"
+    - "!**/*.qmd"
+    - "!**/*.rmd"
+    - "!**/*.ipynb"
+    - "!_extensions/**"
+    - "!_generated/**"
+    - "!.quarto/**"
+    - "!_freeze/**"
+    - "!_output/**"
+    - "!**/_output/**"
+    - "!**/_generated/**"
+    - "!**/_site*/**"
 profile:
   default: student
   group:
-  - - student
-    - full
+    - - student
+      - full
 filters:
-- course-navigation
-- course-core
-- course-presentation
-- reference-catalog
+  - course-navigation
+  - course-core
+  - course-presentation
+  - reference-catalog
 format:
   revealjs:
     css: assets/lesson.css
@@ -47,7 +47,7 @@ format:
     slide-number: true
     pdf-separate-fragments: false
     revealjs-plugins:
-    - course-navigation
+      - course-navigation
 lang: ru
 reference-catalog:
   namespace: system-practice-lectures
@@ -59,21 +59,21 @@ website:
   title: Лекции System Practice
   navbar:
     left:
-    - text: Курс
-      href: ../index.html
-    - text: Теория
-      href: ../theory/index.html
+      - text: Курс
+        href: ../index.html
+      - text: Теория
+        href: ../theory/index.html
 course-navigation:
   course-url: https://bsu-rfct-afonenko-courses.github.io/System-Practice/
   links:
-  - text: Курс
-    href: /index.html
-    scope: course
-  - text: Лекции
-    href: /index.html
-    scope: project
-  - text: Теория
-    href: /theory/index.html
-    scope: course
+    - text: Курс
+      href: /index.html
+      scope: course
+    - text: Лекции
+      href: /index.html
+      scope: project
+    - text: Теория
+      href: /theory/index.html
+      scope: course
 course-core-runtime: native-ts
 course-core-projection: student

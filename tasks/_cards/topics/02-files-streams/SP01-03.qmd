@@ -1,13 +1,12 @@
 ::: {#exr-sp01-03 difficulty="intermediate" time="35"}
-
 ## SP01-03. Подключение программ: конвейер и перенаправление
 
-| Поле | Значение |
-|---|---|
-| Статус | обязательная |
-| Сложность | средний |
-| Время | **35 мин**, из них 5 мин на беглое чтение; остальное — выполнение и самостоятельная проверка |
-| Предварительно | {{< xref system-practice-theory sec-01-command-line "01-command-line" >}}; {{< xref system-practice-tasks exr-sp01-02 "SP01-02" >}} или {{< xref system-practice-tasks exr-sp01-06 "SP01-06" >}} |
+  | Поле           | Значение                                                                                                                                                                                         |
+  | ---            | ---                                                                                                                                                                                              |
+  | Статус         | обязательная                                                                                                                                                                                     |
+  | Сложность      | средний                                                                                                                                                                                          |
+  | Время          | **35 мин**, из них 5 мин на беглое чтение; остальное — выполнение и самостоятельная проверка                                                                                                     |
+  | Предварительно | {{< xref system-practice-theory sec-01-command-line "01-command-line" >}}; {{< xref system-practice-tasks exr-sp01-02 "SP01-02" >}} или {{< xref system-practice-tasks exr-sp01-06 "SP01-06" >}} |
 
 ### Условие
 
@@ -31,5 +30,4 @@
 Облако: файлы в рабочей области VS Code PrairieLearn. Локально: те же файлы отдельными вложениями или одним ZIP-архивом.
 
 {{< xref system-practice-theory sec-02-files-streams "К теме" >}} · {{< xref system-practice-tasks sec-bank "Правила банка" >}}
-
 :::

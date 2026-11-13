@@ -11,9 +11,7 @@
         }
       },
       "B": {
-        "parents": [
-          "A"
-        ],
+        "parents": ["A"],
         "files": {
           "README.md": "# Измерения задержки\n\nmeasurements.tsv хранит задержки двух датчиков в миллисекундах.\nВ отчёт включаются измерения не выше порога из criteria.txt.\n",
           "criteria.txt": "latency_limit = 12 ms\n",
@@ -21,9 +19,7 @@
         }
       },
       "C": {
-        "parents": [
-          "B"
-        ],
+        "parents": ["B"],
         "files": {
           "README.md": "# Измерения задержки\n\nmeasurements.tsv хранит задержки двух датчиков в миллисекундах.\nВ отчёт включаются измерения не выше порога из criteria.txt.\nИсточник: учебные измерения двух датчиков.\n",
           "criteria.txt": "latency_limit = 12 ms\n",
@@ -31,9 +27,7 @@
         }
       },
       "S": {
-        "parents": [
-          "C"
-        ],
+        "parents": ["C"],
         "files": {
           "README.md": "# Измерения задержки\n\nmeasurements.tsv хранит задержки двух датчиков в миллисекундах.\nВ отчёт включаются измерения не выше порога из criteria.txt.\nИсточник: учебные измерения двух датчиков.\nПорог в criteria.txt выражен в секундах.\n",
           "criteria.txt": "latency_limit = 0.012 s\n",
@@ -41,9 +35,7 @@
         }
       },
       "T": {
-        "parents": [
-          "C"
-        ],
+        "parents": ["C"],
         "files": {
           "README.md": "# Измерения задержки\n\nmeasurements.tsv хранит задержки двух датчиков в миллисекундах.\nВ отчёт включаются измерения не выше порога из criteria.txt.\nИсточник: учебные измерения двух датчиков.\n",
           "criteria.txt": "latency_limit = 20 ms\n",
@@ -51,10 +43,7 @@
         }
       },
       "M": {
-        "parents": [
-          "T",
-          "S"
-        ],
+        "parents": ["T", "S"],
         "files": {
           "README.md": "# Измерения задержки\n\nmeasurements.tsv хранит задержки двух датчиков в миллисекундах.\nВ отчёт включаются измерения не выше порога из criteria.txt.\nИсточник: учебные измерения двух датчиков.\nПорог в criteria.txt выражен в секундах.\n",
           "criteria.txt": "latency_limit = 0.020 s\n",
@@ -62,9 +51,7 @@
         }
       },
       "N": {
-        "parents": [
-          "M"
-        ],
+        "parents": ["M"],
         "files": {
           "README.md": "# Измерения задержки\n\nmeasurements.tsv хранит задержки двух датчиков в миллисекундах.\nВ отчёт включаются измерения не выше порога из criteria.txt.\nИсточник: учебные измерения двух датчиков.\nПорог в criteria.txt выражен в секундах.\nПроверка: данные прочитаны во второй копии.\n",
           "criteria.txt": "latency_limit = 0.020 s\n",
@@ -72,9 +59,7 @@
         }
       },
       "U": {
-        "parents": [
-          "N"
-        ],
+        "parents": ["N"],
         "files": {
           "README.md": "# Измерения задержки\n\nmeasurements.tsv хранит задержки двух датчиков в миллисекундах.\nВ отчёт включаются измерения не выше порога из criteria.txt.\nИсточник: учебные измерения двух датчиков.\nПорог в criteria.txt выражен в секундах.\nПроверка: данные прочитаны во второй копии.\n",
           "criteria.txt": "latency_limit = 0.020 s\n",
@@ -114,9 +99,7 @@
         }
       },
       "M": {
-        "parents": [
-          "A"
-        ],
+        "parents": ["A"],
         "files": {
           ".gitattributes": "* text=auto eol=lf\n",
           "report.ini": "format=csv\ncolumns=code,value\ndecimal=dot\n",
@@ -124,9 +107,7 @@
         }
       },
       "F": {
-        "parents": [
-          "A"
-        ],
+        "parents": ["A"],
         "files": {
           ".gitattributes": "* text=auto eol=lf\n",
           "report.ini": "format=text\ncolumns=code,quality\ndecimal=dot\n",

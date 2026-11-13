@@ -18,8 +18,7 @@ async function readCatalog(source: string): Promise<Catalog> {
       {
         source,
         field: "JSON",
-        hint:
-          "Проверьте выбранный каталог публикации; позиции JSON не являются строками QMD.",
+        hint: "Проверьте выбранный каталог публикации; позиции JSON не являются строками QMD.",
       },
       cause,
     );
@@ -39,12 +38,15 @@ async function importTargetsImpl(
     let snapshot = snapshots.get(spec.source);
     if (!snapshot) {
       snapshot = readCatalog(spec.source).catch((error: unknown) => {
-          if (
-            options.allowMissingLocal && local && error instanceof Error &&
-            error.cause instanceof Deno.errors.NotFound
-          ) return undefined;
-          throw error;
-        });
+        if (
+          options.allowMissingLocal &&
+          local &&
+          error instanceof Error &&
+          error.cause instanceof Deno.errors.NotFound
+        )
+          return undefined;
+        throw error;
+      });
       snapshots.set(spec.source, snapshot);
     }
     const catalog = await snapshot;
@@ -72,7 +74,10 @@ async function importTargetsImpl(
   return result;
 }
 
-export const importTargets = __metrics.wrapAsync({
-  id: "reference-catalog.infrastructure.imports.importTargets",
-  kind: "io",
-}, importTargetsImpl);
+export const importTargets = __metrics.wrapAsync(
+  {
+    id: "reference-catalog.infrastructure.imports.importTargets",
+    kind: "io",
+  },
+  importTargetsImpl,
+);

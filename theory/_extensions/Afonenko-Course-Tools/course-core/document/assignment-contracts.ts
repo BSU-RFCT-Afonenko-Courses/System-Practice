@@ -7,32 +7,24 @@ export const NativeResponseSlotSchema = z.strictObject({
   anchor: z.string().min(1),
   labelAnchor: z.string().min(1).optional(),
   ordinal: z.number().int().nonnegative().optional(),
-  options: z.array(
-    z.strictObject({
-      anchor: z.string().min(1),
-      ordinal: z.number().int().nonnegative(),
-    }),
-  ).optional(),
+  options: z
+    .array(
+      z.strictObject({
+        anchor: z.string().min(1),
+        ordinal: z.number().int().nonnegative(),
+      }),
+    )
+    .optional(),
 });
 export type NativeResponseSlot = z.output<typeof NativeResponseSlotSchema>;
 export const AssignmentEarlySchema = z.strictObject({
   source: z.string().min(1),
-  assessments: z.array(
-    z.strictObject({ source: z.string().min(1), id: z.string().min(1) }),
-  ),
-  introductions: z.array(
-    z.strictObject({ key: z.string().min(1), id: z.string().min(1) }),
-  ),
+  assessments: z.array(z.strictObject({ source: z.string().min(1), id: z.string().min(1) })),
+  introductions: z.array(z.strictObject({ key: z.string().min(1), id: z.string().min(1) })),
   answers: z.record(
     z.string(),
     z.strictObject({
-      type: z.enum([
-        "manual",
-        "numeric",
-        "single-choice",
-        "multipart",
-        "matching",
-      ]),
+      type: z.enum(["manual", "numeric", "single-choice", "multipart", "matching"]),
       declared: z.boolean(),
       key: z.string().min(1),
       anchors: z.array(z.string()),
@@ -58,13 +50,7 @@ export const AssignmentFinalSchema = AssignmentEarlySchema.omit({
   answers: z.record(
     z.string(),
     z.strictObject({
-      type: z.enum([
-        "manual",
-        "numeric",
-        "single-choice",
-        "multipart",
-        "matching",
-      ]),
+      type: z.enum(["manual", "numeric", "single-choice", "multipart", "matching"]),
       declared: z.boolean(),
       publicAnswer: NativeNodesSchema,
       responseSlots: z.array(NativeResponseSlotSchema),

@@ -8,8 +8,8 @@ prairielearn:
         port: 8080
         rewriteUrl: true
         gradedFiles:
-        - 'work/**'
-        - 'work/.git/**'
-        - 'work/.*'
-        - 'explanation.m[d]'
-        - '.pl-seed/identity.jso[n]'
+          - "work/**"
+          - "work/.git/**"
+          - "work/.*"
+          - "explanation.m[d]"
+          - ".pl-seed/identity.jso[n]"

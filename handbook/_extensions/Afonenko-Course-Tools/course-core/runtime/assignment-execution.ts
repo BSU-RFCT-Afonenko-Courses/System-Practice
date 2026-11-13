@@ -1,11 +1,5 @@
-import {
-  nativeChildBefore,
-  ordinaryPandocChild,
-  qualifiedPandocArgs,
-  withNativeChildScope,
-} from "./native-child.ts";
-const nativeArray = (value: unknown): value is readonly unknown[] =>
-  Array.isArray(value);
+import { nativeChildBefore, ordinaryPandocChild, qualifiedPandocArgs, withNativeChildScope } from "./native-child.ts";
+const nativeArray = (value: unknown): value is readonly unknown[] => Array.isArray(value);
 import type { NativePandocBinding } from "./pandoc-binding.ts";
 import type { NativeCaptureCommand } from "./prepared-operation.ts";
 import type { AssignmentRuntimeWitness } from "./assignment-admission.ts";
@@ -21,8 +15,7 @@ type Execution = {
   token?: string;
 };
 const current = new AsyncLocalStorage<Execution>();
-const equal = (a: unknown, b: unknown) =>
-  JSON.stringify(a) === JSON.stringify(b);
+const equal = (a: unknown, b: unknown) => JSON.stringify(a) === JSON.stringify(b);
 function changed(message: string): never {
   return fail("BODY.PRODUCER_INPUT_CHANGED", message);
 }
@@ -33,16 +26,10 @@ function execution() {
   }
   return state;
 }
-async function enter<T>(
-  state: Omit<Execution, "lives"> & { lives?: Execution["lives"] },
-  use: () => Promise<T>,
-) {
+async function enter<T>(state: Omit<Execution, "lives"> & { lives?: Execution["lives"] }, use: () => Promise<T>) {
   const life = { active: true };
   try {
-    return await current.run(
-      { ...state, lives: [...state.lives ?? [], life] },
-      use,
-    );
+    return await current.run({ ...state, lives: [...(state.lives ?? []), life] }, use);
   } finally {
     life.active = false;
   }
@@ -62,23 +49,21 @@ export function withAssignmentBeforeChild<T>(
   pandocBinding?: () => Promise<NativePandocBinding | undefined>,
 ) {
   const state = execution();
-  return withNativeChildScope(
-    { beforeChild, life, pandocBinding },
-    () =>
-      state
-        ? enter({
-          ...state,
-          beforeChild,
-          lives: [...state.lives, life],
-          pandocBinding: pandocBinding ?? state.pandocBinding,
-        }, use)
-        : use(),
+  return withNativeChildScope({ beforeChild, life, pandocBinding }, () =>
+    state
+      ? enter(
+          {
+            ...state,
+            beforeChild,
+            lives: [...state.lives, life],
+            pandocBinding: pandocBinding ?? state.pandocBinding,
+          },
+          use,
+        )
+      : use(),
   );
 }
-export function withAssignmentCaptureChild<T>(
-  token: string,
-  use: () => Promise<T>,
-) {
+export function withAssignmentCaptureChild<T>(token: string, use: () => Promise<T>) {
   const state = execution();
   if (!state) changed("Нет assignment execution для capture child");
   return enter({ ...state, token }, use);
@@ -105,26 +90,17 @@ export function assignmentChild(
   if (
     (executable !== "quarto" && executable !== runtime.executable) ||
     cwd !== root ||
-    !nativeArray(args) || args.some((a) => typeof a !== "string")
-  ) changed("Чужой native executable/cwd/argv");
+    !nativeArray(args) ||
+    args.some((a) => typeof a !== "string")
+  )
+    changed("Чужой native executable/cwd/argv");
   const base = runtime.profiles.join(",");
-  const ownerInspect = equal(args, [
-    "inspect",
-    root,
-    ...(base ? ["--profile", base] : []),
-  ]);
-  const render = !!state.token &&
-    equal(args, [
-      "render",
-      "--output-dir",
-      relative(root, runtime.outputDirectory),
-      "--profile",
-      base,
-    ]);
+  const ownerInspect = equal(args, ["inspect", root, ...(base ? ["--profile", base] : [])]);
+  const render =
+    !!state.token &&
+    equal(args, ["render", "--output-dir", relative(root, runtime.outputDirectory), "--profile", base]);
   const pandoc = qualifiedPandocArgs(args, root);
-  if (
-    !ownerInspect && !render && !pandoc
-  ) changed("Native command вне existing Core call site");
+  if (!ownerInspect && !render && !pandoc) changed("Native command вне existing Core call site");
   const fixed = { ...runtime.environment };
   for (const [key, value] of Object.entries(env)) {
     if (key === "QUARTO_PROFILE") {
@@ -164,12 +140,10 @@ export async function assignmentPandocChild(
   if (
     binding.diagnosticTool !== qualified.executable ||
     binding.cwd !== qualified.options.cwd ||
-    Object.keys(binding.environment).length !==
-      Object.keys(environment).length ||
-    Object.entries(binding.environment).some(([key, value]) =>
-      environment[key] !== value
-    )
-  ) return qualified;
+    Object.keys(binding.environment).length !== Object.keys(environment).length ||
+    Object.entries(binding.environment).some(([key, value]) => environment[key] !== value)
+  )
+    return qualified;
   const childEnvironment: Record<string, string> = {
     ...qualified.options.env,
     PWD: cwd,
@@ -184,17 +158,11 @@ export async function assignmentPandocChild(
     },
   };
 }
-export function runAssignmentCaptureChild(
-  token: string,
-  command: NativeCaptureCommand,
-) {
+export function runAssignmentCaptureChild(token: string, command: NativeCaptureCommand) {
   return withAssignmentCaptureChild(token, async () => {
-    const state = execution()!, base = state.runtime.profiles.join(",");
-    const expected = [
-      "render",
-      "--output-dir",
-      relative(state.root, state.runtime.outputDirectory),
-    ];
+    const state = execution()!,
+      base = state.runtime.profiles.join(",");
+    const expected = ["render", "--output-dir", relative(state.root, state.runtime.outputDirectory)];
     if (!equal(command.args, expected)) {
       changed("Capture command требует точный owner render/output");
     }
@@ -208,26 +176,20 @@ export function runAssignmentCaptureChild(
       ...qualified.options,
       stdout: command.stdout ?? "piped",
       stderr: command.stderr ?? "piped",
-      ...(command.timeoutMs
-        ? { signal: AbortSignal.timeout(command.timeoutMs) }
-        : {}),
+      ...(command.timeoutMs ? { signal: AbortSignal.timeout(command.timeoutMs) } : {}),
     }).output();
     if (!result.success) {
       fail(
         "OPERATION_INCOMPLETE",
-        "Native capture child failed: " + result.code +
-          ((command.stderr ?? "piped") === "piped"
-            ? "\n" + new TextDecoder().decode(result.stderr)
-            : ""),
+        "Native capture child failed: " +
+          result.code +
+          ((command.stderr ?? "piped") === "piped" ? "\n" + new TextDecoder().decode(result.stderr) : ""),
       );
     }
     return result;
   });
 }
-export async function assignmentServiceDirectory(
-  root: string,
-  kind: "citations" | "validation",
-) {
+export async function assignmentServiceDirectory(root: string, kind: "citations" | "validation") {
   const state = execution();
   if (!state) return undefined;
   if (root !== state.root) changed("Чужой assignment service owner");

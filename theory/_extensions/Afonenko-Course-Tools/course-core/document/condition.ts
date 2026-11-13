@@ -3,14 +3,8 @@ import { fail } from "../contracts/project.ts";
 import { boundDocument, decode, FinalizedDocumentSchema } from "./contracts.ts";
 import type { FinalizedDocument } from "./contracts.ts";
 import { isLink, isNode } from "./native-ast.ts";
-import {
-  ConditionViewSchema,
-  ResolvedConditionSchema,
-} from "../artifacts/contracts.ts";
-import type {
-  ConditionView,
-  ResolvedCondition,
-} from "../artifacts/contracts.ts";
+import { ConditionViewSchema, ResolvedConditionSchema } from "../artifacts/contracts.ts";
+import type { ConditionView, ResolvedCondition } from "../artifacts/contracts.ts";
 export function immutable<T>(value: T): T {
   if (value && typeof value === "object") {
     for (const child of Object.values(value)) immutable(child);
@@ -34,10 +28,11 @@ export function selectCondition(
   if (projection !== doc.context.projection) {
     fail("CONDITION_BINDING", "Чужая проекция", doc.context.input);
   }
-  const rows = doc.occurrences.filter((r) =>
-    r.kind === "exercise" && r.exerciseId === exerciseId &&
-    (typeof choice === "string" || !choice.occurrence ||
-      choice.occurrence === r.key)
+  const rows = doc.occurrences.filter(
+    (r) =>
+      r.kind === "exercise" &&
+      r.exerciseId === exerciseId &&
+      (typeof choice === "string" || !choice.occurrence || choice.occurrence === r.key),
   );
   if (rows.length !== 1) {
     fail(
@@ -67,20 +62,24 @@ export function selectCondition(
     }
   }
   visit(body);
-  const condition = immutable(decode(ResolvedConditionSchema, {
-    context: doc.context,
-    exerciseId,
-    occurrence: rows[0]!.key,
-    anchor: rows[0]!.anchor,
-    ...(doc.definitions[exerciseId]?.project
-      ? { project: doc.definitions[exerciseId].project }
-      : {}),
-    view: projection,
-    pandocApiVersion: doc.pandocApiVersion,
-    body,
-    links: [...links].sort(),
-    resources: [...resources].sort(),
-  }, "CONDITION_CONTRACT"));
+  const condition = immutable(
+    decode(
+      ResolvedConditionSchema,
+      {
+        context: doc.context,
+        exerciseId,
+        occurrence: rows[0]!.key,
+        anchor: rows[0]!.anchor,
+        ...(doc.definitions[exerciseId]?.project ? { project: doc.definitions[exerciseId].project } : {}),
+        view: projection,
+        pandocApiVersion: doc.pandocApiVersion,
+        body,
+        links: [...links].sort(),
+        resources: [...resources].sort(),
+      },
+      "CONDITION_CONTRACT",
+    ),
+  );
   inheritNativeValue(document, condition);
   return condition;
 }

@@ -5,28 +5,31 @@ import { NativeWebFormatSchema } from "./contracts.ts";
 import type { NativeOperationIdentity } from "./contracts.ts";
 import type { EarlyDocument } from "../document/contracts.ts";
 import { NativeProjectFactSchema } from "../document/project-facts.ts";
-import type {
-  NativeProjectFact,
-  NativeProjectFactsCaptureSchema,
-} from "../document/project-facts.ts";
+import type { NativeProjectFact, NativeProjectFactsCaptureSchema } from "../document/project-facts.ts";
 import { bindProjectMaterializations } from "../domain/project-materialization.ts";
 import { immutable } from "../document/condition.ts";
 import { fail } from "../contracts/project.ts";
-const source = z.string().min(1).refine((s) =>
-  !s.startsWith("/") && !s.includes("\\") && !s.includes("\0") &&
-  s.split("/").every((p) => p && p !== "." && p !== "..")
-);
+const source = z
+  .string()
+  .min(1)
+  .refine(
+    (s) =>
+      !s.startsWith("/") &&
+      !s.includes("\\") &&
+      !s.includes("\0") &&
+      s.split("/").every((p) => p && p !== "." && p !== ".."),
+  );
 export const NativeAssignmentProvenanceSchema = z.strictObject({
-  documents: z.array(z.strictObject({
-    source,
-    format: NativeWebFormatSchema,
-    projects: z.array(NativeProjectFactSchema),
-    projectChecks: z.unknown().optional(),
-  })),
+  documents: z.array(
+    z.strictObject({
+      source,
+      format: NativeWebFormatSchema,
+      projects: z.array(NativeProjectFactSchema),
+      projectChecks: z.unknown().optional(),
+    }),
+  ),
 });
-export type NativeAssignmentProvenance = z.output<
-  typeof NativeAssignmentProvenanceSchema
->;
+export type NativeAssignmentProvenance = z.output<typeof NativeAssignmentProvenanceSchema>;
 /** Уже декодированные completeSchema releaseDocuments; shape boundary — у reader. */
 type Captured = {
   source: string;
@@ -44,53 +47,48 @@ export function validateAssignmentProvenance(
   capturedInputs: readonly string[],
   documents: readonly Captured[],
 ): NativeProjectFact[] {
-  const same = (a: unknown, b: unknown) =>
-    JSON.stringify(a) === JSON.stringify(b);
-  const unique = (items: readonly string[]) =>
-    new Set(items).size === items.length;
+  const same = (a: unknown, b: unknown) => JSON.stringify(a) === JSON.stringify(b);
+  const unique = (items: readonly string[]) => new Set(items).size === items.length;
   if (
-    !ownerInputs.length || !unique(ownerInputs) || !unique(capturedInputs) ||
+    !ownerInputs.length ||
+    !unique(ownerInputs) ||
+    !unique(capturedInputs) ||
     !unique(documents.map((d) => d.source)) ||
     ownerInputs.length !== capturedInputs.length ||
     ownerInputs.some((s) => !capturedInputs.includes(s)) ||
     documents.length !== capturedInputs.length ||
     capturedInputs.some((s) => !documents.some((d) => d.source === s))
   ) {
-    fail(
-      "BODY.PROVENANCE_COVERAGE",
-      "Captured documents не покрывают полный qualified owner input scope",
-    );
+    fail("BODY.PROVENANCE_COVERAGE", "Captured documents не покрывают полный qualified owner input scope");
   }
   const frames: z.output<typeof NativeProjectFactsCaptureSchema>[] = [];
   for (const doc of documents) {
     const frame = doc.projectFacts;
     if (!frame) {
-      fail(
-        "BODY.PROVENANCE_UNQUALIFIED",
-        "Отсутствует native project facts producer",
-      );
+      fail("BODY.PROVENANCE_UNQUALIFIED", "Отсутствует native project facts producer");
     }
     const ctx = doc.early.context,
-      declared = (doc.early.release?.declarations ?? []).filter((d) =>
-        d.project
-      );
+      declared = (doc.early.release?.declarations ?? []).filter((d) => d.project);
     if (
-      !same(frame.context, ctx) || frame.source !== doc.source ||
+      !same(frame.context, ctx) ||
+      frame.source !== doc.source ||
       ctx.operation !== identity.operation ||
       ctx.projection !== identity.projection ||
       !same(ctx.profiles, identity.profiles) ||
       frame.projects.length !== declared.length ||
-      !unique(frame.projects.map((p) => p.exerciseId)) || declared.some((d) =>
-        !frame.projects.some((p) =>
-          p.exerciseId === d.id && p.source === doc.source &&
-          "/" + p.projectRoot === d.project && p.projectCheck === d.check
-        )
+      !unique(frame.projects.map((p) => p.exerciseId)) ||
+      declared.some(
+        (d) =>
+          !frame.projects.some(
+            (p) =>
+              p.exerciseId === d.id &&
+              p.source === doc.source &&
+              "/" + p.projectRoot === d.project &&
+              p.projectCheck === d.check,
+          ),
       )
     ) {
-      fail(
-        "BODY.PROVENANCE_UNQUALIFIED",
-        "Project facts не принадлежат тому же полному preprojection capture",
-      );
+      fail("BODY.PROVENANCE_UNQUALIFIED", "Project facts не принадлежат тому же полному preprojection capture");
     }
     frames.push(frame);
   }
@@ -104,12 +102,7 @@ export function buildAssignmentProvenance(
   capturedInputs: readonly string[],
   documents: readonly Captured[],
 ): NativeAssignmentProvenance {
-  const bound = validateAssignmentProvenance(
-    identity,
-    ownerInputs,
-    capturedInputs,
-    documents,
-  );
+  const bound = validateAssignmentProvenance(identity, ownerInputs, capturedInputs, documents);
   const value: NativeAssignmentProvenance = {
     documents: documents.map((doc) => ({
       source: doc.source,

@@ -2,7 +2,10 @@ import { resetDownloadRequests } from "../infrastructure/runtime.ts";
 try {
   await resetDownloadRequests(await Deno.realPath(Deno.cwd()));
 } catch (error) {
-  if (error instanceof Error && ["ExtensionDiagnostic", "ExternalToolFailure"].includes(error.name)) {
+  if (
+    error instanceof Error &&
+    ["ExtensionDiagnostic", "ExternalToolFailure"].includes(error.name)
+  ) {
     console.error(error.message);
     Deno.exit(1);
   }
