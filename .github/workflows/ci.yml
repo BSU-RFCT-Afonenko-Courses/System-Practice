@@ -10,7 +10,7 @@ concurrency:
   group: course-check-${{ github.ref }}
   cancel-in-progress: true
 env:
-  PYTHONDONTWRITEBYTECODE: '1'
+  PYTHONDONTWRITEBYTECODE: "1"
 jobs:
   build:
     name: Один student и native выпуск

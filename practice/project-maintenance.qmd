@@ -4,15 +4,15 @@ subtitle: Подготовка выпуска
 course-navigation:
   course-url: https://bsu-rfct-afonenko-courses.github.io/System-Practice/
   links:
-  - text: Курс
-    href: /index.html
-    scope: course
-  - text: Введения
-    href: /index.html
-    scope: project
-  - text: Условие
-    href: /tasks/optional/project-maintenance.html
-    scope: course
+    - text: Курс
+      href: /index.html
+      scope: course
+    - text: Введения
+      href: /index.html
+      scope: project
+    - text: Условие
+      href: /tasks/optional/project-maintenance.html
+      scope: course
 format:
   revealjs:
     width: 1280

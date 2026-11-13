@@ -1,15 +1,15 @@
 <script>
-// Панель notes меняет ширину Reveal после его внутреннего измерения.
-document.addEventListener('click', (event) => {
-  if (event.target instanceof Element && event.target.closest('.course-mode-toggle')) {
-    requestAnimationFrame(() => {
-      /** @type {unknown} */
-      const reveal = Reflect.get(window, 'Reveal');
-      if (reveal !== null && (typeof reveal === 'object' || typeof reveal === 'function')
-          && 'layout' in reveal && typeof reveal.layout === 'function') {
-        reveal.layout();
-      }
-    });
-  }
-});
+  // Панель notes меняет ширину Reveal после его внутреннего измерения.
+  document.addEventListener('click', (event) => {
+    if (event.target instanceof Element && event.target.closest('.course-mode-toggle')) {
+      requestAnimationFrame(() => {
+        /** @type {unknown} */
+        const reveal = Reflect.get(window, 'Reveal');
+        if (reveal !== null && (typeof reveal === 'object' || typeof reveal === 'function')
+            && 'layout' in reveal && typeof reveal.layout === 'function') {
+          reveal.layout();
+        }
+      });
+    }
+  });
 </script>

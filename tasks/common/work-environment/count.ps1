@@ -25,7 +25,8 @@ try {
     Set-Content -LiteralPath $ReportPath -Value "$result`n" -Encoding utf8NoBOM -NoNewline
     Write-Output $result
     exit 0
-} catch {
+}
+catch {
     Write-Error $_.Exception.Message -ErrorAction Continue
     exit 2
 }

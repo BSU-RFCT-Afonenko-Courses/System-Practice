@@ -1,47 +1,47 @@
-version: '3'
+version: "3"
 vars:
-  PLATFORM_ROOT: '{{.ROOT_DIR}}/.platform'
-  BUILD_DIR: '{{.ROOT_DIR | dir}}/course-builds/system-practice'
+  PLATFORM_ROOT: "{{.ROOT_DIR}}/.platform"
+  BUILD_DIR: "{{.ROOT_DIR | dir}}/course-builds/system-practice"
   INSTANCE: pilot
   BACKEND: container
 
 env:
-  PYTHONDONTWRITEBYTECODE: '1'
+  PYTHONDONTWRITEBYTECODE: "1"
 
 tasks:
   bootstrap:
     desc: Получить закреплённые Git submodules
     cmds:
-    - git submodule update --init
+      - git submodule update --init
   render:
     desc: Один корневой student render и сохранение сайта
     cmds:
-    - bash CI/render.sh student
-    - mkdir -p '{{.BUILD_DIR}}'
-    - test ! -e '{{.BUILD_DIR}}/site'
-    - cp -a _site-student '{{.BUILD_DIR}}/site'
+      - bash CI/render.sh student
+      - mkdir -p '{{.BUILD_DIR}}'
+      - test ! -e '{{.BUILD_DIR}}/site'
+      - cp -a _site-student '{{.BUILD_DIR}}/site'
   render:full:
     cmds:
-    - quarto render --profile full
+      - quarto render --profile full
   preview:
     cmds:
-    - quarto preview --profile student --no-watch-inputs
+      - quarto preview --profile student --no-watch-inputs
   publish:
     cmds:
-    - quarto render --profile student
-    - quarto publish gh-pages --profile student --no-render
+      - quarto render --profile student
+      - quarto publish gh-pages --profile student --no-render
   materials:write:
     desc: Собрать объявленные учебные ZIP и публичные копии
     cmds:
-    - python3 tools/build_materials.py
-    - python3 tools/build_materials.py --project data-processing
-    - python3 tools/build_git_materials.py
-    - python3 tools/build_maintenance_materials.py
-    - python3 tools/materialize_public_materials.py
+      - python3 tools/build_materials.py
+      - python3 tools/build_materials.py --project data-processing
+      - python3 tools/build_git_materials.py
+      - python3 tools/build_maintenance_materials.py
+      - python3 tools/materialize_public_materials.py
   test:materials:
     desc: Проверить файловые договоры, репозитории и учебные сценарии
     cmds:
-    - python3 -m unittest discover -s tests -p 'test_*.py' -v
+      - python3 -m unittest discover -s tests -p 'test_*.py' -v
 
   check:
     desc: Проверить служебные исходники

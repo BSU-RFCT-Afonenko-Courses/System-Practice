@@ -4,15 +4,15 @@ subtitle: Файлы учебного проекта
 course-navigation:
   course-url: https://bsu-rfct-afonenko-courses.github.io/System-Practice/
   links:
-  - text: Курс
-    href: /index.html
-    scope: course
-  - text: Введения
-    href: /index.html
-    scope: project
-  - text: Условие
-    href: /tasks/labs/work-environment.html
-    scope: course
+    - text: Курс
+      href: /index.html
+      scope: course
+    - text: Введения
+      href: /index.html
+      scope: project
+    - text: Условие
+      href: /tasks/labs/work-environment.html
+      scope: course
 format:
   revealjs:
     width: 1280
@@ -166,11 +166,11 @@ lab/
 
 Текущий каталог — `lab/reports`.
 
-| Путь | Выбранный файл | Содержимое |
-|---|---|---|
-| `input/room A.txt` | `lab/reports/input/room A.txt` | `south` |
-| `../input/room A.txt` | `lab/input/room A.txt` | `north` |
-| `selected.txt` | `lab/reports/selected.txt` | `north` |
+  | Путь                  | Выбранный файл                 | Содержимое |
+  | --------------------- | ------------------------------ | ---------- |
+  | `input/room A.txt`    | `lab/reports/input/room A.txt` | `south`    |
+  | `../input/room A.txt` | `lab/input/room A.txt`         | `north`    |
+  | `selected.txt`        | `lab/reports/selected.txt`     | `north`    |
 
 `..` выбирает родителя `lab`. При записи команд PowerShell компоненты
 можно разделять `\`. Кавычки охватывают значение с пробелом целиком.
@@ -187,13 +187,13 @@ lab/
 в PowerShell либо `cd ..` в fish. В Windows прочитайте
 `Get-ExecutionPolicy -List`. Пример результата:
 
-| Область, от старшей к младшей | Значение |
-|---|---|
-| `MachinePolicy` | `Undefined` |
-| `UserPolicy` | `Undefined` |
-| `Process` | `Undefined` |
-| `CurrentUser` | `Restricted` |
-| `LocalMachine` | `RemoteSigned` |
+  | Область, от старшей к младшей | Значение       |
+  | ----------------------------- | -------------- |
+  | `MachinePolicy`               | `Undefined`    |
+  | `UserPolicy`                  | `Undefined`    |
+  | `Process`                     | `Undefined`    |
+  | `CurrentUser`                 | `Restricted`   |
+  | `LocalMachine`                | `RemoteSigned` |
 
 `Undefined` означает отсутствие настройки; действует первая заданная
 политика сверху. Здесь это `CurrentUser / Restricted`, сценарии запрещены.
