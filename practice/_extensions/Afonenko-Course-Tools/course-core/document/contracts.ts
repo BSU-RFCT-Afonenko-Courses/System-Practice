@@ -1,8 +1,4 @@
-import {
-  AssignmentEarlySchema,
-  AssignmentFinalSchema,
-  AssignmentLateSchema,
-} from "./assignment-contracts.ts";
+import { AssignmentEarlySchema, AssignmentFinalSchema, AssignmentLateSchema } from "./assignment-contracts.ts";
 // @deno-types="../vendor/zod/v4/index.d.ts"
 import { z } from "../vendor/zod/v4/index.js";
 import { NativeReleaseFactsSchema } from "../release/contracts.ts";
@@ -11,16 +7,14 @@ import { NativeNodesSchema } from "./native-ast.ts";
 export const ExerciseDeclarationSchema = z.strictObject({
   difficulty: z.enum(["introductory", "intermediate", "advanced"]),
   "statement-visibility": z.enum(["open", "restricted"]),
-  "course-role": z.enum([
-    "demonstration",
-    "discussion",
-    "independent-study",
-    "control",
-  ]).optional(),
+  "course-role": z.enum(["demonstration", "discussion", "independent-study", "control"]).optional(),
   time: z.number().int().positive().max(100000).optional(),
   project: z.string().min(1).max(1024).optional(),
   target: z.string().min(1).max(80).optional(),
-  "project-check": z.string().regex(/^[a-z][a-z0-9-]*$/).optional(),
+  "project-check": z
+    .string()
+    .regex(/^[a-z][a-z0-9-]*$/)
+    .optional(),
 });
 export type ExerciseDeclaration = z.output<typeof ExerciseDeclarationSchema>;
 export const DocumentContextSchema = z.strictObject({
@@ -68,9 +62,7 @@ export const LateDocumentSchema = z.strictObject({
   assignment: AssignmentLateSchema.optional(),
 });
 export type LateDocument = z.input<typeof LateDocumentSchema>;
-export const ResolvedOccurrenceSchema = OccurrenceSchema.extend(
-  LateOccurrenceSchema.shape,
-);
+export const ResolvedOccurrenceSchema = OccurrenceSchema.extend(LateOccurrenceSchema.shape);
 export type ResolvedOccurrence = z.output<typeof ResolvedOccurrenceSchema>;
 export const FinalizedDocumentSchema = z.strictObject({
   pandocApiVersion: z.array(z.number().int().nonnegative()).min(2).max(4),
@@ -83,12 +75,7 @@ export const FinalizedDocumentSchema = z.strictObject({
   assignment: AssignmentFinalSchema.optional(),
 });
 export type FinalizedDocument = z.output<typeof FinalizedDocumentSchema>;
-export function decode<T>(
-  schema: z.ZodType<T>,
-  value: unknown,
-  code: string,
-  source?: string,
-): T {
+export function decode<T>(schema: z.ZodType<T>, value: unknown, code: string, source?: string): T {
   const parsed = schema.safeParse(value);
   if (!parsed.success) {
     const issue = parsed.error.issues[0];

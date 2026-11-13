@@ -6,51 +6,36 @@ import {
   NativeMetadataReadSetSchema,
   NativeReleaseValidationSchema,
 } from "./contracts.ts";
-import type {
-  NativeAdapterValidator,
-  NativeReleaseRequest,
-} from "./contracts.ts";
-import {
-  publicationAdapterInput,
-  validatePublicationFacts,
-} from "./publication.ts";
-import type {
-  PublicationDocuments,
-  PublicationPathCheck,
-} from "./publication.ts";
-export async function validateNativeRelease(
-  {
-    documents,
-    identity,
-    requestValue,
-    validators,
-    installed,
-    checkPath,
-    guard,
-  }: {
-    documents: PublicationDocuments;
-    identity: {
-      operation: string;
-      projection: "student" | "author";
-      profiles: string[];
-    };
-    requestValue: NativeReleaseRequest;
-    validators: readonly NativeAdapterValidator[];
-    installed: readonly string[];
-    checkPath: PublicationPathCheck;
-    guard: () => Promise<void>;
-  },
-) {
+import type { NativeAdapterValidator, NativeReleaseRequest } from "./contracts.ts";
+import { publicationAdapterInput, validatePublicationFacts } from "./publication.ts";
+import type { PublicationDocuments, PublicationPathCheck } from "./publication.ts";
+export async function validateNativeRelease({
+  documents,
+  identity,
+  requestValue,
+  validators,
+  installed,
+  checkPath,
+  guard,
+}: {
+  documents: PublicationDocuments;
+  identity: {
+    operation: string;
+    projection: "student" | "author";
+    profiles: string[];
+  };
+  requestValue: NativeReleaseRequest;
+  validators: readonly NativeAdapterValidator[];
+  installed: readonly string[];
+  checkPath: PublicationPathCheck;
+  guard: () => Promise<void>;
+}) {
   // Snapshot executable descriptors before the first await; later mutation cannot change authority.
   validators = validators.map((v) => ({
     name: v.name,
     validate: v.validate,
     nativeMetadataReadSet: immutable(
-      decode(
-        NativeMetadataReadSetSchema,
-        v.nativeMetadataReadSet,
-        "CORE.ADAPTER_INVALID",
-      ),
+      decode(NativeMetadataReadSetSchema, v.nativeMetadataReadSet, "CORE.ADAPTER_INVALID"),
     ),
   }));
   identity = {
@@ -68,10 +53,8 @@ export async function validateNativeRelease(
   });
   const course = facts.course;
   const byName = new Map(validators.map((v) => [v.name, v]));
-  if (
-    byName.size !== validators.length ||
-    validators.some((v) => typeof v.validate !== "function")
-  ) fail("CORE.ADAPTER_INVALID", "Повторный/неисполнимый adapter validator");
+  if (byName.size !== validators.length || validators.some((v) => typeof v.validate !== "function"))
+    fail("CORE.ADAPTER_INVALID", "Повторный/неисполнимый adapter validator");
   for (const doc of documents) {
     for (const name of course.adapters) {
       if (!installed.includes(name)) {
@@ -79,22 +62,12 @@ export async function validateNativeRelease(
       }
       const validator = byName.get(name);
       if (!validator) {
-        fail(
-          "RELEASE.ADAPTER_UNQUALIFIED",
-          "Нет исполняемого owner validator " + name,
-        );
+        fail("RELEASE.ADAPTER_UNQUALIFIED", "Нет исполняемого owner validator " + name);
       }
       await guard();
       const result = decode(
         NativeAdapterValidationResultSchema,
-        await validator.validate(
-          publicationAdapterInput(
-            doc,
-            identity,
-            name,
-            validator.nativeMetadataReadSet,
-          ),
-        ),
+        await validator.validate(publicationAdapterInput(doc, identity, name, validator.nativeMetadataReadSet)),
         "RELEASE.ADAPTER_UNQUALIFIED",
       );
       for (const input of result.sources) {
@@ -104,16 +77,18 @@ export async function validateNativeRelease(
     }
   }
   await guard();
-  return immutable(NativeReleaseValidationSchema.parse({
-    projection: identity.projection,
-    profiles: identity.profiles,
-    course,
-    documents: documents.map((d) => ({
-      source: d.source,
-      format: d.early.context.format,
-    })),
-    exerciseIds: facts.exerciseIds,
-    assessmentIds: facts.assessmentIds,
-    validatedAdapters: course.adapters,
-  }));
+  return immutable(
+    NativeReleaseValidationSchema.parse({
+      projection: identity.projection,
+      profiles: identity.profiles,
+      course,
+      documents: documents.map((d) => ({
+        source: d.source,
+        format: d.early.context.format,
+      })),
+      exerciseIds: facts.exerciseIds,
+      assessmentIds: facts.assessmentIds,
+      validatedAdapters: course.adapters,
+    }),
+  );
 }

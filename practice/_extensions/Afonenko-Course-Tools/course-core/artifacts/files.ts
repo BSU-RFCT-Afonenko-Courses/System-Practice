@@ -5,9 +5,7 @@ const fail = (text: string): never => {
 };
 export const inside = (parent: string, path: string) => {
   const r = relative(parent, path);
-  return !r ||
-    !isAbsolute(r) && r !== ".." && !r.startsWith("../") &&
-      !r.startsWith("..\\");
+  return !r || (!isAbsolute(r) && r !== ".." && !r.startsWith("../") && !r.startsWith("..\\"));
 };
 export const overlaps = (a: string, b: string) => inside(a, b) || inside(b, a);
 export async function absent(path: string) {
@@ -20,7 +18,7 @@ export async function absent(path: string) {
   }
 }
 export async function real(path: string) {
-  if (await Deno.realPath(path) !== path) {
+  if ((await Deno.realPath(path)) !== path) {
     fail("Символическая ссылка в пути: " + path);
   }
   return path;
@@ -39,9 +37,12 @@ export async function safeParent(path: string) {
 }
 export function local(path: string) {
   if (
-    typeof path !== "string" || !path || /[\\\0*?\[\]{}:]/.test(path) ||
+    typeof path !== "string" ||
+    !path ||
+    /[\\\0*?\[\]{}:]/.test(path) ||
     isAbsolute(path) ||
     path.split("/").some((p) => !p || p === "." || p === "..")
-  ) fail("Недопустимый относительный путь: " + path);
+  )
+    fail("Недопустимый относительный путь: " + path);
   return path;
 }

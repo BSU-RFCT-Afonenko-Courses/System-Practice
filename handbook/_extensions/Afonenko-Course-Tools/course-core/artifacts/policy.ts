@@ -1,8 +1,5 @@
 import { quartoOutputNames } from "../infrastructure/generated-paths.ts";
-import {
-  stableToolCachePath,
-  toolCachePath,
-} from "../infrastructure/tool-cache.ts";
+import { stableToolCachePath, toolCachePath } from "../infrastructure/tool-cache.ts";
 export const excluded = new Set([
   ...quartoOutputNames,
   ".git",
@@ -29,7 +26,8 @@ export const privateNames = new Set([
 export const publicExcluded = (name: string) =>
   /\.(?:qmd|rmd|ipynb|class|jar|pyc)$/i.test(name) ||
   /^(?:_quarto(?:[-.].*)?|_metadata\.ya?ml)$/i.test(name) ||
-  name === "check.sh" || name.startsWith(".") && name !== ".gitignore";
+  name === "check.sh" ||
+  (name.startsWith(".") && name !== ".gitignore");
 export function artifactTargetIssue(
   target: string,
   audience: "student" | "full",

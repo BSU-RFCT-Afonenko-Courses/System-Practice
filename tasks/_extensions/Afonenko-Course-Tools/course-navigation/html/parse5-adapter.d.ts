@@ -44,7 +44,4 @@ export interface Element {
 }
 type ChildNode = Element | Text | Comment | DocumentType;
 export type Node = Document | DocumentFragment | ChildNode;
-export function parse(
-  html: string,
-  options: { sourceCodeLocationInfo: boolean },
-): Document;
+export function parse(html: string, options: { sourceCodeLocationInfo: boolean }): Document;

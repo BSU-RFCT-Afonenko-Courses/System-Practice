@@ -29,9 +29,12 @@ function artifactKind(value: unknown): value is ArtifactRequest["kind"] {
   return kinds.includes(value);
 }
 function artifact(value: unknown): value is ArtifactRequest {
-  return record(value) &&
+  return (
+    record(value) &&
     !Object.keys(value).some((key) => !["exerciseId", "kind"].includes(key)) &&
-    resourceId(value.exerciseId) && artifactKind(value.kind);
+    resourceId(value.exerciseId) &&
+    artifactKind(value.kind)
+  );
 }
 
 async function requestDirectory(
@@ -46,7 +49,7 @@ async function requestDirectory(
     );
   }
   // lstat проверяет и dangling links; realPath не должен скрыть ссылку в корне/родителях.
-  for (let current = root;; current = dirname(current)) {
+  for (let current = root; ; current = dirname(current)) {
     const info = await Deno.lstat(current);
     if (info.isSymlink || !info.isDirectory) {
       throw diagnostic(
@@ -59,10 +62,12 @@ async function requestDirectory(
   }
   for (const source of sources) {
     if (
-      !source || source.includes("\\") || /^[A-Za-z]:/.test(source) ||
-      source.split("/").some((part) =>
-        !part || part === "." || part === ".."
-      ) ||
+      !source ||
+      source.includes("\\") ||
+      /^[A-Za-z]:/.test(source) ||
+      source
+        .split("/")
+        .some((part) => !part || part === "." || part === "..") ||
       relative(root, child(root, source)) !== source
     ) {
       throw diagnostic(
@@ -73,14 +78,12 @@ async function requestDirectory(
     }
   }
   const directory = child(root, "_generated/project-download/requests");
-  for (
-    const path of [
-      child(root, "_generated"),
-      child(root, "_generated/project-download"),
-      directory,
-    ]
-  ) {
-    if (!await exists(path)) return { directory, present: false };
+  for (const path of [
+    child(root, "_generated"),
+    child(root, "_generated/project-download"),
+    directory,
+  ]) {
+    if (!(await exists(path))) return { directory, present: false };
     const info = await Deno.lstat(path);
     if (info.isSymlink || !info.isDirectory) {
       throw diagnostic(
@@ -117,7 +120,7 @@ export async function inspectOwnedRequests(
   const files: { path: string; source: string }[] = [];
   async function collect(current: string): Promise<void> {
     const entries = await Array.fromAsync(Deno.readDir(current));
-    entries.sort((a, b) => a.name < b.name ? -1 : a.name > b.name ? 1 : 0);
+    entries.sort((a, b) => (a.name < b.name ? -1 : a.name > b.name ? 1 : 0));
     if (current !== directory && !entries.length) {
       throw diagnostic("DOWNLOAD.REQUEST_INVALID", "Пустой каталог заявки", {
         source: current,
@@ -125,10 +128,12 @@ export async function inspectOwnedRequests(
       });
     }
     for (const entry of entries) {
-      const path = child(current, entry.name), info = await Deno.lstat(path);
+      const path = child(current, entry.name),
+        info = await Deno.lstat(path);
       const source = requests.get(path);
       if (
-        info.isSymlink || (!info.isDirectory && !info.isFile) ||
+        info.isSymlink ||
+        (!info.isDirectory && !info.isFile) ||
         (info.isDirectory ? !directories.has(path) : source === undefined)
       ) {
         throw diagnostic(
@@ -167,22 +172,26 @@ export async function inspectOwnedRequests(
     }
     const fields = value;
     if (
-      Object.keys(fields).some((key) =>
-        ![
-          "source",
-          "resources",
-          "artifacts",
-          "courseProcessed",
-          "configuration",
-          "native",
-        ].includes(key)
+      Object.keys(fields).some(
+        (key) =>
+          ![
+            "source",
+            "resources",
+            "artifacts",
+            "courseProcessed",
+            "configuration",
+            "native",
+          ].includes(key),
       ) ||
       (Object.hasOwn(fields, "native") && typeof fields.native !== "boolean") ||
       (Object.hasOwn(fields, "courseProcessed") &&
         typeof fields.courseProcessed !== "boolean") ||
-      !Object.hasOwn(fields, "source") || !Object.hasOwn(fields, "resources") ||
-      typeof fields.source !== "string" || fields.source !== source ||
-      !Array.isArray(fields.resources) || !fields.resources.every(resourceId)
+      !Object.hasOwn(fields, "source") ||
+      !Object.hasOwn(fields, "resources") ||
+      typeof fields.source !== "string" ||
+      fields.source !== source ||
+      !Array.isArray(fields.resources) ||
+      !fields.resources.every(resourceId)
     ) {
       throw diagnostic(
         "DOWNLOAD.REQUEST_INVALID",
@@ -219,7 +228,7 @@ export async function clearOwnedRequests(
   sources: string[],
 ): Promise<void> {
   const state = await inspectOwnedRequests(root, sources);
-  if (!await exists(state.directory)) return;
+  if (!(await exists(state.directory))) return;
   const directories = new Set<string>();
   for (const file of state.files) {
     await Deno.remove(file.path);

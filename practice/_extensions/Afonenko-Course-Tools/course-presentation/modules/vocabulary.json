@@ -53,11 +53,7 @@
       "purpose": true
     }
   },
-  "implicitKinds": [
-    "exercise",
-    "solution",
-    "hint"
-  ],
+  "implicitKinds": ["exercise", "solution", "hint"],
   "difficulty": {
     "introductory": "Начальный",
     "intermediate": "Средний",
@@ -72,54 +68,14 @@
     "required": "Обязательно",
     "optional": "Дополнительно"
   },
-  "pedagogyAttributes": [
-    "course-role",
-    "difficulty",
-    "time",
-    "work-mode",
-    "requirement",
-    "for"
-  ],
-  "activityAttributes": [
-    "difficulty",
-    "time",
-    "work-mode"
-  ],
-  "exerciseAttributes": [
-    "target",
-    "project",
-    "statement-visibility",
-    "project-check"
-  ],
-  "assessmentKinds": [
-    "lab",
-    "seminar",
-    "practical",
-    "test"
-  ],
-  "memberKinds": [
-    "BulletList",
-    "OrderedList"
-  ],
-  "views": [
-    "student",
-    "full"
-  ],
-  "presentationModes": [
-    "lecture",
-    "study"
-  ],
-  "presentationAnswers": [
-    "auto",
-    "expanded"
-  ],
-  "stages": [
-    "demonstration",
-    "classroom",
-    "homework"
-  ],
-  "statementVisibility": [
-    "open",
-    "restricted"
-  ]
+  "pedagogyAttributes": ["course-role", "difficulty", "time", "work-mode", "requirement", "for"],
+  "activityAttributes": ["difficulty", "time", "work-mode"],
+  "exerciseAttributes": ["target", "project", "statement-visibility", "project-check"],
+  "assessmentKinds": ["lab", "seminar", "practical", "test"],
+  "memberKinds": ["BulletList", "OrderedList"],
+  "views": ["student", "full"],
+  "presentationModes": ["lecture", "study"],
+  "presentationAnswers": ["auto", "expanded"],
+  "stages": ["demonstration", "classroom", "homework"],
+  "statementVisibility": ["open", "restricted"]
 }

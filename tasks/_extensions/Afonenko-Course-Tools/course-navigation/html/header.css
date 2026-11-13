@@ -51,5 +51,7 @@
   inset: calc(50% - 1px) 3px auto;
   height: 2px;
   background: currentColor;
-  box-shadow: 0 -7px currentColor, 0 7px currentColor;
+  box-shadow:
+    0 -7px currentColor,
+    0 7px currentColor;
 }

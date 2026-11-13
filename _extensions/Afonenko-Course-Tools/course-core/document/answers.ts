@@ -6,13 +6,7 @@ import { boundInput, fail } from "../contracts/project.ts";
 import { AnswerFactsSchema, AnswerSpecSchema } from "./answer-contracts.ts";
 import type { AnswerFacts, AnswerSpec } from "./answer-contracts.ts";
 import { decode } from "./contracts.ts";
-import {
-  isBulletList,
-  isCode,
-  isContainer,
-  isRecord as object,
-  nodeAttributes as attr,
-} from "./native-ast.ts";
+import { isBulletList, isCode, isContainer, isRecord as object, nodeAttributes as attr } from "./native-ast.ts";
 import type { Node } from "./native-ast.ts";
 const para = (s: string): Node => ({ t: "Para", c: [{ t: "Str", c: s }] });
 export function projectAnswer(a: AnswerSpec): Node[] {
@@ -31,16 +25,15 @@ export function projectAnswer(a: AnswerSpec): Node[] {
     para("Соответствия: ____________________"),
   ];
 }
-function yamlDocument(
-  value: unknown,
-): value is {
+function yamlDocument(value: unknown): value is {
   errors: unknown[];
   warnings: unknown[];
   contents: unknown;
   toJS(options: { maxAliasCount: number }): unknown;
 } {
-  return object(value) && Array.isArray(value.errors) &&
-    Array.isArray(value.warnings) && typeof value.toJS === "function";
+  return (
+    object(value) && Array.isArray(value.errors) && Array.isArray(value.warnings) && typeof value.toJS === "function"
+  );
 }
 export function decodeAnswerYaml(source: string, input: string): AnswerSpec {
   if (source.length > 65536) {
@@ -54,18 +47,16 @@ export function decodeAnswerYaml(source: string, input: string): AnswerSpec {
     fail("ANSWER_YAML", "Повреждённый YAML document", input);
   }
   if (raw.errors.length || raw.warnings.length) {
-    fail(
-      "ANSWER_YAML",
-      "Требуется один YAML-словарь без повторных ключей",
-      input,
-    );
+    fail("ANSWER_YAML", "Требуется один YAML-словарь без повторных ключей", input);
   }
   function check(v: unknown) {
     if (!object(v)) return;
     if (isAlias(v) || v.anchor || v.tag) {
       fail("ANSWER_YAML", "Aliases/anchors/tags ответа запрещены", input);
     }
-    if (Array.isArray(v.items)) { for (const x of v.items) check(x); }
+    if (Array.isArray(v.items)) {
+      for (const x of v.items) check(x);
+    }
     check(v.key);
     check(v.value);
   }
@@ -84,31 +75,23 @@ export function collectAnswers(
     replacements = new Map<object, unknown[]>();
   function put(id: string, answer: AnswerFacts, node: object, body: Node[]) {
     if (Object.hasOwn(answers, id)) {
-      fail(
-        "ANSWER_INVALID",
-        "У упражнения может быть только один банк ответов",
-        input,
-        id,
-      );
+      fail("ANSWER_INVALID", "У упражнения может быть только один банк ответов", input, id);
     }
     answers[id] = answer;
     replacements.set(
       node,
-      transport
-        ? assignmentAnswerTransport(
-          id,
-          answer,
-          body,
-          transport.context,
-          transport.answers,
-        )
-        : body,
+      transport ? assignmentAnswerTransport(id, answer, body, transport.context, transport.answers) : body,
     );
   }
   function markCorrect(
     v: Record<string, unknown>,
     classes: string[],
-    { owner, role, choiceIndex, marks }: {
+    {
+      owner,
+      role,
+      choiceIndex,
+      marks,
+    }: {
       owner: string | undefined;
       role: "solution" | "answer" | undefined;
       choiceIndex: number | undefined;
@@ -116,94 +99,62 @@ export function collectAnswers(
     },
   ) {
     if (classes.includes("correct")) {
-      if (
-        !isContainer(v) || v.t !== "Span" || role !== "answer" ||
-        choiceIndex === undefined ||
-        !marks
-      ) {
-        fail(
-          "ANSWER_INVALID",
-          "Маркер correct допустим только внутри ответа single-choice",
-          input,
-          owner,
-        );
+      if (!isContainer(v) || v.t !== "Span" || role !== "answer" || choiceIndex === undefined || !marks) {
+        fail("ANSWER_INVALID", "Маркер correct допустим только внутри ответа single-choice", input, owner);
       }
       marks.push(choiceIndex);
       replacements.set(v, v.c[1]);
     }
   }
-  const isAnswerClasses = (classes: string[]) =>
-    classes.includes("answer") || classes.includes("answer-spec");
-  function walk(
-    v: unknown,
-    owner?: string,
-    role?: "solution" | "answer",
-    choiceIndex?: number,
-    marks?: number[],
-  ) {
+  const isAnswerClasses = (classes: string[]) => classes.includes("answer") || classes.includes("answer-spec");
+  function walk(v: unknown, owner?: string, role?: "solution" | "answer", choiceIndex?: number, marks?: number[]) {
     if (Array.isArray(v)) {
       for (const x of v) walk(x, owner, role, choiceIndex, marks);
       return;
     }
     if (!object(v)) return;
-    const a = attr(v, input), classes = a?.[1] ?? [];
-    let next = owner, nextRole = role;
+    const a = attr(v, input),
+      classes = a?.[1] ?? [];
+    let next = owner,
+      nextRole = role;
     if (v.t === "Div" && a?.[0].startsWith("exr-")) next = a[0];
-    if (
-      v.t === "Div" &&
-      (classes.includes("solution") || String(a?.[0]).startsWith("sol-"))
-    ) nextRole = "solution";
+    if (v.t === "Div" && (classes.includes("solution") || String(a?.[0]).startsWith("sol-"))) nextRole = "solution";
     markCorrect(v, classes, { owner, role, choiceIndex, marks });
     if (isAnswerClasses(classes)) {
       if (
-        !next || role || classes.includes("correct") ||
+        !next ||
+        role ||
+        classes.includes("correct") ||
         (classes.includes("answer") && classes.includes("answer-spec"))
       ) {
-        fail(
-          "ANSWER_INVALID",
-          "Ответ должен принадлежать упражнению вне закрытых блоков",
-          input,
-          next,
-        );
+        fail("ANSWER_INVALID", "Ответ должен принадлежать упражнению вне закрытых блоков", input, next);
       }
       if (classes.includes("answer-spec")) {
         if (!isCode(v) || v.t !== "CodeBlock") {
-          fail(
-            "ANSWER_INVALID",
-            "Банк ответов должен быть CodeBlock",
-            input,
-            next,
-          );
+          fail("ANSWER_INVALID", "Банк ответов должен быть CodeBlock", input, next);
         }
         const answer = decodeAnswerYaml(v.c[1], input);
         put(next, answer, v, projectAnswer(answer));
         return;
       }
       if (
-        !isContainer(v) || v.t !== "Div" ||
+        !isContainer(v) ||
+        v.t !== "Div" ||
         Object.fromEntries(v.c[0][2]).type !== "single-choice" ||
-        v.c[1].length !== 1 || !isBulletList(v.c[1][0])
+        v.c[1].length !== 1 ||
+        !isBulletList(v.c[1][0])
       ) {
-        fail(
-          "ANSWER_INVALID",
-          "single-choice требует один BulletList",
-          input,
-          next,
-        );
+        fail("ANSWER_INVALID", "single-choice требует один BulletList", input, next);
       }
       const list = v.c[1][0];
       if (!isBulletList(list)) {
         fail("ANSWER_INVALID", "Некорректный BulletList", input, next);
       }
-      const items = list.c, marked: number[] = [];
+      const items = list.c,
+        marked: number[] = [];
       items.forEach((item, index) => walk(item, next, "answer", index, marked));
       if (marked.length !== 1) {
-        fail(
-          "ANSWER_INVALID",
-          "single-choice требует ровно один correct",
-          input,
-          next,
-        );
+        fail("ANSWER_INVALID", "single-choice требует ровно один correct", input, next);
       }
       const answer = decode(
         AnswerFactsSchema,

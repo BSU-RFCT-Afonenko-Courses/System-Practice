@@ -18,9 +18,7 @@ export async function installedNativeAdapters(root: string): Promise<string[]> {
   async function read(path: string): Promise<boolean> {
     let contract: unknown;
     try {
-      contract = JSON.parse(
-        await Deno.readTextFile(await regular(root, path + "/contract.json")),
-      );
+      contract = JSON.parse(await Deno.readTextFile(await regular(root, path + "/contract.json")));
     } catch (error) {
       if (error instanceof Deno.errors.NotFound) return false;
       throw error;
@@ -30,10 +28,7 @@ export async function installedNativeAdapters(root: string): Promise<string[]> {
     }
     if ("name" in contract && typeof contract.name === "string") {
       if (names.includes(contract.name)) {
-        fail(
-          "CORE.ADAPTER_INVALID",
-          "Повторный installed adapter " + contract.name,
-        );
+        fail("CORE.ADAPTER_INVALID", "Повторный installed adapter " + contract.name);
       }
       names.push(contract.name);
     }

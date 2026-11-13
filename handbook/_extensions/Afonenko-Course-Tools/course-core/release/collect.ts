@@ -2,10 +2,7 @@ import type { AnswerFacts } from "../document/answer-contracts.ts";
 import { fail } from "../contracts/project.ts";
 import { decode } from "../document/contracts.ts";
 import { visibleTitle } from "../document/title.ts";
-import type {
-  DocumentContext,
-  ExerciseDeclaration,
-} from "../document/contracts.ts";
+import type { DocumentContext, ExerciseDeclaration } from "../document/contracts.ts";
 import { NativeReleaseFactsSchema } from "./contracts.ts";
 import type { NativeReleaseFacts } from "./contracts.ts";
 import {
@@ -34,12 +31,19 @@ function citations(value: unknown) {
 function listItems(value: unknown): Node[][] {
   if (isBulletList(value)) return value.c;
   if (
-    isNode(value) && value.t === "OrderedList" && Array.isArray(value.c) &&
-    value.c.length === 2 && Array.isArray(value.c[0]) &&
-    value.c[0].length === 3 && typeof value.c[0][0] === "number" &&
-    isNode(value.c[0][1]) && isNode(value.c[0][2]) &&
-    Array.isArray(value.c[1]) && value.c[1].every(isNodes)
-  ) return value.c[1];
+    isNode(value) &&
+    value.t === "OrderedList" &&
+    Array.isArray(value.c) &&
+    value.c.length === 2 &&
+    Array.isArray(value.c[0]) &&
+    value.c[0].length === 3 &&
+    typeof value.c[0][0] === "number" &&
+    isNode(value.c[0][1]) &&
+    isNode(value.c[0][2]) &&
+    Array.isArray(value.c[1]) &&
+    value.c[1].every(isNodes)
+  )
+    return value.c[1];
   fail("CORE.ASSESSMENT_INVALID", "Повреждённый native список");
 }
 export function nativeMetadata(v: unknown): unknown {
@@ -47,11 +51,7 @@ export function nativeMetadata(v: unknown): unknown {
   switch (v.t) {
     case "MetaMap":
       if (!obj(v.c)) fail("CORE.METADATA_INVALID", "Повреждённый MetaMap");
-      return Object.fromEntries(
-        Object.entries(v.c).map((
-          [k, x],
-        ) => [k, nativeMetadata(x)]),
-      );
+      return Object.fromEntries(Object.entries(v.c).map(([k, x]) => [k, nativeMetadata(x)]));
     case "MetaList":
       if (!Array.isArray(v.c)) {
         fail("CORE.METADATA_INVALID", "Повреждённый MetaList");
@@ -78,15 +78,10 @@ export function nativeMetadata(v: unknown): unknown {
 function adapterMetadata(v: unknown): unknown {
   if (!obj(v)) fail("CORE.ADAPTER_METADATA", "Требуется native metadata node");
   if (v.t === "MetaMap" && obj(v.c)) {
-    return Object.fromEntries(
-      Object.entries(v.c).map(([k, value]) => [k, adapterMetadata(value)]),
-    );
+    return Object.fromEntries(Object.entries(v.c).map(([k, value]) => [k, adapterMetadata(value)]));
   }
   if (v.t === "MetaList" && Array.isArray(v.c)) return v.c.map(adapterMetadata);
-  if (
-    v.t === "MetaBool" && typeof v.c === "boolean" ||
-    v.t === "MetaString" && typeof v.c === "string"
-  ) return v.c;
+  if ((v.t === "MetaBool" && typeof v.c === "boolean") || (v.t === "MetaString" && typeof v.c === "string")) return v.c;
   if ((v.t === "MetaInlines" || v.t === "MetaBlocks") && Array.isArray(v.c)) {
     return visibleTitle(v.c);
   }
@@ -98,17 +93,16 @@ const attrs = (v: Record<string, unknown>) => {
   return { id: a[0], classes: a[1], values: Object.fromEntries(a[2]) };
 };
 function visit(v: unknown, use: (node: Record<string, unknown>) => void) {
-  if (Array.isArray(v)) { for (const x of v) visit(x, use); }
-  else if (obj(v)) {
+  if (Array.isArray(v)) {
+    for (const x of v) visit(x, use);
+  } else if (obj(v)) {
     use(v);
     for (const child of Object.values(v)) visit(child, use);
   }
 }
 function assertAssessmentParagraph(item: unknown) {
-  if (
-    !Array.isArray(item) || item.length !== 1 ||
-    !obj(item[0]) || !["Plain", "Para"].includes(String(item[0].t))
-  ) fail("CORE.ASSESSMENT_INVALID", "Позиция требует один абзац");
+  if (!Array.isArray(item) || item.length !== 1 || !obj(item[0]) || !["Plain", "Para"].includes(String(item[0].t)))
+    fail("CORE.ASSESSMENT_INVALID", "Позиция требует один абзац");
 }
 export function collectReleaseFacts(
   ast: { meta: Record<string, unknown>; blocks: unknown[] },
@@ -121,18 +115,12 @@ export function collectReleaseFacts(
   if (course.schema !== undefined) {
     fail("CORE.SCHEMA_INVALID", "Поле course.schema не поддерживается");
   }
-  if (
-    course["assessment-time"] !== undefined &&
-    typeof course["assessment-time"] !== "boolean"
-  ) {
+  if (course["assessment-time"] !== undefined && typeof course["assessment-time"] !== "boolean") {
     fail("CORE.COURSE_INVALID", "course.assessment-time требует boolean");
   }
   const config = nativeMetadata(ast.meta.assessment);
   const containers: ContainerNode[] = [];
-  const declarations = new Map<
-    string,
-    NativeReleaseFacts["declarations"][number]
-  >();
+  const declarations = new Map<string, NativeReleaseFacts["declarations"][number]>();
   visit(ast.blocks, (node) => {
     if (node.t !== "Div") return;
     if (!isContainer(node)) fail("DOCUMENT_AST", "Повреждённый Div");
@@ -149,33 +137,29 @@ export function collectReleaseFacts(
           const first = body(node)[0];
           return isHeader(first)
             ? {
-              head: {
-                level: first.c[0],
-                title: visibleTitle(first.c[2]).trim(),
-              },
-            }
+                head: {
+                  level: first.c[0],
+                  title: visibleTitle(first.c[2]).trim(),
+                },
+              }
             : {};
         })(),
         ...(declaration.target ? { target: declaration.target } : {}),
         ...(declaration.project ? { project: declaration.project } : {}),
-        ...(declaration["project-check"]
-          ? { check: declaration["project-check"] }
-          : {}),
+        ...(declaration["project-check"] ? { check: declaration["project-check"] } : {}),
         // Core владеет effective defaults; adapter получает их без второго resolver.
         // Остальные authored/native attrs сохраняются, включая adapter-prefixed поля.
         attributes: {
           ...a.values,
           ...Object.fromEntries(
-            Object.entries(declaration).filter(([, value]) =>
-              value !== undefined
-            ).map(([key, value]) => [key, String(value)]),
+            Object.entries(declaration)
+              .filter(([, value]) => value !== undefined)
+              .map(([key, value]) => [key, String(value)]),
           ),
         },
       };
-      if (
-        previous &&
-        JSON.stringify(previous.attributes) !== JSON.stringify(next.attributes)
-      ) fail("CORE.DUPLICATE_EXERCISE", "Разные декларации одного упражнения");
+      if (previous && JSON.stringify(previous.attributes) !== JSON.stringify(next.attributes))
+        fail("CORE.DUPLICATE_EXERCISE", "Разные декларации одного упражнения");
       declarations.set(a.id, next);
     }
   });
@@ -205,14 +189,8 @@ export function collectReleaseFacts(
       if (!obj(config)) {
         fail("CORE.ASSESSMENT_INVALID", "Требуется assessment.kind");
       }
-      if (
-        config["theory-time"] !== undefined &&
-        !["string", "number"].includes(typeof config["theory-time"])
-      ) {
-        fail(
-          "CORE.ASSESSMENT_INVALID",
-          "theory-time требует положительное число минут",
-        );
+      if (config["theory-time"] !== undefined && !["string", "number"].includes(typeof config["theory-time"])) {
+        fail("CORE.ASSESSMENT_INVALID", "theory-time требует положительное число минут");
       }
       let title = visibleTitle(ast.meta.title).trim();
       let id = typeof config.id === "string" ? config.id : "";
@@ -230,10 +208,8 @@ export function collectReleaseFacts(
       for (const container of containers) {
         const a = attrs(container),
           members = body(container);
-        if (
-          members.length !== 1 ||
-          !members[0] || !["BulletList", "OrderedList"].includes(members[0].t)
-        ) fail("CORE.ASSESSMENT_INVALID", "task-items требует один список");
+        if (members.length !== 1 || !members[0] || !["BulletList", "OrderedList"].includes(members[0].t))
+          fail("CORE.ASSESSMENT_INVALID", "task-items требует один список");
         for (const k of Object.keys(a.values)) {
           if (
             ![
@@ -248,18 +224,14 @@ export function collectReleaseFacts(
               "unless-meta",
             ].includes(k)
           ) {
-            fail(
-              "CORE.ASSESSMENT_INVALID",
-              "Неизвестный task-items атрибут " + k,
-            );
+            fail("CORE.ASSESSMENT_INVALID", "Неизвестный task-items атрибут " + k);
           }
         }
         memberKinds.push(members[0]!.t);
         const items = listItems(members[0]);
         for (const item of items) {
           assertAssessmentParagraph(item);
-          let group: ReturnType<typeof attrs> | undefined,
-            groupNode: Record<string, unknown> | undefined;
+          let group: ReturnType<typeof attrs> | undefined, groupNode: Record<string, unknown> | undefined;
           const candidates: string[] = [];
           let requirement: string | undefined, workMode: string | undefined;
           visit(item, (node) => {
@@ -275,10 +247,7 @@ export function collectReleaseFacts(
               }
               if (span.classes.includes("task-alternatives")) {
                 if (group) {
-                  fail(
-                    "CORE.ASSESSMENT_INVALID",
-                    "Повторная группа alternatives",
-                  );
+                  fail("CORE.ASSESSMENT_INVALID", "Повторная группа alternatives");
                 }
                 group = span;
                 groupNode = node;
@@ -286,43 +255,26 @@ export function collectReleaseFacts(
                   !/^alt-[a-z0-9][a-z0-9-]*$/.test(span.id) ||
                   !["random", "choice"].includes(span.values.selection ?? "")
                 ) {
-                  fail(
-                    "CORE.ASSESSMENT_INVALID",
-                    "Группа требует alt-* и selection=random|choice",
-                  );
+                  fail("CORE.ASSESSMENT_INVALID", "Группа требует alt-* и selection=random|choice");
                 }
                 visit(body(node), (candidate) => {
                   if (candidate.t === "Span") {
                     const values = attrs(candidate).values;
-                    if (
-                      values.requirement !== undefined ||
-                      values["work-mode"] !== undefined
-                    ) {
-                      fail(
-                        "CORE.ASSESSMENT_INVALID",
-                        "Назначение принадлежит позиции, не кандидату группы",
-                      );
+                    if (values.requirement !== undefined || values["work-mode"] !== undefined) {
+                      fail("CORE.ASSESSMENT_INVALID", "Назначение принадлежит позиции, не кандидату группы");
                     }
                   }
                 });
               }
-              if (
-                span.values.requirement !== undefined ||
-                span.values["work-mode"] !== undefined
-              ) {
+              if (span.values.requirement !== undefined || span.values["work-mode"] !== undefined) {
                 let count = 0;
                 visit(body(node), (child) => {
                   if (child.t === "Cite") {
                     count += citations(child).length;
                   }
                 });
-                if (
-                  !span.classes.includes("task-alternatives") && count !== 1
-                ) {
-                  fail(
-                    "CORE.ASSESSMENT_INVALID",
-                    "Назначение требует Span позиции",
-                  );
+                if (!span.classes.includes("task-alternatives") && count !== 1) {
+                  fail("CORE.ASSESSMENT_INVALID", "Назначение требует Span позиции");
                 }
                 if (span.values.requirement !== undefined) {
                   if (requirement !== undefined) {
@@ -340,9 +292,7 @@ export function collectReleaseFacts(
               for (const key of Object.keys(span.values)) {
                 if (
                   ![
-                    ...(span.classes.includes("task-alternatives")
-                      ? ["selection"]
-                      : []),
+                    ...(span.classes.includes("task-alternatives") ? ["selection"] : []),
                     "requirement",
                     "work-mode",
                     "when-format",
@@ -353,10 +303,7 @@ export function collectReleaseFacts(
                     "unless-meta",
                   ].includes(key)
                 ) {
-                  fail(
-                    "CORE.ASSESSMENT_INVALID",
-                    "Неизвестный Span атрибут " + key,
-                  );
+                  fail("CORE.ASSESSMENT_INVALID", "Неизвестный Span атрибут " + key);
                 }
               }
             }
@@ -371,10 +318,7 @@ export function collectReleaseFacts(
               }
             });
             if (inside.length !== candidates.length) {
-              fail(
-                "CORE.ASSESSMENT_INVALID",
-                "Группа не охватывает всю позицию",
-              );
+              fail("CORE.ASSESSMENT_INVALID", "Группа не охватывает всю позицию");
             }
           }
           slots.push({
@@ -395,12 +339,8 @@ export function collectReleaseFacts(
         title,
         kind: config.kind,
         slots,
-        ...(config["theory-time"] !== undefined
-          ? { theoryTime: Number(config["theory-time"]) }
-          : {}),
-        ...(config["related-exercise"] !== undefined
-          ? { relatedExercise: config["related-exercise"] }
-          : {}),
+        ...(config["theory-time"] !== undefined ? { theoryTime: Number(config["theory-time"]) } : {}),
+        ...(config["related-exercise"] !== undefined ? { relatedExercise: config["related-exercise"] } : {}),
         memberContainers: containers.length,
         memberKinds,
         memberSizes,
@@ -414,34 +354,30 @@ export function collectReleaseFacts(
     {
       course: {
         ...(course.id !== undefined ? { id: course.id } : {}),
-        view: course.view ??
-          (context.projection === "author" ? "full" : "student"),
+        view: course.view ?? (context.projection === "author" ? "full" : "student"),
         adapters: course.adapters ?? [],
       },
       nativeMetadata: {
         adapters: Object.fromEntries(
-          (Array.isArray(course.adapters) ? course.adapters : []).filter((
-            name,
-          ): name is string => typeof name === "string")
-            .map((name) => [name, {
-              ...(Object.hasOwn(ast.meta, name)
-                ? { configuration: adapterMetadata(ast.meta[name]) }
-                : {}),
-              ...(obj(ast.meta.assessment) && obj(ast.meta.assessment.c) &&
-                  Object.hasOwn(ast.meta.assessment.c, name)
-                ? { assessment: adapterMetadata(ast.meta.assessment.c[name]) }
-                : {}),
-            }]),
+          (Array.isArray(course.adapters) ? course.adapters : [])
+            .filter((name): name is string => typeof name === "string")
+            .map((name) => [
+              name,
+              {
+                ...(Object.hasOwn(ast.meta, name) ? { configuration: adapterMetadata(ast.meta[name]) } : {}),
+                ...(obj(ast.meta.assessment) && obj(ast.meta.assessment.c) && Object.hasOwn(ast.meta.assessment.c, name)
+                  ? { assessment: adapterMetadata(ast.meta.assessment.c[name]) }
+                  : {}),
+              },
+            ]),
         ),
         ...(Object.hasOwn(ast.meta, "project-checks")
           ? { projectChecks: adapterMetadata(ast.meta["project-checks"]) }
           : {}),
         ...(Object.hasOwn(ast.meta, "project-materialization")
           ? {
-            projectMaterialization: adapterMetadata(
-              ast.meta["project-materialization"],
-            ),
-          }
+              projectMaterialization: adapterMetadata(ast.meta["project-materialization"]),
+            }
           : {}),
       },
       ...(assessment ? { assessment } : {}),

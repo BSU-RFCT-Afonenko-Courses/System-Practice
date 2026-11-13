@@ -1,35 +1,80 @@
 /* Навигация курса: кнопки, диалоги и состояние презентации. */
 (function (root) {
-  'use strict';
+  "use strict";
   /** @type {CourseNavModules} */
-  const namespace = root.CourseNavigationModules = root.CourseNavigationModules || {};
+  const namespace = (root.CourseNavigationModules = root.CourseNavigationModules || {});
   /** @type {{ru: CourseNavLabels, en: CourseNavLabels}} */
   const strings = {
-    ru: { start: 'Начало', material: 'Материал', slide: 'Слайд', topics: 'Разделы', controls: 'Управление презентацией',
-      prev: 'Предыдущий слайд', next: 'Следующий слайд', prevSection: 'Предыдущий раздел', nextSection: 'Следующий раздел',
-      back: 'Назад по посещённым слайдам', forward: 'Вперёд по посещённым слайдам', overview: 'Обзор всех слайдов',
-      search: 'Поиск по слайдам', fullscreen: 'Полный экран', speaker: 'Окно преподавателя', print: 'Печать / PDF (новая вкладка)', close: 'Закрыть', searchPlaceholder: 'Заголовок, термин или фрагмент кода…',
-      noResults: 'Ничего не найдено', searchHint: 'Поиск выполняется только в этой презентации.', sectionProgress: 'В разделе',
-      allProgress: 'Прогресс презентации', section: 'Раздел', resultCount: 'Найдено слайдов', presentation: 'Презентация' },
-    en: { start: 'Start', material: 'Content', slide: 'Slide', topics: 'Sections', controls: 'Presentation controls',
-      prev: 'Previous slide', next: 'Next slide', prevSection: 'Previous section', nextSection: 'Next section',
-      back: 'Back in visited slides', forward: 'Forward in visited slides', overview: 'Slide overview',
-      search: 'Search slides', fullscreen: 'Full screen', speaker: 'Speaker view', print: 'Print / PDF (new tab)', close: 'Close', searchPlaceholder: 'Heading, term, or code…',
-      noResults: 'No slides found', searchHint: 'Search only this presentation.', sectionProgress: 'In section',
-      allProgress: 'Presentation progress', section: 'Section', resultCount: 'Slides found', presentation: 'Presentation' }
+    ru: {
+      start: "Начало",
+      material: "Материал",
+      slide: "Слайд",
+      topics: "Разделы",
+      controls: "Управление презентацией",
+      prev: "Предыдущий слайд",
+      next: "Следующий слайд",
+      prevSection: "Предыдущий раздел",
+      nextSection: "Следующий раздел",
+      back: "Назад по посещённым слайдам",
+      forward: "Вперёд по посещённым слайдам",
+      overview: "Обзор всех слайдов",
+      search: "Поиск по слайдам",
+      fullscreen: "Полный экран",
+      speaker: "Окно преподавателя",
+      print: "Печать / PDF (новая вкладка)",
+      close: "Закрыть",
+      searchPlaceholder: "Заголовок, термин или фрагмент кода…",
+      noResults: "Ничего не найдено",
+      searchHint: "Поиск выполняется только в этой презентации.",
+      sectionProgress: "В разделе",
+      allProgress: "Прогресс презентации",
+      section: "Раздел",
+      resultCount: "Найдено слайдов",
+      presentation: "Презентация",
+    },
+    en: {
+      start: "Start",
+      material: "Content",
+      slide: "Slide",
+      topics: "Sections",
+      controls: "Presentation controls",
+      prev: "Previous slide",
+      next: "Next slide",
+      prevSection: "Previous section",
+      nextSection: "Next section",
+      back: "Back in visited slides",
+      forward: "Forward in visited slides",
+      overview: "Slide overview",
+      search: "Search slides",
+      fullscreen: "Full screen",
+      speaker: "Speaker view",
+      print: "Print / PDF (new tab)",
+      close: "Close",
+      searchPlaceholder: "Heading, term, or code…",
+      noResults: "No slides found",
+      searchHint: "Search only this presentation.",
+      sectionProgress: "In section",
+      allProgress: "Presentation progress",
+      section: "Section",
+      resultCount: "Slides found",
+      presentation: "Presentation",
+    },
   };
   /** @type {Record<CourseNavAction, string>} */
   const paths = {
-    prev: 'm14 6-6 6 6 6', next: 'm10 6 6 6-6 6',
-    prevSection: 'M5 5v14m14-13-8 6 8 6', nextSection: 'M19 5v14M5 6l8 6-8 6',
-    back: 'M5 8h10a6 6 0 0 1 0 12M5 8l5-5M5 8l5 5',
-    forward: 'M19 8H9a6 6 0 0 0 0 12M19 8l-5-5m5 5-5 5',
-    overview: 'M3 3h7v7H3zm11 0h7v7h-7zM3 14h7v7H3zm11 0h7v7h-7z',
-    search: 'M20 20l-5-5M17 10a7 7 0 1 1-14 0 7 7 0 0 1 14 0',
-    fullscreen: 'M8 3H3v5m13-5h5v5M3 16v5h5m13-5v5h-5',
-    speaker: 'M3 3h18v13H3zM8 21l4-5 4 5M7 7h10M7 11h6',
-    print: 'M7 8V3h10v5M7 17H4V9h16v8h-3M7 14h10v7H7zM17 11h.01',
-    topics: 'M4 6h16M4 12h16M4 18h16', close: 'm6 6 12 12M18 6 6 18'
+    prev: "m14 6-6 6 6 6",
+    next: "m10 6 6 6-6 6",
+    prevSection: "M5 5v14m14-13-8 6 8 6",
+    nextSection: "M19 5v14M5 6l8 6-8 6",
+    back: "M5 8h10a6 6 0 0 1 0 12M5 8l5-5M5 8l5 5",
+    forward: "M19 8H9a6 6 0 0 0 0 12M19 8l-5-5m5 5-5 5",
+    overview: "M3 3h7v7H3zm11 0h7v7h-7zM3 14h7v7H3zm11 0h7v7h-7z",
+    search: "M20 20l-5-5M17 10a7 7 0 1 1-14 0 7 7 0 0 1 14 0",
+    fullscreen: "M8 3H3v5m13-5h5v5M3 16v5h5m13-5v5h-5",
+    speaker: "M3 3h18v13H3zM8 21l4-5 4 5M7 7h10M7 11h6",
+    print: "M7 8V3h10v5M7 17H4V9h16v8h-3M7 14h10v7H7zM17 11h.01",
+    topics: "M4 6h16M4 12h16M4 18h16",
+    close: "m6 6 12 12M18 6 6 18",
   };
   /** @template {keyof HTMLElementTagNameMap} T
    * @param {T} tag @param {string} [className] @param {string} [text]
@@ -42,83 +87,116 @@
   }
   /** @param {CourseNavAction} action @param {string} label @param {() => void} callback @param {boolean} [caption] */
   function button(action, label, callback, caption) {
-    const control = el('button', 'course-nav-button' + (caption ? ' course-nav-caption-button' : ''));
-    control.type = 'button'; control.title = label; control.setAttribute('aria-label', label); control.dataset.action = action;
-    const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
-    svg.setAttribute('viewBox', '0 0 24 24'); svg.setAttribute('aria-hidden', 'true'); svg.setAttribute('focusable', 'false');
-    const path = document.createElementNS(svg.namespaceURI, 'path'); path.setAttribute('d', paths[action]); svg.append(path); control.append(svg);
-    if (caption) control.append(el('span', '', label));
-    control.addEventListener('click', callback);
+    const control = el("button", "course-nav-button" + (caption ? " course-nav-caption-button" : ""));
+    control.type = "button";
+    control.title = label;
+    control.setAttribute("aria-label", label);
+    control.dataset.action = action;
+    const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+    svg.setAttribute("viewBox", "0 0 24 24");
+    svg.setAttribute("aria-hidden", "true");
+    svg.setAttribute("focusable", "false");
+    const path = document.createElementNS(svg.namespaceURI, "path");
+    path.setAttribute("d", paths[action]);
+    svg.append(path);
+    control.append(svg);
+    if (caption) control.append(el("span", "", label));
+    control.addEventListener("click", callback);
     return control;
   }
   /** @param {string} label */
   function dialog(label) {
-    const node = el('dialog', 'course-nav-dialog');
-    node.setAttribute('aria-label', label);
-    node.addEventListener('click', event => { if (event.target === node) { const r = node.getBoundingClientRect(); if (event.clientX < r.left || event.clientX > r.right || event.clientY < r.top || event.clientY > r.bottom) node.close(); } });
-    node.addEventListener('keydown', event => {
+    const node = el("dialog", "course-nav-dialog");
+    node.setAttribute("aria-label", label);
+    node.addEventListener("click", (event) => {
+      if (event.target === node) {
+        const r = node.getBoundingClientRect();
+        if (event.clientX < r.left || event.clientX > r.right || event.clientY < r.top || event.clientY > r.bottom)
+          node.close();
+      }
+    });
+    node.addEventListener("keydown", (event) => {
       event.stopPropagation();
-      if (event.key === 'Escape') { event.preventDefault(); node.close(); }
+      if (event.key === "Escape") {
+        event.preventDefault();
+        node.close();
+      }
     });
     return node;
   }
   /** @param {CourseSlideModel} model @param {CourseNavigationOptions} options @param {CourseNavActions} actions @returns {CourseNavUI} */
   function build(model, options, actions) {
-    const labels = strings[options.language || 'ru'] || strings.ru;
-    const shell = el('div', 'course-nav-shell');
-    const sidebar = el('aside', 'course-nav-sidebar');
-    sidebar.setAttribute('aria-label', labels.topics);
-    sidebar.append(el('div', 'course-nav-course-title', options.title || labels.presentation));
+    const labels = strings[options.language || "ru"] || strings.ru;
+    const shell = el("div", "course-nav-shell");
+    const sidebar = el("aside", "course-nav-sidebar");
+    sidebar.setAttribute("aria-label", labels.topics);
+    sidebar.append(el("div", "course-nav-course-title", options.title || labels.presentation));
     function permanentLinks() {
-      const nav = el('nav', 'course-nav-permanent'); nav.setAttribute('aria-label', 'Переходы по курсу и репозиторий');
+      const nav = el("nav", "course-nav-permanent");
+      nav.setAttribute("aria-label", "Переходы по курсу и репозиторий");
       for (const item of options.links || []) {
-        const link = el('a', 'course-nav-permanent-link', item.text);
+        const link = el("a", "course-nav-permanent-link", item.text);
         // Настоящие ссылки сохраняют клавиатурное управление и меню браузера.
         const url = new URL(item.href, document.baseURI);
-        if (url.protocol !== 'https:' && url.protocol !== 'http:') continue;
-        link.setAttribute('href', item.href);
+        if (url.protocol !== "https:" && url.protocol !== "http:") continue;
+        link.setAttribute("href", item.href);
         if (item.id) link.dataset.courseLink = item.id;
-        if (item.current) link.setAttribute('aria-current', 'page');
-        if (item.scope === 'repository') { link.target = '_blank'; link.rel = 'noopener noreferrer'; }
+        if (item.current) link.setAttribute("aria-current", "page");
+        if (item.scope === "repository") {
+          link.target = "_blank";
+          link.rel = "noopener noreferrer";
+        }
         nav.append(link);
       }
       return nav;
     }
     if (options.links?.length) sidebar.append(permanentLinks());
-    sidebar.append(el('div', 'course-nav-eyebrow', labels.topics));
+    sidebar.append(el("div", "course-nav-eyebrow", labels.topics));
     /** @type {HTMLOListElement[]} */
     const lists = [];
     function sectionList() {
-      const list = el('ol', 'course-nav-topics');
-      model.groups.forEach(group => {
-        const li = el('li');
-        const control = el('button', 'course-nav-topic');
-        control.type = 'button'; control.title = group.title;
-        control.append(el('span', 'course-nav-topic-number', String(group.index + 1).padStart(2, '0')));
-        control.append(el('span', 'course-nav-topic-name', group.title));
-        control.addEventListener('click', () => { closeDialogs(); actions.goto(group.start); });
-        li.append(control); list.append(li);
+      const list = el("ol", "course-nav-topics");
+      model.groups.forEach((group) => {
+        const li = el("li");
+        const control = el("button", "course-nav-topic");
+        control.type = "button";
+        control.title = group.title;
+        control.append(el("span", "course-nav-topic-number", String(group.index + 1).padStart(2, "0")));
+        control.append(el("span", "course-nav-topic-name", group.title));
+        control.addEventListener("click", () => {
+          closeDialogs();
+          actions.goto(group.start);
+        });
+        li.append(control);
+        list.append(li);
       });
-      lists.push(list); return list;
+      lists.push(list);
+      return list;
     }
     sidebar.append(sectionList());
-    const footer = el('footer', 'course-nav-footer');
-    const status = el('div', 'course-nav-status');
-    const counter = el('div', 'course-nav-counter'); counter.setAttribute('aria-live', 'polite'); counter.setAttribute('aria-atomic', 'true');
-    const progress = el('progress', 'course-nav-progress'); progress.setAttribute('aria-label', labels.allProgress);
+    const footer = el("footer", "course-nav-footer");
+    const status = el("div", "course-nav-status");
+    const counter = el("div", "course-nav-counter");
+    counter.setAttribute("aria-live", "polite");
+    counter.setAttribute("aria-atomic", "true");
+    const progress = el("progress", "course-nav-progress");
+    progress.setAttribute("aria-label", labels.allProgress);
     status.append(counter, progress);
-    const sectionStatus = el('div', 'course-nav-section-status');
-    const sectionTitle = el('div', 'course-nav-section-title');
-    const sectionCount = el('span', 'course-nav-section-count');
+    const sectionStatus = el("div", "course-nav-section-status");
+    const sectionTitle = el("div", "course-nav-section-title");
+    const sectionCount = el("span", "course-nav-section-count");
     sectionStatus.append(sectionTitle, sectionCount);
-    const controls = el('nav', 'course-nav-controls'); controls.setAttribute('aria-label', labels.controls);
+    const controls = el("nav", "course-nav-controls");
+    controls.setAttribute("aria-label", labels.controls);
     /** @type {Partial<Record<string, HTMLButtonElement[]>>} */
     const buttons = {};
     /** @param {HTMLElement} parent @param {CourseNavControlAction} key @param {string} [extraClass] @param {boolean} [caption] @param {() => void} [activate] */
     function addControl(parent, key, extraClass, caption = false, activate = () => invoke(key)) {
       const control = button(key, labels[key], activate, caption);
       if (extraClass) control.classList.add(extraClass);
-      parent.append(control); (buttons[key] ||= []).push(control); return control;
+      parent.append(control);
+      (buttons[key] ||= []).push(control);
+      return control;
     }
     /** @param {CourseNavControlAction} key */
     function invoke(key) {
@@ -127,114 +205,202 @@
       action();
     }
     const menu = dialog(labels.topics);
-    const menuHeader = el('div', 'course-nav-dialog-header'); menuHeader.append(el('h2', '', labels.topics), button('close', labels.close, () => menu.close())); menu.append(menuHeader);
-    const menuActions = el('div', 'course-nav-menu-actions');
+    const menuHeader = el("div", "course-nav-dialog-header");
+    menuHeader.append(
+      el("h2", "", labels.topics),
+      button("close", labels.close, () => menu.close()),
+    );
+    menu.append(menuHeader);
+    const menuActions = el("div", "course-nav-menu-actions");
     // После перехода меню закрывается, в том числе на узком экране.
     /** @type {CourseNavControlAction[]} */
-    const menuKeys = ['prevSection', 'nextSection', 'back', 'forward'];
-    menuKeys.forEach(key =>
-      addControl(menuActions, key, '', true, () => { closeDialogs(); invoke(key); }));
-    if (typeof actions.speaker === 'function')
-      addControl(menuActions, 'speaker', '', true, () => { closeDialogs(); actions.speaker?.(); });
+    const menuKeys = ["prevSection", "nextSection", "back", "forward"];
+    menuKeys.forEach((key) =>
+      addControl(menuActions, key, "", true, () => {
+        closeDialogs();
+        invoke(key);
+      }),
+    );
+    if (typeof actions.speaker === "function")
+      addControl(menuActions, "speaker", "", true, () => {
+        closeDialogs();
+        actions.speaker?.();
+      });
     menu.append(menuActions);
     if (options.links?.length) menu.append(permanentLinks());
     menu.append(sectionList());
     actions.topics = () => menu.showModal();
-    addControl(controls, 'topics', 'course-nav-menu-toggle');
+    addControl(controls, "topics", "course-nav-menu-toggle");
     /** @type {CourseNavControlAction[]} */
-    const auxiliaryKeys = ['back', 'forward', 'prevSection', 'nextSection'];
-    auxiliaryKeys.forEach(key => addControl(controls, key, 'course-nav-auxiliary'));
+    const auxiliaryKeys = ["back", "forward", "prevSection", "nextSection"];
+    auxiliaryKeys.forEach((key) => addControl(controls, key, "course-nav-auxiliary"));
     /** @type {CourseNavControlAction[]} */
-    const mainKeys = ['prev', 'next', 'overview', 'search', 'fullscreen', 'print'];
-    mainKeys.forEach(key => addControl(controls, key));
-    if (typeof actions.speaker === 'function') addControl(controls, 'speaker', 'course-nav-auxiliary');
+    const mainKeys = ["prev", "next", "overview", "search", "fullscreen", "print"];
+    mainKeys.forEach((key) => addControl(controls, key));
+    if (typeof actions.speaker === "function") addControl(controls, "speaker", "course-nav-auxiliary");
     footer.append(status, sectionStatus, controls);
     // Обзор в порядке документа, независимый от пространственных групп Reveal.
-    const overview = dialog(labels.overview); overview.classList.add('course-nav-overview');
-    const overviewHeader = el('div', 'course-nav-dialog-header');
-    const overviewClose = button('close', labels.close, () => overview.close());
-    overviewHeader.append(el('h2', '', labels.overview), overviewClose);
-    const grid = el('ol', 'course-nav-overview-grid'); overview.append(overviewHeader, grid);
+    const overview = dialog(labels.overview);
+    overview.classList.add("course-nav-overview");
+    const overviewHeader = el("div", "course-nav-dialog-header");
+    const overviewClose = button("close", labels.close, () => overview.close());
+    overviewHeader.append(el("h2", "", labels.overview), overviewClose);
+    const grid = el("ol", "course-nav-overview-grid");
+    overview.append(overviewHeader, grid);
     /** @type {HTMLButtonElement[]} */
     const cards = [];
     const previewWidth = Number(options.slideWidth) || 1280;
     const previewHeight = Number(options.slideHeight) || 720;
-    const previewObserver = new ResizeObserver(entries => entries.forEach(entry => {
-      const canvas = entry.target.firstElementChild;
-      if (!(canvas instanceof HTMLElement)) return;
-      canvas.style.transform = `scale(${entry.contentRect.width / previewWidth})`;
-    }));
+    const previewObserver = new ResizeObserver((entries) =>
+      entries.forEach((entry) => {
+        const canvas = entry.target.firstElementChild;
+        if (!(canvas instanceof HTMLElement)) return;
+        canvas.style.transform = `scale(${entry.contentRect.width / previewWidth})`;
+      }),
+    );
     /** @param {CourseSlide} slide */
     function makePreview(slide) {
-      const viewport = el('div', 'course-nav-preview'); viewport.setAttribute('aria-hidden', 'true'); viewport.inert = true;
+      const viewport = el("div", "course-nav-preview");
+      viewport.setAttribute("aria-hidden", "true");
+      viewport.inert = true;
       viewport.style.aspectRatio = `${previewWidth} / ${previewHeight}`;
-      const canvas = el('div', 'reveal course-nav-preview-canvas');
-      canvas.style.width = `${previewWidth}px`; canvas.style.height = `${previewHeight}px`;
-      const slides = el('div', 'slides'); const clone = slide.element.cloneNode(true);
-      if (!(clone instanceof HTMLElement)) throw new TypeError('Копия слайда должна быть HTMLElement');
-      clone.removeAttribute('style'); clone.removeAttribute('hidden'); clone.removeAttribute('aria-hidden');
-      clone.classList.remove('past', 'future'); clone.classList.add('present');
-      if (slide.isTitle) clone.classList.add('course-nav-preview-title');
-      clone.querySelectorAll('aside.notes,.speaker-notes,script,style,iframe,object,embed,audio,video,.code-copy-button').forEach(node => node.remove());
+      const canvas = el("div", "reveal course-nav-preview-canvas");
+      canvas.style.width = `${previewWidth}px`;
+      canvas.style.height = `${previewHeight}px`;
+      const slides = el("div", "slides");
+      const clone = slide.element.cloneNode(true);
+      if (!(clone instanceof HTMLElement)) throw new TypeError("Копия слайда должна быть HTMLElement");
+      clone.removeAttribute("style");
+      clone.removeAttribute("hidden");
+      clone.removeAttribute("aria-hidden");
+      clone.classList.remove("past", "future");
+      clone.classList.add("present");
+      if (slide.isTitle) clone.classList.add("course-nav-preview-title");
+      clone
+        .querySelectorAll("aside.notes,.speaker-notes,script,style,iframe,object,embed,audio,video,.code-copy-button")
+        .forEach((node) => node.remove());
       // Сохраняем ссылки внутри SVG, не дублируя ID документа.
       /** @type {Map<string, string>} */
       const ids = new Map();
-      [clone, ...clone.querySelectorAll('[id]')].forEach(node => { if (node.id) { const id = `course-preview-${slide.index}-${node.id}`; ids.set(node.id, id); node.id = id; } });
-      [clone, ...clone.querySelectorAll('*')].forEach(node => {
-        [...node.attributes].forEach(attribute => {
-          if (/^on/i.test(attribute.name) || /^(autofocus|autoplay|name)$/.test(attribute.name)) node.removeAttribute(attribute.name);
+      [clone, ...clone.querySelectorAll("[id]")].forEach((node) => {
+        if (node.id) {
+          const id = `course-preview-${slide.index}-${node.id}`;
+          ids.set(node.id, id);
+          node.id = id;
+        }
+      });
+      [clone, ...clone.querySelectorAll("*")].forEach((node) => {
+        [...node.attributes].forEach((attribute) => {
+          if (/^on/i.test(attribute.name) || /^(autofocus|autoplay|name)$/.test(attribute.name))
+            node.removeAttribute(attribute.name);
           else {
-            let value = attribute.value.replace(/url\(#([^)]*)\)/g, /** @param {string} match @param {string} id */ (match, id) => ids.has(id) ? `url(#${ids.get(id)})` : match);
-            if (/^(href|xlink:href)$/.test(attribute.name) && value.startsWith('#') && ids.has(value.slice(1))) value = `#${ids.get(value.slice(1))}`;
+            let value = attribute.value.replace(
+              /url\(#([^)]*)\)/g,
+              /** @param {string} match @param {string} id */ (match, id) =>
+                ids.has(id) ? `url(#${ids.get(id)})` : match,
+            );
+            if (/^(href|xlink:href)$/.test(attribute.name) && value.startsWith("#") && ids.has(value.slice(1)))
+              value = `#${ids.get(value.slice(1))}`;
             if (value !== attribute.value) node.setAttribute(attribute.name, value);
           }
         });
       });
-      clone.querySelectorAll('img[data-src]').forEach(node => { if (node instanceof HTMLImageElement && node.dataset.src) node.src = node.dataset.src; });
-      clone.querySelectorAll('.fragment').forEach(node => node.classList.add('visible'));
-      slides.append(clone); canvas.append(slides); viewport.append(canvas); previewObserver.observe(viewport);
+      clone.querySelectorAll("img[data-src]").forEach((node) => {
+        if (node instanceof HTMLImageElement && node.dataset.src) node.src = node.dataset.src;
+      });
+      clone.querySelectorAll(".fragment").forEach((node) => node.classList.add("visible"));
+      slides.append(clone);
+      canvas.append(slides);
+      viewport.append(canvas);
+      previewObserver.observe(viewport);
       return viewport;
     }
     let currentIndex = -1;
     actions.overview = () => {
       closeDialogs();
-      if (!cards.length) model.slides.forEach(slide => {
-        const item = el('li', 'course-nav-overview-card');
-        const control = el('button', 'course-nav-overview-jump'); control.type = 'button'; control.dataset.slide = String(slide.index);
-        control.setAttribute('aria-label', `${labels.slide} ${slide.index + 1}: ${slide.title}`);
-        const caption = el('span', 'course-nav-overview-caption');
-        caption.append(el('span', 'course-nav-overview-meta', `${String(slide.index + 1).padStart(2, '0')} / ${model.slides.length} · ${model.groups[slide.group]?.title || labels.material}`), el('span', 'course-nav-overview-title', slide.title));
-        control.append(caption); control.addEventListener('click', () => { overview.close(); actions.goto(slide.index); });
-        item.append(makePreview(slide), control); grid.append(item); cards.push(control);
+      if (!cards.length)
+        model.slides.forEach((slide) => {
+          const item = el("li", "course-nav-overview-card");
+          const control = el("button", "course-nav-overview-jump");
+          control.type = "button";
+          control.dataset.slide = String(slide.index);
+          control.setAttribute("aria-label", `${labels.slide} ${slide.index + 1}: ${slide.title}`);
+          const caption = el("span", "course-nav-overview-caption");
+          caption.append(
+            el(
+              "span",
+              "course-nav-overview-meta",
+              `${String(slide.index + 1).padStart(2, "0")} / ${model.slides.length} · ${model.groups[slide.group]?.title || labels.material}`,
+            ),
+            el("span", "course-nav-overview-title", slide.title),
+          );
+          control.append(caption);
+          control.addEventListener("click", () => {
+            overview.close();
+            actions.goto(slide.index);
+          });
+          item.append(makePreview(slide), control);
+          grid.append(item);
+          cards.push(control);
+        });
+      cards.forEach((control, i) => {
+        if (i === currentIndex) control.setAttribute("aria-current", "step");
+        else control.removeAttribute("aria-current");
       });
-      cards.forEach((control, i) => { if (i === currentIndex) control.setAttribute('aria-current', 'step'); else control.removeAttribute('aria-current'); });
-      overview.showModal(); overviewClose.focus({preventScroll:true}); overview.scrollTop = 0;
+      overview.showModal();
+      overviewClose.focus({ preventScroll: true });
+      overview.scrollTop = 0;
     };
     const search = dialog(labels.search);
-    const searchHeader = el('div', 'course-nav-dialog-header'); searchHeader.append(el('h2', '', labels.search), button('close', labels.close, () => search.close()));
-    const input = el('input', 'course-nav-search-input'); input.type = 'search'; input.placeholder = labels.searchPlaceholder; input.setAttribute('aria-label', labels.search); input.autocomplete = 'off';
-    const hint = el('p', 'course-nav-search-hint', labels.searchHint);
-    const resultCount = el('p', 'course-nav-result-count'); resultCount.setAttribute('aria-live', 'polite');
-    const results = el('ol', 'course-nav-search-results');
+    const searchHeader = el("div", "course-nav-dialog-header");
+    searchHeader.append(
+      el("h2", "", labels.search),
+      button("close", labels.close, () => search.close()),
+    );
+    const input = el("input", "course-nav-search-input");
+    input.type = "search";
+    input.placeholder = labels.searchPlaceholder;
+    input.setAttribute("aria-label", labels.search);
+    input.autocomplete = "off";
+    const hint = el("p", "course-nav-search-hint", labels.searchHint);
+    const resultCount = el("p", "course-nav-result-count");
+    resultCount.setAttribute("aria-live", "polite");
+    const results = el("ol", "course-nav-search-results");
     const updateResults = () => {
       const term = input.value.trim().toLocaleLowerCase();
-      const matches = model.slides.filter(slide => !term || slide.search.includes(term));
-      results.replaceChildren(); resultCount.textContent = matches.length ? `${labels.resultCount}: ${matches.length}` : labels.noResults;
-      matches.forEach(slide => {
-        const li = el('li'); const control = el('button', 'course-nav-result'); control.type = 'button';
-        control.append(el('span', 'course-nav-result-number', String(slide.index + 1)), el('span', '', slide.title));
+      const matches = model.slides.filter((slide) => !term || slide.search.includes(term));
+      results.replaceChildren();
+      resultCount.textContent = matches.length ? `${labels.resultCount}: ${matches.length}` : labels.noResults;
+      matches.forEach((slide) => {
+        const li = el("li");
+        const control = el("button", "course-nav-result");
+        control.type = "button";
+        control.append(el("span", "course-nav-result-number", String(slide.index + 1)), el("span", "", slide.title));
         const Model = namespace.NavigationModel;
-        if (!Model) throw new Error('Модель навигации не загружена');
+        if (!Model) throw new Error("Модель навигации не загружена");
         const target = Model.findTarget(slide, term);
-        control.addEventListener('click', () => { search.close(); actions.goto(slide.index, target); }); li.append(control); results.append(li);
+        control.addEventListener("click", () => {
+          search.close();
+          actions.goto(slide.index, target);
+        });
+        li.append(control);
+        results.append(li);
       });
     };
-    input.addEventListener('input', updateResults);
+    input.addEventListener("input", updateResults);
     search.append(searchHeader, input, hint, resultCount, results);
-    actions.search = () => { updateResults(); search.showModal(); input.focus(); };
-    function closeDialogs() { if (menu.open) menu.close(); if (search.open) search.close(); if (overview.open) overview.close(); }
+    actions.search = () => {
+      updateResults();
+      search.showModal();
+      input.focus();
+    };
+    function closeDialogs() {
+      if (menu.open) menu.close();
+      if (search.open) search.close();
+      if (overview.open) overview.close();
+    }
     shell.append(sidebar, footer, menu, search, overview);
-    if (options.sidebar === false) shell.classList.add('course-nav-no-sidebar');
+    if (options.sidebar === false) shell.classList.add("course-nav-no-sidebar");
     document.body.append(shell);
     /** @param {CourseSlide | undefined} current @param {CourseVisitHistory} history @param {{prev: boolean, next: boolean}} fragmentState */
     function update(current, history, fragmentState) {
@@ -242,28 +408,58 @@
       const index = current ? current.index : -1;
       currentIndex = index;
       counter.textContent = `${labels.slide} ${index + 1} / ${total}`;
-      progress.max = Math.max(total, 1); progress.value = index + 1;
+      progress.max = Math.max(total, 1);
+      progress.value = index + 1;
       const group = current ? model.groups[current.group] : null;
       sectionTitle.textContent = group ? group.title : labels.material;
-      sectionCount.textContent = group ? `${labels.sectionProgress}: ${index - group.start + 1} / ${group.slides.length}` : '';
-      sectionStatus.setAttribute('aria-label', group ? `${labels.section}: ${group.title}. ${sectionCount.textContent}` : labels.material);
-      lists.forEach(list => Array.from(list.children).forEach((li, i) => {
-        const control = li.firstElementChild;
-        if (!control) return;
-        if (group && i === group.index) control.setAttribute('aria-current', 'step'); else control.removeAttribute('aria-current');
-        control.classList.toggle('course-nav-topic-complete', !!group && i < group.index);
-      }));
-      if (document.body.dataset.courseMode === 'lecture' && root.matchMedia('(max-width: 899px)').matches) {
-        lists.filter(list => list.offsetWidth > 0).forEach(list => list.querySelector('[aria-current]')?.scrollIntoView({block: 'nearest', inline: 'nearest'}));
+      sectionCount.textContent = group
+        ? `${labels.sectionProgress}: ${index - group.start + 1} / ${group.slides.length}`
+        : "";
+      sectionStatus.setAttribute(
+        "aria-label",
+        group ? `${labels.section}: ${group.title}. ${sectionCount.textContent}` : labels.material,
+      );
+      lists.forEach((list) =>
+        Array.from(list.children).forEach((li, i) => {
+          const control = li.firstElementChild;
+          if (!control) return;
+          if (group && i === group.index) control.setAttribute("aria-current", "step");
+          else control.removeAttribute("aria-current");
+          control.classList.toggle("course-nav-topic-complete", !!group && i < group.index);
+        }),
+      );
+      if (document.body.dataset.courseMode === "lecture" && root.matchMedia("(max-width: 899px)").matches) {
+        lists
+          .filter((list) => list.offsetWidth > 0)
+          .forEach((list) =>
+            list.querySelector("[aria-current]")?.scrollIntoView({ block: "nearest", inline: "nearest" }),
+          );
       }
       const disabled = {
-        prev: index <= 0 && !fragmentState.prev, next: index >= total - 1 && !fragmentState.next,
-        prevSection: !group || group.index === 0, nextSection: !group || group.index === model.groups.length - 1,
-        back: !history.canMove(-1), forward: !history.canMove(1), overview: total === 0, search: total === 0
+        prev: index <= 0 && !fragmentState.prev,
+        next: index >= total - 1 && !fragmentState.next,
+        prevSection: !group || group.index === 0,
+        nextSection: !group || group.index === model.groups.length - 1,
+        back: !history.canMove(-1),
+        forward: !history.canMove(1),
+        overview: total === 0,
+        search: total === 0,
       };
-      Object.entries(disabled).forEach(([key, value]) => (buttons[key] || []).forEach(control => { control.disabled = value; }));
+      Object.entries(disabled).forEach(([key, value]) =>
+        (buttons[key] || []).forEach((control) => {
+          control.disabled = value;
+        }),
+      );
     }
-    return { shell, update, closeDialogs, destroy: () => { previewObserver.disconnect(); shell.remove(); } };
+    return {
+      shell,
+      update,
+      closeDialogs,
+      destroy: () => {
+        previewObserver.disconnect();
+        shell.remove();
+      },
+    };
   }
   namespace.NavigationUI = { build, strings };
 })(window);

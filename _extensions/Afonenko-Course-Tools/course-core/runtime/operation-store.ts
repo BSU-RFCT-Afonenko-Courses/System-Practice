@@ -2,11 +2,7 @@ import { join, relative } from "stdlib/path";
 // @deno-types="../vendor/zod/v4/index.d.ts"
 import { z } from "../vendor/zod/v4/index.js";
 import { fail } from "../contracts/project.ts";
-import {
-  decode,
-  EarlyDocumentSchema,
-  FinalizedDocumentSchema,
-} from "../document/contracts.ts";
+import { decode, EarlyDocumentSchema, FinalizedDocumentSchema } from "../document/contracts.ts";
 import { NativeProjectFactsCaptureSchema } from "../document/project-facts.ts";
 import { SupportedQuartoVersionSchema } from "../infrastructure/quarto-version.ts";
 import { regular } from "./source-paths.ts";
@@ -18,18 +14,22 @@ import {
 } from "./contracts.ts";
 
 /** Private on-disk representation and guarded storage; lifecycle transitions stay in operation.ts. */
-export const base = (root: string) =>
-  join(root, "_generated/course-spec/native-ts");
+export const base = (root: string) => join(root, "_generated/course-spec/native-ts");
 export const pointer = (root: string) => join(base(root), "active.json");
-export const same = (a: unknown, b: unknown) =>
-  JSON.stringify(a) === JSON.stringify(b);
+export const same = (a: unknown, b: unknown) => JSON.stringify(a) === JSON.stringify(b);
 export function record(value: unknown): value is Record<string, unknown> {
   return value !== null && typeof value === "object" && !Array.isArray(value);
 }
-export const pathSchema = z.string().min(1).refine((s) =>
-  !s.startsWith("/") && !s.includes("\\") && !s.includes("\0") &&
-  s.split("/").every((p) => p && p !== "." && p !== "..")
-);
+export const pathSchema = z
+  .string()
+  .min(1)
+  .refine(
+    (s) =>
+      !s.startsWith("/") &&
+      !s.includes("\\") &&
+      !s.includes("\0") &&
+      s.split("/").every((p) => p && p !== "." && p !== ".."),
+  );
 export const stateSchema = z.strictObject({
   schema: z.literal("course-native-operation-private-v2"),
   operation: z.uuid(),
@@ -39,29 +39,34 @@ export const stateSchema = z.strictObject({
   profiles: z.array(z.string()),
   projection: z.enum(["student", "author"]),
   captureWitnesses: z.record(pathSchema, z.uuid()),
-  assignment: z.strictObject({
-    assessments: z.array(
-      z.strictObject({ source: pathSchema, id: z.string().min(1) }),
-    ).min(1).max(4096),
-    runtime: z.strictObject({
-      executable: z.string().min(1),
-      environment: z.record(z.string(), z.string()),
-      profiles: z.array(z.string()),
-      outputDirectory: z.string(),
-      inputs: z.array(pathSchema),
-    }),
-  }).optional(),
+  assignment: z
+    .strictObject({
+      assessments: z
+        .array(z.strictObject({ source: pathSchema, id: z.string().min(1) }))
+        .min(1)
+        .max(4096),
+      runtime: z.strictObject({
+        executable: z.string().min(1),
+        environment: z.record(z.string(), z.string()),
+        profiles: z.array(z.string()),
+        outputDirectory: z.string(),
+        inputs: z.array(pathSchema),
+      }),
+    })
+    .optional(),
   inputs: z.array(pathSchema),
   ownerInputs: z.array(pathSchema).default([]),
-  ownerWitness: z.strictObject({
-    quarto: z.strictObject({ version: SupportedQuartoVersionSchema }),
-    dir: z.string(),
-    config: z.record(z.string(), z.unknown()),
-    files: z.strictObject({
-      input: z.array(z.string()),
-      config: z.array(z.string()),
-    }),
-  }).optional(),
+  ownerWitness: z
+    .strictObject({
+      quarto: z.strictObject({ version: SupportedQuartoVersionSchema }),
+      dir: z.string(),
+      config: z.record(z.string(), z.unknown()),
+      files: z.strictObject({
+        input: z.array(z.string()),
+        config: z.array(z.string()),
+      }),
+    })
+    .optional(),
   metrics: z.strictObject({
     inspectCalls: z.number(),
 
@@ -81,10 +86,12 @@ export const completeSchema = z.strictObject({
       path: z.string(),
       identity: z.string(),
       sourceIdentities: z.array(z.string()).min(1),
-      media: z.strictObject({
-        input: pathSchema,
-        ordinal: z.number().int().min(1).max(4096),
-      }).optional(),
+      media: z
+        .strictObject({
+          input: pathSchema,
+          ordinal: z.number().int().min(1).max(4096),
+        })
+        .optional(),
       documents: z.array(pathSchema),
     }),
   ),
@@ -117,17 +124,13 @@ export function nativePointer(value: unknown, root: string, message: string) {
 }
 export async function assertPrivate(state: State) {
   if (
-    await Deno.realPath(state.root) !== state.root ||
-    !same(
-      await json(
-        await regular(state.root, relative(state.root, pointer(state.root))),
-      ),
-      {
-        operation: state.operation,
-        directory: state.directory,
-      },
-    )
-  ) fail("OPERATION_CHANGED", "Активная native операция заменена");
+    (await Deno.realPath(state.root)) !== state.root ||
+    !same(await json(await regular(state.root, relative(state.root, pointer(state.root)))), {
+      operation: state.operation,
+      directory: state.directory,
+    })
+  )
+    fail("OPERATION_CHANGED", "Активная native операция заменена");
 }
 const childSchema = z.strictObject({
   token: z.uuid(),
@@ -144,8 +147,7 @@ const reservationSchema = NativeCaptureReservationSchema.extend({
   children: z.array(childSchema),
 });
 export type Reservation = z.output<typeof reservationSchema>;
-export const reservationPath = (r: Pick<Reservation, "directory">) =>
-  join(r.directory, "reservation.json");
+export const reservationPath = (r: Pick<Reservation, "directory">) => join(r.directory, "reservation.json");
 export async function readOptionalPointer(root: string) {
   try {
     return nativePointer(
@@ -166,16 +168,12 @@ export async function readReservation(root: string): Promise<Reservation> {
   );
   const reservation = decode(
     reservationSchema,
-    await json(
-      await regular(
-        root,
-        relative(root, join(active.directory, "reservation.json")),
-      ),
-    ),
+    await json(await regular(root, relative(root, join(active.directory, "reservation.json")))),
     "OPERATION_BINDING",
   );
   if (
-    reservation.root !== root || reservation.operation !== active.operation ||
+    reservation.root !== root ||
+    reservation.operation !== active.operation ||
     reservation.directory !== active.directory
   ) {
     fail("OPERATION_BINDING", "Чужая reservation");
@@ -183,10 +181,7 @@ export async function readReservation(root: string): Promise<Reservation> {
   return reservation;
 }
 /** Short cross-process writer lock. No lock is held across a native command/inspect. */
-export async function withWriter<T>(
-  root: string,
-  use: () => Promise<T>,
-): Promise<T> {
+export async function withWriter<T>(root: string, use: () => Promise<T>): Promise<T> {
   const path = join(base(root), "writer.lock");
   let lock: Deno.FsFile;
   try {
@@ -228,10 +223,7 @@ export async function assertReservationCurrent(r: Reservation) {
 }
 export function activeChild(r: Reservation, token: string) {
   const child = r.children.at(-1);
-  if (
-    r.status === "failed" || r.status === "sealed" || !child ||
-    child.token !== token || child.posted
-  ) {
+  if (r.status === "failed" || r.status === "sealed" || !child || child.token !== token || child.posted) {
     fail("OPERATION_BINDING", "Неверный/завершённый native child token");
   }
   return child;

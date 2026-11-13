@@ -36,9 +36,8 @@ function slideOf(node: Element, path: string, key: string): string | undefined {
       }
       return id;
     }
-    current = current.parentNode && "tagName" in current.parentNode
-      ? current.parentNode
-      : undefined;
+    current =
+      current.parentNode && "tagName" in current.parentNode ? current.parentNode : undefined;
   }
   return undefined;
 }
@@ -46,11 +45,10 @@ function readPageImpl(path: string, html: string): Page {
   function required(node: Element, field: string): string {
     const value = attr(node, field);
     if (!value) {
-      throw diagnostic(
-        "QRC.OUTPUT_INVALID",
-        `отсутствует обязательный атрибут ${field}`,
-        { source: `HTML-результат ${path}`, field },
-      );
+      throw diagnostic("QRC.OUTPUT_INVALID", `отсутствует обязательный атрибут ${field}`, {
+        source: `HTML-результат ${path}`,
+        field,
+      });
     }
     return value;
   }
@@ -67,18 +65,14 @@ function readPageImpl(path: string, html: string): Page {
   for (const container of probes) {
     const namespace = required(container, "data-qrc-namespace");
     const rows = elements(container).filter((n) => hasClass(n, "qrc-probe"));
-    const paired = new Map<
-      string,
-      Map<string, { html: string; text: string }>
-    >();
+    const paired = new Map<string, Map<string, { html: string; text: string }>>();
     const titles = new Map<string, string>();
     for (const row of rows) {
       const id = required(row, "data-qrc-id");
       const style = required(row, "data-qrc-style");
       const title = attr(row, "data-qrc-title");
       if (title !== undefined) titles.set(id, title);
-      const pair = paired.get(id) ??
-        new Map<string, { html: string; text: string }>();
+      const pair = paired.get(id) ?? new Map<string, { html: string; text: string }>();
       if (pair.has(style)) {
         throw diagnostic(
           "QRC.OUTPUT_INVALID",
@@ -90,17 +84,13 @@ function readPageImpl(path: string, html: string): Page {
           },
         );
       }
-      if (
-        style === "number" &&
-        elements(row).some((n) => hasClass(n, "qrc-unavailable"))
-      ) {
+      if (style === "number" && elements(row).some((n) => hasClass(n, "qrc-unavailable"))) {
         pair.set(style, { html: "", text: "" });
         paired.set(id, pair);
         continue;
       }
-      const links = elements(row).filter((n) =>
-        n.tagName === "a" &&
-        (hasClass(n, "quarto-xref") || hasClass(n, "qrc-anchor"))
+      const links = elements(row).filter(
+        (n) => n.tagName === "a" && (hasClass(n, "quarto-xref") || hasClass(n, "qrc-anchor")),
       );
       const [link] = links;
       if (links.length !== 1 || !link || !content(link).trim()) {
@@ -114,19 +104,14 @@ function readPageImpl(path: string, html: string): Page {
           },
         );
       }
-      const url = new URL(
-        required(link, "href"),
-        `https://qrc.invalid/${path}`,
-      );
+      const url = new URL(required(link, "href"), `https://qrc.invalid/${path}`);
       if (
         decodeURIComponent(url.pathname).slice(1) !== path ||
         decodeURIComponent(url.hash.slice(1)).replace(/^\//, "") !== id
       ) {
         throw diagnostic(
           "QRC.OUTPUT_INVALID",
-          `изменился адрес штатной ссылки для ${namespace}:${id}: ${
-            attr(link, "href")
-          }`,
+          `изменился адрес штатной ссылки для ${namespace}:${id}: ${attr(link, "href")}`,
           {
             source: `HTML-результат ${path}`,
             id: `${namespace}:${id}`,
@@ -143,9 +128,7 @@ function readPageImpl(path: string, html: string): Page {
       if (anchor?.length !== 1 || !firstAnchor) {
         throw diagnostic(
           "QRC.OUTPUT_INVALID",
-          `для цели ${namespace}:${id} найдено HTML-якорей: ${
-            anchor?.length ?? 0
-          }; файл ${path}`,
+          `для цели ${namespace}:${id} найдено HTML-якорей: ${anchor?.length ?? 0}; файл ${path}`,
           {
             source: `HTML-результат ${path}`,
             id: `${namespace}:${id}`,
@@ -153,31 +136,22 @@ function readPageImpl(path: string, html: string): Page {
           },
         );
       }
-      const label = pair.get("default"), number = pair.get("number");
+      const label = pair.get("default"),
+        number = pair.get("number");
       if (!label || !number) {
-        throw diagnostic(
-          "QRC.OUTPUT_INVALID",
-          `неполная штатная ссылка-проба ${namespace}:${id}`,
-          {
-            source: `HTML-результат ${path}`,
-            id: `${namespace}:${id}`,
-            field: "native probe",
-          },
-        );
+        throw diagnostic("QRC.OUTPUT_INVALID", `неполная штатная ссылка-проба ${namespace}:${id}`, {
+          source: `HTML-результат ${path}`,
+          id: `${namespace}:${id}`,
+          field: "native probe",
+        });
       }
-      const slide = reveal
-        ? slideOf(firstAnchor, path, `${namespace}:${id}`)
-        : undefined;
+      const slide = reveal ? slideOf(firstAnchor, path, `${namespace}:${id}`) : undefined;
       if (reveal && !slide) {
-        throw diagnostic(
-          "QRC.OUTPUT_INVALID",
-          `цель ${id} находится вне слайда в ${path}`,
-          {
-            source: `HTML-результат ${path}`,
-            id: `${namespace}:${id}`,
-            field: "native probe",
-          },
-        );
+        throw diagnostic("QRC.OUTPUT_INVALID", `цель ${id} находится вне слайда в ${path}`, {
+          source: `HTML-результат ${path}`,
+          id: `${namespace}:${id}`,
+          field: "native probe",
+        });
       }
       const title = titles.get(id);
       targets.push({
@@ -198,8 +172,11 @@ function readPageImpl(path: string, html: string): Page {
 }
 
 export const readPage = (path: string, html: string): Page =>
-  __metrics.wrapSync({
-    id: "reference-catalog.infrastructure.pages.readPage",
-    kind: "io",
-    document_id: path,
-  }, readPageImpl)(path, html);
+  __metrics.wrapSync(
+    {
+      id: "reference-catalog.infrastructure.pages.readPage",
+      kind: "io",
+      document_id: path,
+    },
+    readPageImpl,
+  )(path, html);
