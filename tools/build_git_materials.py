@@ -248,12 +248,14 @@ def _provided_materials(root: Path) -> dict[str, bytes]:
                 raise ValueError("Посторонний либо небезопасный root Git stage")
             files: dict[str, bytes] = {}
 
-            def collect(directory: Path) -> None:
+            def collect(
+                directory: Path, repository: Path, files: dict[str, bytes]
+            ) -> None:
                 for path in sorted(directory.iterdir()):
                     mode = path.lstat().st_mode
                     name = safe_archive_name(path.relative_to(repository).as_posix())
                     if stat.S_ISDIR(mode):
-                        collect(path)
+                        collect(path, repository, files)
                     elif stat.S_ISREG(mode):
                         if name in files:
                             raise ValueError("Повторный файл Git stage: " + name)
@@ -263,7 +265,7 @@ def _provided_materials(root: Path) -> dict[str, bytes]:
                             "Symlink или специальный файл Git stage: " + name
                         )
 
-            collect(repository)
+            collect(repository, repository, files)
             ordinary = {
                 name: data
                 for name, data in files.items()
@@ -332,4 +334,4 @@ if __name__ == "__main__":
         main()
     except (ValueError, OSError, subprocess.SubprocessError) as e:
         print(e, file=sys.stderr)
-        raise SystemExit(1)
+        raise SystemExit(1) from None

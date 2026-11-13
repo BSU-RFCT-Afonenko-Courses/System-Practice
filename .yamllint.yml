@@ -1,0 +1,3 @@
+# Prettier owns YAML presentation; yamllint owns syntax and duplicate keys.
+rules:
+  key-duplicates: enable

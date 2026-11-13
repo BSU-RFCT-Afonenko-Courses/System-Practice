@@ -1,9 +1,15 @@
 version: "3"
+set: [pipefail]
 vars:
   PLATFORM_ROOT: "{{.ROOT_DIR}}/.platform"
   BUILD_DIR: "{{.ROOT_DIR | dir}}/course-builds/system-practice"
   INSTANCE: pilot
   BACKEND: container
+  OWN_FIND: >-
+    find . -type d \( -name .git -o -name _extensions -o -name .platform
+    -o -name .ci -o -name vendor -o -name node_modules -o -name .venv
+    -o -name .quarto -o -name _generated -o -name _freeze -o -name _output
+    -o -name '_site*' -o -path './docs/superpowers' \) -prune -o -type f
 
 env:
   PYTHONDONTWRITEBYTECODE: "1"
@@ -44,11 +50,54 @@ tasks:
       - python3 -m unittest discover -s tests -p 'test_*.py' -v
 
   check:
-    desc: Проверить служебные исходники
+    desc: Проверить собственные исходники, конфигурации и структуру QMD
+    cmds:
+      - task: check:code
+      - task: check:quarto
+      - task: check-format
+  check:code:
     cmds:
       - pyright --project pyrightconfig.json
-      - bash -n CI/render.sh
-      - shellcheck --shell=bash --severity=style CI/render.sh
+      - ruff check .
+      - quarto run tests/typecheck.ts
+      - "{{.OWN_FIND}} -name '*.sh' -print0 | xargs -0 -r -n 1 bash -n"
+      - "{{.OWN_FIND}} -name '*.sh' -print0 | xargs -0 -r shellcheck --shell=bash --severity=style"
+      - "{{.OWN_FIND}} -name '*.fish' -print0 | xargs -0 -r -n 1 fish -n"
+      - "{{.OWN_FIND}} \\( -name '*.ps1' -o -name '*.psm1' -o -name '*.psd1' \\) -print0 | xargs -0 -r pwsh -NoProfile -NonInteractive -File tools/check-powershell.ps1 -Mode Check"
+      - actionlint
+      - "{{.OWN_FIND}} -name '*.toml' -print0 | xargs -0 -r taplo lint --no-auto-config --no-schema"
+      - '{{.OWN_FIND}} \( -name ''*.xml'' -o -name ''*.csl'' \) -print0 | xargs -0 -r xmllint --noout --nonet'
+      - '{{.OWN_FIND}} \( -name ''*.yml'' -o -name ''*.yaml'' \) -print0 | xargs -0 -r yamllint --strict'
+      - "{{.OWN_FIND}} -name '*.json' -print0 | xargs -0 -r -n 1 jq empty"
+      - "{{.OWN_FIND}} -name '*.css' -print0 | xargs -0 -r stylelint"
+      - |
+        set -e
+        test "$(head -n 1 includes/book-tables.html)" = '<style>'
+        test "$(tail -n 1 includes/book-tables.html)" = '</style>'
+        sed '1d;$d' includes/book-tables.html | stylelint --stdin --stdin-filename includes/book-tables.css
+      - "{{.OWN_FIND}} -name '*.html' -print0 | xargs -0 -r html-validate"
+  check:quarto:
+    desc: Полный структурный проход Panache; QRC сохраняет собственные ссылки
+    cmds:
+      - "{{.OWN_FIND}} -name '*.qmd' -print0 | xargs -0 -r panache --config panache.toml --no-cache -j 1 lint"
+  check-format:
+    desc: Проверить форматирование без записи
+    cmds:
+      - ruff format --check .
+      - "{{.OWN_FIND}} -name '*.sh' -print0 | xargs -0 -r shfmt -d -i 2"
+      - "{{.OWN_FIND}} -name '*.fish' -print0 | xargs -0 -r fish_indent --check"
+      - "{{.OWN_FIND}} \\( -name '*.ps1' -o -name '*.psm1' -o -name '*.psd1' \\) -print0 | xargs -0 -r pwsh -NoProfile -NonInteractive -File tools/check-powershell.ps1 -Mode CheckFormat"
+      - '{{.OWN_FIND}} \( -name ''*.json'' -o -name ''*.yml'' -o -name ''*.yaml'' -o -name ''*.css'' -o -name ''*.html'' -o -name ''*.ts'' \) -print0 | xargs -0 -r prettier --check'
+      - "{{.OWN_FIND}} -name '*.qmd' -print0 | xargs -0 -r panache --config panache.toml --no-cache -j 1 format --check"
+  format:
+    desc: Форматировать собственные исходники штатными инструментами
+    cmds:
+      - ruff format .
+      - "{{.OWN_FIND}} -name '*.sh' -print0 | xargs -0 -r shfmt -w -i 2"
+      - "{{.OWN_FIND}} -name '*.fish' -print0 | xargs -0 -r fish_indent -w"
+      - "{{.OWN_FIND}} \\( -name '*.ps1' -o -name '*.psm1' -o -name '*.psd1' \\) -print0 | xargs -0 -r pwsh -NoProfile -NonInteractive -File tools/check-powershell.ps1 -Mode Format"
+      - '{{.OWN_FIND}} \( -name ''*.json'' -o -name ''*.yml'' -o -name ''*.yaml'' -o -name ''*.css'' -o -name ''*.html'' -o -name ''*.ts'' \) -print0 | xargs -0 -r prettier --write'
+      - "{{.OWN_FIND}} -name '*.qmd' -print0 | xargs -0 -r panache --config panache.toml --no-cache -j 1 format"
   export:
     desc: Один полный author capture штатным экспортёром Platform
     cmds:

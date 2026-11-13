@@ -1,0 +1,12 @@
+**/_extensions/**
+.platform/**
+.ci/**
+**/vendor/**
+**/node_modules/**
+**/.venv/**
+**/.quarto/**
+**/_generated/**
+**/_freeze/**
+**/_output/**
+**/_site*/**
+docs/superpowers/**

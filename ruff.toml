@@ -1,0 +1,6 @@
+target-version = "py312"
+include = ["*.py", "*.pyi"]
+extend-exclude = ["_extensions", ".platform", ".ci", "vendor", "node_modules", "docs/superpowers"]
+
+[lint]
+select = ["E4", "E7", "E9", "F", "B"]

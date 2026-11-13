@@ -228,4 +228,4 @@ if __name__ == "__main__":
         main()
     except (ValueError, OSError, subprocess.SubprocessError) as e:
         print(e, file=sys.stderr)
-        raise SystemExit(1)
+        raise SystemExit(1) from None

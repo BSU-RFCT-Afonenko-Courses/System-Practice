@@ -35,12 +35,23 @@ jobs:
           grep -Rq 'mirror+file:/etc/apt/apt-mirrors.txt' /etc/apt/sources.list.d
           printf '%s\n' 'https://mirrors.edge.kernel.org/ubuntu/' | sudo tee /etc/apt/apt-mirrors.txt
           sudo apt-get update
-          sudo apt-get install -y shellcheck python3-yaml python3-jsonschema
-          npm install --global pyright typescript
+          sudo apt-get install -y shellcheck shfmt yamllint jq libxml2-utils python3-yaml python3-jsonschema
+          pipx install --force ruff==0.17.5
+          pipx install --force panache-cli
+          npm install --global pyright@1.1.414 typescript prettier@3.8.1 stylelint@18.0.0 html-validate@11.21.1 @taplo/cli@0.10.0
+          pwsh -NoProfile -Command 'Install-Module PSScriptAnalyzer -Scope CurrentUser -Force -Repository PSGallery'
+          go install github.com/rhysd/actionlint/cmd/actionlint@v1.7.12
           go install github.com/go-task/task/v3/cmd/task@latest
           mkdir -p "$RUNNER_TEMP/bin"
+          install "$(go env GOPATH)/bin/actionlint" "$RUNNER_TEMP/bin/actionlint"
           install "$(go env GOPATH)/bin/task" "$RUNNER_TEMP/bin/go-task"
           echo "$RUNNER_TEMP/bin" >> "$GITHUB_PATH"
+      - name: Показать инструменты проверки
+        run: |
+          panache --version
+          ruff --version
+          prettier --version
+          pwsh -NoProfile -Command 'Import-Module PSScriptAnalyzer; Get-Module PSScriptAnalyzer'
       - name: Подготовить GNU mv с требуемой no-replace capability
         run: |
           bash .ci/performance/tools/setup-mv-ci.sh "$RUNNER_TEMP/course-gnu-mv" >> "$GITHUB_PATH"
