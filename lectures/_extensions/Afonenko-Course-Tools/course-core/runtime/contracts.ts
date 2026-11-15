@@ -1,13 +1,17 @@
 // @deno-types="../vendor/zod/v4/index.d.ts"
 import { z } from "../vendor/zod/v4/index.js";
-import {
-  DocumentContextSchema,
-  FinalizedDocumentSchema,
-} from "../document/contracts.ts";
-const path = z.string().min(1).max(4096).refine((s) =>
-  !s.startsWith("/") && !s.includes("\\") && !s.includes("\0") &&
-  s.split("/").every((p) => p && p !== "." && p !== "..")
-);
+import { DocumentContextSchema, FinalizedDocumentSchema } from "../document/contracts.ts";
+const path = z
+  .string()
+  .min(1)
+  .max(4096)
+  .refine(
+    (s) =>
+      !s.startsWith("/") &&
+      !s.includes("\\") &&
+      !s.includes("\0") &&
+      s.split("/").every((p) => p && p !== "." && p !== ".."),
+  );
 import { NativeWebFormatSchema } from "../document/native-format.ts";
 export { NativeWebFormatSchema } from "../document/native-format.ts";
 export const NativeExpectedDocumentSchema = z.strictObject({
@@ -20,14 +24,10 @@ export const NativePendingOperationExpectationSchema = z.strictObject({
   projection: z.enum(["student", "author"]),
   outputDirectory: z.string().startsWith("/"),
 });
-export const NativeOperationExpectationSchema =
-  NativePendingOperationExpectationSchema.extend({
-    expectedDocuments: z.array(NativeExpectedDocumentSchema).min(1).max(4096)
-      .optional(),
-  });
-export type NativePendingOperationExpectation = z.input<
-  typeof NativePendingOperationExpectationSchema
->;
+export const NativeOperationExpectationSchema = NativePendingOperationExpectationSchema.extend({
+  expectedDocuments: z.array(NativeExpectedDocumentSchema).min(1).max(4096).optional(),
+});
+export type NativePendingOperationExpectation = z.input<typeof NativePendingOperationExpectationSchema>;
 export const NativeOperationIdentitySchema = z.strictObject({
   operation: z.uuid(),
   profiles: z.array(z.string()),
@@ -36,9 +36,9 @@ export const NativeOperationIdentitySchema = z.strictObject({
   runtime: z.literal("quarto-1.11.5"),
 });
 export const NativeDocumentRequestSchema = z.strictObject({ source: path });
-export const NativeAssignmentRequestSchema = NativeDocumentRequestSchema.extend(
-  { assessmentId: z.string().regex(/^[a-z][a-z0-9-]*$/) },
-);
+export const NativeAssignmentRequestSchema = NativeDocumentRequestSchema.extend({
+  assessmentId: z.string().regex(/^[a-z][a-z0-9-]*$/),
+});
 export const NativeConditionRequestSchema = NativeDocumentRequestSchema.extend({
   exerciseId: z.string().regex(/^exr-[a-z0-9][a-z0-9-]*$/),
   view: z.union([
@@ -51,19 +51,23 @@ export const NativeConditionRequestSchema = NativeDocumentRequestSchema.extend({
 });
 export const NativeCatalogSchema = z.strictObject({
   identity: NativeOperationIdentitySchema,
-  documents: z.array(z.strictObject({
-    source: path,
-    output: path,
-    format: NativeWebFormatSchema,
-    role: z.enum(["exercise-bank", "page"]),
-    exercises: z.array(z.strictObject({
-      id: z.string(),
-      occurrence: z.string(),
-      anchor: z.string(),
-      hasPublicSolution: z.boolean(),
-      project: path.optional(),
-    })),
-  })),
+  documents: z.array(
+    z.strictObject({
+      source: path,
+      output: path,
+      format: NativeWebFormatSchema,
+      role: z.enum(["exercise-bank", "page"]),
+      exercises: z.array(
+        z.strictObject({
+          id: z.string(),
+          occurrence: z.string(),
+          anchor: z.string(),
+          hasPublicSolution: z.boolean(),
+          project: path.optional(),
+        }),
+      ),
+    }),
+  ),
 });
 export const NativePublicDocumentSchema = FinalizedDocumentSchema.extend({
   status: z.literal("complete"),
@@ -75,33 +79,31 @@ export const NativePublicDocumentSchema = FinalizedDocumentSchema.extend({
 });
 export type NativePublicDocument = z.output<typeof NativePublicDocumentSchema>;
 export const NativeResourceRequestSchema = z.strictObject({
-  files: z.array(z.strictObject({ source: path, target: path })).min(1).max(
-    4096,
-  ),
+  files: z
+    .array(z.strictObject({ source: path, target: path }))
+    .min(1)
+    .max(4096),
 });
 export const NativeResourceFilesSchema = z.strictObject({
   audience: z.enum(["student", "full"]),
-  files: z.array(z.strictObject({
-    source: path,
-    target: path,
-    bytes: z.instanceof(Uint8Array),
-  })).min(1).max(4096),
+  files: z
+    .array(
+      z.strictObject({
+        source: path,
+        target: path,
+        bytes: z.instanceof(Uint8Array),
+      }),
+    )
+    .min(1)
+    .max(4096),
 });
-export type NativeOperationExpectation = z.input<
-  typeof NativeOperationExpectationSchema
->;
-export type NativeOperationIdentity = z.output<
-  typeof NativeOperationIdentitySchema
->;
+export type NativeOperationExpectation = z.input<typeof NativeOperationExpectationSchema>;
+export type NativeOperationIdentity = z.output<typeof NativeOperationIdentitySchema>;
 export type NativeCatalog = z.output<typeof NativeCatalogSchema>;
 export type NativeDocumentRequest = z.input<typeof NativeDocumentRequestSchema>;
-export type NativeConditionRequest = z.input<
-  typeof NativeConditionRequestSchema
->;
+export type NativeConditionRequest = z.input<typeof NativeConditionRequestSchema>;
 export type NativeResourceRequest = z.input<typeof NativeResourceRequestSchema>;
-export type NativeResourceFiles = z.output<
-  typeof NativeResourceFilesSchema
->;
+export type NativeResourceFiles = z.output<typeof NativeResourceFilesSchema>;
 
 export const NativeOperationMetricsSchema = z.strictObject({
   inspectCalls: z.number().int().nonnegative(),
@@ -111,18 +113,16 @@ export const NativeOperationMetricsSchema = z.strictObject({
   resourceByteReads: z.number().int().nonnegative(),
   resourceCacheHits: z.number().int().nonnegative(),
 });
-export type NativeOperationMetrics = z.output<
-  typeof NativeOperationMetricsSchema
->;
+export type NativeOperationMetrics = z.output<typeof NativeOperationMetricsSchema>;
 
 export const NativePendingOperationSchema = z.strictObject({
   identity: NativeOperationIdentitySchema,
-  inputs: z.array(z.strictObject({ source: path, captureWitness: z.uuid() }))
-    .min(1).max(4096),
+  inputs: z
+    .array(z.strictObject({ source: path, captureWitness: z.uuid() }))
+    .min(1)
+    .max(4096),
 });
-export type NativePendingOperation = z.output<
-  typeof NativePendingOperationSchema
->;
+export type NativePendingOperation = z.output<typeof NativePendingOperationSchema>;
 
 /** Pending transport omits document facts observed only by native pre-ast. */
 export const NativePendingDocumentContextSchema = DocumentContextSchema.omit({
@@ -140,14 +140,11 @@ export const NativeCaptureReservationSchema = z.strictObject({
   outputDirectory: z.string().startsWith("/"),
 });
 export const NativeCaptureScopeOptionsSchema = z.strictObject({
-  expectedSources: z.array(path).min(1).max(4096).refine(
-    (s) => new Set(s).size === s.length,
-    "Повторный expected source",
-  ),
+  expectedSources: z
+    .array(path)
+    .min(1)
+    .max(4096)
+    .refine((s) => new Set(s).size === s.length, "Повторный expected source"),
 });
-export type NativeCaptureReservation = z.input<
-  typeof NativeCaptureReservationSchema
->;
-export type NativeCaptureScopeOptions = z.input<
-  typeof NativeCaptureScopeOptionsSchema
->;
+export type NativeCaptureReservation = z.input<typeof NativeCaptureReservationSchema>;
+export type NativeCaptureScopeOptions = z.input<typeof NativeCaptureScopeOptionsSchema>;

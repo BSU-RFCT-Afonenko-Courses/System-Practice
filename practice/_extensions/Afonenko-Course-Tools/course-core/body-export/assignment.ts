@@ -34,27 +34,14 @@ export async function buildAssignmentBody(input: {
   documents: readonly NativePublicDocument[];
   references?: BodyReferenceContext | undefined;
   assertPublicResource: (absolute: string) => void;
-  assertCitationResource: (
-    source: string,
-    key: CitationFileKey,
-    path: string,
-  ) => Promise<void>;
-  readResource: (
-    source: string,
-    target: string,
-    document: string,
-  ) => Promise<Resource>;
+  assertCitationResource: (source: string, key: CitationFileKey, path: string) => Promise<void>;
+  readResource: (source: string, target: string, document: string) => Promise<Resource>;
 }) {
-  const { root, owner, work } = input, composition = work.composition;
+  const { root, owner, work } = input,
+    composition = work.composition;
   const workDoc = input.documents.find((d) => d.context.input === work.source);
-  if (
-    !workDoc?.assignment ||
-    !Object.hasOwn(workDoc.assignment.introductions, composition.id)
-  ) {
-    fail(
-      "BODY.ASSESSMENT_OCCURRENCE_MISMATCH",
-      "Нет exact native introduction",
-    );
+  if (!workDoc?.assignment || !Object.hasOwn(workDoc.assignment.introductions, composition.id)) {
+    fail("BODY.ASSESSMENT_OCCURRENCE_MISMATCH", "Нет exact native introduction");
   }
   const documentMeta = async (doc: NativePublicDocument) => {
     const meta = doc.assignment!.citationMetadata;
@@ -63,11 +50,7 @@ export async function buildAssignmentBody(input: {
     }
     return { "pandoc-api-version": doc.pandocApiVersion, meta };
   };
-  const introKey = JSON.stringify([
-    workDoc.context,
-    workDoc.pandocApiVersion,
-    composition.id,
-  ]);
+  const introKey = JSON.stringify([workDoc.context, workDoc.pandocApiVersion, composition.id]);
   let overview = input.cache?.introductions.get(introKey);
   if (!overview) {
     overview = await preparePublicIntroduction({
@@ -92,19 +75,12 @@ export async function buildAssignmentBody(input: {
     resources: [],
   };
   for (const id of composition.slots.flatMap((slot) => slot.candidates)) {
-    const docs = input.documents.filter((d) =>
-      Object.hasOwn(d.definitions, id)
-    );
+    const docs = input.documents.filter((d) => Object.hasOwn(d.definitions, id));
     if (docs.length !== 1) {
-      fail(
-        "BODY.ASSIGNMENT_MEMBERSHIP",
-        "Кандидат не принадлежит одному native bank " + id,
-      );
+      fail("BODY.ASSIGNMENT_MEMBERSHIP", "Кандидат не принадлежит одному native bank " + id);
     }
     const doc = docs[0]!,
-      rows = doc.occurrences.filter((r) =>
-        r.kind === "exercise" && r.exerciseId === id
-      ),
+      rows = doc.occurrences.filter((r) => r.kind === "exercise" && r.exerciseId === id),
       answer = doc.assignment?.answers[id];
     if (rows.length !== 1 || !answer) {
       fail("BODY.ANSWER_OCCURRENCE_MISMATCH", "Нет exact late candidate " + id);
@@ -112,9 +88,7 @@ export async function buildAssignmentBody(input: {
     const source = doc.context.input,
       declaration = doc.definitions[id]!,
       row = rows[0]!;
-    if (
-      JSON.stringify(doc.pandocApiVersion) !== JSON.stringify(pkg.apiVersion)
-    ) {
+    if (JSON.stringify(doc.pandocApiVersion) !== JSON.stringify(pkg.apiVersion)) {
       fail("BODY.CAPABILITY_UNSUPPORTED", "Разные actual Pandoc API versions");
     }
     const questionKey = JSON.stringify([doc.context, doc.pandocApiVersion, id]);
@@ -132,7 +106,8 @@ export async function buildAssignmentBody(input: {
       input.cache?.questions.set(questionKey, structuredClone(prepared));
     }
     prepared = structuredClone(prepared);
-    const links = new Set<string>(), resources = new Set<string>();
+    const links = new Set<string>(),
+      resources = new Set<string>();
     const body = [...prepared.condition, ...prepared.publicAnswer];
     function uses(v: unknown) {
       if (Array.isArray(v)) {
@@ -175,9 +150,7 @@ export async function buildAssignmentBody(input: {
       statementVisibility: declaration["statement-visibility"],
       difficulty: declaration.difficulty,
       ...(declaration.time !== undefined ? { time: declaration.time } : {}),
-      ...(declaration["course-role"]
-        ? { purpose: declaration["course-role"] }
-        : {}),
+      ...(declaration["course-role"] ? { purpose: declaration["course-role"] } : {}),
       hasPublicSolution: doc.hasPublicSolution[id] === true,
       answerType: answer.type,
       condition: structuredClone(prepared.condition),
@@ -200,23 +173,12 @@ export async function buildAssignmentBody(input: {
       id: owner + "/" + composition.id + "/" + slot.id,
       candidates: slot.candidates.map((id) => owner + "/" + id),
     })),
-    ...(composition.theoryTime !== undefined
-      ? { theoryTime: composition.theoryTime }
-      : {}),
-    ...(composition.relatedExercise
-      ? { relatedExercise: composition.relatedExercise }
-      : {}),
+    ...(composition.theoryTime !== undefined ? { theoryTime: composition.theoryTime } : {}),
+    ...(composition.relatedExercise ? { relatedExercise: composition.relatedExercise } : {}),
   });
   const uses = new Map<string, string>();
   function collect(blocks: unknown[], source: string) {
-    for (
-      const path of publicResourceUses(
-        blocks,
-        root,
-        source,
-        dirname(resolve(root, source)),
-      )
-    ) {
+    for (const path of publicResourceUses(blocks, root, source, dirname(resolve(root, source)))) {
       const absolute = resolve(root, path);
       if (!absolute.startsWith(root + "/")) {
         fail("RESOURCE_PATH", "Body resource вне owner");
@@ -252,34 +214,14 @@ export async function buildAssignmentBody(input: {
     targets.set(resolve(root, path), target);
   }
   for (const question of pkg.questions) {
-    publicResourceUses(
-      question.condition,
-      root,
-      question.source,
-      dirname(resolve(root, question.source)),
-      targets,
-    );
-    publicResourceUses(
-      question.publicAnswer,
-      root,
-      question.source,
-      dirname(resolve(root, question.source)),
-      targets,
-    );
+    publicResourceUses(question.condition, root, question.source, dirname(resolve(root, question.source)), targets);
+    publicResourceUses(question.publicAnswer, root, question.source, dirname(resolve(root, question.source)), targets);
   }
-  publicResourceUses(
-    pkg.works[0]!.introduction!,
-    root,
-    work.source,
-    dirname(resolve(root, work.source)),
-    targets,
-  );
+  publicResourceUses(pkg.works[0]!.introduction!, root, work.source, dirname(resolve(root, work.source)), targets);
   await assertBodyPackage(pkg, root);
   const publicPackage: PublicBodyPackage = {
     ...pkg,
-    questions: pkg.questions.map((
-      { closedKey, solution, gradingNotes, ...question },
-    ) => question),
+    questions: pkg.questions.map(({ closedKey, solution, gradingNotes, ...question }) => question),
   };
   return { publicPackage, conditions };
 }

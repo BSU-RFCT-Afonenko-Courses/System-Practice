@@ -1,4 +1,4 @@
-local __metrics=require("../observability/bridge").create_metrics("course-presentation",1)
+local __metrics = require("../observability/bridge").create_metrics("course-presentation", 1)
 
 -- Узел #sol-* или callout и его ID сохраняются. Раскрытием управляет
 -- внешний контейнер без ID, поэтому штатные перекрёстные ссылки работают.
@@ -8,9 +8,15 @@ local M = {}
 ---@return "solution"|"hint"|nil
 function M.kind(div, owner)
   local related = div.attributes["for"] or owner
-  if not related then return nil end
-  if div.identifier:match("^sol%-") or div.classes:includes("solution") then return "solution" end
-  if div.classes:includes("callout-tip") and not div.attributes["course-role"] then return "hint" end
+  if not related then
+    return nil
+  end
+  if div.identifier:match("^sol%-") or div.classes:includes("solution") then
+    return "solution"
+  end
+  if div.classes:includes("callout-tip") and not div.attributes["course-role"] then
+    return "hint"
+  end
   return nil
 end
 ---@param div pandoc.Div
@@ -18,24 +24,32 @@ end
 ---@param cfg CoursePresentationConfig
 ---@return pandoc.Div
 function M.wrap(div, kind, cfg)
-  if not kind then return div end
-  local classes = {"course-answer", "course-answer-" .. kind}
-  if not cfg.html or cfg.answers == "expanded" then
-    return pandoc.Div({div}, pandoc.Attr("", classes))
+  if not kind then
+    return div
   end
-  local summary = cfg.ru and (kind == "hint" and "Показать подсказку" or "Показать решение")
+  local classes = { "course-answer", "course-answer-" .. kind }
+  if not cfg.html or cfg.answers == "expanded" then
+    return pandoc.Div({ div }, pandoc.Attr("", classes))
+  end
+  local summary = cfg.ru
+      and (kind == "hint" and "Показать подсказку" or "Показать решение")
     or (kind == "hint" and "Show hint" or "Show solution")
   if not cfg.reveal then
     table.insert(classes, "callout-note")
     -- Штатное раскрытие Bootstrap в Quarto управляет переключением и состоянием ARIA.
-    return pandoc.Div({pandoc.Header(3, pandoc.Inlines({pandoc.Str(summary)})), div}, pandoc.Attr("", classes,
-      {collapse = "true", icon = "false"}))
+    return pandoc.Div(
+      { pandoc.Header(3, pandoc.Inlines({ pandoc.Str(summary) })), div },
+      pandoc.Attr("", classes, { collapse = "true", icon = "false" })
+    )
   end
   -- Reveal не сворачивает callout. Фильтр создаёт элемент <details>,
   -- сохраняя обычный Markdown Pandoc/Quarto в авторском тексте.
-  return pandoc.Div({pandoc.RawBlock("html", "<details><summary>" .. summary .. "</summary>"),
-    div, pandoc.RawBlock("html", "</details>")}, pandoc.Attr("", classes))
+  return pandoc.Div({
+    pandoc.RawBlock("html", "<details><summary>" .. summary .. "</summary>"),
+    div,
+    pandoc.RawBlock("html", "</details>"),
+  }, pandoc.Attr("", classes))
 end
-M.kind=__metrics.wrap_sync({id="course-presentation.modules.answers.kind",kind='phase'},M.kind)
-M.wrap=__metrics.wrap_sync({id="course-presentation.modules.answers.wrap",kind='phase'},M.wrap)
+M.kind = __metrics.wrap_sync({ id = "course-presentation.modules.answers.kind", kind = "phase" }, M.kind)
+M.wrap = __metrics.wrap_sync({ id = "course-presentation.modules.answers.wrap", kind = "phase" }, M.wrap)
 return M

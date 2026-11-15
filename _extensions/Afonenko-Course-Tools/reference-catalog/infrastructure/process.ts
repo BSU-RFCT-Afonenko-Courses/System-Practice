@@ -1,23 +1,45 @@
-import {createMetrics as __createMetrics} from "../observability/bridge.ts";
-const __metrics=__createMetrics("reference-catalog");
+import { createMetrics as __createMetrics } from "../observability/bridge.ts";
+const __metrics = __createMetrics("reference-catalog");
 
-async function quartoImpl(args: string[], cwd: string, extra: Record<string, string> = {}): Promise<string> {
+async function quartoImpl(
+  args: string[],
+  cwd: string,
+  extra: Record<string, string> = {},
+): Promise<string> {
   const command = Deno.env.get("QUARTO") || Deno.env.get("QRC_QUARTO") || "quarto";
   let result: Deno.CommandOutput;
   try {
     const childEnv = __metrics.childEnv(extra);
     const observed = childEnv !== extra;
-    result = await new Deno.Command(command, { args, cwd, env: observed ? __metrics.childEnv({ ...Deno.env.toObject(), ...extra }) : childEnv, clearEnv: observed, stdout: "piped", stderr: "piped" }).output();
+    result = await new Deno.Command(command, {
+      args,
+      cwd,
+      env: observed ? __metrics.childEnv({ ...Deno.env.toObject(), ...extra }) : childEnv,
+      clearEnv: observed,
+      stdout: "piped",
+      stderr: "piped",
+    }).output();
   } catch (cause) {
-    if (!Object.values(Deno.errors).some(kind => cause instanceof kind)) throw cause;
-    const error = new Error(`Не удалось запустить Quarto (${command}): ${cause instanceof Error ? cause.message : cause}`, { cause });
+    if (!Object.values(Deno.errors).some((kind) => cause instanceof kind)) throw cause;
+    const error = new Error(
+      `Не удалось запустить Quarto (${command}): ${cause instanceof Error ? cause.message : cause}`,
+      { cause },
+    );
     error.name = "ExternalToolFailure";
-    throw Object.assign(error, { tool: command, exitCode: null, stdout: "", stderr: cause instanceof Error ? cause.message : String(cause) });
+    throw Object.assign(error, {
+      tool: command,
+      exitCode: null,
+      stdout: "",
+      stderr: cause instanceof Error ? cause.message : String(cause),
+    });
   }
   const out = new TextDecoder().decode(result.stdout);
   const err = new TextDecoder().decode(result.stderr);
   if (!result.success) {
-    const error = new Error(`Quarto ${args[0]} (${command}) завершился с кодом ${result.code}\n${out}\n${err}`, { cause: result });
+    const error = new Error(
+      `Quarto ${args[0]} (${command}) завершился с кодом ${result.code}\n${out}\n${err}`,
+      { cause: result },
+    );
     error.name = "ExternalToolFailure";
     throw Object.assign(error, { tool: command, exitCode: result.code, stdout: out, stderr: err });
   }
@@ -25,4 +47,7 @@ async function quartoImpl(args: string[], cwd: string, extra: Record<string, str
   return out;
 }
 
-export const quarto = __metrics.wrapAsync({id:"reference-catalog.infrastructure.process.quarto",kind:"command"},quartoImpl);
+export const quarto = __metrics.wrapAsync(
+  { id: "reference-catalog.infrastructure.process.quarto", kind: "command" },
+  quartoImpl,
+);

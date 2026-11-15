@@ -1,5 +1,4 @@
-const nativeArray = (value: unknown): value is readonly unknown[] =>
-  Array.isArray(value);
+const nativeArray = (value: unknown): value is readonly unknown[] => Array.isArray(value);
 import { basename, dirname, join, relative, resolve } from "stdlib/path";
 import { fail } from "../contracts/project.ts";
 import type { NativeCaptureReservation } from "./contracts.ts";
@@ -48,16 +47,15 @@ function invalid(s: string): never {
   return fail("BODY.PRODUCER_INPUT_UNQUALIFIED", s);
 }
 /** Bound input/source identifies owner; cwd не является source authority. */
-export function nativeAssignmentOwner(
-  input: string,
-  source: unknown,
-  capture: unknown,
-  operation: string,
-) {
+export function nativeAssignmentOwner(input: string, source: unknown, capture: unknown, operation: string) {
   if (
-    typeof input !== "string" || !input.startsWith("/") ||
-    input.includes("\0") || resolve(input) !== input ||
-    typeof source !== "string" || !source || source.startsWith("/") ||
+    typeof input !== "string" ||
+    !input.startsWith("/") ||
+    input.includes("\0") ||
+    resolve(input) !== input ||
+    typeof source !== "string" ||
+    !source ||
+    source.startsWith("/") ||
     /[\\\0]/.test(source) ||
     source.split("/").some((p) => !p || p === "." || p === "..") ||
     !input.endsWith("/" + source)
@@ -66,11 +64,12 @@ export function nativeAssignmentOwner(
   }
   const root = input.slice(0, -source.length - 1) || "/";
   if (
-    typeof capture !== "string" || resolve(capture) !== capture ||
-    dirname(capture) !==
-      join(root, "_generated/course-spec/native-ts", operation) ||
+    typeof capture !== "string" ||
+    resolve(capture) !== capture ||
+    dirname(capture) !== join(root, "_generated/course-spec/native-ts", operation) ||
     !/^(0|[1-9][0-9]*)$/.test(basename(capture))
-  ) invalid("Native capture/owner/operation binding отличается");
+  )
+    invalid("Native capture/owner/operation binding отличается");
   return root;
 }
 export function consumeAssignmentAdmission(value: AssignmentAdmission) {
@@ -84,10 +83,9 @@ async function assignmentExecutable(root: string) {
   const requestedExecutable = quartoExecutable();
   const candidates = /[\\/]/.test(requestedExecutable)
     ? [resolve(root, requestedExecutable)]
-    : (Deno.env.get("PATH") ?? "").split(
-      Deno.build.os === "windows" ? ";" : ":",
-    )
-      .map((directory) => resolve(root, directory || ".", requestedExecutable));
+    : (Deno.env.get("PATH") ?? "")
+        .split(Deno.build.os === "windows" ? ";" : ":")
+        .map((directory) => resolve(root, directory || ".", requestedExecutable));
   let executable: string | undefined;
   for (const candidate of candidates) {
     try {
@@ -107,32 +105,30 @@ async function prepareAssignmentSelection(
   owner: NativeOwnerInspection,
   source: AssignmentAdmission["source"],
 ) {
-  const selection = await options.assignment.prepare(
-    frozen(structuredClone(owner)),
-  );
+  const selection = await options.assignment.prepare(frozen(structuredClone(owner)));
   if (
-    !selection || !nativeArray(selection.expectedSources) ||
+    !selection ||
+    !nativeArray(selection.expectedSources) ||
     !selection.expectedSources.length ||
     selection.expectedSources.length > 4096 ||
-    new Set(selection.expectedSources).size !==
-      selection.expectedSources.length ||
-    selection.expectedSources.some((p) =>
-      typeof p !== "string" ||
-      !owner.files.input.includes(join(source.root, p)) ||
-      p !== relative(source.root, join(source.root, p)) ||
-      p.split("/").some((s) => !s || s === "." || s === "..")
+    new Set(selection.expectedSources).size !== selection.expectedSources.length ||
+    selection.expectedSources.some(
+      (p) =>
+        typeof p !== "string" ||
+        !owner.files.input.includes(join(source.root, p)) ||
+        p !== relative(source.root, join(source.root, p)) ||
+        p.split("/").some((s) => !s || s === "." || s === ".."),
     )
-  ) invalid("Неверный prepared source scope");
+  )
+    invalid("Неверный prepared source scope");
   if (
-    !nativeArray(selection.assessments) || !selection.assessments.length ||
+    !nativeArray(selection.assessments) ||
+    !selection.assessments.length ||
     selection.assessments.length > 4096 ||
-    new Set(selection.assessments.map((p) => p.source + "\0" + p.id)).size !==
-      selection.assessments.length ||
-    selection.assessments.some((p) =>
-      !selection.expectedSources.includes(p.source) ||
-      !/^[a-z][a-z0-9-]*$/.test(p.id)
-    )
-  ) invalid("Неверный assignment intent");
+    new Set(selection.assessments.map((p) => p.source + "\0" + p.id)).size !== selection.assessments.length ||
+    selection.assessments.some((p) => !selection.expectedSources.includes(p.source) || !/^[a-z][a-z0-9-]*$/.test(p.id))
+  )
+    invalid("Неверный assignment intent");
   return selection;
 }
 export async function prepareAssignment(
@@ -142,28 +138,26 @@ export async function prepareAssignment(
   if (
     options?.assignment?.mode !== "new" ||
     Object.keys(options).some((k) => k !== "assignment") ||
-    Object.keys(options.assignment).some((k) =>
-      !["mode", "prepare", "profiles"].includes(k)
-    ) ||
+    Object.keys(options.assignment).some((k) => !["mode", "prepare", "profiles"].includes(k)) ||
     typeof options.assignment.prepare !== "function"
-  ) invalid("Требуется явное новое assignment intent");
+  )
+    invalid("Требуется явное новое assignment intent");
   const requested = options.assignment.profiles ?? [];
   if (
-    !nativeArray(requested) || requested.length > 15 ||
+    !nativeArray(requested) ||
+    requested.length > 15 ||
     new Set(requested).size !== requested.length ||
-    requested.some((p) =>
-      typeof p !== "string" || !/^[-a-z0-9]+$/.test(p) ||
-      ["student", "full"].includes(p)
-    )
+    requested.some((p) => typeof p !== "string" || !/^[-a-z0-9]+$/.test(p) || ["student", "full"].includes(p))
   ) {
     invalid("Требуются уникальные functional profiles без student/full");
   }
   if (
     reservation.projection !== "author" ||
-    await Deno.realPath(reservation.root) !== reservation.root ||
+    (await Deno.realPath(reservation.root)) !== reservation.root ||
     resolve(reservation.outputDirectory) !== reservation.outputDirectory ||
     !reservation.outputDirectory.startsWith(reservation.root + "/_generated/")
-  ) invalid("Assignment требует canonical owner, author и служебный output");
+  )
+    invalid("Assignment требует canonical owner, author и служебный output");
   const profiles = [...requested, "full"];
   const source = {
     root: reservation.root,
@@ -176,9 +170,10 @@ export async function prepareAssignment(
   // Quarto child создаёт собственный project/script transport; host CLI не переносит его.
   for (const key of Object.keys(environment)) {
     if (
-      /^QUARTO_(?:PROJECT_|USE_FILE_FOR_PROJECT_|FILTER_|SCRIPT_|DOCUMENT_)/
-        .test(key) || /^COURSE_CORE_(?:CAPTURE|TS)_/.test(key)
-    ) delete environment[key];
+      /^QUARTO_(?:PROJECT_|USE_FILE_FOR_PROJECT_|FILTER_|SCRIPT_|DOCUMENT_)/.test(key) ||
+      /^COURSE_CORE_(?:CAPTURE|TS)_/.test(key)
+    )
+      delete environment[key];
   }
   Object.assign(environment, {
     QUARTO: executable,
@@ -187,29 +182,23 @@ export async function prepareAssignment(
     DENO_NO_PACKAGE_JSON: "1",
   });
   delete environment.COURSE_CORE_CAPTURE_TOKEN;
-  const owner = await inspectNativeOwner(
-    source.root,
-    profiles,
-    executable,
-    environment,
-  );
-  source.ownerInputs = owner.files.input.map((path) =>
-    relative(source.root, resolve(source.root, path))
-  );
+  const owner = await inspectNativeOwner(source.root, profiles, executable, environment);
+  source.ownerInputs = owner.files.input.map((path) => relative(source.root, resolve(source.root, path)));
   if (
     !source.ownerInputs.length ||
     new Set(source.ownerInputs).size !== source.ownerInputs.length ||
-    source.ownerInputs.some((path) =>
-      !path || path.startsWith("/") || /[\\\0]/.test(path) ||
-      path.split("/").some((part) => !part || part === "." || part === "..")
+    source.ownerInputs.some(
+      (path) =>
+        !path ||
+        path.startsWith("/") ||
+        /[\\\0]/.test(path) ||
+        path.split("/").some((part) => !part || part === "." || part === ".."),
     )
   ) {
     invalid("Некорректный native owner input scope");
   }
-  if (
-    owner.config?.["course-core-runtime"] !== "native-ts" ||
-    owner.config?.["course-core-projection"] !== "author"
-  ) invalid("Native owner не соответствует author operation");
+  if (owner.config?.["course-core-runtime"] !== "native-ts" || owner.config?.["course-core-projection"] !== "author")
+    invalid("Native owner не соответствует author operation");
   const selection = await prepareAssignmentSelection(options, owner, source);
   const result: AssignmentAdmission = {
     source,

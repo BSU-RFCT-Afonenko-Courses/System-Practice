@@ -2,7 +2,11 @@ export interface DiagnosticContext {
   source?: string | undefined;
   id?: string | undefined;
   field?: string | undefined;
-  related?: { source?: string | undefined; id?: string | undefined; field?: string }[];
+  related?: {
+    source?: string | undefined;
+    id?: string | undefined;
+    field?: string;
+  }[];
   hint?: string | undefined;
 }
 /** Progress project scripts идёт только в stderr и не требует новых env permissions. */
@@ -15,15 +19,22 @@ export function reportProgress(message: string): boolean {
   console.error(`project-download: ${message}`);
   return true;
 }
-export async function progress<T>(stage: string, action: () => Promise<T>): Promise<T> {
+export async function progress<T>(
+  stage: string,
+  action: () => Promise<T>,
+): Promise<T> {
   if (!reportProgress(`${stage} — начало`)) return await action();
   const started = performance.now();
   try {
     const value = await action();
-    console.error(`project-download: ${stage} — готово (${((performance.now() - started) / 1000).toFixed(1)} с)`);
+    console.error(
+      `project-download: ${stage} — готово (${((performance.now() - started) / 1000).toFixed(1)} с)`,
+    );
     return value;
   } catch (error) {
-    console.error(`project-download: ${stage} — ошибка (${((performance.now() - started) / 1000).toFixed(1)} с)`);
+    console.error(
+      `project-download: ${stage} — ошибка (${((performance.now() - started) / 1000).toFixed(1)} с)`,
+    );
     throw error;
   }
 }
@@ -38,7 +49,9 @@ export function diagnostic(
       value.source && `файл: ${value.source}`,
       value.id && `ID: ${value.id}`,
       value.field && `поле: ${value.field}`,
-    ].filter(Boolean).join(", ");
+    ]
+      .filter(Boolean)
+      .join(", ");
   const details = [
     place(context),
     ...(context.related ?? []).map((value) => `связано: ${place(value)}`),
@@ -74,7 +87,9 @@ export function externalFailure(
     stdout.trimEnd(),
     stderr.trimEnd(),
     !result && cause instanceof Error ? cause.message : "",
-  ].filter(Boolean).join("\n");
+  ]
+    .filter(Boolean)
+    .join("\n");
   return Object.assign(
     new Error(message, { cause: cause === undefined ? result : cause }),
     { name: "ExternalToolFailure", tool, exitCode, stdout, stderr },

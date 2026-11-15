@@ -35,9 +35,10 @@ function outputDirectory(config: Record<string, unknown>): string {
   return typeof output === "string" ? output : ".";
 }
 async function inspect(root: string) {
-  const executable = Deno.env.get("QUARTO") ||
-    Deno.env.get("QUARTO_BIN_PATH") &&
-      join(Deno.env.get("QUARTO_BIN_PATH")!, "quarto") ||
+  const executable =
+    Deno.env.get("QUARTO") ||
+    (Deno.env.get("QUARTO_BIN_PATH") &&
+      join(Deno.env.get("QUARTO_BIN_PATH")!, "quarto")) ||
     "quarto";
   let result: Deno.CommandOutput;
   try {
@@ -67,25 +68,26 @@ async function inspect(root: string) {
       {
         source: root,
         field: "inspect",
-        hint:
-          "Повторите Quarto inspect для указанного проекта и проверьте его вывод.",
+        hint: "Повторите Quarto inspect для указанного проекта и проверьте его вывод.",
       },
       cause,
     );
   }
   if (
-    !record(value) || !record(value.config) || !record(value.files) ||
+    !record(value) ||
+    !record(value.config) ||
+    !record(value.files) ||
     !Array.isArray(value.files.input) ||
-    !value.files.input.every((path): path is string =>
-      typeof path === "string"
+    !value.files.input.every(
+      (path): path is string => typeof path === "string",
     ) ||
     !Array.isArray(value.files.config) ||
-    !value.files.config.every((path): path is string =>
-      typeof path === "string"
+    !value.files.config.every(
+      (path): path is string => typeof path === "string",
     ) ||
     !Array.isArray(value.files.configResources) ||
-    !value.files.configResources.every((path): path is string =>
-      typeof path === "string"
+    !value.files.configResources.every(
+      (path): path is string => typeof path === "string",
     )
   ) {
     throw diagnostic(
@@ -116,18 +118,17 @@ async function addAuthoredInputs(
   }
   // configResources включает и публичные metadata resources; это не author-only список.
   // Берём из него только готовые пути явно подключённых filters.
-  for (
-    const declaration of Array.isArray(inspected.config.filters)
-      ? inspected.config.filters
-      : inspected.config.filters
+  for (const declaration of Array.isArray(inspected.config.filters)
+    ? inspected.config.filters
+    : inspected.config.filters
       ? [inspected.config.filters]
-      : []
-  ) {
-    const path = typeof declaration === "string"
-      ? declaration
-      : record(declaration)
-      ? declaration.path
-      : undefined;
+      : []) {
+    const path =
+      typeof declaration === "string"
+        ? declaration
+        : record(declaration)
+          ? declaration.path
+          : undefined;
     if (typeof path === "string") {
       const absolute = resolve(root, path);
       if (inspected.files.configResources.includes(absolute)) {
@@ -137,25 +138,25 @@ async function addAuthoredInputs(
   }
   // inspect даёт готовые пути filters, но hook оставляет строкой команды.
   // Прежнее извлечение путей нужно только для запрета hook-исходников в ZIP.
-  for (
-    const value of [
-      record(inspected.config.project)
-        ? inspected.config.project["pre-render"]
-        : undefined,
-      record(inspected.config.project)
-        ? inspected.config.project["post-render"]
-        : undefined,
-    ]
-  ) {
-    for (
-      const declaration of Array.isArray(value) ? value : value ? [value] : []
-    ) {
+  for (const value of [
+    record(inspected.config.project)
+      ? inspected.config.project["pre-render"]
+      : undefined,
+    record(inspected.config.project)
+      ? inspected.config.project["post-render"]
+      : undefined,
+  ]) {
+    for (const declaration of Array.isArray(value)
+      ? value
+      : value
+        ? [value]
+        : []) {
       // Native hook schema: string или string[], не filter declaration.path.
       if (typeof declaration !== "string") continue;
       const paths = [
         declaration,
         ...(declaration.match(/"[^"]*"|'[^']*'|[^\s]+/g) ?? []).map((token) =>
-          token.replace(/^["']|["']$/g, "")
+          token.replace(/^["']|["']$/g, ""),
         ),
       ];
       for (const path of paths) {
@@ -198,30 +199,31 @@ function materializationLinks(input: {
       const [pathname = ""] = link.split(/[?#]/);
       const target = pathname.split("/").pop();
       if (
-        artifacts.some((a) =>
-          a.exerciseId + "-" + a.kind + ".zip" === target
-        ) || Object.keys(config.resources).some((id) => id + ".zip" === target)
+        artifacts.some(
+          (a) => a.exerciseId + "-" + a.kind + ".zip" === target,
+        ) ||
+        Object.keys(config.resources).some((id) => id + ".zip" === target)
       ) {
-        urls[link] = "_downloads/" + target +
-          (link.match(/[?#].*$/)?.[0] ?? "");
+        urls[link] =
+          "_downloads/" + target + (link.match(/[?#].*$/)?.[0] ?? "");
       } else if (
         !/^(?:[a-z][a-z0-9+.-]*:|#|\/\/)/i.test(link) &&
         !/\.(?:qmd|html)(?:[?#]|$)/i.test(link)
-      ) resourceLinks.push(link);
+      )
+        resourceLinks.push(link);
     }
     const refs = Object.fromEntries(
-      fragment.references.map((
-        r,
-      ) => [r.token, { key: r.key, style: r.style }]),
+      fragment.references.map((r) => [r.token, { key: r.key, style: r.style }]),
     );
-    linksBySource[fragment.source] = QRC.bindConditionLinks({
-      context: { input: fragment.source },
-      links: fragment.links,
-    }, { ...destination, urls, resourceLinks, references: refs });
+    linksBySource[fragment.source] = QRC.bindConditionLinks(
+      {
+        context: { input: fragment.source },
+        links: fragment.links,
+      },
+      { ...destination, urls, resourceLinks, references: refs },
+    );
     referencesBySource[fragment.source] = Object.fromEntries(
-      fragment.references.map((
-        r,
-      ) => [
+      fragment.references.map((r) => [
         r.token,
         references.resolve(r.key, r.style, fragment.source),
       ]),
@@ -232,57 +234,63 @@ function materializationLinks(input: {
 function archiveName(name: string): boolean {
   return name.endsWith(".zip") && RESOURCE_ID.test(name.slice(0, -4));
 }
-export const clearOwned = __metrics.wrapAsync({
-  id: "project-download.infrastructure.runtime.clearOwned",
-  kind: "io",
-}, async function clearOwned(root: string, output: string): Promise<void> {
-  const outputRoot = resolve(root, output);
-  const directory = child(outputRoot, "_downloads");
-  if (!await exists(directory)) return;
-  if ((await Deno.lstat(outputRoot)).isSymlink) {
-    throw diagnostic(
-      "DOWNLOAD.PATH_INVALID",
-      "Каталог вывода не должен быть символической ссылкой",
-      { source: outputRoot, field: "output-dir" },
-    );
-  }
-  await noSymlinks(outputRoot, directory);
-  const manifest = join(directory, manifestName);
-  if (!await exists(manifest)) return;
-  await noSymlinks(outputRoot, manifest);
-  const files: unknown = JSON.parse(await Deno.readTextFile(manifest));
-  if (
-    !Array.isArray(files) ||
-    !files.every((name): name is string =>
-      typeof name === "string" && archiveName(name)
-    )
-  ) {
-    throw diagnostic(
-      "DOWNLOAD.REQUEST_INVALID",
-      "Повреждён перечень файлов project-download",
-      { source: manifest, field: "manifest" },
-    );
-  }
-  for (const name of files) {
-    const path = join(directory, name);
-    if (await exists(path)) {
-      await noSymlinks(outputRoot, path);
-      await Deno.remove(path);
+export const clearOwned = __metrics.wrapAsync(
+  {
+    id: "project-download.infrastructure.runtime.clearOwned",
+    kind: "io",
+  },
+  async function clearOwned(root: string, output: string): Promise<void> {
+    const outputRoot = resolve(root, output);
+    const directory = child(outputRoot, "_downloads");
+    if (!(await exists(directory))) return;
+    if ((await Deno.lstat(outputRoot)).isSymlink) {
+      throw diagnostic(
+        "DOWNLOAD.PATH_INVALID",
+        "Каталог вывода не должен быть символической ссылкой",
+        { source: outputRoot, field: "output-dir" },
+      );
     }
-  }
-  await Deno.remove(manifest);
-});
+    await noSymlinks(outputRoot, directory);
+    const manifest = join(directory, manifestName);
+    if (!(await exists(manifest))) return;
+    await noSymlinks(outputRoot, manifest);
+    const files: unknown = JSON.parse(await Deno.readTextFile(manifest));
+    if (
+      !Array.isArray(files) ||
+      !files.every(
+        (name): name is string => typeof name === "string" && archiveName(name),
+      )
+    ) {
+      throw diagnostic(
+        "DOWNLOAD.REQUEST_INVALID",
+        "Повреждён перечень файлов project-download",
+        { source: manifest, field: "manifest" },
+      );
+    }
+    for (const name of files) {
+      const path = join(directory, name);
+      if (await exists(path)) {
+        await noSymlinks(outputRoot, path);
+        await Deno.remove(path);
+      }
+    }
+    await Deno.remove(manifest);
+  },
+);
 /** Удаляет только временные заявки перед новым render. */
-export const resetDownloadRequests = __metrics.wrapAsync({
-  id: "project-download.infrastructure.runtime.resetDownloadRequests",
-  kind: "io",
-}, async function resetDownloadRequests(root: string): Promise<void> {
-  const requests = child(root, "_generated/project-download/requests");
-  if (await exists(requests)) {
-    await noSymlinks(root, requests);
-    await Deno.remove(requests, { recursive: true });
-  }
-});
+export const resetDownloadRequests = __metrics.wrapAsync(
+  {
+    id: "project-download.infrastructure.runtime.resetDownloadRequests",
+    kind: "io",
+  },
+  async function resetDownloadRequests(root: string): Promise<void> {
+    const requests = child(root, "_generated/project-download/requests");
+    if (await exists(requests)) {
+      await noSymlinks(root, requests);
+      await Deno.remove(requests, { recursive: true });
+    }
+  },
+);
 /** Адреса и содержимое выдачи; Native context принадлежит Core. */
 export interface NativeDownloadOptions {
   destinationDirectory?: string | undefined;
@@ -304,25 +312,31 @@ export interface PreparedDownloads {
 }
 async function inputFiles(root: string) {
   const file = Deno.env.get("QUARTO_USE_FILE_FOR_PROJECT_INPUT_FILES");
-  return (file
-    ? await Deno.readTextFile(file)
-    : Deno.env.get("QUARTO_PROJECT_INPUT_FILES") || "").split(/\r?\n/).filter(
-      Boolean,
-    ).map((path) => relative(root, resolve(root, path)).replaceAll("\\", "/"));
+  return (
+    file
+      ? await Deno.readTextFile(file)
+      : Deno.env.get("QUARTO_PROJECT_INPUT_FILES") || ""
+  )
+    .split(/\r?\n/)
+    .filter(Boolean)
+    .map((path) => relative(root, resolve(root, path)).replaceAll("\\", "/"));
 }
-export const finish = __metrics.wrapAsync({
-  id: "project-download.infrastructure.runtime.finish",
-  kind: "io",
-}, async function finish(
-  root: string,
-  options: OrdinaryDownloadOptions = {},
-): Promise<number> {
-  return await progress(`Финализация материалов: ${root}`, async () => {
-    const count = await finishInternal(root, options);
-    reportProgress(`Финализация материалов — archives=${count}`);
-    return count;
-  });
-});
+export const finish = __metrics.wrapAsync(
+  {
+    id: "project-download.infrastructure.runtime.finish",
+    kind: "io",
+  },
+  async function finish(
+    root: string,
+    options: OrdinaryDownloadOptions = {},
+  ): Promise<number> {
+    return await progress(`Финализация материалов: ${root}`, async () => {
+      const count = await finishInternal(root, options);
+      reportProgress(`Финализация материалов — archives=${count}`);
+      return count;
+    });
+  },
+);
 /** Все Core-bound helpers завершаются до возврата Download-owned draft. */
 export async function prepareNativeDownloads(
   publication: NativePublication,
@@ -353,7 +367,9 @@ async function finishInternal(
   } catch (cause) {
     try {
       await draft.discard();
-    } catch { /* Исходная ошибка публикации важнее cleanup. */ }
+    } catch {
+      /* Исходная ошибка публикации важнее cleanup. */
+    }
     throw cause;
   }
 }
@@ -374,13 +390,14 @@ async function prepareDownloadsInternal(
     let sources: string[] = [];
     let inspected: Awaited<ReturnType<typeof inspect>> | undefined;
     await progress("Чтение проекта", async () => {
-      sources = operation?.catalog.documents.map((d) => d.source) ??
-        await inputFiles(root);
+      sources =
+        operation?.catalog.documents.map((d) => d.source) ??
+        (await inputFiles(root));
       // Standalone без native hook env сохраняет обычный independent сценарий.
       if (!operation) {
         inspected = await inspect(root);
         sources = inspected.files.input.map((path: string) =>
-          relative(root, path).replaceAll("\\", "/")
+          relative(root, path).replaceAll("\\", "/"),
         );
         resolvedOutput ||= outputDirectory(inspected.config);
       }
@@ -389,15 +406,14 @@ async function prepareDownloadsInternal(
       sources.map((source: string) => resolve(root, source)),
     );
     if (inspected) await addAuthoredInputs(root, inspected, authoredInputs);
-    const owned = await progress(
-      "Чтение заявок",
-      () => inspectOwnedRequests(root, sources),
+    const owned = await progress("Чтение заявок", () =>
+      inspectOwnedRequests(root, sources),
     );
     const requests = owned.files;
     const configs = requests.map((request) =>
       configuration(
         request.configuration ?? inspected?.config["project-download"],
-      )
+      ),
     );
     const config = configuration({
       resources: {},
@@ -422,11 +438,12 @@ async function prepareDownloadsInternal(
       (request.artifacts ?? []).map((artifact) => ({
         ...artifact,
         source: request.source,
-      }))
+      })),
     );
-    const authorStarter = operation?.identity.projection === "author"
-      ? artifacts.find((request) => request.kind === "starter")
-      : undefined;
+    const authorStarter =
+      operation?.identity.projection === "author"
+        ? artifacts.find((request) => request.kind === "starter")
+        : undefined;
     if (authorStarter) {
       throw diagnostic(
         "DOWNLOAD.STARTER_UNQUALIFIED",
@@ -444,11 +461,13 @@ async function prepareDownloadsInternal(
       await publish(config, profiles, {
         requests: () => Promise.resolve(requests),
         courseResource: (id, source) => {
-          return Promise.reject(diagnostic(
-            "DOWNLOAD.REQUEST_INVALID",
-            "Учебный проект требует typed artifact request",
-            { id, source, field: "artifacts" },
-          ));
+          return Promise.reject(
+            diagnostic(
+              "DOWNLOAD.REQUEST_INVALID",
+              "Учебный проект требует typed artifact request",
+              { id, source, field: "artifacts" },
+            ),
+          );
         },
         async modelArtifact(request, source) {
           if (!current) {
@@ -460,8 +479,9 @@ async function prepareDownloadsInternal(
           }
           const { publication: operation, Core } = current;
           if (
-            !configs[requests.findIndex((r) => r.source === source)]
-              ?.["course-model"]
+            !configs[requests.findIndex((r) => r.source === source)]?.[
+              "course-model"
+            ]
           ) {
             throw diagnostic(
               "DOWNLOAD.CONFIG_INVALID",
@@ -479,9 +499,11 @@ async function prepareDownloadsInternal(
           if (
             request.kind === "full" &&
             operation.identity.projection === "student" &&
-            !(declaration?.["course-role"] === "demonstration" &&
+            !(
+              declaration?.["course-role"] === "demonstration" &&
               declaration?.["statement-visibility"] === "open" &&
-              document.hasPublicSolution[request.exerciseId])
+              document.hasPublicSolution[request.exerciseId]
+            )
           ) {
             throw diagnostic(
               "DOWNLOAD.FULL_UNQUALIFIED",
@@ -491,11 +513,11 @@ async function prepareDownloadsInternal(
           }
           // Core строит catalog из тех же visible occurrences: успешные
           // document/condition выше уже установили наличие source и exercise.
-          const catalogDocument = operation.catalog.documents.find((d) =>
-            d.source === source
+          const catalogDocument = operation.catalog.documents.find(
+            (d) => d.source === source,
           )!;
-          const exercise = catalogDocument.exercises.find((e) =>
-            e.id === request.exerciseId
+          const exercise = catalogDocument.exercises.find(
+            (e) => e.id === request.exerciseId,
           )!;
           const context = contexts.get(
             catalogDocument.format + ":" + exercise?.project,
@@ -507,12 +529,13 @@ async function prepareDownloadsInternal(
               { source, id: request.exerciseId, field: "project" },
             );
           }
-          const audience = request.kind === "full" ||
-                operation.identity.projection === "author"
-              ? "full"
-              : "student",
-            key = catalogDocument.format + ":" + exercise.project + ":" +
-              audience;
+          const audience =
+              request.kind === "full" ||
+              operation.identity.projection === "author"
+                ? "full"
+                : "student",
+            key =
+              catalogDocument.format + ":" + exercise.project + ":" + audience;
           let plan = plans.get(key);
           if (!plan) {
             plan = await progress(
@@ -523,10 +546,10 @@ async function prepareDownloadsInternal(
           }
           const preparedPlan = plan;
           const QRC = await sibling("reference-catalog");
-          const baseUrl = options.baseUrl ||
-            Deno.env.get("COURSE_SITE_PUBLICATION_BASE") || configs.find((c) =>
-              c["base-url"]
-            )?.["base-url"];
+          const baseUrl =
+            options.baseUrl ||
+            Deno.env.get("COURSE_SITE_PUBLICATION_BASE") ||
+            configs.find((c) => c["base-url"])?.["base-url"];
           if (!baseUrl) {
             throw diagnostic(
               "DOWNLOAD.PUBLICATION_REQUIRED",
@@ -539,12 +562,11 @@ async function prepareDownloadsInternal(
             () => Core.materializationClosure(preparedPlan, condition),
           );
           const destination = {
-            catalog: options.referenceCatalog ??
-              {
-                schema: "quarto-reference-catalog",
-                generator: { quarto: "1.11.5" },
-                targets: {},
-              },
+            catalog: options.referenceCatalog ?? {
+              schema: "quarto-reference-catalog",
+              generator: { quarto: "1.11.5" },
+              targets: {},
+            },
             baseUrl,
             ...(options.catalogBaseUrl === undefined
               ? {}
@@ -560,26 +582,25 @@ async function prepareDownloadsInternal(
             artifacts,
             config,
           });
-          const materialize = request.kind === "conditions"
-            ? Core.materializeCondition
-            : Core.materializeProject;
+          const materialize =
+            request.kind === "conditions"
+              ? Core.materializeCondition
+              : Core.materializeProject;
           const artifact = await progress(
             `Материализация: ${source} / ${request.exerciseId} (${request.kind})`,
             () =>
               materialize(preparedPlan, condition, {
                 linksBySource,
                 referencesBySource,
-                submission: options.submission ??
-                  {
-                    files: [],
-                    instructions:
-                      "Сдайте исходники способом, указанным преподавателем.",
-                  },
+                submission: options.submission ?? {
+                  files: [],
+                  instructions:
+                    "Сдайте исходники способом, указанным преподавателем.",
+                },
               }),
           );
-          const { packageArtifact } = await import(
-            "../application/package-artifact.ts"
-          );
+          const { packageArtifact } =
+            await import("../application/package-artifact.ts");
           return {
             kind: request.kind,
             files: artifact.files.map((f) => ({
@@ -607,8 +628,9 @@ async function prepareDownloadsInternal(
           for (const file of files) {
             const path = join(resource.path.replace(/^\//, ""), file.name);
             if (
-              /(^|\/)(?:\.[^/]+|_extensions|_freeze|_generated|reference|solutions?|tests|closed-tests)(\/|$)/
-                .test(path) ||
+              /(^|\/)(?:\.[^/]+|_extensions|_freeze|_generated|reference|solutions?|tests|closed-tests)(\/|$)/.test(
+                path,
+              ) ||
               /\.(?:qmd|rmd|ipynb)$/i.test(path) ||
               /(^|\/)(?:_quarto(?:[-.][^/]*)?|_metadata\.ya?ml)$/i.test(path) ||
               authoredInputs.has(resolve(root, path))
@@ -630,15 +652,13 @@ async function prepareDownloadsInternal(
     if (!operation) return await pack();
     const projectRequests = new Map<string, Set<string>>();
     for (const artifact of artifacts) {
-      const doc = operation.catalog.documents.find((d) =>
-        d.source === artifact.source
+      const doc = operation.catalog.documents.find(
+        (d) => d.source === artifact.source,
       );
       if (doc) {
-        for (
-          const exercise of doc.exercises.filter((e) =>
-            e.id === artifact.exerciseId
-          )
-        ) {
+        for (const exercise of doc.exercises.filter(
+          (e) => e.id === artifact.exerciseId,
+        )) {
           if (exercise.project) {
             let inputs = projectRequests.get(doc.format);
             if (!inputs) {
@@ -662,7 +682,8 @@ async function prepareDownloadsInternal(
           for (const group of batch.groups) {
             for (const context of group.contexts) {
               contexts.set(
-                context.format + ":" +
+                context.format +
+                  ":" +
                   relative(root, context.input).replaceAll("\\", "/"),
                 context,
               );
@@ -725,7 +746,7 @@ async function publishArchives(
 ) {
   return await progress("Запись файлов", async () => {
     let existingParent = resolve(root, output);
-    while (!await exists(existingParent)) {
+    while (!(await exists(existingParent))) {
       existingParent = dirname(existingParent);
     }
     await noSymlinks("/", existingParent);
@@ -737,7 +758,8 @@ async function publishArchives(
     const outputRoot = resolve(root, output);
     const directory = child(outputRoot, "_downloads");
     if (
-      await exists(outputRoot) && (await Deno.lstat(outputRoot)).isSymlink
+      (await exists(outputRoot)) &&
+      (await Deno.lstat(outputRoot)).isSymlink
     ) {
       throw diagnostic(
         "DOWNLOAD.PATH_INVALID",

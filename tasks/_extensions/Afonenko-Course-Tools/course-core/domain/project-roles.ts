@@ -5,10 +5,8 @@ export type ProjectFileRole = {
   public: boolean;
   reason: string;
 };
-const inside = (root: string, path: string) =>
-  path === root || path.startsWith(root + "/");
-const invalid = (message: string): never =>
-  fail("BODY.ASSIGNMENT_PROJECT_PLANS", message);
+const inside = (root: string, path: string) => path === root || path.startsWith(root + "/");
+const invalid = (message: string): never => fail("BODY.ASSIGNMENT_PROJECT_PLANS", message);
 /** Роли одного проекта; policy общая для ordinary и assignment выдачи. */
 export function projectFileRoles(
   paths: readonly { field: string; path: string }[],
@@ -37,10 +35,8 @@ export function projectFileRoles(
         reason: field,
       };
     }
-    if (
-      field.startsWith("build.files.") ||
-      ["instructions.gradle.path", "instructions.local.path"].includes(field)
-    ) return { path, tree: false, public: true, reason: field };
+    if (field.startsWith("build.files.") || ["instructions.gradle.path", "instructions.local.path"].includes(field))
+      return { path, tree: false, public: true, reason: field };
     return invalid("Неизвестная роль файла " + field);
   });
 }
@@ -55,43 +51,27 @@ export function projectRolePredicate(
   for (const row of ordered) {
     while (stack.length && !inside(stack.at(-1)!.path, row.path)) stack.pop();
     for (const ancestor of stack) {
-      if (
-        ancestor.public !== row.public &&
-        (ancestor.tree || ancestor.path === row.path)
-      ) {
-        invalid(
-          "Конфликт публичной и закрытой роли: " + ancestor.path + " / " +
-            row.path,
-        );
+      if (ancestor.public !== row.public && (ancestor.tree || ancestor.path === row.path)) {
+        invalid("Конфликт публичной и закрытой роли: " + ancestor.path + " / " + row.path);
       }
     }
     stack.push(row);
   }
   const lexicalClosed = (path: string) =>
-    roles.some((r) =>
-      !r.public && (path === r.path || r.tree && inside(r.path, path))
-    );
+    roles.some((r) => !r.public && (path === r.path || (r.tree && inside(r.path, path))));
   const identities = new Map<string, Set<string>>();
   for (const row of sourceFiles) {
     const known = identities.get(row.path) ?? new Set<string>();
     known.add(row.identity);
     identities.set(row.path, known);
   }
-  const closedIdentities = new Set(
-    sourceFiles.filter((row) => lexicalClosed(row.path)).map((row) =>
-      row.identity
-    ),
-  );
+  const closedIdentities = new Set(sourceFiles.filter((row) => lexicalClosed(row.path)).map((row) => row.identity));
   for (const row of sourceFiles) {
     if (
       closedIdentities.has(row.identity) &&
-      roles.some((r) =>
-        r.public && (row.path === r.path || r.tree && inside(r.path, row.path))
-      )
+      roles.some((r) => r.public && (row.path === r.path || (r.tree && inside(r.path, row.path))))
     ) {
-      invalid(
-        "Конфликт physical alias публичной и закрытой роли " + row.path,
-      );
+      invalid("Конфликт physical alias публичной и закрытой роли " + row.path);
     }
   }
   const assertIdentity = (identity: string) => {
@@ -100,28 +80,15 @@ export function projectRolePredicate(
     }
   };
   const assertPath = (path: string) => {
-    if (
-      [...(identities.get(path) ?? [])].some((id) => closedIdentities.has(id))
-    ) {
-      fail(
-        "BODY.RESOURCE_PRIVATE_ROLE",
-        "Physical alias закрытого A1 роль " + path,
-      );
+    if ([...(identities.get(path) ?? [])].some((id) => closedIdentities.has(id))) {
+      fail("BODY.RESOURCE_PRIVATE_ROLE", "Physical alias закрытого A1 роль " + path);
     }
 
-    if (
-      roles.some((r) =>
-        !r.public && (path === r.path || r.tree && inside(r.path, path))
-      )
-    ) fail("BODY.RESOURCE_PRIVATE_ROLE", "Закрытый declared A1 роль " + path);
-    const known = roles.some((r) =>
-      r.public && (path === r.path || r.tree && inside(r.path, path))
-    );
+    if (roles.some((r) => !r.public && (path === r.path || (r.tree && inside(r.path, path)))))
+      fail("BODY.RESOURCE_PRIVATE_ROLE", "Закрытый declared A1 роль " + path);
+    const known = roles.some((r) => r.public && (path === r.path || (r.tree && inside(r.path, path))));
     if (!known && projectRoots.some((root) => inside(root, path))) {
-      fail(
-        "BODY.RESOURCE_ROLE_UNPROVEN",
-        "Нет публичной роли внутри declared project " + path,
-      );
+      fail("BODY.RESOURCE_ROLE_UNPROVEN", "Нет публичной роли внутри declared project " + path);
     }
   };
   return Object.assign(assertPath, { assertIdentity });

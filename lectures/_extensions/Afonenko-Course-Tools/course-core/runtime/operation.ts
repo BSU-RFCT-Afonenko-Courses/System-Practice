@@ -4,14 +4,8 @@ export { decodeNativeOwnerInspection } from "../infrastructure/native-owner-insp
 export type { NativeOwnerInspection } from "../infrastructure/native-owner-inspection.ts";
 import { finishedNativeResource } from "./native-output-resources.ts";
 import { NativeProjectFactsCaptureSchema } from "../document/project-facts.ts";
-import {
-  NativePreparedOperationSchema,
-  withPreparedLease,
-} from "./prepared-operation.ts";
-import type {
-  NativeCaptureScope,
-  NativePreparedLease,
-} from "./prepared-operation.ts";
+import { NativePreparedOperationSchema, withPreparedLease } from "./prepared-operation.ts";
+import type { NativeCaptureScope, NativePreparedLease } from "./prepared-operation.ts";
 import { assertAssignmentDeclarations } from "./assignment-declarations.ts";
 import {
   runAssignmentCaptureChild,
@@ -24,19 +18,12 @@ import { excluded, ownedPhysical, regular } from "./source-paths.ts";
 import { toolCachePath } from "../infrastructure/tool-cache.ts";
 import { nativeMetadata } from "../release/collect.ts";
 import { createNativePublication } from "../release/publication.ts";
-import type {
-  NativePublication,
-  NativePublicationSelection,
-} from "../release/publication.ts";
+import type { NativePublication, NativePublicationSelection } from "../release/publication.ts";
 import { dirname, join, relative, resolve } from "stdlib/path";
 // @deno-types="../vendor/zod/v4/index.d.ts"
 import { z } from "../vendor/zod/v4/index.js";
 import { fail } from "../contracts/project.ts";
-import {
-  decode,
-  EarlyDocumentSchema,
-  LateDocumentSchema,
-} from "../document/contracts.ts";
+import { decode, EarlyDocumentSchema, LateDocumentSchema } from "../document/contracts.ts";
 import { finalizeDocument } from "../document/finalize.ts";
 import { immutable } from "../document/condition.ts";
 import { safeParent } from "../artifacts/files.ts";
@@ -103,15 +90,14 @@ const nativeCaptureSchema = z.strictObject({
   ),
 });
 async function nativeFileSelection(root: string, key: string) {
-  const file = Deno.env.get(
-    key.replace("QUARTO_PROJECT_", "QUARTO_USE_FILE_FOR_PROJECT_"),
-  );
+  const file = Deno.env.get(key.replace("QUARTO_PROJECT_", "QUARTO_USE_FILE_FOR_PROJECT_"));
   const content = file ? await Deno.readTextFile(file) : Deno.env.get(key);
   return {
     explicitlyEmpty: content === "",
-    files: (content ?? "").split(/\r?\n/).filter(Boolean).map((p) =>
-      resolve(root, p)
-    ),
+    files: (content ?? "")
+      .split(/\r?\n/)
+      .filter(Boolean)
+      .map((p) => resolve(root, p)),
   };
 }
 async function envFiles(root: string, key: string) {
@@ -127,15 +113,15 @@ async function invalidateNoWorkHook(root: string) {
     "OPERATION_BINDING",
   );
   if (
-    nativeRoot !== root || await Deno.realPath(Deno.cwd()) !== root ||
-    !output || output !== resolve(output) ||
-    !output.startsWith(root + "/") || toolCachePath(root, output) ||
+    nativeRoot !== root ||
+    (await Deno.realPath(Deno.cwd())) !== root ||
+    !output ||
+    output !== resolve(output) ||
+    !output.startsWith(root + "/") ||
+    toolCachePath(root, output) ||
     Deno.env.get("COURSE_CORE_CAPTURE_TOKEN") !== undefined
   ) {
-    fail(
-      "OPERATION_BINDING",
-      "Zero-work требует обычного native hook owner/output без capture token",
-    );
+    fail("OPERATION_BINDING", "Zero-work требует обычного native hook owner/output без capture token");
   }
   await safeParent(output);
   const current = await readOptionalPointer(root);
@@ -143,33 +129,25 @@ async function invalidateNoWorkHook(root: string) {
   await ownedPhysical(root, relative(root, current.directory));
   try {
     await Deno.lstat(join(current.directory, "reservation.json"));
-    fail(
-      "OPERATION_BINDING",
-      "Zero-work не может инвалидировать capture reservation",
-    );
+    fail("OPERATION_BINDING", "Zero-work не может инвалидировать capture reservation");
   } catch (error) {
     if (!(error instanceof Deno.errors.NotFound)) throw error;
   }
   const state = decode(
     stateSchema,
-    await json(
-      await regular(
-        root,
-        relative(root, join(current.directory, "state.json")),
-      ),
-    ),
+    await json(await regular(root, relative(root, join(current.directory, "state.json")))),
     "OPERATION_BINDING",
   );
   if (
-    state.root !== root || state.operation !== current.operation ||
-    state.directory !== current.directory || state.assignment
-  ) fail("OPERATION_BINDING", "Zero-work не принадлежит ordinary operation");
+    state.root !== root ||
+    state.operation !== current.operation ||
+    state.directory !== current.directory ||
+    state.assignment
+  )
+    fail("OPERATION_BINDING", "Zero-work не принадлежит ordinary operation");
   await withWriter(root, async () => {
     if (!same(await readOptionalPointer(root), current)) {
-      fail(
-        "OPERATION_CHANGED",
-        "Operation pointer заменён во время zero-work hook",
-      );
+      fail("OPERATION_CHANGED", "Operation pointer заменён во время zero-work hook");
     }
     await Deno.remove(await regular(root, relative(root, pointer(root))));
   });
@@ -183,7 +161,9 @@ async function failReservation(r: Reservation) {
         await writePrivate(reservationPath(current), current);
       }
     });
-  } catch { /* A replaced pointer is never restored or removed. */ }
+  } catch {
+    /* A replaced pointer is never restored or removed. */
+  }
 }
 /** One bounded owner series; the first actual native pre supplies ordered profiles. */
 export async function withNativeCaptureScope<T>(
@@ -193,27 +173,16 @@ export async function withNativeCaptureScope<T>(
   prepared?: AssignmentAdmission,
 ): Promise<T> {
   if (prepared) consumeAssignmentAdmission(prepared);
-  const expected = decode(
-    NativeCaptureReservationSchema,
-    reservationValue,
-    "OPERATION_BINDING",
-  );
-  const options = decode(
-    NativeCaptureScopeOptionsSchema,
-    optionsValue,
-    "OPERATION_BINDING",
-  );
+  const expected = decode(NativeCaptureReservationSchema, reservationValue, "OPERATION_BINDING");
+  const options = decode(NativeCaptureScopeOptionsSchema, optionsValue, "OPERATION_BINDING");
   const root = expected.root;
   if (
-    await Deno.realPath(root) !== root ||
+    (await Deno.realPath(root)) !== root ||
     resolve(expected.outputDirectory) !== expected.outputDirectory ||
     !expected.outputDirectory.startsWith(root + "/") ||
     toolCachePath(root, expected.outputDirectory)
   ) {
-    fail(
-      "OPERATION_BINDING",
-      "Нужны canonical owner и отдельный native output",
-    );
+    fail("OPERATION_BINDING", "Нужны canonical owner и отдельный native output");
   }
   await safeParent(expected.outputDirectory);
   for (const source of options.expectedSources) await regular(root, source);
@@ -234,11 +203,7 @@ export async function withNativeCaptureScope<T>(
   await withWriter(root, async () => {
     // Existing private data must remain a recognized Core pointer.
     try {
-      nativePointer(
-        await json(await regular(root, relative(root, pointer(root)))),
-        root,
-        "Чужой private pointer",
-      );
+      nativePointer(await json(await regular(root, relative(root, pointer(root)))), root, "Чужой private pointer");
     } catch (e) {
       if (!(e instanceof Deno.errors.NotFound)) throw e;
     }
@@ -255,9 +220,7 @@ export async function withNativeCaptureScope<T>(
       outputDirectory: expected.outputDirectory,
       profiles: [...prepared.runtime.profiles],
       projection: "author",
-      captureWitnesses: Object.fromEntries(
-        prepared.inputs.map((source) => [source, crypto.randomUUID()]),
-      ),
+      captureWitnesses: Object.fromEntries(prepared.inputs.map((source) => [source, crypto.randomUUID()])),
       inputs: prepared.inputs,
       ownerInputs: [],
       assignment: {
@@ -280,11 +243,10 @@ export async function withNativeCaptureScope<T>(
       await writePrivate(reservationPath(reservation), reservation);
     });
   }
-  let live = true, running = false, failed = false;
-  async function captureInputs<R>(
-    sources: readonly string[],
-    runNative: (token: string) => Promise<R>,
-  ): Promise<R> {
+  let live = true,
+    running = false,
+    failed = false;
+  async function captureInputs<R>(sources: readonly string[], runNative: (token: string) => Promise<R>): Promise<R> {
     if (!live) fail("OPERATION_EXPIRED", "Scope callback завершён");
     if (failed || running) {
       failed = true;
@@ -300,9 +262,10 @@ export async function withNativeCaptureScope<T>(
       ).expectedSources;
       if (
         typeof runNative !== "function" ||
-        inputs.some((source) =>
-          !reservation.expectedSources.includes(source) ||
-          reservation.children.some((c) => c.inputs.includes(source))
+        inputs.some(
+          (source) =>
+            !reservation.expectedSources.includes(source) ||
+            reservation.children.some((c) => c.inputs.includes(source)),
         )
       ) {
         fail("OPERATION_BINDING", "Повторный/чужой scope input");
@@ -312,12 +275,15 @@ export async function withNativeCaptureScope<T>(
         await assertReservationCurrent(reservation);
         reservation = {
           ...reservation,
-          children: [...reservation.children, {
-            token,
-            inputs,
-            used: false,
-            posted: false,
-          }],
+          children: [
+            ...reservation.children,
+            {
+              token,
+              inputs,
+              used: false,
+              posted: false,
+            },
+          ],
         };
         await writePrivate(reservationPath(reservation), reservation);
       });
@@ -327,26 +293,24 @@ export async function withNativeCaptureScope<T>(
       // Prepared path supplies only the private guarded command closure below.
       const result = await runNative(token);
       if (!live || failed) {
-        fail(
-          "OPERATION_EXPIRED",
-          "Scope child истёк во время native command",
-        );
+        fail("OPERATION_EXPIRED", "Scope child истёк во время native command");
       }
       const current = await readReservation(root),
         child = current.children.at(-1);
       if (
-        current.operation !== operation || current.status !== "bound" ||
-        !child || child.token !== token || !same(child.inputs, inputs) ||
-        !child.used || !child.posted ||
+        current.operation !== operation ||
+        current.status !== "bound" ||
+        !child ||
+        child.token !== token ||
+        !same(child.inputs, inputs) ||
+        !child.used ||
+        !child.posted ||
         !same(current.expectedSources, reservation.expectedSources) ||
         current.children.length !== reservation.children.length
       ) {
         fail("OPERATION_INCOMPLETE", "Нет actual native child post");
       }
-      await regular(
-        root,
-        relative(root, join(directory, "child-" + token + ".json")),
-      );
+      await regular(root, relative(root, join(directory, "child-" + token + ".json")));
       reservation = current;
       return result;
     } catch (e) {
@@ -360,28 +324,17 @@ export async function withNativeCaptureScope<T>(
 
   let leasing = false;
   const scope: NativeCaptureScope = Object.freeze({
-    async captureInputs<R>(
-      sources: readonly string[],
-      run: (token: string) => Promise<R>,
-    ) {
+    async captureInputs<R>(sources: readonly string[], run: (token: string) => Promise<R>) {
       if (prepared) {
         failed = true;
         await failReservation(reservation);
-        fail(
-          "OPERATION_BINDING",
-          "Assignment capture требует live prepared lease/correlation",
-        );
+        fail("OPERATION_BINDING", "Assignment capture требует live prepared lease/correlation");
       }
       return captureInputs(sources, run);
     },
-    async withPreparedOperation<R>(
-      use: (lease: NativePreparedLease) => Promise<R>,
-    ): Promise<R> {
+    async withPreparedOperation<R>(use: (lease: NativePreparedLease) => Promise<R>): Promise<R> {
       if (!prepared || !preparedState) {
-        fail(
-          "OPERATION_BINDING",
-          "Prepared lease требует explicit new assignment",
-        );
+        fail("OPERATION_BINDING", "Prepared lease требует explicit new assignment");
       }
       if (!live) fail("OPERATION_EXPIRED", "Scope callback завершён");
       if (leasing || running || failed) {
@@ -413,18 +366,16 @@ export async function withNativeCaptureScope<T>(
           !["prepared", "bound"].includes(current.status) ||
           current.operation !== operation ||
           !same(current.expectedSources, prepared.inputs)
-        ) fail("OPERATION_CHANGED", "Prepared generation replaced/completed");
+        )
+          fail("OPERATION_CHANGED", "Prepared generation replaced/completed");
       };
       try {
         return await withPreparedLease(
           descriptor,
           guard,
           (sources, command) =>
-            captureInputs(
-              sources,
-              (token) =>
-                withAssignmentExecution(prepared.runtime, root, () =>
-                  runAssignmentCaptureChild(token, command), guard),
+            captureInputs(sources, (token) =>
+              withAssignmentExecution(prepared.runtime, root, () => runAssignmentCaptureChild(token, command), guard),
             ),
           async () => {
             failed = true;
@@ -440,18 +391,15 @@ export async function withNativeCaptureScope<T>(
   try {
     const result = await use(scope);
     if (
-      failed || running || leasing || reservation.status !== "bound" ||
-      !reservation.children.length || reservation.children.some((c) =>
-        !c.used || !c.posted
-      ) || !same(
-        [...new Set(reservation.children.flatMap((c) => c.inputs))].sort(),
-        [...reservation.expectedSources].sort(),
-      )
+      failed ||
+      running ||
+      leasing ||
+      reservation.status !== "bound" ||
+      !reservation.children.length ||
+      reservation.children.some((c) => !c.used || !c.posted) ||
+      !same([...new Set(reservation.children.flatMap((c) => c.inputs))].sort(), [...reservation.expectedSources].sort())
     ) {
-      fail(
-        "OPERATION_INCOMPLETE",
-        "Scope не охватывает все actual inputs/posts",
-      );
+      fail("OPERATION_INCOMPLETE", "Scope не охватывает все actual inputs/posts");
     }
     await sealCaptureScope(reservation);
     return result;
@@ -480,21 +428,17 @@ async function writePendingState(state: State) {
         capture: join(directory, String(index)),
         ...(state.assignment
           ? {
-            assignment: {
-              source: inputs[index]!,
-              assessments: state.assignment.assessments,
-            },
-          }
+              assignment: {
+                source: inputs[index]!,
+                assessments: state.assignment.assessments,
+              },
+            }
           : {}),
       }),
       { createNew: true, mode: 0o600 },
     );
   }
-  await Deno.writeTextFile(
-    join(directory, "state.json"),
-    JSON.stringify(state),
-    { createNew: true, mode: 0o600 },
-  );
+  await Deno.writeTextFile(join(directory, "state.json"), JSON.stringify(state), { createNew: true, mode: 0o600 });
 }
 
 /** Internal early TS filter: private current generation and actual active child. */
@@ -511,43 +455,37 @@ export async function assertNativeAssignmentCapture(
 ) {
   const source = intent.source;
   if (Deno.env.get("COURSE_CORE_TS_RUN")) {
-    fail(
-      "BODY.PRODUCER_INPUT_UNQUALIFIED",
-      "Manual transport не создаёт assignment producer",
-    );
+    fail("BODY.PRODUCER_INPUT_UNQUALIFIED", "Manual transport не создаёт assignment producer");
   }
   const { nativeAssignmentOwner } = await import("./assignment-admission.ts");
-  const root = nativeAssignmentOwner(
-    context.input,
-    source,
-    capture,
-    context.operation,
-  );
+  const root = nativeAssignmentOwner(context.input, source, capture, context.operation);
   const reservation = await readReservation(root),
     token = Deno.env.get("COURSE_CORE_CAPTURE_TOKEN");
   if (!token) fail("OPERATION_BINDING", "Нет live assignment child token");
   const child = activeChild(reservation, token);
-  const state = decode(
-    stateSchema,
-    await json(join(reservation.directory, "state.json")),
-    "OPERATION_BINDING",
-  );
+  const state = decode(stateSchema, await json(join(reservation.directory, "state.json")), "OPERATION_BINDING");
   const index = state.inputs.indexOf(source);
   if (
-    !state.assignment || reservation.status !== "bound" || !child.used ||
-    child.posted || !child.inputs.includes(source) ||
-    state.operation !== context.operation || state.root !== root ||
+    !state.assignment ||
+    reservation.status !== "bound" ||
+    !child.used ||
+    child.posted ||
+    !child.inputs.includes(source) ||
+    state.operation !== context.operation ||
+    state.root !== root ||
     state.directory !== reservation.directory ||
     state.outputDirectory !== reservation.outputDirectory ||
     state.projection !== context.projection ||
-    !same(state.profiles, context.profiles) || index < 0 ||
+    !same(state.profiles, context.profiles) ||
+    index < 0 ||
     capture !== join(state.directory, String(index)) ||
     state.captureWitnesses[source] !== context.captureWitness ||
     !same(intent.assessments, state.assignment.assessments) ||
     !same(state.inputs, reservation.expectedSources) ||
     !same(state.assignment.runtime.inputs, state.inputs) ||
     !same(state.assignment.runtime.profiles, state.profiles)
-  ) fail("OPERATION_BINDING", "Чужой/закрытый native assignment producer");
+  )
+    fail("OPERATION_BINDING", "Чужой/закрытый native assignment producer");
   await assertReservationCurrent(reservation);
   return root;
 }
@@ -563,44 +501,23 @@ function nativeProgressEnabled(): boolean {
     return false;
   }
 }
-async function nativeHookProgress(
-  stage: string,
-  root: string,
-  action: () => Promise<void>,
-) {
+async function nativeHookProgress(stage: string, root: string, action: () => Promise<void>) {
   if (!nativeProgressEnabled()) return await action();
   const started = performance.now();
   console.error(`Core: ${stage}: ${root} — начало`);
   try {
     await action();
-    console.error(
-      `Core: ${stage}: ${root} — готово (${
-        ((performance.now() - started) / 1000).toFixed(1)
-      } с)`,
-    );
+    console.error(`Core: ${stage}: ${root} — готово (${((performance.now() - started) / 1000).toFixed(1)} с)`);
   } catch (error) {
-    console.error(
-      `Core: ${stage}: ${root} — ошибка (${
-        ((performance.now() - started) / 1000).toFixed(1)
-      } с)`,
-    );
+    console.error(`Core: ${stage}: ${root} — ошибка (${((performance.now() - started) / 1000).toFixed(1)} с)`);
     throw error;
   }
 }
 /** Internal pre-render entrypoint; не экспортируется через public.ts. */
 export async function beginNativePreHook(root: string) {
-  return await nativeHookProgress(
-    "Подготовка модели",
-    root,
-    () => beginNativeOperationInternal(root, true),
-  );
+  return await nativeHookProgress("Подготовка модели", root, () => beginNativeOperationInternal(root, true));
 }
-async function admitNativeChild(
-  root: string,
-  token: string | undefined,
-  actualInputs: string[],
-  profiles: string[],
-) {
+async function admitNativeChild(root: string, token: string | undefined, actualInputs: string[], profiles: string[]) {
   let reservation: Reservation | undefined;
   if (token !== undefined) {
     reservation = await readReservation(root);
@@ -609,22 +526,15 @@ async function admitNativeChild(
       child.used ||
       !same([...child.inputs].sort(), [...actualInputs].sort()) ||
       resolve(Deno.cwd()) !== root ||
-      resolve(Deno.env.get("QUARTO_PROJECT_OUTPUT_DIR") || "") !==
-        reservation.outputDirectory
+      resolve(Deno.env.get("QUARTO_PROJECT_OUTPUT_DIR") || "") !== reservation.outputDirectory
     ) {
-      fail(
-        "OPERATION_BINDING",
-        "Native child inputs/owner/output/token отличаются",
-      );
+      fail("OPERATION_BINDING", "Native child inputs/owner/output/token отличаются");
     }
     if (reservation.status === "bound" || reservation.status === "prepared") {
-      const state = decode(
-        stateSchema,
-        await json(join(reservation.directory, "state.json")),
-        "OPERATION_BINDING",
-      );
+      const state = decode(stateSchema, await json(join(reservation.directory, "state.json")), "OPERATION_BINDING");
       if (
-        state.root !== root || state.directory !== reservation.directory ||
+        state.root !== root ||
+        state.directory !== reservation.directory ||
         state.operation !== reservation.operation ||
         state.outputDirectory !== reservation.outputDirectory ||
         state.projection !== reservation.projection ||
@@ -646,10 +556,7 @@ async function admitNativeChild(
           join(state.directory, "pre-" + token + ".metrics.json"),
           JSON.stringify(
             Object.fromEntries(
-              operationMetricKeys.map((key) => [
-                key,
-                observedDelta(state.metrics[key], baselineMetrics[key]),
-              ]),
+              operationMetricKeys.map((key) => [key, observedDelta(state.metrics[key], baselineMetrics[key])]),
             ),
           ),
           { createNew: true, mode: 0o600 },
@@ -669,14 +576,9 @@ async function beginNativeOperationInternal(root: string, nativeHook: boolean) {
       (Deno.env.get("QUARTO_PROFILE") || "").split(",").filter(Boolean),
       "OPERATION_BINDING",
     );
-    const selection = await nativeFileSelection(
-      root,
-      "QUARTO_PROJECT_INPUT_FILES",
-    );
+    const selection = await nativeFileSelection(root, "QUARTO_PROJECT_INPUT_FILES");
     if (nativeHook && nativeProgressEnabled()) {
-      console.error(
-        `Core: Подготовка модели — inputs=${selection.files.length}`,
-      );
+      console.error(`Core: Подготовка модели — inputs=${selection.files.length}`);
     }
     if (nativeHook && selection.explicitlyEmpty) {
       await invalidateNoWorkHook(root);
@@ -691,21 +593,14 @@ async function beginNativeOperationInternal(root: string, nativeHook: boolean) {
       fail("OPERATION_BINDING", "Нет уникальных текущих native inputs");
     }
     const token = Deno.env.get("COURSE_CORE_CAPTURE_TOKEN");
-    const previousPointer = token === undefined
-      ? await readOptionalPointer(root)
-      : undefined;
-    const { reservation, reused } = await admitNativeChild(
-      root,
-      token,
-      actualInputs,
-      profiles,
-    );
+    const previousPointer = token === undefined ? await readOptionalPointer(root) : undefined;
+    const { reservation, reused } = await admitNativeChild(root, token, actualInputs, profiles);
     if (reused) return;
     const operation = reservation?.operation ?? crypto.randomUUID(),
       directory = reservation?.directory ?? join(base(root), operation);
     const inputs = reservation?.expectedSources ?? actualInputs;
-    let outputDirectory = reservation?.outputDirectory ??
-      resolve(root, Deno.env.get("QUARTO_PROJECT_OUTPUT_DIR") || "_site");
+    let outputDirectory =
+      reservation?.outputDirectory ?? resolve(root, Deno.env.get("QUARTO_PROJECT_OUTPUT_DIR") || "_site");
     if (!outputDirectory.startsWith(root + "/")) {
       fail("OPERATION_BINDING", "Output вне owner");
     }
@@ -731,17 +626,10 @@ async function beginNativeOperationInternal(root: string, nativeHook: boolean) {
     };
     const owner = await inspectNativeOwner(root, profiles);
     state.metrics.inspectCalls++;
-    bindOwner(
-      state,
-      owner,
-      !!reservation,
-      Deno.env.get("QUARTO_PROJECT_OUTPUT_DIR"),
-    );
+    bindOwner(state, owner, !!reservation, Deno.env.get("QUARTO_PROJECT_OUTPUT_DIR"));
 
     if (reservation) await assertReservationCurrent(reservation);
-    state.captureWitnesses = Object.fromEntries(
-      inputs.map((source) => [source, crypto.randomUUID()]),
-    );
+    state.captureWitnesses = Object.fromEntries(inputs.map((source) => [source, crypto.randomUUID()]));
     const publish = async () => {
       if (reservation) await assertReservationCurrent(reservation);
       else if (!same(await readOptionalPointer(root), previousPointer)) {
@@ -754,27 +642,24 @@ async function beginNativeOperationInternal(root: string, nativeHook: boolean) {
         await writePrivate(reservationPath(reservation), reservation);
       } else {
         if (!same(await readOptionalPointer(root), previousPointer)) {
-          fail(
-            "OPERATION_CHANGED",
-            "Operation pointer заменён перед publication",
-          );
+          fail("OPERATION_CHANGED", "Operation pointer заменён перед publication");
         }
         await writePrivate(pointer(root), { operation, directory });
       }
     };
     await withWriter(root, publish);
   };
-  return await __createMetrics("course-core").wrapAsync({
-    id: "course-core.runtime.operation.beginNativeOperationInternal",
-    kind: "phase",
-    origin: "manual",
-  }, corePhaseAction)();
+  return await __createMetrics("course-core").wrapAsync(
+    {
+      id: "course-core.runtime.operation.beginNativeOperationInternal",
+      kind: "phase",
+      origin: "manual",
+    },
+    corePhaseAction,
+  )();
 }
 
-function capturedMediaSource(
-  state: State,
-  resource: z.output<typeof completeSchema>["resources"][number],
-) {
+function capturedMediaSource(state: State, resource: z.output<typeof completeSchema>["resources"][number]) {
   if (!resource.media) return undefined;
   const index = state.inputs.indexOf(resource.media.input);
   if (index < 0 || !resource.documents.includes(resource.media.input)) {
@@ -796,15 +681,15 @@ function localUses(value: unknown): string[] {
       return;
     }
     if (!record(value)) return;
-    const node = value, content = node.c;
+    const node = value,
+      content = node.c;
     if ((node.t === "Link" || node.t === "Image") && Array.isArray(content)) {
       const contents: unknown[] = content;
       const target: unknown = contents[2];
       const targets: unknown[] = Array.isArray(target) ? target : [];
       const url: unknown = targets[0];
-      if (
-        typeof url === "string" && !/^(?:[a-z][a-z0-9+.-]*:|\/\/|#)/i.test(url)
-      ) result.add(url.split(/[?#]/)[0] ?? "");
+      if (typeof url === "string" && !/^(?:[a-z][a-z0-9+.-]*:|\/\/|#)/i.test(url))
+        result.add(url.split(/[?#]/)[0] ?? "");
     }
     Object.values(node).forEach(visit);
   }
@@ -817,48 +702,25 @@ export async function finishNativeOperation(root: string) {
 }
 /** Internal post-render entrypoint; no-work не создаёт complete.json. */
 export async function finishNativePostHook(root: string) {
-  return await nativeHookProgress(
-    "Финализация модели",
-    root,
-    () => finishNativeOperationInternal(root, true),
-  );
+  return await nativeHookProgress("Финализация модели", root, () => finishNativeOperationInternal(root, true));
 }
-async function finishNativeOperationInternal(
-  root: string,
-  nativeHook: boolean,
-) {
+async function finishNativeOperationInternal(root: string, nativeHook: boolean) {
   const corePhaseAction = async function finishNativeOperationInternalPhase() {
     root = await Deno.realPath(root);
-    const selection = nativeHook
-      ? await nativeFileSelection(root, "QUARTO_PROJECT_OUTPUT_FILES")
-      : undefined;
+    const selection = nativeHook ? await nativeFileSelection(root, "QUARTO_PROJECT_OUTPUT_FILES") : undefined;
     if (selection && nativeProgressEnabled()) {
-      console.error(
-        `Core: Финализация модели — outputs=${selection.files.length}`,
-      );
+      console.error(`Core: Финализация модели — outputs=${selection.files.length}`);
     }
     if (selection?.explicitlyEmpty) {
       await invalidateNoWorkHook(root);
       return;
     }
-    const active = nativePointer(
-      await json(pointer(root)),
-      root,
-      "Чужой private operation pointer",
-    );
-    const state = decode(
-      stateSchema,
-      await json(join(active.directory, "state.json")),
-      "OPERATION_BINDING",
-    );
-    if (
-      state.root !== root || state.directory !== active.directory ||
-      state.operation !== active.operation
-    ) fail("OPERATION_BINDING", "Чужой native post state");
+    const active = nativePointer(await json(pointer(root)), root, "Чужой private operation pointer");
+    const state = decode(stateSchema, await json(join(active.directory, "state.json")), "OPERATION_BINDING");
+    if (state.root !== root || state.directory !== active.directory || state.operation !== active.operation)
+      fail("OPERATION_BINDING", "Чужой native post state");
     const token = Deno.env.get("COURSE_CORE_CAPTURE_TOKEN");
-    const reservation = token !== undefined
-      ? await readReservation(root)
-      : undefined;
+    const reservation = token !== undefined ? await readReservation(root) : undefined;
     const child = reservation ? activeChild(reservation, token!) : undefined;
     if (child && (!child.used || reservation!.operation !== state.operation)) {
       fail("OPERATION_BINDING", "Незарегистрированный native post");
@@ -876,17 +738,13 @@ async function finishNativeOperationInternal(
       if (child) {
         state.metrics.childRenders++;
         try {
-          const delta = await json(
-            join(state.directory, "pre-" + token + ".metrics.json"),
-          );
+          const delta = await json(join(state.directory, "pre-" + token + ".metrics.json"));
           if (!record(delta)) {
             fail("OPERATION_BINDING", "Некорректные child metrics");
           }
           for (const key of operationMetricKeys) {
-            if (
-              typeof delta[key] !== "number" || !Number.isInteger(delta[key]) ||
-              delta[key] < 0
-            ) fail("OPERATION_BINDING", "Некорректные child metrics");
+            if (typeof delta[key] !== "number" || !Number.isInteger(delta[key]) || delta[key] < 0)
+              fail("OPERATION_BINDING", "Некорректные child metrics");
             if (typeof state.metrics[key] !== "number") {
               fail("METRICS_UNAVAILABLE", "Incomplete pending counters");
             }
@@ -899,14 +757,9 @@ async function finishNativeOperationInternal(
     }
     await collectChildMetrics();
     await assertPrivate(state);
-    if (
-      !same(
-        state.profiles,
-        (Deno.env.get("QUARTO_PROFILE") || "").split(",").filter(Boolean),
-      )
-    ) fail("OPERATION_BINDING", "Native profiles изменились между hooks");
-    const outputs = selection?.files ??
-      await envFiles(root, "QUARTO_PROJECT_OUTPUT_FILES");
+    if (!same(state.profiles, (Deno.env.get("QUARTO_PROFILE") || "").split(",").filter(Boolean)))
+      fail("OPERATION_BINDING", "Native profiles изменились между hooks");
+    const outputs = selection?.files ?? (await envFiles(root, "QUARTO_PROJECT_OUTPUT_FILES"));
     if (!outputs.length) {
       fail("OPERATION_INCOMPLETE", "Нет текущих native outputs");
     }
@@ -917,9 +770,7 @@ async function finishNativeOperationInternal(
     const declaredOutputs = new Set(outputs);
     const indexTopicMetadata = new Map<string, Record<string, unknown>>();
     const indexPages = new Map<string, string>();
-    const releaseDocuments: z.output<
-      typeof completeSchema
-    >["releaseDocuments"] = [];
+    const releaseDocuments: z.output<typeof completeSchema>["releaseDocuments"] = [];
     async function collectObservedResources(
       native: z.output<typeof nativeCaptureSchema>,
       source: string,
@@ -934,19 +785,14 @@ async function finishNativeOperationInternal(
         }
         const canonical = relative(
           root,
-          resolve(
-            use.startsWith("/") ? root : dirname(resolve(root, source)),
-            decoded.replace(/^\//, ""),
-          ),
+          resolve(use.startsWith("/") ? root : dirname(resolve(root, source)), decoded.replace(/^\//, "")),
         );
         if (!pathSchema.safeParse(canonical).success) {
           fail("RESOURCE_PATH", "Ресурс выходит из owner");
         }
         if (!ordinary(canonical) || toolCachePath(root, canonical)) continue;
         // Только фактическое native наблюдение разрешает relocated fallback.
-        const observed = native.resources.find((r) =>
-          resolve(r.source) === resolve(root, canonical)
-        );
+        const observed = native.resources.find((r) => resolve(r.source) === resolve(root, canonical));
         if (!observed) {
           try {
             await regular(root, canonical);
@@ -954,10 +800,7 @@ async function finishNativeOperationInternal(
             if (e instanceof Deno.errors.NotFound) continue;
             throw e;
           }
-          fail(
-            "RESOURCE_UNQUALIFIED",
-            "Ресурс отсутствует в native path observation",
-          );
+          fail("RESOURCE_UNQUALIFIED", "Ресурс отсутствует в native path observation");
         }
         const expectedOutput = resolve(state.outputDirectory, canonical);
         if (resolve(observed.output) !== expectedOutput) {
@@ -966,34 +809,22 @@ async function finishNativeOperationInternal(
         const existing = resources.find((r) => r.source === canonical);
         if (existing) {
           if (
-            (existing.media?.input !== undefined ||
-              observed.media !== undefined) && existing.media?.input !== source
+            (existing.media?.input !== undefined || observed.media !== undefined) &&
+            existing.media?.input !== source
           ) {
-            fail(
-              "RESOURCE_COLLISION",
-              "Один resource key имеет разные native mediabag origins",
-            );
+            fail("RESOURCE_COLLISION", "Один resource key имеет разные native mediabag origins");
           }
           if (!existing.documents.includes(source)) {
             existing.documents.push(source);
           }
           continue;
         }
-        const capturedSource = observed.media === undefined
-          ? undefined
-          : capture + ".media-" + observed.media;
-        const finished = await finishedNativeResource(
-          state,
-          canonical,
-          [],
-          capturedSource,
-        );
+        const capturedSource = observed.media === undefined ? undefined : capture + ".media-" + observed.media;
+        const finished = await finishedNativeResource(state, canonical, [], capturedSource);
         resources.push({
           source: canonical,
           documents: [source],
-          ...(observed.media === undefined
-            ? {}
-            : { media: { input: source, ordinal: observed.media } }),
+          ...(observed.media === undefined ? {} : { media: { input: source, ordinal: observed.media } }),
           ...finished,
         });
       }
@@ -1003,43 +834,35 @@ async function finishNativeOperationInternal(
       early: z.output<typeof EarlyDocumentSchema>,
       sourceInput: string,
     ) {
-      let projectFacts:
-        | z.output<typeof NativeProjectFactsCaptureSchema>
-        | undefined;
+      let projectFacts: z.output<typeof NativeProjectFactsCaptureSchema> | undefined;
       if (state.assignment) {
-        const projectFactsBytes = await Deno.readFile(
-          capture + ".project-facts.json",
-        );
+        const projectFactsBytes = await Deno.readFile(capture + ".project-facts.json");
         if (projectFactsBytes.length > 16 * 1024 * 1024) {
           fail("DOCUMENT_LIMIT", "Project facts больше16MiB");
         }
         state.metrics.nativeMetadataBytes += projectFactsBytes.length;
         projectFacts = decode(
           NativeProjectFactsCaptureSchema,
-          JSON.parse(
-            new TextDecoder("utf-8", { fatal: true }).decode(projectFactsBytes),
-          ),
+          JSON.parse(new TextDecoder("utf-8", { fatal: true }).decode(projectFactsBytes)),
           "BODY.PROJECT_FACTS_UNQUALIFIED",
         );
-        const declared = early.release?.declarations.filter((row) =>
-          row.project
-        ) ?? [];
+        const declared = early.release?.declarations.filter((row) => row.project) ?? [];
         if (
           !same(projectFacts.context, early.context) ||
           projectFacts.source !== sourceInput ||
           projectFacts.projects.length !== declared.length ||
-          projectFacts.projects.some((fact) =>
-            fact.source !== sourceInput || !declared.some((row) =>
-              row.id === fact.exerciseId &&
-              row.project === "/" + fact.projectRoot &&
-              row.check === fact.projectCheck
-            )
+          projectFacts.projects.some(
+            (fact) =>
+              fact.source !== sourceInput ||
+              !declared.some(
+                (row) =>
+                  row.id === fact.exerciseId &&
+                  row.project === "/" + fact.projectRoot &&
+                  row.check === fact.projectCheck,
+              ),
           )
         ) {
-          fail(
-            "BODY.PROJECT_FACTS_UNQUALIFIED",
-            "Foreign/incomplete preprojection Core project facts",
-          );
+          fail("BODY.PROJECT_FACTS_UNQUALIFIED", "Foreign/incomplete preprojection Core project facts");
         }
       }
       return projectFacts;
@@ -1050,60 +873,36 @@ async function finishNativeOperationInternal(
       format: string,
     ) {
       if (state.assignment) {
-        const nativeShare = resolve(
-          dirname(state.assignment.runtime.executable),
-          "../share",
-        );
-        assertAssignmentDeclarations(
-          native.assignmentDeclarations,
-          resolve(root, sourceInput),
-          {
-            root,
-            outputDirectory: state.outputDirectory,
-            xdg: state.assignment.runtime.environment.XDG_CACHE_HOME ??
-              join(state.assignment.runtime.environment.HOME ?? root, ".cache"),
-            nativeImplementation: (path: string) => {
-              if (
-                !path.startsWith(nativeShare + "/") || resolve(path) !== path
-              ) {
-                return false;
-              }
-              return true;
-            },
-            format: format,
-            outputs: declaredOutputs,
+        const nativeShare = resolve(dirname(state.assignment.runtime.executable), "../share");
+        assertAssignmentDeclarations(native.assignmentDeclarations, resolve(root, sourceInput), {
+          root,
+          outputDirectory: state.outputDirectory,
+          xdg:
+            state.assignment.runtime.environment.XDG_CACHE_HOME ??
+            join(state.assignment.runtime.environment.HOME ?? root, ".cache"),
+          nativeImplementation: (path: string) => {
+            if (!path.startsWith(nativeShare + "/") || resolve(path) !== path) {
+              return false;
+            }
+            return true;
           },
-        );
+          format: format,
+          outputs: declaredOutputs,
+        });
         state.metrics.nativeMetadataBytes += new TextEncoder().encode(
           JSON.stringify(native.assignmentDeclarations),
-        )
-          .length;
+        ).length;
       } else if (native.assignmentDeclarations) {
-        fail(
-          "BODY.PRODUCER_DEPENDENCY_UNQUALIFIED",
-          "Unexpected assignment declarations",
-        );
+        fail("BODY.PRODUCER_DEPENDENCY_UNQUALIFIED", "Unexpected assignment declarations");
       }
     }
     async function collectCapturedDocument(sourceInput: string) {
       const index = state.inputs.indexOf(sourceInput);
       if (index < 0) fail("OPERATION_BINDING", "Чужой child source");
       const capture = join(state.directory, String(index));
-      const early = decode(
-        EarlyDocumentSchema,
-        await json(capture + ".early.json"),
-        "OPERATION_INCOMPLETE",
-      );
-      const late = decode(
-        LateDocumentSchema,
-        await json(capture + ".late.json"),
-        "OPERATION_INCOMPLETE",
-      );
-      const native = decode(
-        nativeCaptureSchema,
-        await json(capture + ".native.json"),
-        "OPERATION_INCOMPLETE",
-      );
+      const early = decode(EarlyDocumentSchema, await json(capture + ".early.json"), "OPERATION_INCOMPLETE");
+      const late = decode(LateDocumentSchema, await json(capture + ".late.json"), "OPERATION_INCOMPLETE");
+      const native = decode(nativeCaptureSchema, await json(capture + ".native.json"), "OPERATION_INCOMPLETE");
       state.metrics.nativeMetadataBytes += new TextEncoder().encode(
         JSON.stringify(early.release?.nativeMetadata ?? {}),
       ).length;
@@ -1111,9 +910,7 @@ async function finishNativeOperationInternal(
       if (!captureWitness) {
         fail("OPERATION_BINDING", "Нет native capture witness");
       }
-      const nativeFormat = NativeWebFormatSchema.safeParse(
-        early.context.format,
-      );
+      const nativeFormat = NativeWebFormatSchema.safeParse(early.context.format);
       if (
         early.context.captureWitness !== captureWitness ||
         !same(early.context.profiles, state.profiles) ||
@@ -1121,7 +918,8 @@ async function finishNativeOperationInternal(
         early.context.input !== resolve(root, state.inputs[index]!) ||
         !nativeFormat.success ||
         early.context.projection !== state.projection
-      ) fail("OPERATION_BINDING", "Чужой native capture");
+      )
+        fail("OPERATION_BINDING", "Чужой native capture");
       const nativeContext = {
         ...early.context,
         captureWitness,
@@ -1140,17 +938,10 @@ async function finishNativeOperationInternal(
       const output = observedOutput.startsWith(state.outputDirectory + "/")
         ? observedOutput
         : observedOutput.startsWith(root + "/")
-        ? resolve(state.outputDirectory, relative(root, observedOutput))
-        : observedOutput;
-      if (
-        !outputs.includes(output) ||
-        !output.startsWith(state.outputDirectory + "/") ||
-        !output.endsWith(".html")
-      ) {
-        fail(
-          "OPERATION_BINDING",
-          "Документ не принадлежит текущему HTML output",
-        );
+          ? resolve(state.outputDirectory, relative(root, observedOutput))
+          : observedOutput;
+      if (!outputs.includes(output) || !output.startsWith(state.outputDirectory + "/") || !output.endsWith(".html")) {
+        fail("OPERATION_BINDING", "Документ не принадлежит текущему HTML output");
       }
       const outputPath = relative(root, output);
       await regular(root, outputPath);
@@ -1166,11 +957,7 @@ async function finishNativeOperationInternal(
       }
       indexTopicMetadata.set(state.inputs[index]!, early.ast.meta);
       outputRows.push({ path: outputPath });
-      const projectFacts = await collectCapturedProjectFacts(
-        capture,
-        early,
-        sourceInput,
-      );
+      const projectFacts = await collectCapturedProjectFacts(capture, early, sourceInput);
       releaseDocuments.push({
         ...(projectFacts ? { projectFacts } : {}),
         source: state.inputs[index]!,
@@ -1184,60 +971,42 @@ async function finishNativeOperationInternal(
         },
       });
       const source = state.inputs[index]!,
-        visibleIds = new Set(
-          document.occurrences.filter((r) => r.kind === "exercise").map((r) =>
-            r.exerciseId
-          ),
-        );
+        visibleIds = new Set(document.occurrences.filter((r) => r.kind === "exercise").map((r) => r.exerciseId));
       document.definitions = Object.fromEntries(
-        Object.entries(document.definitions).filter(([id]) =>
-          visibleIds.has(id)
-        ),
+        Object.entries(document.definitions).filter(([id]) => visibleIds.has(id)),
       );
       document.context = { ...document.context, input: source, defaults: {} };
-      documents.push(
-        decode(NativePublicDocumentSchema, document, "OPERATION_DOCUMENT"),
-      );
+      documents.push(decode(NativePublicDocumentSchema, document, "OPERATION_DOCUMENT"));
       const role = native.role;
       if (role !== "exercise-bank" && role !== "page") {
-        fail(
-          "OPERATION_UNQUALIFIED",
-          "Не квалифицирована native document role",
-        );
+        fail("OPERATION_UNQUALIFIED", "Не квалифицирована native document role");
       }
       catalogDocuments.push({
         source,
         output: relative(state.outputDirectory, output),
         format: nativeFormat.data,
         role,
-        exercises: document.occurrences.filter((r) => r.kind === "exercise")
-          .map(
-            (r) => ({
-              id: r.exerciseId,
-              occurrence: r.key,
-              anchor: r.anchor,
-              hasPublicSolution:
-                document.hasPublicSolution[r.exerciseId] === true,
-              ...(document.definitions[r.exerciseId]?.project
-                ? {
+        exercises: document.occurrences
+          .filter((r) => r.kind === "exercise")
+          .map((r) => ({
+            id: r.exerciseId,
+            occurrence: r.key,
+            anchor: r.anchor,
+            hasPublicSolution: document.hasPublicSolution[r.exerciseId] === true,
+            ...(document.definitions[r.exerciseId]?.project
+              ? {
                   project: relative(
                     root,
                     resolve(
-                      document.definitions[r.exerciseId]!.project!.startsWith(
-                          "/",
-                        )
+                      document.definitions[r.exerciseId]!.project!.startsWith("/")
                         ? root
                         : dirname(resolve(root, source)),
-                      document.definitions[r.exerciseId]!.project!.replace(
-                        /^\//,
-                        "",
-                      ),
+                      document.definitions[r.exerciseId]!.project!.replace(/^\//, ""),
                     ),
                   ),
                 }
-                : {}),
-            }),
-          ),
+              : {}),
+          })),
       });
       await collectObservedResources(native, source, capture);
     }
@@ -1247,14 +1016,9 @@ async function finishNativeOperationInternal(
     async function publishExerciseIndexes() {
       if (indexPages.size && !reservation) {
         if (!same([...inputs].sort(), [...state.ownerInputs].sort())) {
-          fail(
-            "RELEASE.FULL_NATIVE_RUN_REQUIRED",
-            "Указатель требует полной текущей native области",
-          );
+          fail("RELEASE.FULL_NATIVE_RUN_REQUIRED", "Указатель требует полной текущей native области");
         }
-        const { renderExerciseIndex } = await import(
-          "../../course-navigation/public.ts"
-        );
+        const { renderExerciseIndex } = await import("../../course-navigation/public.ts");
         const catalog = NativeCatalogSchema.parse({
           identity: {
             operation: state.operation,
@@ -1270,12 +1034,12 @@ async function finishNativeOperationInternal(
           const semester = nativeMetadata(metadata.semester);
           const categories = nativeMetadata(metadata.categories);
           if (
-            semester !== undefined && typeof semester !== "string" ||
-            categories !== undefined && (!Array.isArray(categories) ||
-                !categories.every((category): category is string =>
-                  typeof category === "string"
-                ))
-          ) throw Error("Invalid native index topic metadata: " + source);
+            (semester !== undefined && typeof semester !== "string") ||
+            (categories !== undefined &&
+              (!Array.isArray(categories) ||
+                !categories.every((category): category is string => typeof category === "string")))
+          )
+            throw Error("Invalid native index topic metadata: " + source);
           return { semester: semester ?? "", categories: categories ?? [] };
         };
         const indexDocuments = documents.map((doc) => ({
@@ -1283,63 +1047,55 @@ async function finishNativeOperationInternal(
           exercises: doc.occurrences.flatMap((occ) => {
             if (occ.kind !== "exercise") return [];
             const definition = doc.definitions[occ.exerciseId];
-            if (
-              !definition || doc.context.projection === "student" &&
-                definition["statement-visibility"] !== "open"
-            ) return [];
-            const captured = catalog.documents.find((row) =>
-              row.source === doc.context.input &&
-              row.format === doc.context.format
-            )?.exercises.find((row) => row.occurrence === occ.key);
+            if (!definition || (doc.context.projection === "student" && definition["statement-visibility"] !== "open"))
+              return [];
+            const captured = catalog.documents
+              .find((row) => row.source === doc.context.input && row.format === doc.context.format)
+              ?.exercises.find((row) => row.occurrence === occ.key);
             if (!captured) {
               fail("OPERATION_BINDING", "Нет current index occurrence");
             }
-            return [{
-              id: occ.exerciseId,
-              title: visibleTitle(occ.title).trim() || occ.exerciseId,
-              anchor: captured.anchor,
-              ...(definition["course-role"]
-                ? { role: definition["course-role"] }
-                : {}),
-              difficulty: definition.difficulty,
-              ...(definition.time !== undefined
-                ? { time: definition.time }
-                : {}),
-            }];
+            return [
+              {
+                id: occ.exerciseId,
+                title: visibleTitle(occ.title).trim() || occ.exerciseId,
+                anchor: captured.anchor,
+                ...(definition["course-role"] ? { role: definition["course-role"] } : {}),
+                difficulty: definition.difficulty,
+                ...(definition.time !== undefined ? { time: definition.time } : {}),
+              },
+            ];
           }),
         }));
         for (const [path, html] of indexPages) {
-          const rendered = html.replace(
-            /<!--course-exercise-index(?::(.*?))?-->/g,
-            (_marker, request) =>
-              renderExerciseIndex(
-                indexDocuments,
-                topicFor,
-                (source, anchor) => {
-                  const target = catalog.documents.find((doc) =>
-                    doc.source === source
-                  );
-                  if (!target) {
-                    fail("OPERATION_BINDING", "Нет current index target");
-                  }
-                  return relative(
-                    dirname(resolve(root, path)),
-                    resolve(state.outputDirectory, target.output),
-                  ).replaceAll("\\", "/") + "#" + anchor;
-                },
-                decodeIndexRequest(request),
-              ),
+          const rendered = html.replace(/<!--course-exercise-index(?::(.*?))?-->/g, (_marker, request) =>
+            renderExerciseIndex(
+              indexDocuments,
+              topicFor,
+              (source, anchor) => {
+                const target = catalog.documents.find((doc) => doc.source === source);
+                if (!target) {
+                  fail("OPERATION_BINDING", "Нет current index target");
+                }
+                return (
+                  relative(dirname(resolve(root, path)), resolve(state.outputDirectory, target.output)).replaceAll(
+                    "\\",
+                    "/",
+                  ) +
+                  "#" +
+                  anchor
+                );
+              },
+              decodeIndexRequest(request),
+            ),
           );
           await Deno.writeTextFile(resolve(root, path), rendered);
         }
       }
     }
     await publishExerciseIndexes();
-    if (
-      outputs.filter((p) => p.endsWith(".html")).some((p) =>
-        !outputRows.some((r) => resolve(root, r.path) === p)
-      )
-    ) fail("OPERATION_INCOMPLETE", "HTML output без Core capture");
+    if (outputs.filter((p) => p.endsWith(".html")).some((p) => !outputRows.some((r) => resolve(root, r.path) === p)))
+      fail("OPERATION_INCOMPLETE", "HTML output без Core capture");
 
     const identity = NativeOperationIdentitySchema.parse({
       operation: state.operation,
@@ -1359,10 +1115,7 @@ async function finishNativeOperationInternal(
       await assertPrivate(state);
       if (reservation) await assertReservationCurrent(reservation);
       await Deno.writeTextFile(
-        join(
-          state.directory,
-          reservation ? "child-" + token + ".json" : "complete.json",
-        ),
+        join(state.directory, reservation ? "child-" + token + ".json" : "complete.json"),
         JSON.stringify(complete),
         { createNew: true, mode: 0o600 },
       );
@@ -1371,30 +1124,29 @@ async function finishNativeOperationInternal(
         await writePrivate(reservationPath(reservation), reservation);
       }
     });
-    console.log(
-      `Core: ${documents.length} текущих native-ts ${state.projection} документов`,
-    );
+    console.log(`Core: ${documents.length} текущих native-ts ${state.projection} документов`);
   };
-  return await __createMetrics("course-core").wrapAsync({
-    id: "course-core.runtime.operation.finishNativeOperationInternal",
-    kind: "phase",
-    origin: "manual",
-  }, corePhaseAction)();
+  return await __createMetrics("course-core").wrapAsync(
+    {
+      id: "course-core.runtime.operation.finishNativeOperationInternal",
+      kind: "phase",
+      origin: "manual",
+    },
+    corePhaseAction,
+  )();
 }
 async function sealCaptureScope(reservation: Reservation) {
   const root = reservation.root;
-  const state = decode(
-    stateSchema,
-    await json(join(reservation.directory, "state.json")),
-    "OPERATION_BINDING",
-  );
+  const state = decode(stateSchema, await json(join(reservation.directory, "state.json")), "OPERATION_BINDING");
   if (
-    state.root !== root || state.directory !== reservation.directory ||
+    state.root !== root ||
+    state.directory !== reservation.directory ||
     state.operation !== reservation.operation ||
     state.outputDirectory !== reservation.outputDirectory ||
     state.projection !== reservation.projection ||
     !same(state.inputs, reservation.expectedSources)
-  ) fail("OPERATION_BINDING", "Чужой seal state");
+  )
+    fail("OPERATION_BINDING", "Чужой seal state");
   const baselineMetrics = { ...state.metrics };
   await assertPrivate(state);
   const children = [];
@@ -1402,15 +1154,7 @@ async function sealCaptureScope(reservation: Reservation) {
     children.push(
       decode(
         completeSchema,
-        await json(
-          await regular(
-            root,
-            relative(
-              root,
-              join(reservation.directory, "child-" + child.token + ".json"),
-            ),
-          ),
-        ),
+        await json(await regular(root, relative(root, join(reservation.directory, "child-" + child.token + ".json")))),
         "OPERATION_INCOMPLETE",
       ),
     );
@@ -1420,8 +1164,7 @@ async function sealCaptureScope(reservation: Reservation) {
     outputs = children.flatMap((c) => c.outputs),
     releaseDocuments = children.flatMap((c) => c.releaseDocuments);
   if (
-    new Set(documents.map((d) => d.context.input)).size !==
-      state.inputs.length ||
+    new Set(documents.map((d) => d.context.input)).size !== state.inputs.length ||
     documents.length !== state.inputs.length ||
     new Set(outputs.map((r) => r.path)).size !== outputs.length
   ) {
@@ -1436,15 +1179,12 @@ async function sealCaptureScope(reservation: Reservation) {
         projection: state.projection,
         runtime: "quarto-1.11.5",
       })
-    ) fail("OPERATION_BINDING", "Чужой child capture");
-    if (
-      !same(child.state.ownerWitness, state.ownerWitness)
-    ) fail("OPERATION_BINDING", "Child owner/S witness отличается");
+    )
+      fail("OPERATION_BINDING", "Чужой child capture");
+    if (!same(child.state.ownerWitness, state.ownerWitness))
+      fail("OPERATION_BINDING", "Child owner/S witness отличается");
     if (state.assignment) {
-      if (
-        !child.state.assignment ||
-        !same(state.assignment.assessments, child.state.assignment.assessments)
-      ) {
+      if (!child.state.assignment || !same(state.assignment.assessments, child.state.assignment.assessments)) {
         fail("OPERATION_BINDING", "Child assignment intent отличается");
       }
       if (!same(state.assignment.runtime, child.state.assignment.runtime)) {
@@ -1456,30 +1196,19 @@ async function sealCaptureScope(reservation: Reservation) {
     for (const resource of child.resources) {
       const known = resources.find((r) => r.source === resource.source);
       if (known) {
-        if (
-          (known.media || resource.media) && !same(known.media, resource.media)
-        ) {
-          fail(
-            "RESOURCE_COLLISION",
-            "Один resource key имеет разные native mediabag origins",
-          );
+        if ((known.media || resource.media) && !same(known.media, resource.media)) {
+          fail("RESOURCE_COLLISION", "Один resource key имеет разные native mediabag origins");
         }
-        known.documents = [
-          ...new Set([...known.documents, ...resource.documents]),
-        ];
-        known.sourceIdentities = [
-          ...new Set([...known.sourceIdentities, ...resource.sourceIdentities]),
-        ];
+        known.documents = [...new Set([...known.documents, ...resource.documents])];
+        known.sourceIdentities = [...new Set([...known.sourceIdentities, ...resource.sourceIdentities])];
       } else resources.push(resource);
     }
     for (const key of operationMetricKeys) {
       const previous = state.metrics[key],
         childValue = child.state.metrics[key],
         baseline = baselineMetrics[key];
-      if (
-        typeof previous !== "number" || typeof childValue !== "number" ||
-        typeof baseline !== "number"
-      ) fail("METRICS_UNAVAILABLE", "Incomplete child counters");
+      if (typeof previous !== "number" || typeof childValue !== "number" || typeof baseline !== "number")
+        fail("METRICS_UNAVAILABLE", "Incomplete child counters");
       state.metrics[key] = previous + childValue - baseline;
     }
   }
@@ -1515,11 +1244,10 @@ async function sealCaptureScope(reservation: Reservation) {
     reservation.status = "sealed";
     await writePrivate(reservationPath(reservation), reservation);
     complete.state.metrics = { ...state.metrics };
-    await Deno.writeTextFile(
-      join(state.directory, "complete.json"),
-      JSON.stringify(complete),
-      { createNew: true, mode: 0o600 },
-    );
+    await Deno.writeTextFile(join(state.directory, "complete.json"), JSON.stringify(complete), {
+      createNew: true,
+      mode: 0o600,
+    });
   });
 }
 async function assertReservationPhase(state: State, phase: "bound" | "sealed") {
@@ -1530,9 +1258,7 @@ async function assertReservationPhase(state: State, phase: "bound" | "sealed") {
     throw e;
   }
   const reservation = await readReservation(state.root);
-  if (
-    reservation.operation !== state.operation || reservation.status !== phase
-  ) {
+  if (reservation.operation !== state.operation || reservation.status !== phase) {
     fail("OPERATION_INCOMPLETE", "Capture scope не находится в требуемой фазе");
   }
   return reservation;
@@ -1542,34 +1268,20 @@ export async function withPendingNativeOperation<T>(
   expectationValue: NativePendingOperationExpectation,
   use: (operation: z.output<typeof NativePendingOperationSchema>) => Promise<T>,
 ): Promise<T> {
-  const expectation = decode(
-    NativePendingOperationExpectationSchema,
-    expectationValue,
-    "OPERATION_BINDING",
-  );
-  if (await Deno.realPath(expectation.root) !== expectation.root) {
+  const expectation = decode(NativePendingOperationExpectationSchema, expectationValue, "OPERATION_BINDING");
+  if ((await Deno.realPath(expectation.root)) !== expectation.root) {
     fail("OPERATION_BINDING", "Не canonical owner");
   }
   let active: { operation: string; directory: string }, state: State;
   try {
     active = nativePointer(
-      await json(
-        await regular(
-          expectation.root,
-          relative(expectation.root, pointer(expectation.root)),
-        ),
-      ),
+      await json(await regular(expectation.root, relative(expectation.root, pointer(expectation.root)))),
       expectation.root,
       "Чужой pending pointer",
     );
     state = decode(
       stateSchema,
-      await json(
-        await regular(
-          expectation.root,
-          relative(expectation.root, join(active.directory, "state.json")),
-        ),
-      ),
+      await json(await regular(expectation.root, relative(expectation.root, join(active.directory, "state.json")))),
       "OPERATION_INCOMPLETE",
     );
   } catch (error) {
@@ -1579,30 +1291,30 @@ export async function withPendingNativeOperation<T>(
     throw error;
   }
   if (
-    state.root !== expectation.root || state.operation !== active.operation ||
+    state.root !== expectation.root ||
+    state.operation !== active.operation ||
     state.directory !== active.directory ||
     !same(state.profiles, expectation.profiles) ||
     state.projection !== expectation.projection ||
     state.outputDirectory !== expectation.outputDirectory
   ) {
-    fail(
-      "OPERATION_BINDING",
-      "Pending owner/profile/projection/output отличаются",
-    );
+    fail("OPERATION_BINDING", "Pending owner/profile/projection/output отличаются");
   }
   await assertReservationPhase(state, "bound");
-  const descriptor = immutable(NativePendingOperationSchema.parse({
-    identity: {
-      operation: state.operation,
-      profiles: state.profiles,
-      projection: state.projection,
-      runtime: "quarto-1.11.5",
-    },
-    inputs: state.inputs.map((source) => ({
-      source,
-      captureWitness: state.captureWitnesses[source],
-    })),
-  }));
+  const descriptor = immutable(
+    NativePendingOperationSchema.parse({
+      identity: {
+        operation: state.operation,
+        profiles: state.profiles,
+        projection: state.projection,
+        runtime: "quarto-1.11.5",
+      },
+      inputs: state.inputs.map((source) => ({
+        source,
+        captureWitness: state.captureWitnesses[source],
+      })),
+    }),
+  );
   let live = true;
   const syncGuard = () => {
     if (!live) fail("OPERATION_EXPIRED", "Pending callback завершён");
@@ -1641,10 +1353,7 @@ export async function withCurrentNativeOperation<T>(
   expectationValue: NativeOperationExpectation,
   use: (operation: ReturnType<typeof publicOperation>) => Promise<T>,
 ): Promise<T> {
-  return await withCapturedOperation(
-    expectationValue,
-    (operation) => use(operation),
-  );
+  return await withCapturedOperation(expectationValue, (operation) => use(operation));
 }
 
 /** Обычная публикация; full course grading/seed admission сюда не входит. */
@@ -1663,30 +1372,17 @@ async function withCapturedOperation<T>(
   expectationValue: NativeOperationExpectation,
   use: (
     operation: ReturnType<typeof publicOperation>,
-    publication: (
-      selection: NativePublicationSelection,
-    ) => Promise<NativePublication>,
+    publication: (selection: NativePublicationSelection) => Promise<NativePublication>,
   ) => Promise<T>,
 ): Promise<T> {
-  const expectation = decode(
-    NativeOperationExpectationSchema,
-    expectationValue,
-    "OPERATION_BINDING",
-  );
-  if (await Deno.realPath(expectation.root) !== expectation.root) {
+  const expectation = decode(NativeOperationExpectationSchema, expectationValue, "OPERATION_BINDING");
+  if ((await Deno.realPath(expectation.root)) !== expectation.root) {
     fail("OPERATION_BINDING", "Не canonical owner");
   }
   let active: { operation: string; directory: string };
   try {
-    await regular(
-      expectation.root,
-      relative(expectation.root, pointer(expectation.root)),
-    );
-    active = nativePointer(
-      await json(pointer(expectation.root)),
-      expectation.root,
-      "Неверный operation pointer",
-    );
+    await regular(expectation.root, relative(expectation.root, pointer(expectation.root)));
+    active = nativePointer(await json(pointer(expectation.root)), expectation.root, "Неверный operation pointer");
   } catch (error) {
     if (error instanceof Deno.errors.NotFound) {
       fail("OPERATION_BINDING", "В owner нет текущей native операции");
@@ -1698,9 +1394,7 @@ async function withCapturedOperation<T>(
   try {
     complete = decode(
       completeSchema,
-      await json(
-        await regular(expectation.root, relative(expectation.root, path)),
-      ),
+      await json(await regular(expectation.root, relative(expectation.root, path))),
       "OPERATION_INCOMPLETE",
     );
   } catch (e) {
@@ -1717,16 +1411,15 @@ async function withCapturedOperation<T>(
     !same(complete.state.profiles, expectation.profiles) ||
     complete.state.projection !== expectation.projection ||
     complete.state.outputDirectory !== expectation.outputDirectory
-  ) fail("OPERATION_BINDING", "Ожидания root/profiles/output отличаются");
+  )
+    fail("OPERATION_BINDING", "Ожидания root/profiles/output отличаются");
   if (expectation.expectedDocuments) {
     const expected = expectation.expectedDocuments;
     if (
       new Set(expected.map((d) => d.source)).size !== expected.length ||
       expected.length !== complete.catalog.documents.length ||
-      expected.some((d) =>
-        !complete.catalog.documents.some((actual) =>
-          actual.source === d.source && actual.format === d.format
-        )
+      expected.some(
+        (d) => !complete.catalog.documents.some((actual) => actual.source === d.source && actual.format === d.format),
       )
     ) {
       fail("OPERATION_BINDING", "Exact document coverage/format отличаются");
@@ -1800,10 +1493,7 @@ async function withCapturedOperation<T>(
           return await use(operation, async (selection) => {
             callbackGuard();
             if (complete.state.assignment) {
-              fail(
-                "BODY.PUBLICATION_REQUIRED",
-                "Assignment capture требует отдельный course-export маршрут",
-              );
+              fail("BODY.PUBLICATION_REQUIRED", "Assignment capture требует отдельный course-export маршрут");
             }
             return await createNativePublication({
               operation: operation,
@@ -1815,35 +1505,19 @@ async function withCapturedOperation<T>(
               },
               checkPath: async (source, path, kind) => {
                 const absolute = resolve(
-                  kind || path.startsWith("/")
-                    ? complete.state.root
-                    : dirname(resolve(complete.state.root, source)),
+                  kind || path.startsWith("/") ? complete.state.root : dirname(resolve(complete.state.root, source)),
                   path.replace(/^\//, ""),
                 );
-                if (
-                  toolCachePath(complete.state.root, absolute) ||
-                  excluded(complete.state, absolute)
-                ) {
-                  fail(
-                    "RELEASE.SOURCE_POLICY",
-                    "Исключённый источник публикации",
-                    source,
-                  );
+                if (toolCachePath(complete.state.root, absolute) || excluded(complete.state, absolute)) {
+                  fail("RELEASE.SOURCE_POLICY", "Исключённый источник публикации", source);
                 }
                 let info: Deno.FileInfo;
                 try {
-                  const actual = await ownedPhysical(
-                    complete.state.root,
-                    relative(complete.state.root, absolute),
-                  );
+                  const actual = await ownedPhysical(complete.state.root, relative(complete.state.root, absolute));
                   info = await Deno.stat(actual);
                 } catch (cause) {
                   if (cause instanceof Deno.errors.NotFound) {
-                    fail(
-                      "RELEASE.SOURCE_POLICY",
-                      "Источник публикации отсутствует",
-                      source,
-                    );
+                    fail("RELEASE.SOURCE_POLICY", "Источник публикации отсутствует", source);
                   }
                   throw cause;
                 }
@@ -1852,11 +1526,7 @@ async function withCapturedOperation<T>(
                   (kind === "directory" && !info.isDirectory) ||
                   (!info.isFile && !info.isDirectory)
                 ) {
-                  fail(
-                    "RESOURCE.PROJECT_MISSING",
-                    "Нет publication input",
-                    source,
-                  );
+                  fail("RESOURCE.PROJECT_MISSING", "Нет publication input", source);
                 }
               },
               guard: () => guard(),
@@ -1879,22 +1549,14 @@ async function withCapturedOperation<T>(
     await guard();
     hostGuard();
     if (projectBatches.active || projectBatches.failed) {
-      fail(
-        "OPERATION_INCOMPLETE",
-        "A1 batch failed/not awaited after operation callback",
-      );
+      fail("OPERATION_INCOMPLETE", "A1 batch failed/not awaited after operation callback");
     }
     return result;
   };
   try {
     await guard();
     return complete.state.assignment
-      ? await withAssignmentExecution(
-        complete.state.assignment.runtime,
-        complete.state.root,
-        run,
-        beforeOperationChild,
-      )
+      ? await withAssignmentExecution(complete.state.assignment.runtime, complete.state.root, run, beforeOperationChild)
       : await run();
   } finally {
     callbackLife.active = false;
@@ -1909,10 +1571,5 @@ export async function withPreparedNativeCaptureScope<T>(
   reservation: NativeCaptureReservation,
   use: Parameters<typeof withNativeCaptureScope<T>>[2],
 ): Promise<T> {
-  return await withNativeCaptureScope(
-    reservation,
-    { expectedSources: prepared.inputs },
-    use,
-    prepared,
-  );
+  return await withNativeCaptureScope(reservation, { expectedSources: prepared.inputs }, use, prepared);
 }

@@ -3,20 +3,20 @@ project-materialization:
   projects:
     exr-work-environment-file-state:
       common-files:
-      - source: /common/work-environment/count.fish
-        target: student/survey/tools/count.fish
-        audience: student
-      - source: /common/work-environment/count.ps1
-        target: student/survey/tools/count.ps1
-        audience: student
+        - source: /common/work-environment/count.fish
+          target: student/survey/tools/count.fish
+          audience: student
+        - source: /common/work-environment/count.ps1
+          target: student/survey/tools/count.ps1
+          audience: student
     exr-work-environment-launch-counter:
       common-files:
-      - source: /common/work-environment/count.fish
-        target: student/survey/tools/count.fish
-        audience: student
-      - source: /common/work-environment/count.ps1
-        target: student/survey/tools/count.ps1
-        audience: student
+        - source: /common/work-environment/count.fish
+          target: student/survey/tools/count.fish
+          audience: student
+        - source: /common/work-environment/count.ps1
+          target: student/survey/tools/count.ps1
+          audience: student
 default-exercise-project-check: false
 assessment:
   id: sec-lab-work-environment
@@ -32,14 +32,12 @@ assessment:
 
 # Рабочая среда {#sec-lab-work-environment}
 
-
 ::: {.task-items requirement="required"}
 - @exr-work-environment-file-state
 - @exr-work-environment-launch-counter
 :::
 
-:::: {#exr-work-environment-file-state target="prairielearn" project="/projects/work-environment/file-state" prairielearn-grading="manual" prairielearn-submission="upload" difficulty="introductory"}
-
+::: {#exr-work-environment-file-state target="prairielearn" project="/projects/work-environment/file-state" prairielearn-grading="manual" prairielearn-submission="upload" difficulty="introductory"}
 ## Каталог измерений станции
 
 {{< project-download exr-work-environment-file-state kind="conditions" text="Скачать условие для локального просмотра" >}}
@@ -69,12 +67,12 @@ survey/
     └── scratch.txt
 ```
 
-| Файл | Строки содержимого по порядку |
-|---|---|
-| `source/morning log.txt` | `A=12`, `B=7` |
-| `source/evening.txt` | `A=10`, `B=9` |
-| `work/draft.txt` | `station=west` |
-| `work/scratch.txt` | `temporary` |
+  | Файл                     | Строки содержимого по порядку |
+  | ------------------------ | ----------------------------- |
+  | `source/morning log.txt` | `A=12`, `B=7`                 |
+  | `source/evening.txt`     | `A=10`, `B=9`                 |
+  | `work/draft.txt`         | `station=west`                |
+  | `work/scratch.txt`       | `temporary`                   |
 
 Каждая указанная строка завершается LF; кодировка — UTF-8 без BOM.
 Все файлы и каталоги обычные. В начале `result` и `explanation.md`
@@ -124,8 +122,7 @@ result/
 
 {{< project-download exr-work-environment-file-state >}}
 
-::: {.public-tests}
-
+::::: {.public-tests}
 ### Открытые примеры
 
 #### Точные копии и запись станции
@@ -147,13 +144,10 @@ result/
 
 Путь с пробелом, использование справки и чтение результата из выбранного
 каталога поясните и покажите преподавателю.
-
+:::::
 :::
 
-::::
-
-:::: {#exr-work-environment-launch-counter target="prairielearn" project="/projects/work-environment/launch-counter" prairielearn-grading="manual" prairielearn-submission="upload" difficulty="introductory"}
-
+::: {#exr-work-environment-launch-counter target="prairielearn" project="/projects/work-environment/launch-counter" prairielearn-grading="manual" prairielearn-submission="upload" difficulty="introductory"}
 ## Запуск счётчика строк
 
 {{< project-download exr-work-environment-launch-counter kind="conditions" text="Скачать условие для локального просмотра" >}}
@@ -220,8 +214,7 @@ survey/
 
 {{< project-download exr-work-environment-launch-counter >}}
 
-::: {.public-tests}
-
+::::: {.public-tests}
 ### Открытые примеры
 
 #### Отчёт по двум строкам
@@ -248,7 +241,5 @@ survey/
 переданные пути и код предъявляются при наблюдении запуска.
 Поведение при отсутствующем входе задано в договоре инструмента;
 обязательные запуски этой задачи описаны выше.
-
+:::::
 :::
-
-::::

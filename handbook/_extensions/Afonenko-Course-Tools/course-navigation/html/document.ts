@@ -25,41 +25,42 @@ export function content(node: Node): string {
 export function inner(html: string, node: Element): string {
   const loc = node.sourceCodeLocation;
   if (!loc?.startTag || !loc.endTag) {
-    throw new Error(
-      `Navigation отсутствуют позиции HTML-элемента ${node.tagName}`,
-    );
+    throw new Error(`Navigation отсутствуют позиции HTML-элемента ${node.tagName}`);
   }
   return html.slice(loc.startTag.endOffset, loc.endTag.startOffset);
 }
 export function escape(value: string): string {
-  return value.replaceAll("&", "&amp;").replaceAll('"', "&quot;").replaceAll(
-    "<",
-    "&lt;",
-  ).replaceAll(">", "&gt;");
+  return value.replaceAll("&", "&amp;").replaceAll('"', "&quot;").replaceAll("<", "&lt;").replaceAll(">", "&gt;");
 }
 export interface Edit {
   start: number;
   end: number;
   value: string;
 }
-export const replace = __metrics.wrapSync({
-  id: "course-navigation.html.document.replace",
-  kind: "io",
-}, function replace(html: string, edits: Edit[]): string {
-  edits.sort((a, b) => b.start - a.start);
-  let end = html.length;
-  for (const edit of edits) {
-    if (edit.end > end) {
-      throw new Error("Navigation пересекающиеся изменения HTML");
+export const replace = __metrics.wrapSync(
+  {
+    id: "course-navigation.html.document.replace",
+    kind: "io",
+  },
+  function replace(html: string, edits: Edit[]): string {
+    edits.sort((a, b) => b.start - a.start);
+    let end = html.length;
+    for (const edit of edits) {
+      if (edit.end > end) {
+        throw new Error("Navigation пересекающиеся изменения HTML");
+      }
+      html = html.slice(0, edit.start) + edit.value + html.slice(edit.end);
+      end = edit.start;
     }
-    html = html.slice(0, edit.start) + edit.value + html.slice(edit.end);
-    end = edit.start;
-  }
-  return html;
-});
-export const parseHtml = __metrics.wrapSync({
-  id: "course-navigation.html.document.parseHtml",
-  kind: "io",
-}, function parseHtml(html: string) {
-  return parse(html, { sourceCodeLocationInfo: true });
-});
+    return html;
+  },
+);
+export const parseHtml = __metrics.wrapSync(
+  {
+    id: "course-navigation.html.document.parseHtml",
+    kind: "io",
+  },
+  function parseHtml(html: string) {
+    return parse(html, { sourceCodeLocationInfo: true });
+  },
+);

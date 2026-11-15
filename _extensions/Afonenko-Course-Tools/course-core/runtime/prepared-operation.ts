@@ -9,16 +9,16 @@ export const NativePreparedOperationSchema = z.strictObject({
   root: z.string().startsWith("/"),
   outputDirectory: z.string().startsWith("/"),
   identity: NativeOperationIdentitySchema,
-  inputs: z.array(
-    z.strictObject({ source: z.string().min(1), captureWitness: z.uuid() }),
-  ).min(1).max(4096),
-  assessments: z.array(
-    z.strictObject({ source: z.string().min(1), id: z.string().min(1) }),
-  ).min(1).max(4096),
+  inputs: z
+    .array(z.strictObject({ source: z.string().min(1), captureWitness: z.uuid() }))
+    .min(1)
+    .max(4096),
+  assessments: z
+    .array(z.strictObject({ source: z.string().min(1), id: z.string().min(1) }))
+    .min(1)
+    .max(4096),
 });
-export type NativePreparedOperation = z.output<
-  typeof NativePreparedOperationSchema
->;
+export type NativePreparedOperation = z.output<typeof NativePreparedOperationSchema>;
 export const NativeCaptureCommandSchema = z.strictObject({
   args: z.array(z.string().max(65536)).min(1).max(4096),
   stdout: z.enum(["piped", "inherit", "null"]).optional(),
@@ -44,31 +44,20 @@ export type NativePreparedLease = Readonly<{
 export async function withPreparedLease<T>(
   value: NativePreparedOperation,
   guard: () => Promise<void>,
-  capture: (
-    sources: readonly string[],
-    command: NativeCaptureCommand,
-  ) => Promise<Deno.CommandOutput>,
+  capture: (sources: readonly string[], command: NativeCaptureCommand) => Promise<Deno.CommandOutput>,
   onFailure: () => Promise<void>,
   use: (lease: NativePreparedLease) => Promise<T>,
 ): Promise<T> {
-  const descriptor = immutable(
-    decode(NativePreparedOperationSchema, value, "OPERATION_BINDING"),
-  );
-  let live = true, failed = false;
+  const descriptor = immutable(decode(NativePreparedOperationSchema, value, "OPERATION_BINDING"));
+  let live = true,
+    failed = false;
   async function assert(expected: NativePreparedOperation) {
     if (!live) fail("OPERATION_EXPIRED", "Prepared lease callback завершён");
     if (failed) fail("OPERATION_BINDING", "Prepared lease failed");
     try {
-      const candidate = decode(
-        NativePreparedOperationSchema,
-        structuredClone(expected),
-        "OPERATION_BINDING",
-      );
+      const candidate = decode(NativePreparedOperationSchema, structuredClone(expected), "OPERATION_BINDING");
       if (JSON.stringify(candidate) !== JSON.stringify(descriptor)) {
-        fail(
-          "OPERATION_BINDING",
-          "Expected prepared correlation отличается от genuine generation",
-        );
+        fail("OPERATION_BINDING", "Expected prepared correlation отличается от genuine generation");
       }
       await guard();
       if (!live) fail("OPERATION_EXPIRED", "Prepared lease истёк");
@@ -85,11 +74,7 @@ export async function withPreparedLease<T>(
       await assert(expected);
       try {
         // Assignment has no callback escape to an unchecked external spawn.
-        const command = decode(
-          NativeCaptureCommandSchema,
-          value,
-          "OPERATION_BINDING",
-        );
+        const command = decode(NativeCaptureCommandSchema, value, "OPERATION_BINDING");
         return await capture(sources, command);
       } catch (e) {
         failed = true;
@@ -112,11 +97,6 @@ export async function withPreparedLease<T>(
 }
 
 export type NativeCaptureScope = Readonly<{
-  captureInputs<R>(
-    sources: readonly string[],
-    runNative: (token: string) => Promise<R>,
-  ): Promise<R>;
-  withPreparedOperation<T>(
-    use: (lease: NativePreparedLease) => Promise<T>,
-  ): Promise<T>;
+  captureInputs<R>(sources: readonly string[], runNative: (token: string) => Promise<R>): Promise<R>;
+  withPreparedOperation<T>(use: (lease: NativePreparedLease) => Promise<T>): Promise<T>;
 }>;

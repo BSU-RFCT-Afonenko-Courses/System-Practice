@@ -1,13 +1,12 @@
 ::: {#exr-sp01-08 difficulty="advanced" time="45"}
-
 ## SP01-08. Самый недавно измененный файл
 
-| Поле | Значение |
-|---|---|
-| Статус | дополнительная |
-| Сложность | повышенный |
-| Время | **45 мин**, из них 10 мин на беглое чтение; остальное — выполнение и самостоятельная проверка |
-| Предварительно | {{< xref system-practice-theory sec-01-command-line "01-command-line" >}}; {{< xref system-practice-theory sec-02-files-streams "02-files-streams" >}} |
+  | Поле           | Значение                                                                                                                                               |
+  | ---            | ---                                                                                                                                                    |
+  | Статус         | дополнительная                                                                                                                                         |
+  | Сложность      | повышенный                                                                                                                                             |
+  | Время          | **45 мин**, из них 10 мин на беглое чтение; остальное — выполнение и самостоятельная проверка                                                          |
+  | Предварительно | {{< xref system-practice-theory sec-01-command-line "01-command-line" >}}; {{< xref system-practice-theory sec-02-files-streams "02-files-streams" >}} |
 
 ### Условие
 
@@ -30,5 +29,4 @@
 Облако: файлы в рабочей области VS Code PrairieLearn. Локально: те же файлы отдельными вложениями или одним ZIP-архивом.
 
 {{< xref system-practice-theory sec-02-files-streams "К теме" >}} · {{< xref system-practice-tasks sec-bank "Правила банка" >}}
-
 :::

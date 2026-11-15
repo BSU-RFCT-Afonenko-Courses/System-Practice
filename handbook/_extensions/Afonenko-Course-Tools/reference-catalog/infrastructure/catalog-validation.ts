@@ -8,11 +8,11 @@ function nonempty(value: unknown): value is string {
 }
 function target(value: unknown, key: string, source: string) {
   function invalid(field: string): never {
-    throw diagnostic(
-      "QRC.IMPORT_INVALID",
-      `некорректная импортированная цель ${key}: ${field}`,
-      { source, id: key, field },
-    );
+    throw diagnostic("QRC.IMPORT_INVALID", `некорректная импортированная цель ${key}: ${field}`, {
+      source,
+      id: key,
+      field,
+    });
   }
   if (!isRecord(value)) invalid("ожидается объект");
   const item = value;
@@ -32,7 +32,8 @@ function target(value: unknown, key: string, source: string) {
     fragment = required("fragment"),
     labelHtml = required("labelHtml"),
     label = required("label");
-  const numberHtml = item.numberHtml, number = item.number;
+  const numberHtml = item.numberHtml,
+    number = item.number;
   if (typeof numberHtml !== "string") invalid("numberHtml");
   if (typeof number !== "string") invalid("number");
   if (!/^[A-Za-z][A-Za-z0-9_-]*$/.test(namespace)) invalid("namespace");
@@ -42,8 +43,10 @@ function target(value: unknown, key: string, source: string) {
   if (
     /[\\?#:\u0000-\u001f]/.test(page) ||
     page.split("/").some((part) => !part || part === "." || part === "..")
-  ) invalid("page должен быть относительным путём публикации");
-  const slide = item.slide, title = item.title;
+  )
+    invalid("page должен быть относительным путём публикации");
+  const slide = item.slide,
+    title = item.title;
   if (slide !== undefined && !nonempty(slide)) invalid("slide");
   if (title !== undefined && !nonempty(title)) invalid("title");
   return {
@@ -69,32 +72,27 @@ function validateImportedCatalogImpl(value: unknown, source: string) {
       { source, field: "schema" },
     );
   }
-  if (
-    !isRecord(value.generator) || typeof value.generator.quarto !== "string"
-  ) {
-    throw diagnostic(
-      "QRC.IMPORT_INVALID",
-      "некорректное поле generator каталога",
-      { source, field: "generator.quarto" },
-    );
+  if (!isRecord(value.generator) || typeof value.generator.quarto !== "string") {
+    throw diagnostic("QRC.IMPORT_INVALID", "некорректное поле generator каталога", {
+      source,
+      field: "generator.quarto",
+    });
   }
   if (!isRecord(value.targets)) {
-    throw diagnostic(
-      "QRC.IMPORT_INVALID",
-      "некорректное поле targets каталога: ожидается объект",
-      { source, field: "targets" },
-    );
+    throw diagnostic("QRC.IMPORT_INVALID", "некорректное поле targets каталога: ожидается объект", {
+      source,
+      field: "targets",
+    });
   }
   let publication;
   const rawPublication = value.publication;
   if (rawPublication !== undefined) {
     const title = isRecord(rawPublication) ? rawPublication.title : undefined;
     if (!isRecord(rawPublication) || !nonempty(title)) {
-      throw diagnostic(
-        "QRC.IMPORT_INVALID",
-        "некорректное поле publication.title каталога",
-        { source, field: "publication.title" },
-      );
+      throw diagnostic("QRC.IMPORT_INVALID", "некорректное поле publication.title каталога", {
+        source,
+        field: "publication.title",
+      });
     }
     publication = { title };
   }
@@ -103,15 +101,17 @@ function validateImportedCatalogImpl(value: unknown, source: string) {
     generator: { quarto: value.generator.quarto },
     ...(publication === undefined ? {} : { publication }),
     targets: Object.fromEntries(
-      Object.entries(value.targets).map(([key, value]) =>
-        [key, target(value, key, source)] as const
+      Object.entries(value.targets).map(
+        ([key, value]) => [key, target(value, key, source)] as const,
       ),
     ),
   };
 }
 
-export const validateImportedCatalog = __metrics.wrapSync({
-  id:
-    "reference-catalog.infrastructure.catalog-validation.validateImportedCatalog",
-  kind: "io",
-}, validateImportedCatalogImpl);
+export const validateImportedCatalog = __metrics.wrapSync(
+  {
+    id: "reference-catalog.infrastructure.catalog-validation.validateImportedCatalog",
+    kind: "io",
+  },
+  validateImportedCatalogImpl,
+);

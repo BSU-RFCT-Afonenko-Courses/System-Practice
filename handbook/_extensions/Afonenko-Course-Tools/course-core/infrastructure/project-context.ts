@@ -1,16 +1,8 @@
 import { createMetrics as __createMetrics } from "../observability/bridge.ts";
 import { isAbsolute, join, relative, resolve } from "stdlib/path";
 import { decodeProjectRequests, fail } from "../contracts/project.ts";
-import type {
-  ProjectContext,
-  ProjectContextRequest,
-  ProjectContract,
-} from "../contracts/project.ts";
-import {
-  assertInside,
-  emptyProjectMetrics,
-  projectLoader,
-} from "./course-project-loader.ts";
+import type { ProjectContext, ProjectContextRequest, ProjectContract } from "../contracts/project.ts";
+import { assertInside, emptyProjectMetrics, projectLoader } from "./course-project-loader.ts";
 import type { ProjectLoaderMetrics } from "./course-project-loader.ts";
 export type {
   ProjectContext,
@@ -29,9 +21,7 @@ type State = {
 };
 const states = new WeakMap<object, State>();
 function state(context: unknown): State {
-  const value = context && typeof context === "object"
-    ? states.get(context)
-    : undefined;
+  const value = context && typeof context === "object" ? states.get(context) : undefined;
   if (!value?.active) fail("CONTEXT_EXPIRED", "Чужой или завершённый контекст");
   value.operation?.sync();
   return value;
@@ -39,9 +29,7 @@ function state(context: unknown): State {
 export async function assertProjectContext(context: unknown): Promise<void> {
   state(context);
 }
-export function decodeProjectContract(
-  context: ProjectContext,
-): ProjectContract {
+export function decodeProjectContract(context: ProjectContext): ProjectContract {
   state(context);
   return context.contract;
 }
@@ -68,10 +56,7 @@ async function acquire<T>(
 ): Promise<T> {
   const corePhaseAction = async function acquirePhase(): Promise<T> {
     const decoded = decodeProjectRequests(requests);
-    const owners = new Map<
-      string,
-      OwnerLoader & { state: State; before: ProjectLoaderMetrics }
-    >();
+    const owners = new Map<string, OwnerLoader & { state: State; before: ProjectLoaderMetrics }>();
     const groups: ProjectContextGroup[] = [];
     const keys = new Set<string>();
     try {
@@ -79,21 +64,16 @@ async function acquire<T>(
         operation?.sync();
         const { owner, profiles, format } = request;
         if (
-          resolve(owner) !== owner || await Deno.realPath(owner) !== owner ||
+          resolve(owner) !== owner ||
+          (await Deno.realPath(owner)) !== owner ||
           new Set(profiles).size !== profiles.length
         ) {
-          fail(
-            "CONTEXT_REQUEST",
-            "Нужны canonical owner и unique selected profiles",
-            owner,
-          );
+          fail("CONTEXT_REQUEST", "Нужны canonical owner и unique selected profiles", owner);
         }
         let selected = owners.get(owner);
         if (!selected) {
           let loader = cache.get(owner);
-          if (
-            loader && JSON.stringify(loader.profiles) !== JSON.stringify(profiles)
-          ) {
+          if (loader && JSON.stringify(loader.profiles) !== JSON.stringify(profiles)) {
             fail("CONTEXT_REQUEST", "Другие profiles в той же операции", owner);
           }
           if (!loader) {
@@ -111,23 +91,13 @@ async function acquire<T>(
             state: { active: true, owner, metrics: loader.metrics, operation },
           };
           owners.set(owner, selected);
-        } else if (
-          JSON.stringify(selected.profiles) !== JSON.stringify(profiles)
-        ) {
-          fail(
-            "CONTEXT_REQUEST",
-            "Один owner должен иметь одинаковые selected profiles",
-            owner,
-          );
+        } else if (JSON.stringify(selected.profiles) !== JSON.stringify(profiles)) {
+          fail("CONTEXT_REQUEST", "Один owner должен иметь одинаковые selected profiles", owner);
         }
         const contexts: ProjectContext[] = [];
         for (const directory of request.directories) {
           if (isAbsolute(directory) || /[\0\\]/.test(directory)) {
-            fail(
-              "CONTEXT_REQUEST",
-              "Нужен owner-relative code directory",
-              directory,
-            );
+            fail("CONTEXT_REQUEST", "Нужен owner-relative code directory", directory);
           }
           const path = resolve(owner, directory);
           assertInside(owner, path);
@@ -136,15 +106,8 @@ async function acquire<T>(
             fail("CONTEXT_REQUEST", "Повторный code directory/format", path);
           }
           keys.add(key);
-          if (
-            !(await Deno.stat(path)).isDirectory ||
-            await Deno.realPath(path) !== path
-          ) {
-            fail(
-              "CONTEXT_INPUT",
-              "Нужен code directory без символических ссылок",
-              path,
-            );
+          if (!(await Deno.stat(path)).isDirectory || (await Deno.realPath(path)) !== path) {
+            fail("CONTEXT_INPUT", "Нужен code directory без символических ссылок", path);
           }
           const contract = await selected.load(path, format);
           const context: ProjectContext = {
@@ -157,19 +120,17 @@ async function acquire<T>(
           states.set(context, selected.state);
           contexts.push(context);
         }
-        const current = selected.state, before = selected.before;
+        const current = selected.state,
+          before = selected.before;
         groups.push({
           contexts,
           get metrics() {
             return {
               yamlFileReads: current.metrics.yamlFileReads - before.yamlFileReads,
               yamlBytesRead: current.metrics.yamlBytesRead - before.yamlBytesRead,
-              directoryLayers: current.metrics.directoryLayers -
-                before.directoryLayers,
-              sourceFileReads: current.metrics.sourceFileReads -
-                before.sourceFileReads,
-              sourceBytesRead: current.metrics.sourceBytesRead -
-                before.sourceBytesRead,
+              directoryLayers: current.metrics.directoryLayers - before.directoryLayers,
+              sourceFileReads: current.metrics.sourceFileReads - before.sourceFileReads,
+              sourceBytesRead: current.metrics.sourceBytesRead - before.sourceBytesRead,
             };
           },
         });
@@ -179,20 +140,20 @@ async function acquire<T>(
       for (const selected of owners.values()) selected.state.active = false;
     }
   };
-  return await __createMetrics("course-core").wrapAsync({
-    id: "course-core.infrastructure.project-context.acquire",
-    kind: "phase",
-    origin: "manual",
-  }, corePhaseAction)();
+  return await __createMetrics("course-core").wrapAsync(
+    {
+      id: "course-core.infrastructure.project-context.acquire",
+      kind: "phase",
+      origin: "manual",
+    },
+    corePhaseAction,
+  )();
 }
-async function safeFile(
-  context: ProjectContext,
-  path: string,
-): Promise<Deno.FileInfo> {
+async function safeFile(context: ProjectContext, path: string): Promise<Deno.FileInfo> {
   const current = state(context);
   assertInside(current.owner, path);
   const info = await Deno.lstat(path);
-  if (info.isSymlink || await Deno.realPath(path) !== path) {
+  if (info.isSymlink || (await Deno.realPath(path)) !== path) {
     fail("PROJECT_SOURCE", "Символическая ссылка в source", path);
   }
   return info;
@@ -220,10 +181,7 @@ export async function projectContextFiles(
   await visit(base);
   return paths.sort();
 }
-export async function readProjectContextFile(
-  context: ProjectContext,
-  path: string,
-): Promise<Uint8Array> {
+export async function readProjectContextFile(context: ProjectContext, path: string): Promise<Uint8Array> {
   const current = state(context);
   if (!(await safeFile(context, path)).isFile) {
     fail("PROJECT_SOURCE", "Нужен обычный source file", path);
@@ -234,10 +192,7 @@ export async function readProjectContextFile(
   return bytes;
 }
 /** Функциональное наличие source для materializer, без captured-membership registry. */
-export function projectFileExists(
-  context: ProjectContext,
-  path: string,
-): boolean {
+export function projectFileExists(context: ProjectContext, path: string): boolean {
   const current = state(context);
   assertInside(current.owner, path);
   try {
@@ -248,15 +203,9 @@ export function projectFileExists(
     throw error;
   }
 }
-export function assertProjectContextGeneration(
-  context: ProjectContext,
-  generation: object,
-): void {
+export function assertProjectContextGeneration(context: ProjectContext, generation: object): void {
   if (state(context).operation?.generation !== generation) {
-    fail(
-      "BODY.ASSIGNMENT_PROJECT_PLANS",
-      "Контекст принадлежит другой операции",
-    );
+    fail("BODY.ASSIGNMENT_PROJECT_PLANS", "Контекст принадлежит другой операции");
   }
 }
 /** Physical aliases проверяются по фактически выбранным roles, не по всему owner tree. */
@@ -282,38 +231,31 @@ export async function projectContextSourceIdentities(
   }
   return rows;
 }
-export type NativeOperationProjectContextMetrics = Readonly<
-  ProjectLoaderMetrics
->;
+export type NativeOperationProjectContextMetrics = Readonly<ProjectLoaderMetrics>;
 export type NativeOperationProjectContextBatch = Readonly<{
   groups: readonly ProjectContextGroup[];
   metrics: NativeOperationProjectContextMetrics;
   checkpoint(): Promise<void>;
 }>;
-export function operationProjectContextReuse(
-  source: {
-    owner: string;
-    profiles: readonly string[];
-    generation: object;
-    outputDirectory: string;
-    sync: () => void;
-  },
-) {
+export function operationProjectContextReuse(source: {
+  owner: string;
+  profiles: readonly string[];
+  generation: object;
+  outputDirectory: string;
+  sync: () => void;
+}) {
   let running = false;
   const cache = new Map<string, OwnerLoader>();
   return async <T>(
     requests: readonly ProjectContextRequest[],
-    use: (
-      batch: Omit<NativeOperationProjectContextBatch, "checkpoint">,
-    ) => Promise<T>,
+    use: (batch: Omit<NativeOperationProjectContextBatch, "checkpoint">) => Promise<T>,
   ): Promise<T> => {
     source.sync();
     if (
-      running || requests.some((r) =>
-        r.owner !== source.owner ||
-        JSON.stringify(r.profiles) !== JSON.stringify(source.profiles)
-      )
-    ) fail("CONTEXT_REQUEST", "Active batch либо чужой owner/profiles");
+      running ||
+      requests.some((r) => r.owner !== source.owner || JSON.stringify(r.profiles) !== JSON.stringify(source.profiles))
+    )
+      fail("CONTEXT_REQUEST", "Active batch либо чужой owner/profiles");
     running = true;
     try {
       if (!requests.length) {

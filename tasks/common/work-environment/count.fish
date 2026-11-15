@@ -23,7 +23,7 @@ or begin
     printf 'Не удалось прочитать входной файл: %s\n' "$source" >&2
     exit 2
 end
-printf 'lines=%s\n' "$lines" > "$report"
+printf 'lines=%s\n' "$lines" >"$report"
 or begin
     printf 'Не удалось создать отчёт: %s\n' "$report" >&2
     exit 2

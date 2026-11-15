@@ -8,20 +8,11 @@ export class CoreContractError extends Error {
     readonly source?: string,
     readonly field?: string,
   ) {
-    super(
-      `${code}: ${source ? source + ": " : ""}${
-        field ? field + ": " : ""
-      }${message}`,
-    );
+    super(`${code}: ${source ? source + ": " : ""}${field ? field + ": " : ""}${message}`);
     this.name = "CoreContractError";
   }
 }
-export function fail(
-  code: string,
-  message: string,
-  source?: string,
-  field?: string,
-): never {
+export function fail(code: string, message: string, source?: string, field?: string): never {
   throw new CoreContractError(code, message, source, field);
 }
 /** Ограничение до схем: Zod не накапливает тысячи ошибок для чужого payload. */
@@ -39,10 +30,8 @@ export function boundInput(value: unknown, source?: string): void {
       if (active.has(v)) fail("CONTRACT_LIMIT", "Циклический вход", source);
       active.add(v);
       for (const [k, child] of Object.entries(v)) {
-        if (
-          k.length > 256 ||
-          ["__proto__", "constructor", "prototype"].includes(k)
-        ) fail("CONTRACT_KEY", "Недопустимое имя поля", source);
+        if (k.length > 256 || ["__proto__", "constructor", "prototype"].includes(k))
+          fail("CONTRACT_KEY", "Недопустимое имя поля", source);
         visit(child, depth + 1);
       }
       active.delete(v);
@@ -50,11 +39,15 @@ export function boundInput(value: unknown, source?: string): void {
   }
   visit(value, 0);
 }
-const name = z.string().regex(/^[a-zA-Z][a-zA-Z0-9_-]*$/).max(80);
-const sourcePath = z.string().min(1).max(1024).refine(
-  (v) => !/[\0\\]/.test(v) && !v.startsWith("/"),
-  "Нужен относительный путь",
-);
+const name = z
+  .string()
+  .regex(/^[a-zA-Z][a-zA-Z0-9_-]*$/)
+  .max(80);
+const sourcePath = z
+  .string()
+  .min(1)
+  .max(1024)
+  .refine((v) => !/[\0\\]/.test(v) && !v.startsWith("/"), "Нужен относительный путь");
 const target = sourcePath.refine(
   (v) => !v.split("/").some((p) => !p || p === "." || p === ".."),
   "Нужен нормализованный target",
@@ -62,10 +55,11 @@ const target = sourcePath.refine(
 const boolMap = z.record(name, z.boolean());
 const dependencies = z.record(name, z.boolean());
 export const ProjectAddressSchema = z.strictObject({
-  path: z.string().min(1).max(4096).refine(
-    (v) => !/[\0\\]/.test(v),
-    "Недопустимый путь",
-  ),
+  path: z
+    .string()
+    .min(1)
+    .max(4096)
+    .refine((v) => !/[\0\\]/.test(v), "Недопустимый путь"),
   base: z.literal("config").optional(),
 });
 const component = ProjectAddressSchema.extend({
@@ -76,32 +70,34 @@ const testset = ProjectAddressSchema.extend({
 });
 export const ProjectContractSchema = z.strictObject({
   starter: component.optional(),
-  instructions: z.strictObject({
-    gradle: ProjectAddressSchema.optional(),
-    local: ProjectAddressSchema.optional(),
-  }).optional(),
+  instructions: z
+    .strictObject({
+      gradle: ProjectAddressSchema.optional(),
+      local: ProjectAddressSchema.optional(),
+    })
+    .optional(),
   solutions: z.record(name, ProjectAddressSchema).default({}),
   components: z.record(name, component).default({}),
   testsets: z.record(name, testset).default({}),
-  build: z.strictObject({
-    files: z.record(target, ProjectAddressSchema).default({}),
-  })
+  build: z
+    .strictObject({
+      files: z.record(target, ProjectAddressSchema).default({}),
+    })
     .default({ files: {} }),
-  delivery: z.strictObject({
-    student: z.strictObject({ testsets: boolMap.default({}) }).default({
-      testsets: {},
-    }),
-  }).default({ student: { testsets: {} } }),
+  delivery: z
+    .strictObject({
+      student: z.strictObject({ testsets: boolMap.default({}) }).default({
+        testsets: {},
+      }),
+    })
+    .default({ student: { testsets: {} } }),
   verification: z.strictObject({ testsets: boolMap.default({}) }).default({
     testsets: {},
   }),
 });
 export type ProjectContract = z.output<typeof ProjectContractSchema>;
 export type ProjectContractInput = z.input<typeof ProjectContractSchema>;
-export function decodeProjectValue(
-  value: unknown,
-  source?: string,
-): ProjectContract {
+export function decodeProjectValue(value: unknown, source?: string): ProjectContract {
   boundInput(value, source);
   const result = ProjectContractSchema.safeParse(value);
   if (!result.success) {
@@ -118,9 +114,7 @@ export const ProjectContextRequestSchema = z.strictObject({
   profiles: z.array(z.string().regex(/^[-a-z0-9]+$/)).max(16),
   format: z.string().regex(/^[-a-z0-9]+$/),
 });
-export type ProjectContextRequest = z.output<
-  typeof ProjectContextRequestSchema
->;
+export type ProjectContextRequest = z.output<typeof ProjectContextRequestSchema>;
 export const ProjectContextSchema = z.strictObject({
   owner: z.string().min(1),
   // Конечный каталог code-project, а не фиктивный документ.

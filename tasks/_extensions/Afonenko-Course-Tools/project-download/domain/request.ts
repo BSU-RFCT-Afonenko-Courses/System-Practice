@@ -1,7 +1,7 @@
 import { diagnostic } from "../diagnostics.ts";
 import { configuration, RESOURCE_ID } from "./config.ts";
 export const ARTIFACT_KINDS = ["starter", "full", "conditions"] as const;
-export type ArtifactKind = typeof ARTIFACT_KINDS[number];
+export type ArtifactKind = (typeof ARTIFACT_KINDS)[number];
 function syntax(
   message: string,
   source: string,
@@ -39,7 +39,8 @@ export function decodeDownloadRequest(value: unknown, source: string) {
   const v = record(value, source);
   keys(v, ["positional", "named"], source);
   if (
-    !Array.isArray(v.positional) || v.positional.length !== 1 ||
+    !Array.isArray(v.positional) ||
+    v.positional.length !== 1 ||
     typeof v.positional[0] !== "string"
   ) {
     syntax(
@@ -62,12 +63,14 @@ export function decodeDownloadRequest(value: unknown, source: string) {
     syntax("Именованные параметры должны быть списком", source, resource);
   }
   const seen = new Set<string>();
-  let text = "", kind: ArtifactKind | undefined;
+  let text = "",
+    kind: ArtifactKind | undefined;
   for (const raw of v.named) {
     const arg = record(raw, source);
     keys(arg, ["key", "value"], source);
     if (
-      typeof arg.key !== "string" || typeof arg.value !== "string" ||
+      typeof arg.key !== "string" ||
+      typeof arg.value !== "string" ||
       seen.has(arg.key)
     ) {
       syntax(
@@ -83,12 +86,14 @@ export function decodeDownloadRequest(value: unknown, source: string) {
         syntax("Неизвестный вид комплекта", source, resource, "kind");
       }
       kind = arg.value;
-    } else {syntax(
+    } else {
+      syntax(
         `Неизвестный параметр project-download: ${arg.key}`,
         source,
         resource,
         arg.key,
-      );}
+      );
+    }
   }
   return { resource, text, ...(kind === undefined ? {} : { kind }) };
 }
@@ -99,10 +104,12 @@ function invocation(value: unknown, source: string) {
   const v = record(value, source);
   keys(v, ["ordinal", "positional", "named", "inline"], source);
   if (
-    typeof v.ordinal !== "number" || !Number.isSafeInteger(v.ordinal) ||
+    typeof v.ordinal !== "number" ||
+    !Number.isSafeInteger(v.ordinal) ||
     v.ordinal < 0 ||
     typeof v.inline !== "boolean"
-  ) syntax("Недопустимый ordinal или признак inline", source);
+  )
+    syntax("Недопустимый ordinal или признак inline", source);
   return {
     ordinal: v.ordinal,
     inline: v.inline,
@@ -112,21 +119,18 @@ function invocation(value: unknown, source: string) {
     ),
   };
 }
-function modelKind(
-  input: {
-    id: string;
-    source: string;
-    observed: unknown;
-    context: unknown;
-    native: boolean;
-    view: unknown;
-    explicitKind: ArtifactKind | undefined;
-  },
-): ArtifactKind {
+function modelKind(input: {
+  id: string;
+  source: string;
+  observed: unknown;
+  context: unknown;
+  native: boolean;
+  view: unknown;
+  explicitKind: ArtifactKind | undefined;
+}): ArtifactKind {
   const { id, source, observed, context, native, view, explicitKind } = input;
-  let exercise: Record<string, unknown> | undefined = observed == null
-    ? undefined
-    : record(observed, source);
+  let exercise: Record<string, unknown> | undefined =
+    observed == null ? undefined : record(observed, source);
   if (context != null) {
     const actual = record(context, source);
     exercise = {
@@ -151,7 +155,8 @@ function modelKind(
       { source, id, field: "exerciseId" },
     );
   }
-  const demo = exercise["course-role"] === "demonstration" &&
+  const demo =
+    exercise["course-role"] === "demonstration" &&
     exercise["statement-visibility"] === "open";
   return explicitKind ?? (view === "full" || demo ? "full" : "starter");
 }
@@ -163,12 +168,12 @@ function visibleConfiguration(
   return calls.some((r) => r.inline)
     ? value == null || value === false
       ? (() => {
-        throw diagnostic(
-          "DOWNLOAD.CONFIG_INVALID",
-          "Для project-download требуется явная конфигурация ресурсов",
-          { source, field: "project-download" },
-        );
-      })()
+          throw diagnostic(
+            "DOWNLOAD.CONFIG_INVALID",
+            "Для project-download требуется явная конфигурация ресурсов",
+            { source, field: "project-download" },
+          );
+        })()
       : configuration(value)
     : undefined;
 }
@@ -179,26 +184,34 @@ function requestCaption(text: string, kind: ArtifactKind | undefined): string {
     conditions: "Скачать условие",
   };
   return /^[ \f\n\r\t\v]*$/.test(text)
-    ? kind ? captions[kind] : "Скачать материалы"
+    ? kind
+      ? captions[kind]
+      : "Скачать материалы"
     : text;
 }
 /** Одна document-local native batch. Не читает файлы/metadata и не создаёт ZIP. */
 export function resolveDownloadRequests(value: unknown) {
   const v = record(value, "");
-  keys(v, [
-    "source",
-    "view",
-    "configuration",
-    "native",
-    "courseProcessed",
-    "exercises",
-    "artifactContext",
-    "requests",
-  ], "");
+  keys(
+    v,
+    [
+      "source",
+      "view",
+      "configuration",
+      "native",
+      "courseProcessed",
+      "exercises",
+      "artifactContext",
+      "requests",
+    ],
+    "",
+  );
   if (
-    typeof v.source !== "string" || !v.source ||
+    typeof v.source !== "string" ||
+    !v.source ||
     (v.view !== undefined && typeof v.view !== "string") ||
-    typeof v.native !== "boolean" || typeof v.courseProcessed !== "boolean" ||
+    typeof v.native !== "boolean" ||
+    typeof v.courseProcessed !== "boolean" ||
     !Array.isArray(v.requests)
   ) {
     syntax(
@@ -227,10 +240,12 @@ export function resolveDownloadRequests(value: unknown) {
         : undefined,
       context = contexts[id],
       observed = exercises[id];
-    const model = config!["course-model"] === true && id.startsWith("exr-") &&
+    const model =
+      config!["course-model"] === true &&
+      id.startsWith("exr-") &&
       (context || observed);
     if (
-      !(declared || config!["course-model"] === true && id.startsWith("exr-"))
+      !(declared || (config!["course-model"] === true && id.startsWith("exr-")))
     ) {
       throw diagnostic(
         "DOWNLOAD.RESOURCE_UNAVAILABLE",
@@ -270,8 +285,11 @@ export function resolveDownloadRequests(value: unknown) {
     // Lua %s — ASCII whitespace; не расширять его до JS Unicode \s.
     links.push({
       ordinal: call.ordinal,
-      href: "../".repeat((source.match(/[\/\\]/g) ?? []).length) +
-        "_downloads/" + name + ".zip",
+      href:
+        "../".repeat((source.match(/[\/\\]/g) ?? []).length) +
+        "_downloads/" +
+        name +
+        ".zip",
       text: requestCaption(text, kind),
     });
   }

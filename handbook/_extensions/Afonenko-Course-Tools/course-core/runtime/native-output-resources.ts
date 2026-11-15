@@ -26,23 +26,14 @@ export async function finishedNativeResource(
   }
   let path: string;
   try {
-    path = await regular(
-      state.root,
-      relative(state.root, capturedSource ?? output),
-    );
+    path = await regular(state.root, relative(state.root, capturedSource ?? output));
   } catch (error) {
     if (!(error instanceof Deno.errors.NotFound)) throw error;
     if (capturedSource) {
-      fail(
-        "RESOURCE_CURRENT_BYTES_MISSING",
-        "Не найден native mediabag source",
-      );
+      fail("RESOURCE_CURRENT_BYTES_MISSING", "Не найден native mediabag source");
     }
     if (!original) {
-      fail(
-        "RESOURCE_CURRENT_BYTES_MISSING",
-        "Не найден конечный native ресурс",
-      );
+      fail("RESOURCE_CURRENT_BYTES_MISSING", "Не найден конечный native ресурс");
     }
     path = original;
   }
@@ -57,11 +48,7 @@ export async function finishedNativeResource(
   };
 }
 
-export async function nativeResourceHandleIdentity(
-  root: string,
-  path: string,
-  opened: Deno.FsFile,
-) {
+export async function nativeResourceHandleIdentity(root: string, path: string, opened: Deno.FsFile) {
   const info = await opened.stat();
   if (!info.isFile) fail("RESOURCE_PATH", "Нужен regular native ресурс");
   // Deno.open не даёт portable no-follow/openat. Эта однократная проверка
@@ -69,14 +56,14 @@ export async function nativeResourceHandleIdentity(
   const actual = await regular(root, relative(root, path));
   const current = await Deno.lstat(actual);
   if (
-    info.dev === null || info.ino === null ||
-    current.dev === null || current.ino === null ||
-    info.dev !== current.dev || info.ino !== current.ino
+    info.dev === null ||
+    info.ino === null ||
+    current.dev === null ||
+    current.ino === null ||
+    info.dev !== current.dev ||
+    info.ino !== current.ino
   ) {
-    fail(
-      "RESOURCE_PATH",
-      "Открытый handle не принадлежит native resource path",
-    );
+    fail("RESOURCE_PATH", "Открытый handle не принадлежит native resource path");
   }
   return JSON.stringify([info.dev, info.ino]);
 }

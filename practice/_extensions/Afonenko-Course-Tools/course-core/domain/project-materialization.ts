@@ -1,15 +1,10 @@
 // Связь уже декодированных SAME-S project facts; собственного metadata resolver нет.
 import type { NativeProjectFact } from "../document/project-facts.ts";
-import {
-  NativeProjectFactsCaptureSchema,
-  NativeProjectMaterializationSchema,
-} from "../document/project-facts.ts";
+import { NativeProjectFactsCaptureSchema, NativeProjectMaterializationSchema } from "../document/project-facts.ts";
 import { decode } from "../document/contracts.ts";
 // @deno-types="../vendor/zod/v4/index.d.ts"
 import { z } from "../vendor/zod/v4/index.js";
-type ProjectMaterialization = z.output<
-  typeof NativeProjectMaterializationSchema
->;
+type ProjectMaterialization = z.output<typeof NativeProjectMaterializationSchema>;
 type Captured = Pick<
   z.output<typeof NativeProjectFactsCaptureSchema>,
   "source" | "projects" | "projectMaterializations"
@@ -19,21 +14,13 @@ const fail = (message: string): never => {
   throw diagnostic("CORE.PROJECT_MATERIALIZATION_INVALID", message);
 };
 const stable = (value: unknown): string =>
-  JSON.stringify(
-    value,
-    (_key: string, item: unknown): unknown =>
-      item && typeof item === "object" && !Array.isArray(item)
-        ? Object.fromEntries(
-          Object.entries(item).sort(([a], [b]) => a.localeCompare(b)),
-        )
-        : item,
+  JSON.stringify(value, (_key: string, item: unknown): unknown =>
+    item && typeof item === "object" && !Array.isArray(item)
+      ? Object.fromEntries(Object.entries(item).sort(([a], [b]) => a.localeCompare(b)))
+      : item,
   );
 function declaration(input: ProjectMaterialization): ProjectMaterialization {
-  const value = decode(
-    NativeProjectMaterializationSchema,
-    input,
-    "CORE.PROJECT_MATERIALIZATION_INVALID",
-  );
+  const value = decode(NativeProjectMaterializationSchema, input, "CORE.PROJECT_MATERIALIZATION_INVALID");
   return { ...value, includeGit: value.includeGit ?? false };
 }
 function bind(documents: Captured[]): NativeProjectFact[] {
@@ -41,27 +28,20 @@ function bind(documents: Captured[]): NativeProjectFact[] {
     facts: NativeProjectFact[] = [];
   for (const document of documents) {
     for (const fact of document.projects ?? []) {
-      if (
-        fact.source !== document.source ||
-        facts.some((f) => f.exerciseId === fact.exerciseId)
-      ) fail("Неоднозначная captured project/source: " + fact.exerciseId);
+      if (fact.source !== document.source || facts.some((f) => f.exerciseId === fact.exerciseId))
+        fail("Неоднозначная captured project/source: " + fact.exerciseId);
       facts.push({
         ...fact,
-        ...(fact.materialization
-          ? { materialization: declaration(fact.materialization) }
-          : {}),
+        ...(fact.materialization ? { materialization: declaration(fact.materialization) } : {}),
       });
     }
-    for (
-      const [id, raw] of Object.entries(document.projectMaterializations ?? {})
-    ) {
+    for (const [id, raw] of Object.entries(document.projectMaterializations ?? {})) {
       if (!/^exr-[a-z0-9][a-z0-9-]*$/.test(id)) {
         fail("Некорректный materialization ID");
       }
       const value = declaration(raw);
-      if (
-        declarations.has(id) && stable(declarations.get(id)) !== stable(value)
-      ) fail("Несогласованные materialization declarations: " + id);
+      if (declarations.has(id) && stable(declarations.get(id)) !== stable(value))
+        fail("Несогласованные materialization declarations: " + id);
       declarations.set(id, value);
     }
   }
@@ -71,16 +51,13 @@ function bind(documents: Captured[]): NativeProjectFact[] {
       fail("Materialization требует ровно один действующий project: " + id);
     }
     const fact = matches[0]!;
-    if (
-      fact.materialization && stable(fact.materialization) !== stable(value)
-    ) fail("Project fact расходится с captured declaration: " + id);
+    if (fact.materialization && stable(fact.materialization) !== stable(value))
+      fail("Project fact расходится с captured declaration: " + id);
     fact.materialization = value;
   }
   return facts;
 }
 /** Полная область: неизвестные объявления и смешанные owner bindings отвергаются. */
-export function bindProjectMaterializations(
-  documents: Captured[],
-): NativeProjectFact[] {
+export function bindProjectMaterializations(documents: Captured[]): NativeProjectFact[] {
   return bind(documents);
 }

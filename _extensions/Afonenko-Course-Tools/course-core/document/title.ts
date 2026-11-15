@@ -6,9 +6,14 @@ function chapterSpan(value: unknown, name: string): unknown[] | undefined {
   const contents: unknown[] = value.c;
   const [attr, body] = contents;
   if (
-    Array.isArray(attr) && attr[0] === "" &&
-    Array.isArray(attr[1]) && attr[1].length === 1 && attr[1][0] === name &&
-    Array.isArray(attr[2]) && attr[2].length === 0 && Array.isArray(body)
+    Array.isArray(attr) &&
+    attr[0] === "" &&
+    Array.isArray(attr[1]) &&
+    attr[1].length === 1 &&
+    attr[1][0] === name &&
+    Array.isArray(attr[2]) &&
+    attr[2].length === 0 &&
+    Array.isArray(body)
   ) {
     const contents: unknown[] = body;
     return contents;
@@ -19,7 +24,7 @@ function chapterSpan(value: unknown, name: string): unknown[] | undefined {
 const whitespace = (value: unknown): boolean =>
   object(value) &&
   (["Space", "SoftBreak", "LineBreak"].includes(String(value.t)) ||
-    value.t === "Str" && typeof value.c === "string" && /^\s*$/u.test(value.c));
+    (value.t === "Str" && typeof value.c === "string" && /^\s*$/u.test(value.c)));
 
 function visibleTitleSequence(value: unknown[]): string {
   if (chapterSpan(value[0], "chapter-number")) {
@@ -42,7 +47,8 @@ export function visibleTitle(value: unknown): string {
   if (Array.isArray(value)) return visibleTitleSequence(value);
   if (!object(value)) return "";
   if (
-    typeof value.t === "string" && [
+    typeof value.t === "string" &&
+    [
       "MetaInlines",
       "MetaBlocks",
       "Plain",
@@ -55,7 +61,8 @@ export function visibleTitle(value: unknown): string {
       "Subscript",
       "SmallCaps",
     ].includes(value.t)
-  ) return visibleTitle(value.c);
+  )
+    return visibleTitle(value.c);
   switch (value.t) {
     case "Str":
     case "MetaString":
@@ -67,9 +74,7 @@ export function visibleTitle(value: unknown): string {
     case "Code":
     case "CodeBlock":
     case "Math":
-      return Array.isArray(value.c) && typeof value.c[1] === "string"
-        ? value.c[1]
-        : "";
+      return Array.isArray(value.c) && typeof value.c[1] === "string" ? value.c[1] : "";
     case "Span":
     case "Link":
     case "Image":

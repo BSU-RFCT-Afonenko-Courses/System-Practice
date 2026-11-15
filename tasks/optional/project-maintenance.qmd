@@ -3,16 +3,15 @@ project-materialization:
   projects:
     exr-project-maintenance-release:
       common-files:
-      - source: /materials/project-maintenance-start.zip
-        target: student/project-maintenance-start.zip
-        audience: student
+        - source: /materials/project-maintenance-start.zip
+          target: student/project-maintenance-start.zip
+          audience: student
 default-exercise-project-check: false
 ---
 
 # Сопровождение проекта {#sec-project-maintenance-task}
 
-:::: {#exr-project-maintenance-release target="prairielearn" project="/projects/project-maintenance/release" prairielearn-grading="manual" prairielearn-submission="upload" difficulty="advanced"}
-
+::: {#exr-project-maintenance-release target="prairielearn" project="/projects/project-maintenance/release" prairielearn-grading="manual" prairielearn-submission="upload" difficulty="advanced"}
 ## Подготовка выпуска
 
 {{< project-download exr-project-maintenance-release kind="conditions" text="Скачать условие для локального просмотра" >}}
@@ -68,11 +67,11 @@ maintenance. Сохраните исходные коммиты, значени�
 Проект задаёт параметры отчёта в report.ini. Его три строки идут
 в порядке format, columns, decimal; каждая имеет вид `имя=значение`.
 
-| Версия | format | columns | decimal |
-|---|---|---|---|
-| A | text | code | dot |
-| M | csv | code,value | dot |
-| F | text | code,quality | dot |
+  | Версия | format | columns      | decimal |
+  | ------ | ------ | ------------ | ------- |
+  | A      | text   | code         | dot     |
+  | M      | csv    | code,value   | dot     |
+  | F      | text   | code,quality | dot     |
 
 Линия M перевела отчёт в CSV и добавила числовое значение. Линия F
 добавила признак качества записи. Новый выпуск должен сохранить оба
@@ -112,13 +111,13 @@ maintenance. Сохраните исходные коммиты, значени�
 
 Итоговая main выбирает коммит R. Обязательные файлы его снимка:
 
-| Файл | Требуемое содержимое |
-|---|---|
-| .gitattributes | Исходная строка политики текстовых файлов |
-| report.ini | `format=csv`, `columns=code,value,quality`, `decimal=dot` на трёх строках |
-| instructions.txt | Исходное указание и новая строка из патча |
-| VERSION | Единственная строка `2.0` |
-| CHANGELOG.md | Заголовок с номером 2.0 и собственное описание изменений для получателя |
+  | Файл             | Требуемое содержимое                                                      |
+  | ---              | ---                                                                       |
+  | .gitattributes   | Исходная строка политики текстовых файлов                                 |
+  | report.ini       | `format=csv`, `columns=code,value,quality`, `decimal=dot` на трёх строках |
+  | instructions.txt | Исходное указание и новая строка из патча                                 |
+  | VERSION          | Единственная строка `2.0`                                                 |
+  | CHANGELOG.md     | Заголовок с номером 2.0 и собственное описание изменений для получателя   |
 
 Итоговый instructions.txt:
 
@@ -203,9 +202,7 @@ shared.git — R и аннотированный v2.0. Проверьте исх
 На разборе устанавливаются смысл согласованного отчёта, выбор базы,
 отношения истории и воспроизводимость передаваемой версии.
 
-
-::: {.public-tests}
-
+::::: {.public-tests}
 ### Открытые примеры
 
 #### Передача именованного выпуска
@@ -241,7 +238,5 @@ shared.git — R и аннотированный v2.0. Проверьте исх
 
 Дополнительный документ показывает допустимый вариант состава:
 можно подготовить выпуск только с обязательными файлами.
-
+:::::
 :::
-
-::::

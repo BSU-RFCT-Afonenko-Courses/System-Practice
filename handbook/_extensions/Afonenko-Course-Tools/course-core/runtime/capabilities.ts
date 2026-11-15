@@ -31,16 +31,10 @@ export function inheritNativeValue(source: object, target: object) {
 export async function assertNativeValue(value: object, root: string) {
   const guard = guards.get(value);
   if (!guard) {
-    fail(
-      "CONDITION_AUTHORITY",
-      "Материализация требует точное значение текущей native операции",
-    );
+    fail("CONDITION_AUTHORITY", "Материализация требует точное значение текущей native операции");
   }
   if (guard.root !== root) {
-    fail(
-      "CONDITION_BINDING",
-      "Native bank и code project принадлежат разным owner",
-    );
+    fail("CONDITION_BINDING", "Native bank и code project принадлежат разным owner");
   }
   await guard.assert();
 }
@@ -54,10 +48,6 @@ export async function readNativeResource(
   assertIdentity?: (identity: string) => void,
 ) {
   await assertNativeValue(value, root);
-  const bytes = await guards.get(value)!.resource?.(
-    source,
-    target,
-    assertIdentity,
-  );
+  const bytes = await guards.get(value)!.resource?.(source, target, assertIdentity);
   return bytes ? new Uint8Array(bytes) : undefined;
 }

@@ -1,0 +1,19 @@
+[format]
+wrap = "preserve"
+smart-punctuation = "preserve"
+
+# QRC namespace-ссылки и библиографию продолжает проверять штатная сборка.
+# citation-keys намеренно не входит в этот структурный слой.
+[lint]
+select = [
+  "heading-hierarchy", "empty-list-item", "duplicate-reference-labels",
+  "undefined-references", "undefined-anchor", "duplicate-yaml-anchor",
+  "stray-fenced-div-markers", "table-column-count", "html-unclosed-attribute",
+  "malformed-citation", "unspaced-citation", "chunk-label-spaces",
+  "blank-line-in-display-math", "inline-math-line-break",
+  "empty-values", "consumer-divergence", "heading-eaten-attrs",
+  "unsupported-metadata-key", "blank-line-in-inline-footnote",
+  "footnote-swallowed-by-bracket", "reversed-footnote-marker",
+  "footnote-ref-in-footnote-def", "footnote-after-image",
+  "swallowed-list-marker", "unspaced-list-marker", "crossref-as-link-target"
+]

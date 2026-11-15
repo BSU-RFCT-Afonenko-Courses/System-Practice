@@ -18,13 +18,11 @@ assessment:
 
 # Обработка данных {#sec-lab-data-processing}
 
-
 ::: {.task-items requirement="required"}
 - @exr-data-processing-two-result-pipeline
 :::
 
-:::: {#exr-data-processing-two-result-pipeline target="prairielearn" project="/projects/data-processing/two-result-pipeline" prairielearn-grading="manual" prairielearn-submission="upload" difficulty="intermediate"}
-
+::: {#exr-data-processing-two-result-pipeline target="prairielearn" project="/projects/data-processing/two-result-pipeline" prairielearn-grading="manual" prairielearn-submission="upload" difficulty="intermediate"}
 ## Две выборки наблюдений
 
 {{< project-download exr-data-processing-two-result-pipeline kind="conditions" text="Скачать условие для локального просмотра" >}}
@@ -67,14 +65,14 @@ PowerShell использует `.csv`, fish — `.txt`; оба формата �
 
 Основной вход `readings` содержит записи в таком порядке:
 
-| Code — код пробы | Units — число частиц | State — решение |
-|---|---:|---|
-| B03 | 10 | keep |
-| B01 | 2 | keep |
-| B06 | 9 | skip |
-| B02 | 10 | keep |
-| B05 | 0 | keep |
-| B04 | 20 | skip |
+  | Code — код пробы | Units — число частиц | State — решение |
+  | ---------------- | -------------------: | --------------- |
+  | B03              |                   10 | keep            |
+  | B01              |                    2 | keep            |
+  | B06              |                    9 | skip            |
+  | B02              |                   10 | keep            |
+  | B05              |                    0 | keep            |
+  | B04              |                   20 | skip            |
 
 В `no-match` находятся B07/1/skip и B08/11/skip в указанном порядке.
 В `.txt` запись занимает одну строку `Code|Units|State`, заголовка нет.
@@ -94,10 +92,10 @@ State — ровно `keep` или `skip`. Поля не содержат про
 `Select-Readings.ps1` либо `select.fish`. Он получает входной путь и два
 пути результата. Один запуск создаёт обе выборки:
 
-| Результат | Отбор | Порядок | Поля |
-|---|---|---|---|
-| Пригодные | State равен `keep` | Числовой Units по возрастанию, затем Code по возрастанию | Code, Units |
-| Исключённые | State равен `skip` | Code по возрастанию | Code, Units |
+  | Результат   | Отбор              | Порядок                                                  | Поля        |
+  | ---         | ---                | ---                                                      | ---         |
+  | Пригодные   | State равен `keep` | Числовой Units по возрастанию, затем Code по возрастанию | Code, Units |
+  | Исключённые | State равен `skip` | Code по возрастанию                                      | Code, Units |
 
 Для Code действует посимвольный порядок A–Z и 0–9. В построении каждого
 результата соедините через `|` не менее двух содержательных стадий
@@ -139,11 +137,11 @@ State — ровно `keep` или `skip`. Поля не содержат про
 Знак `*` в таблице означает его расширение `.csv` либо `.txt`;
 сценарий получает полное имя файла.
 
-| Вход | Пригодные | Исключённые | Файл stderr | Код |
-|---|---|---|---|---:|
-| `inputs/readings.*` | `results/selected.*`: 4 записи | `results/excluded.*`: 2 записи | `results/selected.err`: пуст | 0 |
-| `inputs/no-match.*` | `results/empty.*`: 0 байт | `results/no-match-excluded.*`: 2 записи | `results/empty.err`: пуст | 0 |
-| `inputs/absent.*` | `results/missing-selected.*`: отсутствует | `results/missing-excluded.*`: отсутствует | `results/missing.err`: непуст | Ненулевой |
+  | Вход                | Пригодные                                 | Исключённые                               | Файл stderr                   | Код       |
+  | ---                 | ---                                       | ---                                       | ---                           | ---:      |
+  | `inputs/readings.*` | `results/selected.*`: 4 записи            | `results/excluded.*`: 2 записи            | `results/selected.err`: пуст  |         0 |
+  | `inputs/no-match.*` | `results/empty.*`: 0 байт                 | `results/no-match-excluded.*`: 2 записи   | `results/empty.err`: пуст     |         0 |
+  | `inputs/absent.*`   | `results/missing-selected.*`: отсутствует | `results/missing-excluded.*`: отсутствует | `results/missing.err`: непуст | Ненулевой |
 
 Перенаправьте stderr каждого вызова в указанный журнал.
 Перед третьим запуском отсутствуют вход `inputs/absent.*` и оба
@@ -185,8 +183,7 @@ Stdout сценария пуст во всех случаях. Успешные 
 
 {{< project-download exr-data-processing-two-result-pipeline >}}
 
-::: {.public-tests}
-
+::::: {.public-tests}
 ### Открытые примеры
 
 Оба вызова выполняются из `processing`, каталог `results` существует.
@@ -220,7 +217,5 @@ B06/9/skip, B02/10/keep, B05/0/keep, B04/20/skip. Один вызов сцена
 значениям и порядку. Применение содержательных конвейеров и объяснение
 данных между стадиями предъявляются преподавателю вместе с третьим
 обязательным случаем — отказом для отсутствующего входа.
-
+:::::
 :::
-
-::::

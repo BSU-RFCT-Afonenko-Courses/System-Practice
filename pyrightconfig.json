@@ -1,38 +1,25 @@
 {
-  "include": [
-    "tasks/projects/version-control/github-ssh/seed_recipe.py",
-    "tasks/projects/version-control/restore-selected-state/seed_recipe.py",
-    "tests/git_fixture.py",
-    "tests/test_archive_failures.py",
-    "tests/test_data_processing.py",
-    "tests/test_git_materials.py",
-    "tests/test_json_boundaries.py",
-    "tests/test_maintenance_materials.py",
-    "tests/test_materials.py",
-    "tests/test_public_materials.py",
-    "tests/test_tar_archives.py",
-    "tests/test_work_environment_runtime.py",
-    "tests/test_zip_archives.py",
-    "tools/build_git_materials.py",
-    "tools/build_maintenance_materials.py",
-    "tools/build_materials.py",
-    "tools/check_data_processing.py",
-    "tools/materialize_public_materials.py",
-    "tools/system_support.py"
-  ],
+  "include": ["."],
   "exclude": [
     "**/_extensions/**",
-    "**/vendor/**"
+    "**/vendor/**",
+    ".platform",
+    ".ci",
+    "**/node_modules/**",
+    "**/.venv/**",
+    "**/.quarto/**",
+    "**/_generated/**",
+    "**/_freeze/**",
+    "**/_output/**",
+    "**/_site*/**",
+    "docs/superpowers"
   ],
   "typeCheckingMode": "strict",
   "pythonVersion": "3.12",
   "executionEnvironments": [
     {
       "root": ".",
-      "extraPaths": [
-        "tools",
-        "tests"
-      ]
+      "extraPaths": ["tools", "tests"]
     }
   ]
 }

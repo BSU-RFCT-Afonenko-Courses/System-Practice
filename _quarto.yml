@@ -2,46 +2,46 @@ project:
   type: website
   output-dir: _site
   render:
-  - index.qmd
+    - index.qmd
   resources:
-  - '!tools/**'
-  - '!tests/**'
-  - '!**/projects/**'
-  - '!**/__pycache__/**'
-  - '!lectures/**'
-  - '!docs/**'
-  - '!bibliography/**'
-  - '!includes/**'
-  - '!theory/**'
-  - '!tasks/**'
-  - '!practice/**'
-  - '!handbook/**'
-  - '!provenance/**'
-  - '!README.md'
-  - '!UPSTREAM.md'
-  - '!AGENTS.md'
-  - '!.github/**'
-  - '!.platform/**'
-  - '!.ci/**'
-  - '!.gitmodules'
-  - '!Taskfile.yml'
-  - '!*.fish'
-  - '!*.log'
-  - '!_site*/**'
-  - '!**/*.qmd'
-  - '!**/*.rmd'
-  - '!**/*.ipynb'
-  - '!_extensions/**'
-  - '!_generated/**'
-  - '!.quarto/**'
-  - '!_freeze/**'
-  - '!_output/**'
-  - '!**/_output/**'
-  - '!**/_generated/**'
+    - "!tools/**"
+    - "!tests/**"
+    - "!**/projects/**"
+    - "!**/__pycache__/**"
+    - "!lectures/**"
+    - "!docs/**"
+    - "!bibliography/**"
+    - "!includes/**"
+    - "!theory/**"
+    - "!tasks/**"
+    - "!practice/**"
+    - "!handbook/**"
+    - "!provenance/**"
+    - "!README.md"
+    - "!UPSTREAM.md"
+    - "!AGENTS.md"
+    - "!.github/**"
+    - "!.platform/**"
+    - "!.ci/**"
+    - "!.gitmodules"
+    - "!Taskfile.yml"
+    - "!*.fish"
+    - "!*.log"
+    - "!_site*/**"
+    - "!**/*.qmd"
+    - "!**/*.rmd"
+    - "!**/*.ipynb"
+    - "!_extensions/**"
+    - "!_generated/**"
+    - "!.quarto/**"
+    - "!_freeze/**"
+    - "!_output/**"
+    - "!**/_output/**"
+    - "!**/_generated/**"
   pre-render:
-  - _extensions/Afonenko-Course-Tools/course-site/entrypoints/pre.ts
+    - _extensions/Afonenko-Course-Tools/course-site/entrypoints/pre.ts
   post-render:
-  - _extensions/Afonenko-Course-Tools/course-site/entrypoints/post.ts
+    - _extensions/Afonenko-Course-Tools/course-site/entrypoints/post.ts
 format:
   html:
     theme: cosmo
@@ -54,20 +54,20 @@ website:
   search: true
   navbar:
     left:
-    - text: Теория
-      href: theory/index.html
-    - text: Лекции
-      href: lectures/index.html
-    - text: Лабораторные
-      href: tasks/index.html
-    - text: Введения
-      href: practice/index.html
-    - text: Справочник
-      href: handbook/index.html
+      - text: Теория
+        href: theory/index.html
+      - text: Лекции
+        href: lectures/index.html
+      - text: Лабораторные
+        href: tasks/index.html
+      - text: Введения
+        href: practice/index.html
+      - text: Справочник
+        href: handbook/index.html
 filters:
-- course-core
-- course-presentation
-- reference-catalog
+  - course-core
+  - course-presentation
+  - reference-catalog
 reference-catalog:
   namespace: system-practice-portal
   publication:
@@ -77,13 +77,13 @@ course:
 profile:
   default: student
   group:
-  - - student
-    - full
+    - - student
+      - full
 subprojects:
-- theory
-- lectures
-- tasks
-- practice
-- handbook
+  - theory
+  - lectures
+  - tasks
+  - practice
+  - handbook
 course-core-runtime: native-ts
 course-core-projection: student

@@ -4,15 +4,15 @@ subtitle: История проекта измерений
 course-navigation:
   course-url: https://bsu-rfct-afonenko-courses.github.io/System-Practice/
   links:
-  - text: Курс
-    href: /index.html
-    scope: course
-  - text: Введения
-    href: /index.html
-    scope: project
-  - text: Условие
-    href: /tasks/labs/version-control.html
-    scope: course
+    - text: Курс
+      href: /index.html
+      scope: course
+    - text: Введения
+      href: /index.html
+      scope: project
+    - text: Условие
+      href: /tasks/labs/version-control.html
+      scope: course
 format:
   revealjs:
     width: 1280
@@ -44,11 +44,11 @@ format:
 Распакуйте [демонстрационный архив](materials/version-control-demo.zip)
 в новую папку. В `latency-demo` три обычных файла; `.git` ещё отсутствует.
 
-| Файл | Назначение |
-|---|---|
-| criteria.txt | Порог `latency_limit = 10 ms` |
-| measurements.tsv | Измерения north — 8 ms, south — 18 ms |
-| README.md | Описание данных и включения измерений в отчёт |
+  | Файл             | Назначение                                    |
+  | ---------------- | --------------------------------------------- |
+  | criteria.txt     | Порог `latency_limit = 10 ms`                 |
+  | measurements.tsv | Измерения north — 8 ms, south — 18 ms         |
+  | README.md        | Описание данных и включения измерений в отчёт |
 
 Откройте файлы редактором. При пороге 10 ms проходит запись north.
 Перейдите в latency-demo в PowerShell 7 либо fish.
@@ -167,9 +167,9 @@ git --no-pager diff -- criteria.txt
 git --no-pager diff --staged -- criteria.txt
 ```
 
-| HEAD | Индекс | Рабочий файл |
-|---:|---:|---:|
-| 10 ms | 12 ms | 20 ms |
+  | HEAD  | Индекс | Рабочий файл |
+  | ----: | -----: | -----------: |
+  | 10 ms |  12 ms |        20 ms |
 
 Статус — `MM`. Обычный diff показывает 12 → 20,
 подготовленный diff — 10 → 12.

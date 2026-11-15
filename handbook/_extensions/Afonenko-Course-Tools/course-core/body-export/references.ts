@@ -3,7 +3,17 @@ const __metrics = __createMetrics("course-core");
 import { dirname, resolve } from "stdlib/path";
 import { commandInput, quartoExecutable } from "../infrastructure/process.ts";
 import { diagnostic, type DiagnosticContext } from "../domain/diagnostics.ts";
-import { isRecord, isNode, isCite, isContainer, isLink, isAttributes, isNodes, nodeAttributes, requireNodes } from "../document/native-ast.ts";
+import {
+  isRecord,
+  isNode,
+  isCite,
+  isContainer,
+  isLink,
+  isAttributes,
+  isNodes,
+  nodeAttributes,
+  requireNodes,
+} from "../document/native-ast.ts";
 import type { Node, Attributes, CiteNode } from "../document/native-ast.ts";
 import { decode, PandocDocumentSchema } from "../document/contracts.ts";
 
@@ -52,21 +62,25 @@ async function resolveReferencesWork(
     // Citeproc also scans metadata (including abstract). Only its citation
     // configuration/data belongs to this selected public question's input.
     if (!isRecord(document)) throw diagnostic("DOCUMENT_AST", "Нужен native document envelope", context);
-    const input = decode(PandocDocumentSchema.omit({ blocks: true }), {
-      "pandoc-api-version": document["pandoc-api-version"], meta: document.meta,
-    }, "DOCUMENT_AST", context.source);
+    const input = decode(
+      PandocDocumentSchema.omit({ blocks: true }),
+      {
+        "pandoc-api-version": document["pandoc-api-version"],
+        meta: document.meta,
+      },
+      "DOCUMENT_AST",
+      context.source,
+    );
     const meta: Record<string, unknown> = {};
-    for (
-      const key of [
-        "bibliography",
-        "csl",
-        "link-citations",
-        "lang",
-        "locale",
-        "references",
-        "citation-abbreviations",
-      ]
-    ) {
+    for (const key of [
+      "bibliography",
+      "csl",
+      "link-citations",
+      "lang",
+      "locale",
+      "references",
+      "citation-abbreviations",
+    ]) {
       if (input.meta[key] !== undefined) meta[key] = input.meta[key];
     }
     walk(meta, (n) => {
@@ -78,13 +92,7 @@ async function resolveReferencesWork(
         );
       }
     });
-    const args = [
-      "pandoc",
-      "--from=json",
-      "--to=json",
-      "--citeproc",
-      "--resource-path=" + sourceBase,
-    ];
+    const args = ["pandoc", "--from=json", "--to=json", "--citeproc", "--resource-path=" + sourceBase];
     const witness: unknown = JSON.parse(
       await commandInput(
         quartoExecutable(),
@@ -105,11 +113,7 @@ async function resolveReferencesWork(
       }
     });
     if ([...citations].some((id) => !entries.has("ref-" + id))) {
-      throw diagnostic(
-        "BODY.CITATION_UNRESOLVED",
-        "Native citeproc не создал библиографическую запись",
-        context,
-      );
+      throw diagnostic("BODY.CITATION_UNRESOLVED", "Native citeproc не создал библиографическую запись", context);
     }
     // This witness contains no authored bibliography nodes. A successful
     // warning-only unknown citation cannot borrow a forged csl-entry.
@@ -127,14 +131,10 @@ async function resolveReferencesWork(
     );
     function translate(v: unknown): unknown {
       if (Array.isArray(v)) {
-        return v.flatMap((n) =>
-          isCite(n) ? translate(n.c[1]) : [translate(n)]
-        );
+        return v.flatMap((n) => (isCite(n) ? translate(n.c[1]) : [translate(n)]));
       }
       if (!isRecord(v)) return v;
-      return Object.fromEntries(
-        Object.entries(v).map(([k, n]) => [k, translate(n)]),
-      );
+      return Object.fromEntries(Object.entries(v).map(([k, n]) => [k, translate(n)]));
     }
     const outputDocument = decode(PandocDocumentSchema, output, "DOCUMENT_AST", context.source);
     resolved = requireNodes(translate(outputDocument.blocks), context.source);
@@ -148,22 +148,35 @@ export function nativeAttributes(node: unknown): Attributes[] {
   if (node.t !== "Table") {
     const attr = nodeAttributes(node);
     if (node.t === "Figure") {
-      if (!Array.isArray(node.c) || node.c.length !== 3 || !isAttributes(node.c[0]) || !isNodes(node.c[2])) throw diagnostic("DOCUMENT_AST", "Повреждённый Figure", {});
+      if (!Array.isArray(node.c) || node.c.length !== 3 || !isAttributes(node.c[0]) || !isNodes(node.c[2]))
+        throw diagnostic("DOCUMENT_AST", "Повреждённый Figure", {});
       return [node.c[0]];
     }
     return attr ? [attr] : [];
   }
-  const malformed = (): never => { throw diagnostic("DOCUMENT_AST", "Повреждённый native Table/Attr", {}); };
+  const malformed = (): never => {
+    throw diagnostic("DOCUMENT_AST", "Повреждённый native Table/Attr", {});
+  };
   if (!Array.isArray(node.c) || node.c.length !== 6 || !isAttributes(node.c[0])) return malformed();
   const result: Attributes[] = [node.c[0]];
   const rowLists: unknown[] = [];
   function rows(value: unknown) {
     if (!Array.isArray(value)) return malformed();
     for (const row of value) {
-      if (!Array.isArray(row) || row.length !== 2 || !isAttributes(row[0]) || !Array.isArray(row[1])) return malformed();
+      if (!Array.isArray(row) || row.length !== 2 || !isAttributes(row[0]) || !Array.isArray(row[1]))
+        return malformed();
       result.push(row[0]);
       for (const cell of row[1]) {
-        if (!Array.isArray(cell) || cell.length !== 5 || !isAttributes(cell[0]) || !isNode(cell[1]) || typeof cell[2] !== "number" || typeof cell[3] !== "number" || !isNodes(cell[4])) return malformed();
+        if (
+          !Array.isArray(cell) ||
+          cell.length !== 5 ||
+          !isAttributes(cell[0]) ||
+          !isNode(cell[1]) ||
+          typeof cell[2] !== "number" ||
+          typeof cell[3] !== "number" ||
+          !isNodes(cell[4])
+        )
+          return malformed();
         result.push(cell[0]);
       }
     }
@@ -177,7 +190,8 @@ export function nativeAttributes(node: unknown): Attributes[] {
   const bodies: unknown = node.c[4];
   if (!Array.isArray(bodies)) return malformed();
   for (const body of bodies) {
-    if (!Array.isArray(body) || body.length !== 4 || !isAttributes(body[0]) || typeof body[1] !== "number") return malformed();
+    if (!Array.isArray(body) || body.length !== 4 || !isAttributes(body[0]) || typeof body[1] !== "number")
+      return malformed();
     result.push(body[0]);
     rowLists.push(body[2], body[3]);
   }
@@ -187,10 +201,7 @@ export function nativeAttributes(node: unknown): Attributes[] {
 }
 
 /** Fragment links must resolve inside the complete standalone public question. */
-function assertReferenceTargetsWork(
-  blocks: Node[],
-  context: DiagnosticContext,
-) {
+function assertReferenceTargetsWork(blocks: Node[], context: DiagnosticContext) {
   const walk = (v: unknown, f: (n: Record<string, unknown>) => void) => {
     if (Array.isArray(v)) {
       v.forEach((n) => walk(n, f));
@@ -201,7 +212,8 @@ function assertReferenceTargetsWork(
       Object.values(v).forEach((n) => walk(n, f));
     }
   };
-  const ids = new Set<string>(), targets: string[] = [];
+  const ids = new Set<string>(),
+    targets: string[] = [];
   walk(blocks, (n) => {
     for (const attr of nativeAttributes(n)) {
       if (attr?.[0]) {
@@ -220,17 +232,21 @@ function assertReferenceTargetsWork(
     }
   });
   if (targets.some((id) => !ids.has(id))) {
-    throw diagnostic(
-      "BODY.REFERENCE_TARGET_MISSING",
-      "Ссылка не имеет цели в самостоятельном вопросе",
-      context,
-    );
+    throw diagnostic("BODY.REFERENCE_TARGET_MISSING", "Ссылка не имеет цели в самостоятельном вопросе", context);
   }
 }
 
-export const resolveReferences = __metrics.wrapAsync({
-  id: "course-core.body-export.references.resolveReferences", kind: "phase",
-}, resolveReferencesWork);
-export const assertReferenceTargets = __metrics.wrapSync({
-  id: "course-core.body-export.references.assertReferenceTargets", kind: "phase",
-}, assertReferenceTargetsWork);
+export const resolveReferences = __metrics.wrapAsync(
+  {
+    id: "course-core.body-export.references.resolveReferences",
+    kind: "phase",
+  },
+  resolveReferencesWork,
+);
+export const assertReferenceTargets = __metrics.wrapSync(
+  {
+    id: "course-core.body-export.references.assertReferenceTargets",
+    kind: "phase",
+  },
+  assertReferenceTargetsWork,
+);

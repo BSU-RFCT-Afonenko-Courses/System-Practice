@@ -11,44 +11,45 @@ import {
   ARTIFACT_KINDS,
   type resolveDownloadRequests,
 } from "../domain/request.ts";
-export type ArtifactKind = typeof ARTIFACT_KINDS[number];
+export type ArtifactKind = (typeof ARTIFACT_KINDS)[number];
 type NativeRequest = ReturnType<typeof resolveDownloadRequests>["request"];
 export type ArtifactRequest = NonNullable<NativeRequest["artifacts"]>[number];
 /** Проверенные поля заявки; raw configuration разбирает её действующий owner. */
-export type Request =
-  & Pick<NativeRequest, "source" | "resources" | "artifacts">
-  & {
-    configuration?: unknown;
-  };
+export type Request = Pick<
+  NativeRequest,
+  "source" | "resources" | "artifacts"
+> & {
+  configuration?: unknown;
+};
 export interface PublishPorts {
   requests(): Promise<Request[]>;
   courseResource(id: string, source: string): Promise<Resource>;
   modelArtifact?(
     request: ArtifactRequest,
     source: string,
-  ): Promise<
-    {
-      kind: ArtifactKind;
-      files: ArchiveEntry[];
-      package?(): Promise<Uint8Array>;
-    }
-  >;
+  ): Promise<{
+    kind: ArtifactKind;
+    files: ArchiveEntry[];
+    package?(): Promise<Uint8Array>;
+  }>;
   files(resource: Resource): Promise<ArchiveEntry[]>;
   save(archives: { name: string; bytes: Uint8Array }[]): Promise<void>;
 }
-export const publish = __metrics.wrapAsync({
-  id: "project-download.application.publish.publish",
-  kind: "phase",
-}, async function publish(
-  config: Configuration,
-  profiles: string[],
-  ports: PublishPorts,
-): Promise<number> {
-  return await progress(
-    "Сборка материалов и ZIP",
-    () => publishInternal(config, profiles, ports),
-  );
-});
+export const publish = __metrics.wrapAsync(
+  {
+    id: "project-download.application.publish.publish",
+    kind: "phase",
+  },
+  async function publish(
+    config: Configuration,
+    profiles: string[],
+    ports: PublishPorts,
+  ): Promise<number> {
+    return await progress("Сборка материалов и ZIP", () =>
+      publishInternal(config, profiles, ports),
+    );
+  },
+);
 async function publishInternal(
   config: Configuration,
   profiles: string[],
@@ -61,7 +62,8 @@ async function publishInternal(
   >();
   const requests = await progress("Чтение заявок", () => ports.requests());
   await progress("Подготовка заявок", async () => {
-    let pages = 0, prepared = 0;
+    let pages = 0,
+      prepared = 0;
     const total = requests.reduce(
       (count, request) => count + (request.artifacts?.length ?? 0),
       0,
@@ -108,7 +110,7 @@ async function publishInternal(
           }
           const name = artifact.exerciseId + "-" + resolved.kind + ".zip";
           const files = [...resolved.files].sort((a, b) =>
-            a.name < b.name ? -1 : a.name > b.name ? 1 : 0
+            a.name < b.name ? -1 : a.name > b.name ? 1 : 0,
           );
           const previous = model.get(name);
           if (previous && !equalFiles(previous.files, files)) {
@@ -136,7 +138,8 @@ async function publishInternal(
             { source: request.source, id, field: "resources" },
           );
         }
-        const resource = config.resources[id] ??
+        const resource =
+          config.resources[id] ??
           (config["course-model"] && id.startsWith("exr-")
             ? await ports.courseResource(id, request.source)
             : undefined);
@@ -158,9 +161,9 @@ async function publishInternal(
         ) {
           throw diagnostic(
             "DOWNLOAD.RESOURCE_UNAVAILABLE",
-            `Ресурс ${id} недоступен для текущего профиля: ${
-              profiles.join(", ")
-            }; скройте ссылку тем же условием`,
+            `Ресурс ${id} недоступен для текущего профиля: ${profiles.join(
+              ", ",
+            )}; скройте ссылку тем же условием`,
             {
               source: request.source,
               id,
@@ -187,9 +190,9 @@ async function publishInternal(
   );
   const archives: { name: string; bytes: Uint8Array }[] = [];
   await progress("Сборка ZIP", async () => {
-    for (
-      const [id, resource] of [...selected].sort(([a], [b]) => a < b ? -1 : 1)
-    ) {
+    for (const [id, resource] of [...selected].sort(([a], [b]) =>
+      a < b ? -1 : 1,
+    )) {
       const name = id + ".zip";
       if (model.has(name)) {
         throw diagnostic(
@@ -198,9 +201,8 @@ async function publishInternal(
           { id, field: "output" },
         );
       }
-      const files = await progress(
-        "Чтение материалов",
-        () => ports.files(resource),
+      const files = await progress("Чтение материалов", () =>
+        ports.files(resource),
       );
       archives.push({ name, bytes: zip(files) });
       reportProgress(
@@ -209,9 +211,9 @@ async function publishInternal(
         }, archive=${name}`,
       );
     }
-    for (
-      const [name, artifact] of [...model].sort(([a], [b]) => a < b ? -1 : 1)
-    ) {
+    for (const [name, artifact] of [...model].sort(([a], [b]) =>
+      a < b ? -1 : 1,
+    )) {
       archives.push({
         name,
         bytes: artifact.package
@@ -233,10 +235,15 @@ function equalBytes(a: Uint8Array, b: Uint8Array): boolean {
 }
 
 function equalFiles(a: ArchiveEntry[], b: ArchiveEntry[]): boolean {
-  return a.length === b.length &&
+  return (
+    a.length === b.length &&
     a.every((file, i) => {
       const other = b[i];
-      return other !== undefined && file.name === other.name &&
-        equalBytes(file.bytes, other.bytes);
-    });
+      return (
+        other !== undefined &&
+        file.name === other.name &&
+        equalBytes(file.bytes, other.bytes)
+      );
+    })
+  );
 }

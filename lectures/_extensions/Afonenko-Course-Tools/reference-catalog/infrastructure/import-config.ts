@@ -17,11 +17,10 @@ export function publicationBaseUrl(
   location: DiagnosticContext = {},
 ): string {
   if (typeof value !== "string") {
-    throw diagnostic(
-      "QRC.IMPORT_INVALID",
-      `${context} должен быть HTTP(S) URL с завершающим /`,
-      { ...location, field: location.field ?? context },
-    );
+    throw diagnostic("QRC.IMPORT_INVALID", `${context} должен быть HTTP(S) URL с завершающим /`, {
+      ...location,
+      field: location.field ?? context,
+    });
   }
   let url: URL;
   try {
@@ -35,8 +34,12 @@ export function publicationBaseUrl(
     );
   }
   if (
-    !["http:", "https:"].includes(url.protocol) || url.search || url.hash ||
-    url.username || url.password || !url.pathname.endsWith("/")
+    !["http:", "https:"].includes(url.protocol) ||
+    url.search ||
+    url.hash ||
+    url.username ||
+    url.password ||
+    !url.pathname.endsWith("/")
   ) {
     throw diagnostic(
       "QRC.IMPORT_INVALID",
@@ -48,11 +51,7 @@ export function publicationBaseUrl(
 }
 
 /** Проверка публичной конфигурации не зависит от inspect и render Quarto. */
-export function parseImports(
-  raw: unknown,
-  root: string,
-  memberNamespaces: string[],
-) {
+export function parseImports(raw: unknown, root: string, memberNamespaces: string[]) {
   if (raw === undefined) return [];
   if (!isRecord(raw)) {
     throw diagnostic(
@@ -65,53 +64,35 @@ export function parseImports(
   for (const [namespace, item] of Object.entries(raw)) {
     const invalid = (message: string, field: string) =>
       diagnostic("QRC.IMPORT_INVALID", message, {
-        source: isRecord(item) && typeof item.source === "string"
-          ? item.source
-          : root,
+        source: isRecord(item) && typeof item.source === "string" ? item.source : root,
         id: namespace,
         field: `reference-catalog.imports.${namespace}.${field}`,
       });
-    if (
-      !namespacePattern.test(namespace) || memberNamespaces.includes(namespace)
-    ) {
-      throw invalid(
-        `некорректное пространство имён импорта ${namespace}`,
-        `namespace`,
-      );
+    if (!namespacePattern.test(namespace) || memberNamespaces.includes(namespace)) {
+      throw invalid(`некорректное пространство имён импорта ${namespace}`, `namespace`);
     }
     if (!isRecord(item)) {
-      throw invalid(
-        `настройки импорта ${namespace} должны быть отображением`,
-        `imports`,
-      );
+      throw invalid(`настройки импорта ${namespace} должны быть отображением`, `imports`);
     }
     for (const key of Object.keys(item)) {
-      if (!importKeys.some(name => name === key)) {
-        throw invalid(
-          `неизвестное свойство импорта ${namespace}.${key}`,
-          `${key}`,
-        );
+      if (!importKeys.some((name) => name === key)) {
+        throw invalid(`неизвестное свойство импорта ${namespace}.${key}`, `${key}`);
       }
     }
     const source = item.source;
     if (typeof source !== "string" || !source.trim()) {
       throw invalid(`импорт ${namespace} требуется source`, `source`);
     }
-    if (
-      typeof item.namespace !== "string" ||
-      !namespacePattern.test(item.namespace)
-    ) {
+    if (typeof item.namespace !== "string" || !namespacePattern.test(item.namespace)) {
       throw invalid(
         `импорт ${namespace} требуется корректное пространство имён источника`,
         `namespace`,
       );
     }
-    const title = item.title, style = item.style;
+    const title = item.title,
+      style = item.style;
     if (title !== undefined && (typeof title !== "string" || !title.trim())) {
-      throw invalid(
-        `импорт ${namespace}.title должен быть непустой строкой`,
-        `title`,
-      );
+      throw invalid(`импорт ${namespace}.title должен быть непустой строкой`, `title`);
     }
     if (style !== undefined && !isReferenceStyle(style)) {
       throw invalid(`некорректный стиль импорта ${namespace}.style`, `style`);
@@ -120,15 +101,11 @@ export function parseImports(
       namespace,
       source: normalizeCatalogSource(source, root, namespace),
       sourceNamespace: item.namespace,
-      baseUrl: publicationBaseUrl(
-        item["base-url"],
-        `импорт ${namespace} base-url`,
-        {
-          source,
-          id: namespace,
-          field: `reference-catalog.imports.${namespace}.base-url`,
-        },
-      ),
+      baseUrl: publicationBaseUrl(item["base-url"], `импорт ${namespace} base-url`, {
+        source,
+        id: namespace,
+        field: `reference-catalog.imports.${namespace}.base-url`,
+      }),
       ...(title === undefined ? {} : { title }),
       ...(style === undefined ? {} : { style }),
     });

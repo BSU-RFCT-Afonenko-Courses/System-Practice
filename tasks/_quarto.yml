@@ -4,29 +4,29 @@ project:
   type: book
   output-dir: _output
   resources:
-  - materials/**
-  - '!tools/**'
-  - '!tests/**'
-  - '!**/projects/**'
-  - '!**/__pycache__/**'
-  - '!**/*.qmd'
-  - '!**/*.rmd'
-  - '!**/*.ipynb'
-  - '!_extensions/**'
-  - '!_generated/**'
-  - '!.quarto/**'
-  - '!_freeze/**'
-  - '!_output/**'
-  - '!**/_output/**'
-  - '!**/_generated/**'
+    - materials/**
+    - "!tools/**"
+    - "!tests/**"
+    - "!**/projects/**"
+    - "!**/__pycache__/**"
+    - "!**/*.qmd"
+    - "!**/*.rmd"
+    - "!**/*.ipynb"
+    - "!_extensions/**"
+    - "!_generated/**"
+    - "!.quarto/**"
+    - "!_freeze/**"
+    - "!_output/**"
+    - "!**/_output/**"
+    - "!**/_generated/**"
   pre-render:
-  - _extensions/Afonenko-Course-Tools/course-core/entrypoints/pre.ts
-  - _extensions/Afonenko-Course-Tools/project-download/entrypoints/pre.ts
+    - _extensions/Afonenko-Course-Tools/course-core/entrypoints/pre.ts
+    - _extensions/Afonenko-Course-Tools/project-download/entrypoints/pre.ts
   post-render:
-  - _extensions/Afonenko-Course-Tools/reference-catalog/entrypoints/post.ts
-  - ../_extensions/Afonenko-Course-Tools/course-site/entrypoints/collect.ts
-  - _extensions/Afonenko-Course-Tools/course-core/entrypoints/post.ts
-  - _extensions/Afonenko-Course-Tools/project-download/entrypoints/post.ts
+    - _extensions/Afonenko-Course-Tools/reference-catalog/entrypoints/post.ts
+    - ../_extensions/Afonenko-Course-Tools/course-site/entrypoints/collect.ts
+    - _extensions/Afonenko-Course-Tools/course-core/entrypoints/post.ts
+    - _extensions/Afonenko-Course-Tools/project-download/entrypoints/post.ts
 format:
   html:
     theme: cosmo
@@ -38,11 +38,11 @@ format:
 lang: ru
 fail-if-warnings: true
 filters:
-- course-core
-- course-presentation
-- reference-catalog
-- course-prairielearn
-- project-download
+  - course-core
+  - course-presentation
+  - reference-catalog
+  - course-prairielearn
+  - project-download
 reference-catalog:
   namespace: system-practice-tasks
   imports:
@@ -61,26 +61,26 @@ reference-catalog:
 profile:
   default: student
   group:
-  - - student
-    - full
+    - - student
+      - full
 book:
   site-url: https://bsu-rfct-afonenko-courses.github.io/System-Practice/tasks/
   title: System Practice — лабораторные и проект
   chapters:
-  - index.qmd
-  - labs/work-environment.qmd
-  - labs/data-processing.qmd
-  - labs/version-control.qmd
-  - optional/project-maintenance.qmd
-  - delivery/units/sec-unit-version-control-restore-selected-state.qmd
-  - delivery/units/sec-unit-project-maintenance-release.qmd
+    - index.qmd
+    - labs/work-environment.qmd
+    - labs/data-processing.qmd
+    - labs/version-control.qmd
+    - optional/project-maintenance.qmd
+    - delivery/units/sec-unit-version-control-restore-selected-state.qmd
+    - delivery/units/sec-unit-project-maintenance-release.qmd
   search: true
   page-navigation: true
   sidebar:
     tools:
-    - icon: house
-      href: ../index.html#sec-system-practice
-      text: Портал курса
+      - icon: house
+        href: ../index.html#sec-system-practice
+        text: Портал курса
 
 course:
   id: system-practice
@@ -98,22 +98,22 @@ prairielearn:
       title: System Practice
       timezone: Europe/Minsk
       topics:
-      - name: Shell
-        color: blue2
-        description: Файлы и потоки
+        - name: Shell
+          color: blue2
+          description: Файлы и потоки
     instances:
       pilot:
         title: Пилот System Practice
         self-enrollment: false
         publishing:
-          start-date: '1970-01-01T00:00:00Z'
-          end-date: '9999-12-31T00:00:00Z'
+          start-date: "1970-01-01T00:00:00Z"
+          end-date: "9999-12-31T00:00:00Z"
         works:
-        - sec-lab-work-environment
-        - sec-lab-data-processing
-        - sec-lab-version-control
-        - sec-unit-version-control-restore-selected-state
-        - sec-unit-project-maintenance-release
+          - sec-lab-work-environment
+          - sec-lab-data-processing
+          - sec-lab-version-control
+          - sec-unit-version-control-restore-selected-state
+          - sec-unit-project-maintenance-release
   question-defaults:
     topic: Shell
     single-variant: true

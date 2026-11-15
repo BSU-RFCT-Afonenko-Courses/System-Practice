@@ -12,18 +12,12 @@ async function main(): Promise<void> {
   const root = Deno.cwd();
   const profiles = Deno.env.get("QUARTO_PROFILE");
   const inspection: unknown = parsePostInspection(
-    await quarto([
-      "inspect",
-      root,
-      ...(profiles ? ["--profile", profiles] : []),
-    ], root),
+    await quarto(["inspect", root, ...(profiles ? ["--profile", profiles] : [])], root),
     root,
   );
   const { config, namespace } = postConfiguration(inspection, root);
   const version = postQuartoVersion(inspection, root);
-  const outputListFile = Deno.env.get(
-    "QUARTO_USE_FILE_FOR_PROJECT_OUTPUT_FILES",
-  );
+  const outputListFile = Deno.env.get("QUARTO_USE_FILE_FOR_PROJECT_OUTPUT_FILES");
   const outputList = outputListFile
     ? await Deno.readTextFile(resolve(root, outputListFile))
     : Deno.env.get("QUARTO_PROJECT_OUTPUT_FILES");
@@ -39,11 +33,7 @@ async function main(): Promise<void> {
     root,
     stage: resolve(
       root,
-      postOutputDirectory(
-        config,
-        Deno.env.get("QUARTO_PROJECT_OUTPUT_DIR"),
-        root,
-      ),
+      postOutputDirectory(config, Deno.env.get("QUARTO_PROJECT_OUTPUT_DIR"), root),
     ),
     quarto: version,
     config,

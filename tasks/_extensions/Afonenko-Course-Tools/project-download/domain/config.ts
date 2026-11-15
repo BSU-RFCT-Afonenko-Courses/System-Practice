@@ -1,8 +1,7 @@
 import { diagnostic } from "../diagnostics.ts";
 export type Resource = ReturnType<typeof resource>;
-export type Configuration =
-  & ReturnType<typeof defaultConfiguration>
-  & Partial<ReturnType<typeof configured>>;
+export type Configuration = ReturnType<typeof defaultConfiguration> &
+  Partial<ReturnType<typeof configured>>;
 export const RESOURCE_ID = /^[a-z0-9][a-z0-9-]*$/;
 export const CONFIG_FIELDS = new Set(["resources", "course-model", "base-url"]);
 export const RESOURCE_FIELDS = new Set([
@@ -54,7 +53,8 @@ function resourceFields(value: unknown, id: string) {
       );
     }
   }
-  const item = value, path = item.path;
+  const item = value,
+    path = item.path;
   if (typeof path !== "string" || !path || path === "/") {
     throw diagnostic(
       "DOWNLOAD.CONFIG_INVALID",
@@ -145,7 +145,8 @@ function configured(input: {}) {
       );
     }
   }
-  const model = value["course-model"], base = value["base-url"];
+  const model = value["course-model"],
+    base = value["base-url"];
   if (model != null && typeof model !== "boolean") {
     throw diagnostic(
       "DOWNLOAD.CONFIG_INVALID",

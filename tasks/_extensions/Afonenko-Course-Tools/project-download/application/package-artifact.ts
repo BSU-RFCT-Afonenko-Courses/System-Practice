@@ -20,7 +20,9 @@ export async function packageArtifact(value: unknown): Promise<Uint8Array> {
     );
   }
   const core = await sibling("course-core");
-  let artifact: ReturnType<SiblingModules["course-core"]["ArtifactFilesSchema"]["parse"]>;
+  let artifact: ReturnType<
+    SiblingModules["course-core"]["ArtifactFilesSchema"]["parse"]
+  >;
   try {
     artifact = core.ArtifactFilesSchema.parse(supplied);
   } catch (cause) {
@@ -61,9 +63,13 @@ export async function packageArtifact(value: unknown): Promise<Uint8Array> {
       }
     }
   }
-  files.sort((a, b) => a.target < b.target ? -1 : a.target > b.target ? 1 : 0);
-  return zip(files.map((file) => ({
-    name: file.target,
-    bytes: file.bytes,
-  })));
+  files.sort((a, b) =>
+    a.target < b.target ? -1 : a.target > b.target ? 1 : 0,
+  );
+  return zip(
+    files.map((file) => ({
+      name: file.target,
+      bytes: file.bytes,
+    })),
+  );
 }

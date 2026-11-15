@@ -25,14 +25,12 @@ assessment:
 
 # Управление версиями {#sec-lab-version-control}
 
-
 ::: {.task-items requirement="required"}
 - @exr-version-control-local-history
 - @exr-version-control-github-ssh
 :::
 
-:::: {#exr-version-control-local-history target="prairielearn" project="/projects/version-control/local-history" prairielearn-grading="manual" prairielearn-submission="upload" difficulty="intermediate"}
-
+::: {#exr-version-control-local-history target="prairielearn" project="/projects/version-control/local-history" prairielearn-grading="manual" prairielearn-submission="upload" difficulty="intermediate"}
 ## Слияние изменений порога
 
 {{< project-download exr-version-control-local-history kind="conditions" text="Скачать условие для локального просмотра" >}}
@@ -60,11 +58,11 @@ versioning/
 В `project` отсутствует `.git`; историю создаёте вы.
 Это текстово-табличный проект, программа обработки не требуется.
 
-| Файл | Исходное содержимое |
-|---|---|
-| `criteria.txt` | Единственная строка `latency_limit = 25 ms` |
-| `measurements.tsv` | Столбцы `sensor`, `latency_ms`; записи `north`, `18` и `south`, `28`; разделитель TAB |
-| `README.md` | Назначение проекта; измерения выражены в миллисекундах; в отчёт включаются значения, не превышающие порог из criteria.txt |
+  | Файл               | Исходное содержимое                                                                                                       |
+  | ---                | ---                                                                                                                       |
+  | `criteria.txt`     | Единственная строка `latency_limit = 25 ms`                                                                               |
+  | `measurements.tsv` | Столбцы `sensor`, `latency_ms`; записи `north`, `18` и `south`, `28`; разделитель TAB                                     |
+  | `README.md`        | Назначение проекта; измерения выражены в миллисекундах; в отчёт включаются значения, не превышающие порог из criteria.txt |
 
 Кодировка файлов — UTF-8; окончания LF и CRLF допустимы.
 Состав, порядок и значения `measurements.tsv`, включая единицу ms,
@@ -153,8 +151,7 @@ Bundle переносит коммиты и ссылки. Исходный вы�
 
 {{< project-download exr-version-control-local-history >}}
 
-::: {.public-tests}
-
+::::: {.public-tests}
 ### Открытые примеры
 
 #### Согласованный порог и сохранённые линии
@@ -185,13 +182,10 @@ Bundle переносит коммиты и ссылки. Исходный вы�
 Идентификаторы, имя рабочей ветки, даты и сообщения берутся из вашей
 работы. Дополнительные содержательные коммиты и любой порядок
 родителей D допустимы при сохранении требуемых отношений истории.
-
+:::::
 :::
 
-::::
-
-:::: {#exr-version-control-github-ssh target="prairielearn" project="/projects/version-control/github-ssh" prairielearn-grading="manual" prairielearn-submission="upload" difficulty="intermediate"}
-
+::: {#exr-version-control-github-ssh target="prairielearn" project="/projects/version-control/github-ssh" prairielearn-grading="manual" prairielearn-submission="upload" difficulty="intermediate"}
 ## Обмен историей через GitHub
 
 {{< project-download exr-version-control-github-ssh kind="conditions" text="Скачать условие для локального просмотра" >}}
@@ -308,8 +302,7 @@ verification и explanation.md. Сохраните оба каталога `.git
 
 [Скачать заготовку](../materials/version-control-github-ssh-start.zip)
 
-::: {.public-tests}
-
+::::: {.public-tests}
 ### Открытые примеры
 
 #### Отправка и получение всей выбранной истории
@@ -344,13 +337,10 @@ GitHub и транспорт SSH.
 и совпадение локальных файлов устанавливают только часть результата.
 Если внешнее соединение предъявить не удалось, эта часть проверки
 остаётся открытой. Секретные значения сохраняются в личном хранилище.
-
+:::::
 :::
 
-::::
-
-:::: {#exr-version-control-restore-selected-state target="prairielearn" project="/projects/version-control/restore-selected-state" prairielearn-grading="manual" prairielearn-submission="workspace" difficulty="introductory"}
-
+::: {#exr-version-control-restore-selected-state target="prairielearn" project="/projects/version-control/restore-selected-state" prairielearn-grading="manual" prairielearn-submission="workspace" difficulty="introductory"}
 ## Выбор состояния для восстановления
 
 {{< project-download exr-version-control-restore-selected-state kind="conditions" text="Скачать условие для локального просмотра" >}}
@@ -376,10 +366,10 @@ PowerShell 7/Windows или fish/Linux. Нужны Git с командой `rest
 Его ветка `main` указывает на единственный коммит A. Индекс и рабочее
 дерево совпадают с A. В нём два текстовых файла:
 
-| Файл | Единственная строка |
-|---|---|
-| `README.md` | `Название: учебный проект.` |
-| `notes.txt` | `Следующая встреча: понедельник.` |
+  | Файл        | Единственная строка               |
+  | ----------- | --------------------------------- |
+  | `README.md` | `Название: учебный проект.`       |
+  | `notes.txt` | `Следующая встреча: понедельник.` |
 
 Файлы имеют кодировку UTF-8 и завершающий перевод строки. В рабочей
 копии допустимы окончания LF и CRLF.
@@ -439,9 +429,7 @@ PowerShell 7/Windows или fish/Linux. Нужны Git с командой `rest
 Конечные A → B и чистые файлы сами по себе не устанавливают применение
 двух обязательных restore и промежуточное различие индекса и рабочего файла.
 
-
-::: {.public-tests}
-
+::::: {.public-tests}
 ### Открытые примеры
 
 #### Снятие подготовки одного файла
@@ -451,11 +439,11 @@ HEAD выбирает A с исходным названием проекта и
 в `README.md` и `Следующая встреча: вторник.` в `notes.txt`.
 После `git restore --staged` для `notes.txt` получается:
 
-| Состояние | `README.md` | `notes.txt` |
-|---|---|---|
-| HEAD/A | Исходное название | Понедельник |
-| Индекс | Новое название | Понедельник |
-| Рабочие файлы | Новое название | Вторник |
+  | Состояние     | `README.md`       | `notes.txt` |
+  | ------------- | ----------------- | ----------- |
+  | HEAD/A        | Исходное название | Понедельник |
+  | Индекс        | Новое название    | Понедельник |
+  | Рабочие файлы | Новое название    | Вторник     |
 
 Подготовленная разность касается только README. Сравнение рабочего
 `notes.txt` с индексом показывает понедельник → вторник.
@@ -478,7 +466,5 @@ HEAD выбирает A с исходным названием проекта и
 подтверждают конечное состояние, а применение обязательных команд
 и промежуточное различие индекса и рабочего файла устанавливаются
 по наблюдениям.
-
+:::::
 :::
-
-::::

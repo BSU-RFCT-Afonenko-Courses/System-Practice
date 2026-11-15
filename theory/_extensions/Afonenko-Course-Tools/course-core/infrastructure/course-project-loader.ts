@@ -1,17 +1,9 @@
-function yamlDocument(
-  value: unknown,
-): value is { errors: unknown[]; toJS(): unknown } {
-  return record(value) && Array.isArray(value.errors) &&
-    typeof value.toJS === "function";
+function yamlDocument(value: unknown): value is { errors: unknown[]; toJS(): unknown } {
+  return record(value) && Array.isArray(value.errors) && typeof value.toJS === "function";
 }
 import { dirname, isAbsolute, join, relative, resolve } from "stdlib/path";
 import { parseDocument } from "../body-export/vendor/libraries.js";
-import {
-  boundInput,
-  decodeProjectValue,
-  fail,
-  ProjectAddressSchema,
-} from "../contracts/project.ts";
+import { boundInput, decodeProjectValue, fail, ProjectAddressSchema } from "../contracts/project.ts";
 import type { ProjectContract } from "../contracts/project.ts";
 import { toolCachePath } from "./tool-cache.ts";
 
@@ -42,52 +34,38 @@ export function assertInside(owner: string, path: string): void {
   }
 }
 /** Слияние только namespace; адрес path/base заменяется как одно значение. */
-function merge(
-  base: unknown,
-  overlay: unknown,
-  field: readonly string[] = [],
-): unknown {
+function merge(base: unknown, overlay: unknown, field: readonly string[] = []): unknown {
   if (!record(base) || !record(overlay)) return structuredClone(overlay);
   const result = { ...base };
-  const address = field.length === 1 && field[0] === "starter" ||
-    field.length === 2 &&
-      ["components", "testsets", "solutions", "instructions"].includes(
-        field[0] ?? "",
-      ) ||
-    field.length === 3 && field[0] === "build" && field[1] === "files";
-  if (
-    address &&
-    (Object.hasOwn(overlay, "path") || Object.hasOwn(overlay, "base"))
-  ) {
+  const address =
+    (field.length === 1 && field[0] === "starter") ||
+    (field.length === 2 && ["components", "testsets", "solutions", "instructions"].includes(field[0] ?? "")) ||
+    (field.length === 3 && field[0] === "build" && field[1] === "files");
+  if (address && (Object.hasOwn(overlay, "path") || Object.hasOwn(overlay, "base"))) {
     delete result.path;
     delete result.base;
   }
   for (const [key, value] of Object.entries(overlay)) {
-    result[key] = Object.hasOwn(result, key)
-      ? merge(result[key], value, [...field, key])
-      : structuredClone(value);
+    result[key] = Object.hasOwn(result, key) ? merge(result[key], value, [...field, key]) : structuredClone(value);
   }
   return result;
 }
-function addresses(
-  contract: Record<string, unknown>,
-  use: (address: Record<string, unknown>) => void,
-) {
+function addresses(contract: Record<string, unknown>, use: (address: Record<string, unknown>) => void) {
   const node = (value: unknown) => {
     if (record(value)) use(value);
   };
   node(contract.starter);
   for (const key of ["components", "testsets", "solutions", "instructions"]) {
     const map = contract[key];
-    if (record(map)) { for (const value of Object.values(map)) node(value); }
+    if (record(map)) {
+      for (const value of Object.values(map)) node(value);
+    }
   }
   if (record(contract.build) && record(contract.build.files)) {
     for (const value of Object.values(contract.build.files)) node(value);
   }
 }
-export function projectPathEntries(
-  contract: ProjectContract,
-): { field: string; path: string }[] {
+export function projectPathEntries(contract: ProjectContract): { field: string; path: string }[] {
   const rows: { field: string; path: string }[] = [];
   if (contract.starter) {
     rows.push({ field: "starter.path", path: contract.starter.path });
@@ -109,11 +87,7 @@ export function projectPathEntries(
 }
 
 /** Одна операция: каждый contributing YAML парсится один раз; наследование в памяти. */
-export function projectLoader(
-  owner: string,
-  profiles: readonly string[],
-  metrics: ProjectLoaderMetrics,
-) {
+export function projectLoader(owner: string, profiles: readonly string[], metrics: ProjectLoaderMetrics) {
   const yaml = new Map<string, Promise<Record<string, unknown>>>();
   const layers = new Map<string, Promise<unknown>>();
   const directories = new Map<string, Promise<unknown>>();
@@ -121,12 +95,8 @@ export function projectLoader(
   async function regular(path: string) {
     assertInside(owner, path);
     const info = await Deno.lstat(path);
-    if (!info.isFile || info.isSymlink || await Deno.realPath(path) !== path) {
-      fail(
-        "PROJECT_SOURCE",
-        "Нужен обычный файл без символических ссылок",
-        path,
-      );
+    if (!info.isFile || info.isSymlink || (await Deno.realPath(path)) !== path) {
+      fail("PROJECT_SOURCE", "Нужен обычный файл без символических ссылок", path);
     }
   }
   function read(path: string) {
@@ -145,9 +115,7 @@ export function projectLoader(
           const first: unknown = document.errors[0];
           fail(
             "PROJECT_YAML",
-            record(first) && typeof first.message === "string"
-              ? first.message
-              : "Повреждённый YAML",
+            record(first) && typeof first.message === "string" ? first.message : "Повреждённый YAML",
             path,
           );
         }
@@ -179,31 +147,19 @@ export function projectLoader(
     }
     return value;
   }
-  function layer(
-    path: string,
-    format: string,
-    includes: boolean,
-    chain: readonly string[] = [],
-  ): Promise<unknown> {
+  function layer(path: string, format: string, includes: boolean, chain: readonly string[] = []): Promise<unknown> {
     if (chain.includes(path)) {
-      fail(
-        "PROJECT_INCLUDE_CYCLE",
-        "Цикл metadata-files: " + [...chain, path].join(" → "),
-        path,
-      );
+      fail("PROJECT_INCLUDE_CYCLE", "Цикл metadata-files: " + [...chain, path].join(" → "), path);
     }
     const key = path + "\0" + format + "\0" + includes;
     let value = layers.get(key);
     if (!value) {
       value = (async () => {
         const data = await read(path);
-        const namespace = Object.hasOwn(data, "course-project")
-          ? data["course-project"]
-          : {};
+        const namespace = Object.hasOwn(data, "course-project") ? data["course-project"] : {};
         boundInput(namespace, path);
-        const specific = record(data.format) && record(data.format[format])
-          ? data.format[format]["course-project"]
-          : undefined;
+        const specific =
+          record(data.format) && record(data.format[format]) ? data.format[format]["course-project"] : undefined;
         // Обе декларации нормализуются отдельно: format override без base сбрасывает прежнюю базу.
         function normalize(value: unknown): unknown {
           const result = structuredClone(value);
@@ -212,20 +168,13 @@ export function projectLoader(
             addresses(result, (address) => {
               if (normalized.has(address)) return;
               normalized.add(address);
-              if (
-                !Object.hasOwn(address, "path") &&
-                !Object.hasOwn(address, "base")
-              ) return;
+              if (!Object.hasOwn(address, "path") && !Object.hasOwn(address, "base")) return;
               const parsed = ProjectAddressSchema.safeParse({
                 path: address.path,
                 base: address.base,
               });
               if (!parsed.success || isAbsolute(parsed.data.path)) {
-                fail(
-                  "PROJECT_PATH",
-                  "Нужен относительный {path, base?: config}",
-                  path,
-                );
+                fail("PROJECT_PATH", "Нужен относительный {path, base?: config}", path);
               }
               if (parsed.data.base === "config") {
                 address.path = resolve(dirname(path), parsed.data.path);
@@ -253,22 +202,12 @@ export function projectLoader(
             list.push(...included);
           }
           for (const name of list) {
-            if (
-              typeof name !== "string" || !name || isAbsolute(name) ||
-              /[\0\\]/.test(name)
-            ) {
-              fail(
-                "PROJECT_INCLUDE",
-                "Нужен относительный путь metadata-files",
-                path,
-              );
+            if (typeof name !== "string" || !name || isAbsolute(name) || /[\0\\]/.test(name)) {
+              fail("PROJECT_INCLUDE", "Нужен относительный путь metadata-files", path);
             }
             const included = resolve(dirname(path), name);
             assertInside(owner, included);
-            result = merge(
-              result,
-              await layer(included, format, true, [...chain, path]),
-            );
+            result = merge(result, await layer(included, format, true, [...chain, path]));
           }
         }
         return result;
@@ -285,12 +224,7 @@ export function projectLoader(
       const file = await find(join(owner, "_quarto-" + profile));
       if (file) result = merge(result, await layer(file, format, false));
     }
-    for (
-      const file of [
-        join(owner, "_quarto.yml.local"),
-        join(owner, "_quarto.yaml.local"),
-      ]
-    ) {
+    for (const file of [join(owner, "_quarto.yml.local"), join(owner, "_quarto.yaml.local")]) {
       try {
         await Deno.lstat(file);
       } catch (e) {
@@ -308,9 +242,7 @@ export function projectLoader(
     if (!result) {
       result = (async () => {
         assertInside(owner, directory);
-        let value = directory === owner
-          ? await root(format)
-          : await inherited(dirname(directory), format);
+        let value = directory === owner ? await root(format) : await inherited(dirname(directory), format);
         const file = await find(join(directory, "_metadata"));
         if (file) {
           metrics.directoryLayers++;
@@ -322,10 +254,7 @@ export function projectLoader(
     }
     return result;
   }
-  return async (
-    directory: string,
-    format: string,
-  ): Promise<ProjectContract> => {
+  return async (directory: string, format: string): Promise<ProjectContract> => {
     const inheritedValue = structuredClone(await inherited(directory, format));
     if (record(inheritedValue)) {
       addresses(inheritedValue, (address) => {
@@ -339,25 +268,12 @@ export function projectLoader(
       assertInside(owner, path);
       try {
         const info = await Deno.lstat(path);
-        if (
-          info.isSymlink || !(info.isFile || info.isDirectory) ||
-          await Deno.realPath(path) !== path
-        ) {
-          fail(
-            "PROJECT_SOURCE",
-            "Путь должен быть обычным файлом/каталогом без символических ссылок",
-            path,
-            field,
-          );
+        if (info.isSymlink || !(info.isFile || info.isDirectory) || (await Deno.realPath(path)) !== path) {
+          fail("PROJECT_SOURCE", "Путь должен быть обычным файлом/каталогом без символических ссылок", path, field);
         }
       } catch (e) {
         if (e instanceof Deno.errors.NotFound) {
-          fail(
-            "PROJECT_PATH_MISSING",
-            "Объявленный путь отсутствует",
-            path,
-            field,
-          );
+          fail("PROJECT_PATH_MISSING", "Объявленный путь отсутствует", path, field);
         }
         throw e;
       }

@@ -16,18 +16,25 @@ function scope() {
   return value;
 }
 /** Tool context carries no assignment runtime, capture token or authority. */
-export async function withNativeChildScope<T>(input: {
-  beforeChild: () => Promise<void>;
-  life: { active: boolean };
-  pandocBinding?: (() => Promise<NativePandocBinding | undefined>) | undefined;
-}, use: () => Promise<T>) {
-  const parent = scope(), life = { active: true };
+export async function withNativeChildScope<T>(
+  input: {
+    beforeChild: () => Promise<void>;
+    life: { active: boolean };
+    pandocBinding?: (() => Promise<NativePandocBinding | undefined>) | undefined;
+  },
+  use: () => Promise<T>,
+) {
+  const parent = scope(),
+    life = { active: true };
   try {
-    return await current.run({
-      beforeChild: input.beforeChild,
-      lives: [...parent?.lives ?? [], input.life, life],
-      pandocBinding: input.pandocBinding ?? parent?.pandocBinding,
-    }, use);
+    return await current.run(
+      {
+        beforeChild: input.beforeChild,
+        lives: [...(parent?.lives ?? []), input.life, life],
+        pandocBinding: input.pandocBinding ?? parent?.pandocBinding,
+      },
+      use,
+    );
   } finally {
     life.active = false;
   }
@@ -39,30 +46,18 @@ export async function nativeChildBefore() {
   scope();
   return true;
 }
-const equal = (a: unknown, b: unknown) =>
-  JSON.stringify(a) === JSON.stringify(b);
+const equal = (a: unknown, b: unknown) => JSON.stringify(a) === JSON.stringify(b);
 export function qualifiedPandocArgs(args: readonly string[], root: string) {
-  return args[0] === "pandoc" && (
-    equal(args, [
-      "pandoc",
-      "--from",
-      "markdown",
-      "--to",
-      "json",
-      "--wrap=none",
-    ]) ||
-    equal(args, ["pandoc", "--from", "json", "--to", "gfm", "--wrap=none"]) ||
-    args.length === 5 &&
-      equal(args.slice(0, 4), [
-        "pandoc",
-        "--from=json",
-        "--to=json",
-        "--citeproc",
-      ]) &&
-      typeof args[4] === "string" && args[4].startsWith("--resource-path=") &&
-      (args[4] === "--resource-path=" + root ||
-        args[4].slice(16).startsWith(root + "/")) &&
-      resolve(args[4].slice(16)) === args[4].slice(16)
+  return (
+    args[0] === "pandoc" &&
+    (equal(args, ["pandoc", "--from", "markdown", "--to", "json", "--wrap=none"]) ||
+      equal(args, ["pandoc", "--from", "json", "--to", "gfm", "--wrap=none"]) ||
+      (args.length === 5 &&
+        equal(args.slice(0, 4), ["pandoc", "--from=json", "--to=json", "--citeproc"]) &&
+        typeof args[4] === "string" &&
+        args[4].startsWith("--resource-path=") &&
+        (args[4] === "--resource-path=" + root || args[4].slice(16).startsWith(root + "/")) &&
+        resolve(args[4].slice(16)) === args[4].slice(16)))
   );
 }
 
@@ -77,9 +72,12 @@ export async function ordinaryPandocChild(input: {
   const binding = await value?.pandocBinding?.();
   scope();
   if (
-    !binding || !qualifiedPandocArgs(input.args, input.cwd) ||
-    input.executable !== binding.diagnosticTool || input.cwd !== binding.cwd
-  ) return undefined;
+    !binding ||
+    !qualifiedPandocArgs(input.args, input.cwd) ||
+    input.executable !== binding.diagnosticTool ||
+    input.cwd !== binding.cwd
+  )
+    return undefined;
   const expected = { ...binding.environment };
   // This fixed override is already supplied by the materializer to Quarto CLI.
   if (input.env.QUARTO_RUN_NO_NETWORK === "true") {
@@ -87,10 +85,10 @@ export async function ordinaryPandocChild(input: {
   }
   const environment = { ...Deno.env.toObject(), ...input.env };
   if (
-    Object.keys(environment).length !==
-      Object.keys(expected).length ||
+    Object.keys(environment).length !== Object.keys(expected).length ||
     Object.entries(expected).some(([key, value]) => environment[key] !== value)
-  ) return undefined;
+  )
+    return undefined;
   // Bash launcher corrects PWD when an explicit child cwd differs.
   const childEnvironment: Record<string, string> = {
     ...expected,

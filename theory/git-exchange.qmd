@@ -78,12 +78,12 @@ git remote -v
 
 ## Протоколы обмена {#sec-git-protocols}
 
-| Способ обращения | Пример адреса | Свойства |
-|---|---|---|
-| Локальный путь | `../shared-project` | Доступ к другому репозиторию через файловую систему; права задаёт ОС |
-| HTTPS | `https://github.com/OWNER/REPOSITORY.git` | Защищённый сетевой канал; для записи GitHub требуется аутентификация |
-| SSH | `git@github.com:OWNER/REPOSITORY.git` | Защищённый канал и аутентификация ключом в маршруте GitHub |
-| Git protocol | `git://example.org/project.git` | Передача без встроенного шифрования и аутентификации |
+  | Способ обращения | Пример адреса                             | Свойства                                                             |
+  | ---              | ---                                       | ---                                                                  |
+  | Локальный путь   | `../shared-project`                       | Доступ к другому репозиторию через файловую систему; права задаёт ОС |
+  | HTTPS            | `https://github.com/OWNER/REPOSITORY.git` | Защищённый сетевой канал; для записи GitHub требуется аутентификация |
+  | SSH              | `git@github.com:OWNER/REPOSITORY.git`     | Защищённый канал и аутентификация ключом в маршруте GitHub           |
+  | Git protocol     | `git://example.org/project.git`           | Передача без встроенного шифрования и аутентификации                 |
 
 GitHub прекратил поддержку `git://` 15 марта 2022 года.
 [Изменение безопасности протоколов](https://github.blog/security/application-security/improving-git-protocol-security-github/).

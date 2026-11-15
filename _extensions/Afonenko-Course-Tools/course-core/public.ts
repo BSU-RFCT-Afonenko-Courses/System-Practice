@@ -1,23 +1,8 @@
 /** Публичный ограниченный native/TS договор Core; runtime-проверки обязательны. */
-export {
-  CoreContractError,
-  ProjectContractSchema,
-} from "./contracts/project.ts";
-export type {
-  ProjectContract,
-  ProjectContractContext,
-  ProjectContractInput,
-} from "./contracts/project.ts";
-export {
-  assertProjectContext,
-  decodeProjectContract,
-  readProjectContexts,
-} from "./infrastructure/project-context.ts";
-export type {
-  ProjectContext,
-  ProjectContextGroup,
-  ProjectContextRequest,
-} from "./infrastructure/project-context.ts";
+export { CoreContractError, ProjectContractSchema } from "./contracts/project.ts";
+export type { ProjectContract, ProjectContractContext, ProjectContractInput } from "./contracts/project.ts";
+export { assertProjectContext, decodeProjectContract, readProjectContexts } from "./infrastructure/project-context.ts";
+export type { ProjectContext, ProjectContextGroup, ProjectContextRequest } from "./infrastructure/project-context.ts";
 export { normalizeDocument } from "./document/normalize.ts";
 export { finalizeDocument } from "./document/finalize.ts";
 export {
@@ -75,11 +60,7 @@ export type {
   ResolvedCondition,
   SubmissionInstructions,
 } from "./artifacts/contracts.ts";
-export {
-  withCurrentNativeOperation,
-  withNativePublication,
-  withPendingNativeOperation,
-} from "./runtime/operation.ts";
+export { withCurrentNativeOperation, withNativePublication, withPendingNativeOperation } from "./runtime/operation.ts";
 export { withNativeCaptureScope } from "./capture.ts";
 export type { NativeAssignmentPreparation } from "./capture.ts";
 export {
@@ -139,10 +120,7 @@ export type {
   NativeReleaseValidation,
 } from "./release/contracts.ts";
 
-export {
-  AnswerFactsSchema,
-  AnswerSpecSchema,
-} from "./document/answer-contracts.ts";
+export { AnswerFactsSchema, AnswerSpecSchema } from "./document/answer-contracts.ts";
 export type { AnswerFacts, AnswerSpec } from "./document/answer-contracts.ts";
 
 export type {
@@ -173,10 +151,7 @@ export type {
   NativeOperationProjectContextMetrics,
 } from "./infrastructure/project-context.ts";
 
-export type {
-  NativePublication,
-  NativePublicationSelection,
-} from "./release/publication.ts";
+export type { NativePublication, NativePublicationSelection } from "./release/publication.ts";
 
 export type { BodyResource, PublicBodyPackage } from "./body-export/model.ts";
 export { NativeResponseSlotSchema } from "./document/assignment-contracts.ts";

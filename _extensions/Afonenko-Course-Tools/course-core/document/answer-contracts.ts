@@ -18,43 +18,44 @@ export const AnswerSpecSchema = z.discriminatedUnion("type", [
   z.strictObject(numeric),
   z.strictObject({
     type: z.literal("multipart"),
-    parts: z.array(z.discriminatedUnion("type", [
-      z.strictObject({ ...manual, ...part }),
-      z.strictObject({ ...numeric, ...part }),
-    ])).min(1).max(4096).refine(
-      (parts) => new Set(parts.map((p) => p.name)).size === parts.length,
-      "Повторное имя части",
-    ),
-  }),
-  z.strictObject({
-    type: z.literal("matching"),
-    prompts: z.array(z.string().min(1)).min(1).max(4096),
-    options: z.array(z.string().min(1)).min(1).max(4096),
-    key: z.strictObject({ pairs: z.record(z.string(), z.string()) }),
-  }).superRefine((a, c) => {
-    if (
-      new Set(a.prompts).size !== a.prompts.length ||
-      new Set(a.options).size !== a.options.length ||
-      Object.keys(a.key.pairs).length !== a.prompts.length ||
-      a.prompts.some((p) => !Object.hasOwn(a.key.pairs, p)) ||
-      Object.entries(a.key.pairs).some(([p, o]) =>
-        !a.prompts.includes(p) || !a.options.includes(o)
+    parts: z
+      .array(
+        z.discriminatedUnion("type", [z.strictObject({ ...manual, ...part }), z.strictObject({ ...numeric, ...part })]),
       )
-    ) {
-      c.addIssue({
-        code: "custom",
-        message: "Требуется полное соответствие уникальных условий и вариантов",
-      });
-    }
+      .min(1)
+      .max(4096)
+      .refine((parts) => new Set(parts.map((p) => p.name)).size === parts.length, "Повторное имя части"),
   }),
+  z
+    .strictObject({
+      type: z.literal("matching"),
+      prompts: z.array(z.string().min(1)).min(1).max(4096),
+      options: z.array(z.string().min(1)).min(1).max(4096),
+      key: z.strictObject({ pairs: z.record(z.string(), z.string()) }),
+    })
+    .superRefine((a, c) => {
+      if (
+        new Set(a.prompts).size !== a.prompts.length ||
+        new Set(a.options).size !== a.options.length ||
+        Object.keys(a.key.pairs).length !== a.prompts.length ||
+        a.prompts.some((p) => !Object.hasOwn(a.key.pairs, p)) ||
+        Object.entries(a.key.pairs).some(([p, o]) => !a.prompts.includes(p) || !a.options.includes(o))
+      ) {
+        c.addIssue({
+          code: "custom",
+          message: "Требуется полное соответствие уникальных условий и вариантов",
+        });
+      }
+    }),
 ]);
 export const AnswerFactsSchema = z.union([
   AnswerSpecSchema,
-  z.strictObject({
-    type: z.literal("single-choice"),
-    count: z.number().int().min(2).max(4096),
-    correct: z.number().int().nonnegative(),
-  })
+  z
+    .strictObject({
+      type: z.literal("single-choice"),
+      count: z.number().int().min(2).max(4096),
+      correct: z.number().int().nonnegative(),
+    })
     .refine((a) => a.correct < a.count, "correct вне диапазона"),
 ]);
 export type AnswerSpec = z.output<typeof AnswerSpecSchema>;

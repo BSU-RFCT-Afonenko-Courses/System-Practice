@@ -10,7 +10,11 @@ if [ "${#TASK_RENDER_PROFILES[@]}" -eq 0 ]; then
   TASK_RENDER_PROFILES=(student)
 fi
 for TASK_RENDER_STEP in "${TASK_RENDER_PROFILES[@]}"; do
-  case "$TASK_RENDER_STEP" in student|full) ;; *) echo "Unsupported view: $TASK_RENDER_STEP" >&2; exit 2 ;; esac
+  case "$TASK_RENDER_STEP" in student | full) ;; *)
+    echo "Unsupported view: $TASK_RENDER_STEP" >&2
+    exit 2
+    ;;
+  esac
   TASK_RENDER_COUNT=${TASK_RENDER_COUNT:-0}
   TASK_RENDER_COUNT=$((TASK_RENDER_COUNT + 1))
   TASK_ACTIVE_PROFILE="$TASK_RENDER_STEP"

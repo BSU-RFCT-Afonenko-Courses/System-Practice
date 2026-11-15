@@ -1,8 +1,4 @@
-import {
-  assignmentBeforeChild,
-  assignmentChild,
-  assignmentQuarto,
-} from "../runtime/assignment-execution.ts";
+import { assignmentBeforeChild, assignmentChild, assignmentQuarto } from "../runtime/assignment-execution.ts";
 import { createMetrics as __createMetrics } from "../observability/bridge.ts";
 const __metrics = __createMetrics("course-core");
 function quartoExecutableWork(): string {
@@ -36,10 +32,13 @@ async function execute(
   let result: Deno.CommandOutput;
   try {
     const context = __metrics.childEnv(env);
-    const childOptions = context === env ? { env } : {
-      env: __metrics.childEnv({ ...Deno.env.toObject(), ...env }),
-      clearEnv: true,
-    };
+    const childOptions =
+      context === env
+        ? { env }
+        : {
+            env: __metrics.childEnv({ ...Deno.env.toObject(), ...env }),
+            clearEnv: true,
+          };
     await assignmentBeforeChild();
     const qualified = assignmentChild(executable, args, cwd, env);
     const tool = new Deno.Command(qualified?.executable ?? executable, {
@@ -53,7 +52,8 @@ async function execute(
     if (input === undefined) {
       result = await tool.output();
     } else {
-      const child = tool.spawn(), writer = child.stdin.getWriter();
+      const child = tool.spawn(),
+        writer = child.stdin.getWriter();
       // Дренируем оба output потока одновременно с записью: большой JSON и
       // большой stdout не должны взаимно блокировать pipe. Ошибка stdin не
       // скрывает реальный ненулевой exit/stderr завершившегося инструмента.
@@ -64,16 +64,15 @@ async function execute(
         } catch (cause) {
           try {
             await writer.abort(cause);
-          } catch { /* pipe уже закрыт */ }
+          } catch {
+            /* pipe уже закрыт */
+          }
           throw cause;
         } finally {
           writer.releaseLock();
         }
       })();
-      const [write, output] = await Promise.allSettled([
-        written,
-        child.output(),
-      ]);
+      const [write, output] = await Promise.allSettled([written, child.output()]);
       if (output.status === "rejected") throw output.reason;
       result = output.value;
       if (write.status === "rejected" && result.success) throw write.reason;
@@ -93,14 +92,11 @@ async function execute(
       stderr: "",
     });
   }
-  const stdout = new TextDecoder("utf-8", { fatal: true, ignoreBOM: true })
-      .decode(result.stdout),
+  const stdout = new TextDecoder("utf-8", { fatal: true, ignoreBOM: true }).decode(result.stdout),
     stderr = new TextDecoder().decode(result.stderr);
   if (!result.success) {
     const error = new Error(
-      `${executable} ${
-        args[0] ?? ""
-      }: внешний инструмент завершился с кодом ${result.code}\n${stdout}${stderr}`,
+      `${executable} ${args[0] ?? ""}: внешний инструмент завершился с кодом ${result.code}\n${stdout}${stderr}`,
       { cause: result },
     );
     error.name = "ExternalToolFailure";
@@ -115,12 +111,24 @@ async function execute(
   return stdout;
 }
 
-export const quartoExecutable = __metrics.wrapSync({
-  id: "course-core.infrastructure.process.quartoExecutable", kind: "command",
-}, quartoExecutableWork);
-export const command = __metrics.wrapAsync({
-  id: "course-core.infrastructure.process.command", kind: "command",
-}, commandWork);
-export const commandInput = __metrics.wrapAsync({
-  id: "course-core.infrastructure.process.command", kind: "command",
-}, commandInputWork);
+export const quartoExecutable = __metrics.wrapSync(
+  {
+    id: "course-core.infrastructure.process.quartoExecutable",
+    kind: "command",
+  },
+  quartoExecutableWork,
+);
+export const command = __metrics.wrapAsync(
+  {
+    id: "course-core.infrastructure.process.command",
+    kind: "command",
+  },
+  commandWork,
+);
+export const commandInput = __metrics.wrapAsync(
+  {
+    id: "course-core.infrastructure.process.command",
+    kind: "command",
+  },
+  commandInputWork,
+);
